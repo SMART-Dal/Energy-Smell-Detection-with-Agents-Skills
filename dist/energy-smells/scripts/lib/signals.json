@@ -507,7 +507,7 @@
    "category_name": "Unnecessary Memory Usage",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "reuse, share or avoid creating the object",
+   "repair": "create fewer objects -- reuse one, or use a literal, or do not create it at all",
    "card": "reference/root-causes/C6.S1.md"
   },
   "C6.S2": {
@@ -516,7 +516,7 @@
    "category_name": "Unnecessary Memory Usage",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "operate in place or pass a reference",
+   "repair": "use a reference, a view, a slice or an in-place operation instead of copying",
    "card": "reference/root-causes/C6.S2.md"
   },
   "C6.S3": {
@@ -525,25 +525,25 @@
    "category_name": "Unnecessary Memory Usage",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "make the producer lazy",
+   "repair": "produce the sequence lazily when it is consumed once and never indexed",
    "card": "reference/root-causes/C6.S3.md"
   },
   "C6.S4": {
    "name": "Oversized Data Retaining",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
-   "measurability": "scales_with_input",
-   "advisory_only": false,
-   "repair": "retain only the fields that are actually used later",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "retain the smallest thing that answers the later question",
    "card": "reference/root-causes/C6.S4.md"
   },
   "C6.S5": {
    "name": "Over-Allocation",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
-   "measurability": "scales_with_input",
-   "advisory_only": false,
-   "repair": "size the allocation to the actual input",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "size the buffer to the workload, or let the container grow",
    "card": "reference/root-causes/C6.S5.md"
   },
   "C6.S6": {
@@ -552,7 +552,7 @@
    "category_name": "Unnecessary Memory Usage",
    "measurability": "constant_small",
    "advisory_only": true,
-   "repair": "manage the resource with a `with` block",
+   "repair": "acquire the resource in a `with` statement so it closes deterministically",
    "card": "reference/root-causes/C6.S6.md"
   },
   "C6.S7": {
@@ -561,7 +561,7 @@
    "category_name": "Unnecessary Memory Usage",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "default to `None` and create the object inside the body",
+   "repair": "default to `None` and create the mutable object inside the body",
    "card": "reference/root-causes/C6.S7.md"
   },
   "C7.S1": {
@@ -570,7 +570,7 @@
    "category_name": "Suboptimal Algorithmic",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "replace the algorithm with the better-known one",
+   "repair": "replace the algorithm with one whose complexity fits the input size",
    "card": "reference/root-causes/C7.S1.md"
   },
   "C7.S2": {
@@ -579,16 +579,16 @@
    "category_name": "Suboptimal Algorithmic",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "prune, memoise or reorder the exploration",
+   "repair": "memoise overlapping subproblems, prune what cannot contribute, or reorder to prune sooner",
    "card": "reference/root-causes/C7.S2.md"
   },
   "C7.S3": {
    "name": "Avoidable Recursive Implementation",
    "category": "C7",
    "category_name": "Suboptimal Algorithmic",
-   "measurability": "scales_with_input",
+   "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "convert the recursion to a loop with an accumulator",
+   "repair": "convert linear recursion to a loop with an explicit accumulator",
    "card": "reference/root-causes/C7.S3.md"
   },
   "C7.S4": {
@@ -597,7 +597,7 @@
    "category_name": "Suboptimal Algorithmic",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "run the cheap, reducing step first",
+   "repair": "run the cheap, reducing operation before the expensive one",
    "card": "reference/root-causes/C7.S4.md"
   },
   "C7.S5": {
@@ -606,7 +606,7 @@
    "category_name": "Suboptimal Algorithmic",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "simplify or pre-check the input before the expensive step",
+   "repair": "simplify the input or the operation using a fact about the values",
    "card": "reference/root-causes/C7.S5.md"
   },
   "C8.S1": {

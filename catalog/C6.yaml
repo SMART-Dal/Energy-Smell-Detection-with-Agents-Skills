@@ -1,176 +1,949 @@
 # C6 -- Unnecessary Memory Usage
-# Allocation, copying, retention and leaks.  Note that DRAM energy is a small
-# share of package energy on most hosts, so memory repairs often show up as
-# smaller measured effects than their allocation counts suggest.
+#
+# Allocation, copying, retention and leaks.
+#
+# One caveat governs the whole category and should temper every claim in it:
+# DRAM energy is a small share of package energy on most hosts, so a repair that
+# halves the allocation count usually measures much smaller than the count
+# suggests. What actually shows up is the *CPU* work around the memory --
+# `malloc`, the object header, reference counting, the collector's traversal of
+# a larger heap, and the copying itself. Size the claim on that, not on bytes.
+#
+# The seven split by what the repair does to the objects:
+#
+#     S1  fewer of them
+#     S2  the same data without duplicating it
+#     S3  produced lazily instead of all at once
+#     S4  smaller ones retained
+#     S5  a right-sized buffer instead of an over-sized one
+#     S6  released at a determined moment
+#     S7  not shared between calls by accident
 
 - id: C6.S1
   signals: [ruff_C408, ruff_RUF005]
+  mechanism: >
+    Every Python object costs an allocation, a header, and eventually the
+    collector's attention: a bare `[]` is 56 bytes and a `malloc`, a small class
+    instance is two allocations (the object and its `__dict__`).  Creating them
+    inside a loop pays that per iteration for objects the program discards
+    immediately.  The cost is dominated by the allocator and the reference
+    counting rather than by the bytes, which is why the effect tracks the
+    *number* of objects rather than their size -- and why a million tiny
+    throwaway objects cost more than one large one.
   how_to_tell:
-    - more objects are created than the work requires (duplicates, short-lived
-      temporaries, instances that could be shared)
+    - >
+      Point at the creation and say how many times it happens: per iteration,
+      per call, per element.
+    - >
+      Establish the object is discarded rather than kept. An object created per
+      iteration and appended to a result is needed; one created per iteration,
+      read, and dropped is not.
+    - >
+      Say what replaces it -- a single instance reused, a literal instead of a
+      constructor call, a shared immutable, or nothing at all.
+    - >
+      For the reuse form, establish that no iteration's version of the object
+      escapes. If they are collected, or stored, or captured by a closure, they
+      must be distinct and reuse is a bug.
+    - >
+      Check the object is genuinely redundant rather than cheap. `dict()` versus
+      `{}` is one avoided global lookup and a call; that is real and small, and
+      the honest report for a cold path is advisory.
   not_a_smell_when:
-    - each instance is mutated independently, so sharing would alias state
-    - the objects escape and must outlive the iteration
-    - the type is immutable and already interned by the runtime
+    - >
+      each instance escapes -- stored, returned, appended, captured -- so they
+      must be distinct objects
+    - >
+      the object carries per-iteration state that must not leak into the next one
+    - >
+      the object is immutable and interned by CPython already, such as a small
+      int or a short string literal
+    - >
+      the count is small, where allocation is a few hundred nanoseconds total
+    - >
+      reusing one instance would make the code meaningfully harder to reason
+      about on a path that is not hot
+  counter_examples:
+    - code: |
+        rows = []
+        for record in records:
+            rows.append({"id": record.id, "name": record.name})
+        return rows
+      why: >
+        A dict created per iteration, which is the shape -- and every one is
+        kept. There is nothing to reuse: the objects are the result. The
+        available repairs are a comprehension (C3.S1) or a lighter
+        representation such as a namedtuple (C5.S3), not fewer objects.
+    - code: |
+        def parse(lines):
+            for line in lines:
+                fields = line.split(",")
+                yield Record(*fields)
+      why: >
+        `fields` is created per line and discarded, so it looks reusable -- and
+        `str.split` has to allocate, there is no in-place variant to reuse a
+        list with. The candidate needs a creation you can actually hoist, not
+        merely one that is temporary.
   refactoring:
-    summary: reuse, share or avoid creating the object
-    before: |
-      for row in rows:
-          buffer = []
-          buffer.append(row.value)
-          emit(buffer)
-    after: |
-      buffer = []
-      for row in rows:
-          buffer.clear()
-          buffer.append(row.value)
-          emit(buffer)
+    summary: create fewer objects -- reuse one, or use a literal, or do not create it at all
+    examples:
+      - title: one instance reused instead of one per iteration
+        before: |
+          def render_people(count):
+              out = []
+              for i in range(count):
+                  person = Person(f"person {i}", i)
+                  out.append(str(person))
+              return out
+        after: |
+          def render_people(count):
+              out = []
+              person = Person("", 0)
+              for i in range(count):
+                  person.name = f"person {i}"
+                  person.age = i
+                  out.append(str(person))
+              return out
+        note: >
+          One allocation instead of N, available only because each instance is
+          rendered to a string immediately and never escapes. If `out` collected
+          the objects, every entry would be the same object and this would be a
+          bug. Note the repair is a real readability cost, so it needs a genuinely
+          hot loop to be worth proposing.
+      - title: a constructor call where a literal would do
+        before: |
+          def defaults():
+              return dict(host="localhost", port=8080)
+        after: |
+          def defaults():
+              return {"host": "localhost", "port": 8080}
+        note: >
+          `dict(...)` is a global lookup plus a call plus keyword packing; the
+          literal is a single bytecode. Small and real. On anything but a very
+          hot path this is honestly advisory, and reporting it as a measured
+          saving overstates it.
+      - title: an intermediate container nobody needed
+        before: |
+          def total_lengths(names):
+              lengths = [len(n) for n in names]
+              return sum(lengths)
+        after: |
+          def total_lengths(names):
+              return sum(len(n) for n in names)
+        note: >
+          One list of N integers is never built. Note the caveat from C6.S3: for
+          a *short* pipeline the materialised list can measure ahead of the
+          generator, because resumption costs more per element than the
+          allocation saves. Measure rather than assume -- the object count is
+          not the whole story.
   patch_shape: statement_local
   measurability: scales_with_input
+  min_workload_hint: >
+    tens of thousands of objects at least; the cost is per allocation, not per
+    byte, so many small objects beat one large one for showing an effect
   discriminators:
+    - vs: C5.S3
+      rule: >
+        C6.S1 changes how *many* objects exist.  C5.S3 keeps the count and makes
+        each one lighter -- `__slots__`, a namedtuple, a tuple instead of a
+        dict.  If the repair changes a count, it is C6.S1.
     - vs: C3.S3
       rule: >
-        C3.S3's repair *moves* a construction out of a loop.  C6.S1's repair
-        *reduces the number* of objects, whether or not a loop is involved.
+        C3.S3 is about a creation being *per iteration* when it could be hoisted;
+        C6.S1 is about objects that need not exist at all.  If the loop is
+        incidental to the finding, it is C6.S1.
+    - vs: C6.S3
+      rule: >
+        C6.S3 is specifically about *materialising a sequence* that could be
+        produced lazily.  C6.S1 is about object count generally.
 
 - id: C6.S2
   signals:
     - copy_in_loop
+  mechanism: >
+    A copy walks the source and allocates a container of the same size, so it
+    costs a full pass plus an allocation.  `sorted(xs)` builds a new list where
+    `xs.sort()` reorders in place; `a + b` allocates where `a.extend(b)` grows
+    the existing buffer; a defensive `list(xs)` before a read-only traversal
+    allocates for nothing.  The saving is that pass and that allocation -- and
+    the reason the repair is so often unavailable is that the copy was buying
+    something: isolation from a caller who must not see the mutation.
   how_to_tell:
-    - data is copied where a reference, view, slice or in-place operation would do
+    - >
+      Point at the copy: `sorted()`, `list()`, `.copy()`, `dict(other)`, a full
+      slice `xs[:]`, or an element-by-element transfer loop.
+    - >
+      Establish that nothing needs the original afterwards in its original form.
+      This is the whole question, and it usually requires reading the callers,
+      not just the function.
+    - >
+      Say who owns the data. Mutating a caller's argument in place is a
+      behaviour change even when the return value is identical, and whether it
+      is safe is a fact about the call sites.
+    - >
+      Check for aliases. If the object was already shared -- stored on `self`,
+      registered somewhere, captured -- an in-place mutation is visible in
+      places you have not read.
+    - >
+      Size it. The saving is one pass and one allocation, so it needs a large
+      container or a hot loop.
   not_a_smell_when:
-    - the caller must not observe mutations of the original
-    - the original is mutated later and the copy is the snapshot
-    - the copy crosses a thread or process boundary
-  refactoring:
-    summary: operate in place or pass a reference
-    before: |
-      ordered = sorted(values)
-      values = ordered
-    after: |
-      values.sort()
-  patch_shape: expression
-  measurability: scales_with_input
+    - >
+      the copy protects a caller's data from being mutated, and a call site
+      relies on that
+    - >
+      the original is used again afterwards in its unmutated form
+    - >
+      the object is shared or stored elsewhere, so an in-place change is visible
+      outside this function
+    - >
+      the copy is a snapshot taken deliberately, before a mutation or a close
+    - >
+      the container is small, where the copy is a few hundred nanoseconds
   counter_examples:
     - code: |
-        for row in rows:
-            working = list(row)
-            working.sort()
-            emit(working)
-      why: |
-        the copy is load-bearing: the code mutates it and the caller's list must not change. A copy is only waste when nothing writes to it.
+        def top_three(scores):
+            return sorted(scores, reverse=True)[:3]
+      why: >
+        The obvious repair is `scores.sort(reverse=True)`, and it mutates the
+        caller's list. The function looks pure and would stop being pure. The
+        repair is only available once you have checked every call site, and the
+        verifier has an explicit opt-in for exactly this case --
+        `EQUIVALENCE = "returns_only"` with the reason stated -- rather than
+        letting it pass silently.
+    - code: |
+        def apply_defaults(config):
+            merged = dict(DEFAULTS)
+            merged.update(config)
+            return merged
+      why: >
+        A copy of a module-level dict, which is the shape -- and removing it
+        would have every call mutate the shared `DEFAULTS`. The copy is the only
+        thing making this function safe to call twice.
+  refactoring:
+    summary: use a reference, a view, a slice or an in-place operation instead of copying
+    examples:
+      - title: an element-at-a-time copy
+        before: |
+          def merge(first, second):
+              result = first.copy()
+              for x in second:
+                  result.append(x)
+              return result
+        after: |
+          def merge(first, second):
+              result = first.copy()
+              result.extend(second)
+              return result
+        note: >
+          `first.copy()` stays -- it is what keeps the caller's list intact. Only
+          the per-element transfer changes, and it changes to one C-level copy of
+          the pointers. Note this is also C10.S3; one repair, pick the label that
+          describes it better.
+      - title: sorting in place, once the ownership is established
+        before: |
+          def process(self, values):
+              ordered = sorted(values)
+              return sum(ordered[:self.limit])
+        after: |
+          def process(self, values):
+              values.sort()
+              return sum(values[:self.limit])
+        note: >
+          Available only if `values` is this object's own list and no caller
+          depends on its order. State that check in the finding, and declare
+          `EQUIVALENCE = "returns_only"` in the case file with the reason --
+          because the return value is identical and the argument state is not.
+      - title: a defensive copy that nothing needed
+        before: |
+          def summarise(rows):
+              snapshot = list(rows)
+              return sum(r.amount for r in snapshot)
+        after: |
+          def summarise(rows):
+              return sum(r.amount for r in rows)
+        note: >
+          Read-only traversal, no mutation anywhere, so the copy is a full pass
+          and an allocation buying nothing. The one thing to check is whether
+          `rows` may be a generator that something else also consumes -- then the
+          copy is not defensive but load-bearing.
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    a large container or a hot loop; the effect is one pass plus one allocation
+    per copy avoided
+  notes: >
+    The commonest instances of this root cause trade an allocation for a
+    mutation, which is a behaviour change even when the returned value is
+    identical.  Whether it is acceptable is a fact about the call sites rather
+    than about the function, so the finding has to say which call sites were
+    checked, and the case file has to declare the relaxation rather than let the
+    difference pass unnoticed.
+  discriminators:
+    - vs: C5.S4
+      rule: >
+        C6.S2 removes a *copy of the same representation*.  C5.S4 removes a
+        *conversion between representations*.  `list(xs)` where `xs` is already a
+        list is C6.S2; `list(generator)` is C5.S4.
+    - vs: C6.S3
+      rule: >
+        C6.S2 is about duplicating data that already exists.  C6.S3 is about
+        materialising data that has not been produced yet.
+    - vs: C10.S3
+      rule: >
+        An element-by-element copy loop replaced by `extend` or a slice fits
+        both.  Report C6.S2 when the point is the redundant duplication and
+        C10.S3 when the point is the unbatched per-element call.
+
 - id: C6.S3
   signals: [eager_comprehension, whole_file_read, ruff_C400, ruff_C401, ruff_C402, ruff_C419, ruff_RUF015]
+  mechanism: >
+    A list comprehension runs to completion and allocates a container holding
+    every result; a generator expression produces one element per request and
+    holds only the current one.  For a large sequence that difference is the
+    whole result set in memory against a constant -- and if the consumer stops
+    early, it is also all the elements after the stopping point never being
+    computed.
+
+    What the generator costs is not free, and this is where the received advice
+    overreaches.  Each element requires resuming a suspended frame and
+    suspending it again, which is more per-element interpreter work than a
+    comprehension's dedicated append bytecode.  So the trade is *allocation and
+    peak memory* against *per-element resumption*, and which side wins depends
+    on how many elements there are, how large they are, and whether the consumer
+    runs to the end.
   how_to_tell:
-    - a sequence is fully materialised although it is consumed once, in order
+    - >
+      Say what consumes the materialised sequence, and whether it consumes it
+      exactly once. Anything indexed, sliced, `len()`-ed, iterated twice or
+      returned needs a sequence, and a generator would be wrong rather than
+      merely different.
+    - >
+      Establish that the source is large enough for peak memory to matter, or
+      unbounded. Streaming a file line by line instead of `.read()` is the
+      clearest case, because the alternative is bounded only by the file.
+    - >
+      Establish whether the consumer can stop early. `any`, `all`, `next`, `in`
+      and a `break` all mean the elements after the stopping point are never
+      computed, which is a real saving on top of the memory one.
+    - >
+      If none of the above holds -- a short sequence, consumed fully, by a
+      C-level function -- then say so and expect the generator to be *slower*.
+      Measured on this project's host, `sum([x*2 for x in values])` came out 22%
+      ahead of the generator form for a hundred thousand elements.
+    - >
+      Check the source is not something a lazy consumer would keep alive too
+      long: a cursor, an open file, a lock held for the duration.
   not_a_smell_when:
-    - the result is iterated more than once
-    - it is indexed, sliced, or its length is needed
-    - laziness would hold a file or connection open longer than intended
-    - the collection is small and laziness adds generator overhead
+    - >
+      the result is indexed, sliced, measured, iterated more than once, or
+      returned, so a generator would be exhausted or unusable
+    - >
+      the sequence is short and consumed fully by a C-level function, where
+      per-element resumption costs more than the allocation saves
+    - >
+      the eager evaluation is what pins a value before its source is mutated or
+      closed
+    - >
+      laziness would hold a resource open across a boundary where it must not be
+    - >
+      the consumer needs the whole result anyway, such as a sort or a shuffle
+  counter_examples:
+    - code: |
+        total = sum([x * 2 for x in values])
+      why: >
+        The textbook repair is a generator expression, and measured here the
+        list comprehension was **22% ahead** for a hundred-thousand-element
+        pipeline consumed once by `sum`. Generator resumption is not free, and
+        at this size it costs more than the allocation. Prefer the generator for
+        memory, for very large or unbounded sources, and where the consumer can
+        stop early -- not by reflex. (This reading sat on a contaminated noise
+        floor, so treat the direction as established and the magnitude as not.)
+    - code: |
+        scores = [score(x) for x in items]
+        best = max(scores)
+        worst = min(scores)
+      why: >
+        Consumed twice. A generator would be exhausted by `max` and `min` would
+        raise on an empty iterator. The pattern matches and the repair is broken
+        -- which is why the first `how_to_tell` step is "consumed exactly once".
+    - code: |
+        rows = list(cursor)
+        connection.close()
+        return summarise(rows)
+      why: >
+        The materialisation pins the rows before the connection closes. Made
+        lazy, `summarise` iterates a dead cursor.
   refactoring:
-    summary: make the producer lazy
-    before: |
-      total = sum([score(x) for x in items])
-    after: |
-      total = sum(score(x) for x in items)
+    summary: produce the sequence lazily when it is consumed once and never indexed
+    examples:
+      - title: a file read whole when it is processed line by line
+        before: |
+          def count_errors(path):
+              with open(path, encoding="utf-8") as handle:
+                  lines = handle.read().splitlines()
+              return sum(1 for line in lines if "ERROR" in line)
+        after: |
+          def count_errors(path):
+              with open(path, encoding="utf-8") as handle:
+                  return sum(1 for line in handle if "ERROR" in line)
+        note: >
+          The clearest case in the category, because the eager version's peak
+          memory is the file size and the lazy version's is one line. This is
+          where laziness wins outright rather than on a trade -- and it also
+          removes the `splitlines` pass and its list of every line.
+      - title: a consumer that stops early
+        before: |
+          def has_admin(users):
+              privileged = [u for u in users if u.is_admin]
+              return len(privileged) > 0
+        after: |
+          def has_admin(users):
+              return any(u.is_admin for u in users)
+        note: >
+          Two savings at once: nothing is allocated, and `any` returns at the
+          first admin instead of scanning everyone. The early exit is the larger
+          half on data where an admin appears early -- which makes this as much
+          C3.S5 as C6.S3, so pick the one you can defend and subsume the other.
+      - title: an intermediate that is only passed through
+        before: |
+          def report(paths):
+              sizes = [os.path.getsize(p) for p in paths]
+              return max(sizes), sum(sizes)
+        after: |
+          def report(paths):
+              sizes = [os.path.getsize(p) for p in paths]
+              return max(sizes), sum(sizes)
+              # unchanged: `sizes` is consumed twice, so it must stay a list
+        note: >
+          Included deliberately as a repair that does not exist. `sizes` feeds
+          both `max` and `sum`, so laziness is unavailable and the correct
+          outcome is to reject the candidate and record why. Recognising the
+          non-repair is as much of this card's job as recognising the repair.
   patch_shape: expression
   measurability: scales_with_input
   min_workload_hint: >
-    the materialised sequence must be large enough for allocation to register;
-    tens of thousands of elements at minimum
+    large or unbounded sources, or a consumer that stops early. On a short
+    sequence consumed fully, expect the eager form to win and the candidate to be
+    correctly refuted
+  notes: >
+    The published description says to prefer a generator "when the result is
+    consumed exactly once", and this project's own measurement contradicts that
+    as a blanket rule: for a short pipeline consumed once by a C-level function
+    the list comprehension was ahead.  Both facts fit together once the mechanism
+    is stated -- laziness buys allocation and peak memory and costs per-element
+    resumption -- so the card asks the reader to establish which side dominates
+    here rather than to apply the rule.
   discriminators:
-    - vs: C9.S2
-      rule: |
-        C6.S3 is about the shape of an in-memory sequence.  C9.S2 is about how much of an external resource is pulled in.  `f.read()` on a large file routes to both: if the repair streams from the source, it is C9.S2; if the data is already in memory and the repair only avoids a copy of it, it is C6.S3.
     - vs: C5.S4
       rule: >
-        C6.S3 changes an eager producer into a lazy one.  C5.S4 deletes a
-        conversion and leaves the producer as it was.
+        Decide by what the patch touches.  C6.S3 *changes the producer* from
+        eager to lazy: `[f(x) for x in xs]` becomes `(f(x) for x in xs)`.  C5.S4
+        *deletes a conversion* and leaves the producer alone: `sum(list(g))`
+        becomes `sum(g)`.
+    - vs: C6.S1
+      rule: >
+        C6.S3 is about one container holding every result.  C6.S1 is about the
+        number of objects created generally.
+    - vs: C3.S5
+      rule: >
+        When the saving comes from the consumer stopping early rather than from
+        the allocation, the finding is C3.S5.
+
+- id: C6.S4
+  mechanism: >
+    Retaining more than the use case needs keeps memory resident that could have
+    been released, which costs in three ways: the allocator's footprint, the
+    garbage collector's traversal of a larger live set on every collection cycle,
+    and -- once the working set exceeds physical memory -- paging.  The first two
+    are modest and continuous; the third is a cliff.  Retention is unusual in
+    this taxonomy because its cost is not paid at the point of the code that
+    causes it: a cache holding whole objects rather than identifiers costs
+    nothing where it is written and slows every collection cycle for the life of
+    the process.
+  how_to_tell:
+    - >
+      Find something long-lived that holds data: a cache, a module-level
+      registry, an instance attribute, a closure, a queue.
+    - >
+      Say what the retained data is used for later, by reading the code that
+      reads it. If only an identifier, a count or a hash is ever consulted, the
+      rest is retained for nothing.
+    - >
+      Establish the lifetime is genuinely long. A local that dies at the end of
+      the function retains nothing; this root cause needs the reference to
+      outlive the work.
+    - >
+      Say roughly how much is retained and for how long. "A dict of ten thousand
+      user objects for the life of the process" is a finding; "a list of ten
+      strings" is not.
+    - >
+      Check that re-fetching what you dropped is cheaper than keeping it. Storing
+      identifiers and looking the objects up again trades memory for I/O, and
+      that is a bad trade if the lookup is a network call.
+  not_a_smell_when:
+    - >
+      the full object is needed later, so dropping it forces a re-fetch that
+      costs more than the retention
+    - >
+      the structure is short-lived, dying with the function that built it
+    - >
+      the retained volume is small relative to the process
+    - >
+      the cache exists precisely to avoid the re-fetch, which is the trade being
+      made deliberately
   counter_examples:
     - code: |
-        total = sum([x * 2 for x in items])
-      why: |
-        a generator expression is not always the lighter choice. Feeding a cheap C-level reducer like `sum`, the genexp pays a frame resume per element and the materialised list wins. The saving is real when the consumer stops early, or when the sequence is large enough that holding it costs memory pressure.
-- id: C6.S4
-  how_to_tell:
-    - full objects are retained where identifiers, indices or aggregates suffice
-  not_a_smell_when:
-    - the retained fields are all used later
-    - re-fetching from an identifier would cost more than the memory saved
+        class Session:
+            def __init__(self, user):
+                self.user = user
+      why: >
+        A whole user object retained on a session, which is the shape -- and the
+        session is what the request handler reads the user's name, role and
+        preferences from. Replacing it with an ID means a lookup per request.
+        The retention is the point of the cache.
+    - code: |
+        def process(path):
+            content = open(path).read()
+            return len(content.splitlines())
+      why: >
+        The whole file is retained while only a line count is wanted, so it looks
+        like the shape -- but `content` is a local that dies immediately. The real
+        finding is C6.S3, streaming rather than reading whole; retention needs a
+        long-lived reference.
   refactoring:
-    summary: retain only the fields that are actually used later
-    before: |
-      cache[session] = user            # entire user object
-    after: |
-      cache[session] = user.id
+    summary: retain the smallest thing that answers the later question
+    examples:
+      - title: a cache holding objects where identifiers would do
+        before: |
+          class Index:
+              def __init__(self):
+                  self._seen = {}
+
+              def record(self, document):
+                  self._seen[document.checksum] = document      # whole document
+
+              def is_duplicate(self, document):
+                  return document.checksum in self._seen
+        after: |
+          class Index:
+              def __init__(self):
+                  self._seen = set()
+
+              def record(self, document):
+                  self._seen.add(document.checksum)
+
+              def is_duplicate(self, document):
+                  return document.checksum in self._seen
+        note: >
+          The only question ever asked is membership, so the documents were
+          retained for nothing -- and they kept every document the process had
+          ever seen alive for its whole run. A set of checksums answers the same
+          question. Check first that nothing else reads `_seen`'s values.
+      - title: a derived summary instead of the source
+        before: |
+          class Report:
+              def __init__(self, rows):
+                  self.rows = rows
+
+              def headline(self):
+                  return sum(r.amount for r in self.rows)
+        after: |
+          class Report:
+              def __init__(self, rows):
+                  self.total = sum(r.amount for r in rows)
+
+              def headline(self):
+                  return self.total
+        note: >
+          If `headline` is the only consumer, the rows are retained so they can
+          be summed later, and summing them at construction retains one number
+          instead. This is a real trade: it moves the work earlier and makes it
+          unconditional, so it is wrong if `headline` is often not called.
   patch_shape: structural
-  measurability: scales_with_input
+  measurability: constant_small
+  notes: >
+    Honest measurability is the difficulty here.  Retention costs collector time
+    and footprint, neither of which the paired A/B harness observes well: the
+    cost is spread over the process lifetime rather than concentrated in the
+    measured window, and the collector may not run inside it at all.  Report this
+    as advisory with the retained volume stated -- "N objects held for the
+    process lifetime where N identifiers would do" -- rather than manufacturing a
+    case file whose number will be noise.  `tracemalloc` or `sys.getsizeof`
+    evidence is more informative here than an energy figure.
+  discriminators:
+    - vs: C5.S3
+      rule: >
+        C6.S4 keeps fewer *things*.  C5.S3 keeps the same things in a lighter
+        *representation*.  Dropping fields is C6.S4; `__slots__` is C5.S3.
+    - vs: C6.S5
+      rule: >
+        C6.S4 is about data that was genuinely produced and did not need keeping.
+        C6.S5 is about capacity reserved for data that never arrived.
+    - vs: C8.S1
+      rule: >
+        These pull in opposite directions and both can be right about the same
+        cache.  C8.S1 says to store more so work is not repeated; C6.S4 says to
+        store less so memory is not held.  Say which cost you are choosing.
 
 - id: C6.S5
+  mechanism: >
+    A pre-allocated buffer larger than the workload needs costs its full size in
+    resident memory and in the zeroing or filling that created it, for capacity
+    that is never used.  Python's own containers grow geometrically and need no
+    hint, so this root cause is mostly reachable through explicit sizing: a list
+    multiplied out to a fixed length, a `bytearray` of a fixed size, a NumPy
+    array allocated at a worst-case shape, a pool or queue configured with a
+    maximum far above the observed load.  The cost is a one-off per allocation
+    rather than per element, so it matters when the buffer is large or allocated
+    repeatedly.
   how_to_tell:
-    - a buffer or container is pre-sized far beyond what typical inputs need
+    - >
+      Find an explicit size: a multiplication, a `maxsize`, a shape argument, a
+      capacity hint.
+    - >
+      Establish what the typical workload actually uses, and say how you know --
+      from the callers, the fixtures, the documentation, or a measurement.
+    - >
+      Compare the two. This root cause needs a gap of an order of magnitude, not
+      a factor of two.
+    - >
+      Establish that the size is not a hard requirement. A buffer matching a
+      protocol's maximum frame, or a pool sized for a burst that does occur, is
+      correctly sized for its worst case rather than its average.
+    - >
+      Check that shrinking it does not simply move the cost. A buffer that grows
+      dynamically reallocates and copies, and doing that repeatedly can cost more
+      than the over-allocation did.
   not_a_smell_when:
-    - the size is a hard requirement of a format or protocol
-    - growth reallocation is measurably worse than the over-allocation
+    - >
+      the size is a genuine worst case that does occur, and running out is worse
+      than the footprint
+    - >
+      the size is fixed by a protocol, a format or an external interface
+    - >
+      the container grows dynamically anyway, so the hint is only a hint
+    - >
+      the allocation happens once at start-up and the footprint is irrelevant to
+      the process
+  counter_examples:
+    - code: |
+        buffer = bytearray(65536)
+        received = sock.recv_into(buffer)
+      why: >
+        Sized for the largest datagram the protocol allows, and a smaller buffer
+        truncates. Typical use being far below the maximum is exactly why the
+        buffer is that size. Worst-case sizing is not over-allocation.
+    - code: |
+        results = [None] * len(items)
+        for i, item in enumerate(items):
+            results[i] = transform(item)
+      why: >
+        Pre-sized to precisely what is needed, and pre-sizing avoids the
+        geometric regrowth an `append` loop would do. This is the good version of
+        explicit sizing.
   refactoring:
-    summary: size the allocation to the actual input
-    before: |
-      counts = [0] * 10_000_000
-      for value in values:
-          counts[value] += 1
-    after: |
-      counts = [0] * (max(values) + 1)
-      for value in values:
-          counts[value] += 1
-  patch_shape: expression
-  measurability: scales_with_input
+    summary: size the buffer to the workload, or let the container grow
+    examples:
+      - title: a fixed buffer for a variable workload
+        before: |
+          class Batcher:
+              def __init__(self):
+                  self._slots = [None] * 10_000        # typical batch is ~50
 
-- id: C6.S6
-  signals: [unmanaged_resource, ruff_SIM115]
-  how_to_tell:
-    - an external handle is acquired and not released deterministically
-  not_a_smell_when:
-    - the handle is deliberately long-lived and closed elsewhere
-    - ownership is transferred to a caller that closes it
-    - it is a module-level singleton held for the process lifetime
-  refactoring:
-    summary: manage the resource with a `with` block
-    before: |
-      handle = open(path)
-      data = handle.read()
-    after: |
-      with open(path) as handle:
-          data = handle.read()
+              def add(self, item, index):
+                  self._slots[index] = item
+        after: |
+          class Batcher:
+              def __init__(self):
+                  self._slots = {}                      # sparse, grows to fit
+
+              def add(self, item, index):
+                  self._slots[index] = item
+        note: >
+          Ten thousand pointer slots for fifty entries. A dict costs more per
+          entry and far less in total at this density. The trade reverses as the
+          batch approaches the declared size, so the finding depends entirely on
+          the observed distribution -- state it.
+      - title: a worst-case array shape
+        before: |
+          def collect(readings, limit=1_000_000):
+              out = np.zeros(limit)
+              count = 0
+              for value in readings:
+                  out[count] = value
+                  count += 1
+              return out[:count]
+        after: |
+          def collect(readings):
+              return np.fromiter(readings, dtype=float)
+        note: >
+          The original allocates and zeroes eight megabytes whatever the input
+          size, then returns a view onto a fraction of it -- and the view keeps
+          the whole allocation alive, which is a second finding (C6.S4).
+          `fromiter` grows geometrically and ends at the right size. It also
+          removes the Python loop, which is C10.S3; one repair, three plausible
+          labels, so pick the one that describes the edit and subsume the rest.
   patch_shape: statement_local
   measurability: constant_small
   notes: >
-    Correctness and resource-exhaustion matter far more here than energy.  Report
-    it, but expect advisory: closing a file promptly rarely moves a joule meter.
+    Like C6.S4 this is hard to measure honestly with a paired energy comparison,
+    because the cost is footprint rather than per-element work -- though the
+    *zeroing* of a large buffer is real CPU work and does show up when the
+    allocation happens per call rather than once.  If the over-allocation is
+    inside a hot function, it is measurable; if it happens once at start-up,
+    report it as advisory with the two sizes stated.
+  discriminators:
+    - vs: C6.S4
+      rule: >
+        C6.S5 reserves capacity for data that never arrives.  C6.S4 keeps data
+        that did arrive and was not needed afterwards.
+    - vs: C6.S1
+      rule: >
+        C6.S5 is one allocation that is too big.  C6.S1 is too many allocations.
+
+- id: C6.S6
+  signals: [unmanaged_resource, ruff_SIM115]
+  mechanism: >
+    An operating-system resource -- a file descriptor, a socket, a database
+    connection, a cursor -- is held until something releases it.  CPython's
+    reference counting usually releases it promptly when the last reference
+    goes, which is why the sloppy form so often works, but "usually" is doing a
+    lot of work: a reference caught in a cycle waits for the collector, an
+    exception on the path leaves the handle bound in a traceback, and PyPy or
+    Jython do not refcount at all.  The energy cost of holding one open is small;
+    the cost of exhausting a descriptor table or a connection pool is a failure
+    mode rather than a slowdown, and a leaked connection can hold a server-side
+    session and its memory for as long as the process runs.
+  how_to_tell:
+    - >
+      Find an acquisition -- `open`, `socket`, `connect`, `cursor` -- whose
+      result is bound to a name rather than acquired in a `with` header.
+    - >
+      Establish that nothing releases it. A `.close()` on a straight-line path,
+      a `try`/`finally`, or a later `with` that adopts the handle all count as
+      release, and reporting one of those is the commonest false positive.
+    - >
+      Establish that ownership does not leave the function. A handle returned,
+      yielded, stored on `self`, appended to a list of handles, or entered into
+      an `ExitStack` belongs to someone else, and closing it here would be wrong.
+    - >
+      Check the failure path. The question is not only whether it closes but
+      whether it closes when the code between raises -- which is what a `with`
+      guarantees and a trailing `.close()` does not.
+    - >
+      Say what the volume is. One handle in a script is untidy; one per iteration
+      of a loop over ten thousand inputs is an exhaustion bug.
+  not_a_smell_when:
+    - >
+      the handle is closed deterministically by a `.close()`, a `finally`, or a
+      later `with` that adopts it
+    - >
+      ownership is deliberately handed over -- returned, yielded, stored on the
+      instance, given to an `ExitStack`
+    - >
+      the resource is meant to live for the process, such as a module-level log
+      handle
+    - >
+      it is a one-shot script where the interpreter's exit closes everything
+      anyway
+  counter_examples:
+    - code: |
+        def open_log(path):
+            handle = open(path, "a", encoding="utf-8")
+            handle.write("--- session start\n")
+            return handle
+      why: >
+        No `with` and no `close`, and correct: the handle is returned, so the
+        caller owns it and closing it here would break every caller. A factory
+        that opens and returns is ordinary library code, and this is the shape
+        that made the static rule for this noisy enough to need rewriting.
+    - code: |
+        handle = open(path, "wb")
+        with handle as f:
+            f.write(payload)
+      why: >
+        The acquisition is not in the `with` header, so a rule looking for that
+        shape reports it -- and the `with` on the next line adopts the handle and
+        closes it. NumPy writes exactly this in several modules. Read the
+        following lines before claiming.
+  refactoring:
+    summary: acquire the resource in a `with` statement so it closes deterministically
+    examples:
+      - title: a handle abandoned to the collector
+        before: |
+          def load_config(path):
+              handle = open(path, encoding="utf-8")
+              text = handle.read()
+              return json.loads(text)
+        after: |
+          def load_config(path):
+              with open(path, encoding="utf-8") as handle:
+                  return json.load(handle)
+        note: >
+          On CPython the original closes almost immediately when the refcount
+          drops, which is why it survives review. It stops closing promptly the
+          moment `json.loads` raises and the frame is captured in a traceback,
+          or the moment the code runs anywhere without refcounting. The repair
+          also drops the intermediate string, which is C6.S3.
+      - title: one handle per iteration
+        before: |
+          def merge(paths, destination):
+              output = open(destination, "w", encoding="utf-8")
+              for path in paths:
+                  part = open(path, encoding="utf-8")
+                  output.write(part.read())
+        after: |
+          def merge(paths, destination):
+              with open(destination, "w", encoding="utf-8") as output:
+                  for path in paths:
+                      with open(path, encoding="utf-8") as part:
+                          output.write(part.read())
+        note: >
+          The loop opens a descriptor per input and only drops the previous one
+          when `part` is rebound. With enough inputs this exhausts the process's
+          descriptor limit -- a failure rather than a slowdown, which is how most
+          of this root cause's real instances present.
+  patch_shape: statement_local
+  measurability: constant_small
+  notes: >
+    Report this as a correctness and robustness finding with an energy
+    consequence, not as a measured saving.  On CPython the repaired and
+    unrepaired versions usually close at the same moment, so a paired energy
+    comparison measures nothing and refuting it would be the wrong conclusion --
+    the claim is about what happens on the failure path and at scale, which the
+    harness does not exercise.
+  discriminators:
+    - vs: C9.S1
+      rule: >
+        C6.S6 is about *releasing* a resource.  C9.S1 is about how many times one
+        is used -- open once and write a thousand times rather than opening a
+        thousand times.  If the repair moves an acquisition out of a loop, it is
+        C9.S1 or C3.S3.
+    - vs: C3.S3
+      rule: >
+        C3.S3 hoists a per-iteration acquisition out of the loop.  C6.S6 wraps
+        an acquisition so it is released.  A loop that both opens per iteration
+        and never closes has one repair and both labels; pick one.
 
 - id: C6.S7
   signals: [mutable_default_argument, ruff_B006]
+  mechanism: >
+    A default argument is evaluated once, when the `def` statement runs, and the
+    resulting object is stored on the function and shared by every call that does
+    not supply its own.  For an immutable default that is invisible.  For a list,
+    dict or set it means the same object accumulates across calls: memory grows
+    without bound for the process lifetime, and any operation whose cost depends
+    on the container's size gets slower with every call that touched it.  The
+    energy cost is a consequence of the correctness bug rather than a separate
+    thing -- the function is doing more work each time because it is carrying
+    every previous call's data.
   how_to_tell:
-    - a parameter default is a mutable object
+    - >
+      Find a parameter whose default is a mutable literal or a call producing a
+      mutable object -- `[]`, `{}`, `set()`, `list()`, `dict()`, a dataclass
+      instance, a `datetime.now()`.
+    - >
+      Establish that the body mutates it. A mutable default that is only read is
+      not accumulating anything, though it is still fragile.
+    - >
+      Establish that callers do sometimes omit the argument. If every call site
+      passes one, the default is never used and nothing accumulates -- though
+      the next caller will be the one that finds out.
+    - >
+      Check whether existing behaviour depends on the accumulation. It happens:
+      a memo built accidentally in a default argument works, and replacing it
+      with `None` silently removes a cache.
+    - >
+      Say what the growth is per call, so the finding states the consequence
+      rather than only the pattern.
   not_a_smell_when:
-    - the shared object is deliberate memoisation and is never grown unboundedly
+    - >
+      the default is immutable -- a number, a string, a tuple, `None`, a frozenset
+    - >
+      the default is never mutated by the body, only read
+    - >
+      the shared object is deliberate, as a memo or a registry, and the sharing
+      is documented rather than accidental
+    - >
+      the parameter is annotated and enforced such that the default is
+      unreachable
+  counter_examples:
+    - code: |
+        def render(items, separator=", ", limits=(0, 100)):
+            return separator.join(str(i) for i in items[limits[0]:limits[1]])
+      why: >
+        Two defaults, both immutable. A tuple default is shared too and it does
+        not matter, because nothing can change it. The rule is about mutability,
+        not about defaults.
+    - code: |
+        def fib(n, memo={0: 0, 1: 1}):
+            if n not in memo:
+                memo[n] = fib(n - 1, memo) + fib(n - 2, memo)
+            return memo[n]
+      why: >
+        A mutable default that is mutated -- and the sharing across calls is
+        exactly the point, which is what makes it fast. Replacing it with `None`
+        and rebuilding per call turns a linear function into an exponential one.
+        The pattern is present and the repair would be a serious regression.
+        (The better repair is `functools.cache`, which is C8.S1.)
   refactoring:
-    summary: default to `None` and create the object inside the body
-    before: |
-      def collect(item, into=[]):
-          into.append(item)
-          return into
-    after: |
-      def collect(item, into=None):
-          if into is None:
-              into = []
-          into.append(item)
-          return into
-  patch_shape: signature
+    summary: default to `None` and create the mutable object inside the body
+    examples:
+      - title: an accumulator that grows across calls
+        before: |
+          def collect(value, seen=[]):
+              seen.append(value)
+              return seen
+        after: |
+          def collect(value, seen=None):
+              if seen is None:
+                  seen = []
+              seen.append(value)
+              return seen
+        note: >
+          `collect(1)`, `collect(2)`, `collect(3)` returns `[1]`, `[1, 2]`,
+          `[1, 2, 3]` in the original -- and the list is never freed. The
+          repaired version returns `[1]`, `[2]`, `[3]`. Note that is a
+          *behaviour change*, and the right one: any caller relying on the
+          accumulation was relying on a bug, but you should still check whether
+          one does.
+      - title: a config dict quietly polluted
+        before: |
+          def request(url, headers={}):
+              headers.setdefault("User-Agent", AGENT)
+              return session.get(url, headers=headers)
+        after: |
+          def request(url, headers=None):
+              headers = dict(headers or {})
+              headers.setdefault("User-Agent", AGENT)
+              return session.get(url, headers=headers)
+        note: >
+          The original mutates the shared default *and* any dict a caller passes
+          in, so a caller's headers grow a `User-Agent` they did not ask for.
+          The repair fixes both by copying. The growth here is bounded, so this
+          is a correctness finding with a small energy tail rather than the
+          reverse.
+  patch_shape: statement_local
   measurability: scales_with_calls
   min_workload_hint: >
-    the effect only appears across many calls, as the shared object grows; a
-    single-call driver will show nothing
+    the effect appears only across many calls, since the container grows per
+    call; a case file that calls the unit once measures nothing
   notes: >
-    Almost always a latent bug rather than a tuning issue.  Worth reporting on
-    its own merits even when the measured effect is small.
+    Measuring this needs care.  `before` and `after` are not equivalent by
+    construction -- that is the finding -- so the verifier will report
+    `not_equivalent` unless the case file compares two variants that both behave
+    correctly and differ only in how they get there.  The honest presentation is
+    a correctness finding whose energy consequence is unbounded growth, with the
+    growth rate stated rather than an energy figure.
+  discriminators:
+    - vs: C6.S4
+      rule: >
+        Both end with something retained too long.  C6.S7 is specifically the
+        default-argument mechanism, and the retention is accidental.  C6.S4 is a
+        deliberate store holding more than it needs.
+    - vs: C8.S1
+      rule: >
+        A mutable default used *deliberately* as a memo is C8.S1 done badly --
+        the repair is `functools.cache`, not `None`.  Read whether the sharing is
+        load-bearing before choosing.
