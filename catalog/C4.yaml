@@ -1,194 +1,1082 @@
 # C4 -- Inefficient Control Flow
-# Branch shape and evaluation order.  Individual branches are cheap, so almost
-# everything here is only measurable inside a hot loop.
+#
+# Branch shape and evaluation order. A single branch is one or two bytecodes, so
+# almost everything here is only measurable inside a hot loop -- with two
+# exceptions worth knowing: a redundant test that guards a whole scan (S2) and a
+# missing guard that skips one (S7) can both save all of the work rather than a
+# fraction of it.
+#
+# Three root causes in this file and one in C7 are easy to confuse, and the
+# split is by what the repair does to the code:
+#
+#     C4.S2   delete a test whose outcome is already determined
+#     C4.S7   add a test that skips expensive work for a degenerate input
+#     C7.S5   change the operation itself, using an algebraic fact
+#     C4.S4   merge independent tests into a chain that stops at the first match
 
 - id: C4.S1
   signals: [expensive_operand_first]
+  mechanism: >
+    `and` stops at the first false operand and `or` at the first true one, so
+    every operand after the deciding one is never evaluated.  Ordering therefore
+    decides what a condition costs on average: a chain that puts the expensive
+    test first pays it on every evaluation, where the same chain reordered pays
+    it only on the fraction of inputs the cheap test lets through.  The saving is
+    the expensive operand's cost multiplied by how often the cheap test would
+    have short-circuited -- which is why an operand that is almost never decisive
+    is worth nothing to move.
   how_to_tell:
-    - a boolean chain evaluates an expensive operand before a cheap one
-    - the operands are independent, so reordering preserves semantics
+    - >
+      Find an `and`/`or` chain where an earlier operand calls something and a
+      later operand does not. A cheap operand is a comparison, an attribute
+      read, a `len`, an `isinstance`; an expensive one is a call that does work.
+    - >
+      Establish that the operands are independent, so reordering cannot change
+      the result. This is the step that matters: `if x is not None and
+      x.ready()` must stay in that order for correctness, and swapping it is a
+      bug rather than a repair.
+    - >
+      Estimate how often the cheap test would decide the result. If it is false
+      on most inputs, moving it first skips the call on most calls; if it is
+      almost always true, reordering adds a test and saves nothing.
+    - >
+      Confirm the chain runs often enough for a skipped call to matter. One
+      evaluation on a cold path saves one call.
   not_a_smell_when:
-    - the later operand depends on the earlier one succeeding (a None guard must
-      come first for correctness, not speed)
-    - the "expensive" call is actually cheap (`isinstance`, `len`)
-    - the expensive operand is almost always decisive, so reordering adds work
+    - >
+      the later operand depends on the earlier one succeeding, so the order is
+      required for correctness rather than chosen for speed
+    - >
+      the "expensive" call is actually cheap -- `isinstance`, `len`, `type`, a
+      plain attribute read
+    - >
+      the expensive operand is almost always the deciding one, so putting it
+      later means evaluating both
+    - >
+      an operand has a side effect that must happen on every evaluation
+  counter_examples:
+    - code: |
+        if handle is not None and handle.is_open():
+            handle.write(payload)
+      why: >
+        The call is second already, and it has to be: `handle.is_open()` raises
+        on `None`. Any rule that only compares "cheap" against "expensive" wants
+        to reorder this. The ordering is a correctness constraint.
+    - code: |
+        if cache.get(key) is not None or expensive_default(key):
+            use(key)
+      why: >
+        Both operands call something, so there is no cheap test to promote. The
+        candidate needs an operand that costs nothing, not merely one that costs
+        less.
   refactoring:
     summary: put the cheap, most-decisive test first so short-circuiting can skip the rest
-    before: |
-      if lookup(key) and key is not None:
-          use(key)
-    after: |
-      if key is not None and lookup(key):
-          use(key)
+    examples:
+      - title: a call before a comparison that usually decides
+        before: |
+          def visible(rows, viewer):
+              return [r for r in rows if permitted(viewer, r) and r.published]
+        after: |
+          def visible(rows, viewer):
+              return [r for r in rows if r.published and permitted(viewer, r)]
+        note: >
+          Most rows in a typical dataset are unpublished, so the attribute read
+          decides the result for most of them and `permitted` is never called.
+          Reordering is only valid because neither operand depends on the other;
+          verify that with an equivalence check that includes the inputs where
+          the original order mattered.
+      - title: the expensive operand is a whole sub-expression
+        before: |
+          def should_retry(response, attempt, policy):
+              return (
+                  response.status in policy.retryable_statuses(response.host)
+                  and attempt < policy.max_attempts
+              )
+        after: |
+          def should_retry(response, attempt, policy):
+              return (
+                  attempt < policy.max_attempts
+                  and response.status in policy.retryable_statuses(response.host)
+              )
+        note: >
+          `retryable_statuses` builds a set per call. On the last attempt the
+          comparison alone settles the question, so the set is never built. The
+          expensive operand does not have to be a bare call for this to apply --
+          it has to be the operand that does work.
   patch_shape: expression
   measurability: scales_with_input
-  notes: >
-    Reordering is only valid when the operands are independent.  Verify by
-    equivalence testing including the inputs that made the original guard matter.
+  min_workload_hint: >
+    the driver must supply inputs where the cheap test actually short-circuits;
+    with data that always reaches the expensive operand the repair correctly
+    measures as nothing
+  discriminators:
+    - vs: C4.S2
+      rule: >
+        C4.S1 keeps every test and changes their order.  C4.S2 *deletes* a test
+        because its outcome was already determined.  If the repair removes an
+        operand rather than moving it, it is C4.S2.
+    - vs: C4.S7
+      rule: >
+        C4.S1 reorders tests that already exist.  C4.S7 *adds* one that did not.
+    - vs: C7.S4
+      rule: >
+        The same idea at a different scale.  C4.S1 orders operands inside one
+        boolean expression; C7.S4 orders whole operations in a pipeline, such as
+        filtering before sorting.  Decide by what the patch moves -- an operand
+        or a statement.
 
 - id: C4.S2
+  mechanism: >
+    A test whose outcome is already fixed still costs the full evaluation:
+    loading the operands, the comparison, the branch.  When that is one
+    comparison on a straight-line path it is worth a bytecode and nothing more.
+    What makes this root cause worth reporting is the case where the determined
+    test *guards work* -- the second half of an `and` that can never fail, an
+    `elif` whose condition is the negation of the `if` above it, or a check
+    standing between the caller and a scan the code did not need to perform.
+    Then what the repair deletes is not the comparison but everything behind it.
   how_to_tell:
-    - a condition is always true or always false in context, or re-tested with
-      nothing able to change it in between
+    - >
+      Point at a condition and say what makes its outcome already known. There
+      are three sources and you must name which one applies. A prior test on the
+      same path has settled it. A domain fact makes it unconditional --
+      `math.floor(x) <= math.ceil(x)` always, `abs(x) >= 0` always, an `assert`
+      at the top of the function. Or the value was assigned a known constant
+      with nothing able to change it in between.
+    - >
+      Establish that nothing between the two points can change the answer: no
+      assignment, no call that could mutate the operands, no `await` or lock
+      release that lets another thread in.
+    - >
+      Say what the test is guarding. A determined test in front of one cheap
+      statement is worth a bytecode. A determined test in front of a loop, a
+      sort or a call is worth all of it, and that difference decides whether the
+      finding is worth reporting at all.
+    - >
+      Check that the redundancy is not deliberate. A re-check documenting an
+      invariant, or one that exists because a maintainer cannot see the callers,
+      is defensive code; deleting it is a change in kind rather than a repair.
   not_a_smell_when:
-    - the invariant is defensive and documents an assumption
-    - concurrency means the value genuinely can change between checks
+    - >
+      the test is a defensive assertion documenting an assumption the function
+      relies on, so deleting it removes the documentation along with the check
+    - >
+      concurrency means the value genuinely can change between the two checks --
+      another thread, an `await` point, a released lock, a signal handler
+    - >
+      the "already known" fact depends on an input invariant the function does
+      not enforce, so it holds for today's callers rather than by construction
+    - >
+      the determined test guards one cheap statement, so the whole saving is a
+      comparison and no workload will show it
+  counter_examples:
+    - code: |
+        def withdraw(account, amount):
+            if amount <= 0:
+                raise ValueError(amount)
+            if account.balance < amount:
+                raise InsufficientFunds(account, amount)
+            account.balance -= amount
+      why: >
+        Two tests on related subjects, neither implied by the other, both
+        load-bearing. Anything that pattern-matches "two ifs about `amount`"
+        reports this. Nothing here is determined -- which is why step 1 asks you
+        to *name* what determines it rather than notice repetition.
+    - code: |
+        with self._lock:
+            if key in self._cache:
+                return self._cache[key]
+        value = compute(key)
+        with self._lock:
+            if key in self._cache:      # another thread may have filled it
+                return self._cache[key]
+            self._cache[key] = value
+            return value
+      why: >
+        The same test twice on the same subject, and the second one is the whole
+        point of the pattern: the lock was released in between, so another
+        thread may have populated the entry. Double-checked locking looks
+        exactly like redundant evaluation, and deleting the second test is a
+        race.
   refactoring:
-    summary: delete the condition whose result is already known
-    before: |
-      if items:
-          if items:
-              process(items)
-    after: |
-      if items:
-          process(items)
-  patch_shape: statement_local
-  measurability: constant_small
-
-- id: C4.S3
-  signals: [deep_conditional_nesting]
-  how_to_tell:
-    - branches nest deeply enough that reaching the work re-tests overlapping conditions
-  not_a_smell_when:
-    - the nesting mirrors genuinely nested domain logic
-    - flattening would duplicate the conditions rather than remove them
-    - the depth comes from `try`/`with` rather than repeated tests
-  refactoring:
-    summary: flatten with guard clauses that return early
-    before: |
-      def handle(x):
-          if x is not None:
-              if x.ready:
-                  if x.size > 0:
-                      return work(x)
-          return None
-    after: |
-      def handle(x):
-          if x is None or not x.ready or x.size <= 0:
-              return None
-          return work(x)
-  patch_shape: structural
-  measurability: constant_small
-  notes: >
-    Mostly a readability repair.  Report it, but expect advisory rather than
-    verified unless the guarded work sits in a very hot loop.
-
-- id: C4.S4
-  signals: [independent_exclusive_ifs]
-  how_to_tell:
-    - consecutive `if` statements test the same subject against disjoint values
-    - no branch body can change the subject
-  not_a_smell_when:
-    - the branches are not mutually exclusive and several may legitimately run
-    - a body mutates the subject, so later tests must be re-evaluated
-  refactoring:
-    summary: chain the branches with `elif` so evaluation stops at the first match
-    before: |
-      if grade == "A": bonus = 3
-      if grade == "B": bonus = 2
-      if grade == "C": bonus = 1
-    after: |
-      if grade == "A": bonus = 3
-      elif grade == "B": bonus = 2
-      elif grade == "C": bonus = 1
-  patch_shape: statement_local
-  measurability: scales_with_input
-
-- id: C4.S5
-  signals:
-    - expensive_comparison
-  how_to_tell:
-    - runtime type introspection runs per element in a hot loop
-  not_a_smell_when:
-    - the check guards genuinely heterogeneous input with no common interface
-    - it runs once per call rather than per element
-  refactoring:
-    summary: hoist the type decision out of the loop, or dispatch polymorphically
-    before: |
-      for value in values:
-          if isinstance(value, str):
-              out.append(value.strip())
-          else:
-              out.append(str(value))
-    after: |
-      handler = str.strip if all(isinstance(v, str) for v in values) else str
-      out = [handler(v) for v in values]
-  patch_shape: structural
-  measurability: scales_with_input
-
-- id: C4.S6
-  signals: [try_except_in_loop, ruff_PERF203]
-  how_to_tell:
-    - try/except sits on the per-iteration path
-    - the exception is raised on a substantial fraction of iterations
-  not_a_smell_when:
-    - the exception is genuinely rare, where EAFP is both idiomatic and faster
-    - the check needed to avoid it would be as expensive as the exception
-    - the try wraps the whole loop rather than sitting inside it
-  refactoring:
-    summary: replace the frequently-raised exception with an explicit check
-    before: |
-      for key in keys:
-          try:
-              out.append(table[key])
-          except KeyError:
-              out.append(None)
-    after: |
-      for key in keys:
-          out.append(table.get(key))
+    summary: delete the condition whose result is already determined
+    examples:
+      - title: the second half of an `and` cannot fail
+        before: |
+          def floor_ceil_below(value, limit):
+              floor = math.floor(value)
+              ceiling = math.ceil(value)
+              if ceiling < limit and floor < limit:
+                  return True, True
+              if floor < limit:
+                  return False, True
+              return False, False
+        after: |
+          def floor_ceil_below(value, limit):
+              floor = math.floor(value)
+              ceiling = math.ceil(value)
+              if ceiling < limit:
+                  return True, True
+              if floor < limit:
+                  return False, True
+              return False, False
+        note: >
+          `floor <= ceiling` for every real number, so `ceiling < limit` implies
+          `floor < limit` and the second test can never fail. The fact comes
+          from the domain, not from the syntax -- which is exactly why no static
+          rule finds this and a reader does.
+      - title: an `elif` that restates the negation of its `if`
+        before: |
+          def relu(x):
+              if x < 0:
+                  return 0
+              elif x >= 0:
+                  return x
+        after: |
+          def relu(x):
+              if x < 0:
+                  return 0
+              return x
+        note: >
+          Reaching the `elif` means `x < 0` was false, so `x >= 0` is already
+          known. Note what else changes: the original returns `None` for a NaN
+          input, because neither branch matches. Check whether that implicit
+          `None` was load-bearing before claiming the repair.
+      - title: the determined test stands in front of a whole scan
+        before: |
+          def count_within_bound(values, k):
+              return len([1 for x in values if abs(x) + k > 0])
+        after: |
+          def count_within_bound(values, k):
+              if k > 0:
+                  return len(values)
+              return len([1 for x in values if abs(x) + k > 0])
+        note: >
+          `abs(x)` is never negative, so `abs(x) + k > 0` is unconditionally
+          true whenever `k > 0` and the per-element test cannot reject anything.
+          This is the form worth reporting: what gets skipped is the whole scan,
+          not a comparison. It is expressed by *adding* a guard, which puts it on
+          the boundary with C4.S7 -- report whichever you can defend and say
+          which you chose.
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: >
-    drive it with inputs that actually raise; with no raises the repair shows no
-    effect and the claim is correctly rejected
+    only the guarding form is measurable; when the determined test stands in
+    front of one cheap statement, report it as advisory rather than building a
+    case file
   notes: >
-    The smell is not try/except itself -- it is try/except where the exception is
-    the common case.  Whether that holds is a property of the *data*, not the
-    code, so this root cause cannot be confirmed without a representative driver.
+    The published example for this root cause is `if items: if items:`, which
+    nobody writes.  The interesting form, and the one the description's own
+    wording points at, is a test made redundant by a *fact about the domain*
+    rather than by textual duplication.  The project's sample set has four:
+    `floor <= ceil`, `abs(x) >= 0`, an `elif` restating a negation, and four
+    range branches collapsing to `low <= x <= high`.  None is findable
+    syntactically, and every one is ordinary code somebody wrote on purpose.
+  discriminators:
+    - vs: C4.S7
+      rule: >
+        C4.S2 *removes* a test that was always going to answer the same way.
+        C4.S7 *adds* a test that was not there.  When one edit does both --
+        recognising an invariant and using it to install a fast path -- either
+        label is defensible; say which you picked and why.
+    - vs: C7.S5
+      rule: >
+        C4.S2 deletes a *test*.  C7.S5 changes the *operation*: replacing
+        `abs(k - x)` with `k - x` because `k >= x` always holds is C7.S5, since
+        no branch is removed and the arithmetic itself got cheaper.
+    - vs: C1.S3
+      rule: >
+        C1.S3 is control flow with no observable effect whichever way it goes --
+        an `if` with an empty body, a `match` whose arms are identical.  C4.S2 is
+        a branch that does something, reached by a test that could only ever
+        answer one way.
+    - vs: C1.S4
+      rule: >
+        C1.S4 is the same *computation* performed twice.  C4.S2 is the same
+        *condition* tested twice, or one whose answer was already implied.  If
+        the repair caches a value, it is C1.S4.
+
+- id: C4.S3
+  signals: [deep_conditional_nesting]
+  mechanism: >
+    Nesting itself costs nothing beyond the tests it contains -- reaching depth
+    four evaluates four conditions whether they are nested or chained.  Two
+    things make deep nesting expensive rather than merely ugly.  Overlapping
+    tests get re-evaluated on paths where an earlier branch already settled them.
+    And a long chain of `elif` comparisons is a linear search: with N arms the
+    average case evaluates about N/2, where a dict lookup or an index is one
+    probe regardless of N.
+  how_to_tell:
+    - >
+      Count the depth, then check what the nesting is made of. `if` inside `if`
+      is a candidate; depth that comes from `try`, `with` or `for` is not this
+      root cause.
+    - >
+      Find the actual waste. Either the same subexpression is tested on more
+      than one path, or a run of arms all compare the same subject against
+      different constants. If neither holds, the nesting is a readability matter
+      and out of scope here.
+    - >
+      For a comparison chain, count the arms and check they are exhaustive and
+      dense enough to index. Four arms keyed on `n % 4` become a tuple index;
+      four arms on unrelated predicates do not.
+    - >
+      Confirm the flattening does not duplicate the conditions it removed. Guard
+      clauses only help when they let you stop testing, not when they restate
+      the same tests in a different order.
+    - >
+      Say how often the branch runs. Removing two comparisons from a function
+      called twice is not a finding.
+  not_a_smell_when:
+    - >
+      the nesting mirrors genuinely nested domain logic, so flattening would
+      duplicate conditions rather than remove them
+    - >
+      the depth comes from `try`, `with` or `for` rather than from repeated tests
+    - >
+      the arms test unrelated predicates, so there is no key to dispatch on
+    - >
+      the chain is short and its first arm matches almost always, so the average
+      number of comparisons is already close to one
+  counter_examples:
+    - code: |
+        def classify(value):
+            if value < 10:
+                return "small"
+            elif value < 100:
+                return "medium"
+            elif value < 1000:
+                return "large"
+            return "huge"
+      why: >
+        Four arms comparing one subject, which looks exactly like the
+        dispatchable case and is not: these are ordered range boundaries rather
+        than distinct keys, so there is nothing to index on -- a dict would need
+        an entry per possible value. Ordered comparisons stay comparisons.
+    - code: |
+        def render(node, depth=0):
+            if node.visible:
+                if node.children:
+                    for child in node.children:
+                        render(child, depth + 1)
+                else:
+                    emit(node, depth)
+      why: >
+        Depth three, no repeated test, and each level asks a different question
+        about a different thing. Flattening this changes the shape of the code
+        and removes no work at all.
+  refactoring:
+    summary: >
+      flatten with guard clauses that return early, or replace a chain of
+      equality arms with a lookup
+    examples:
+      - title: guard clauses instead of nesting
+        before: |
+          def handle(request):
+              if request is not None:
+                  if request.ready:
+                      if request.size > 0:
+                          return work(request)
+              return None
+        after: |
+          def handle(request):
+              if request is None or not request.ready or request.size <= 0:
+                  return None
+              return work(request)
+        note: >
+          The same three tests, evaluated the same number of times, so this is
+          almost entirely a readability repair. Report it and expect `advisory`
+          unless the guarded work sits in a very hot loop.
+      - title: a comparison chain that is really a table
+        before: |
+          def assign_type(number):
+              if number % 4 == 0:
+                  return "red"
+              elif number % 4 == 1:
+                  return "blue"
+              elif number % 4 == 2:
+                  return "green"
+              else:
+                  return "yellow"
+        after: |
+          _TYPES = ("red", "blue", "green", "yellow")
+
+          def assign_type(number):
+              return _TYPES[number % 4]
+        note: >
+          The original computes `number % 4` up to four times and evaluates up
+          to three comparisons; the repair computes it once and indexes. This is
+          the measurable form of C4.S3, and it needs the arms to be exhaustive
+          and keyed on a dense integer -- otherwise use a dict. Hoisting the
+          tuple to module scope also removes a per-call build, which is C5.S3;
+          if you notice both, they are one repair and one is subsumed.
+  patch_shape: structural
+  measurability: scales_with_calls
+  min_workload_hint: >
+    the effect is per evaluation, so the driver must call the branch many times
+    over cheap inputs rather than once over an expensive one
+  notes: >
+    The guard-clause form of this repair usually measures as nothing, because it
+    evaluates the same tests in the same number.  Report it, and expect advisory
+    rather than verified unless the guarded work is in a hot loop.  The
+    dispatch-table form is the measurable one.
+  discriminators:
+    - vs: C4.S4
+      rule: >
+        C4.S4 is about tests written as *separate statements*, where every one is
+        evaluated even after an earlier one matched.  C4.S3 is about tests that
+        are already chained or nested and still cost more than they need to.
+    - vs: C10.S1
+      rule: >
+        Replacing a comparison chain with a dict dispatch can be read either way.
+        Prefer C4.S3 when what changed is the *branch structure*, and C10.S1 when
+        the repair hands the whole job to a standard-library primitive that
+        already implements it.
+
+- id: C4.S4
+  signals: [independent_exclusive_ifs]
+  mechanism: >
+    Separate `if` statements each evaluate their condition unconditionally, so N
+    of them cost N tests on every pass.  An `if`/`elif` chain stops at the first
+    match: one test in the best case, N in the worst, around N/2 on average for
+    a uniformly distributed subject.  The saving is the difference, paid per
+    evaluation -- proportional to how many arms there are and how early the
+    matching one usually sits.
+  how_to_tell:
+    - >
+      Find two or more consecutive `if` statements testing the same subject.
+    - >
+      Prove the branches are mutually exclusive, and say what makes them so.
+      This is the load-bearing step and it is where the repair usually dies. A
+      set of `==` tests against distinct constants is exclusive by construction.
+      Range tests are only exclusive if the ranges cannot overlap, and that
+      often depends on a precondition -- an `assert`, a validated argument, a
+      documented invariant. Name it.
+    - >
+      Establish that no branch body changes the subject or anything the later
+      tests read. A body that mutates the subject makes the later tests
+      genuinely different questions.
+    - >
+      Establish that no branch is meant to fall through. If two conditions can
+      both hold and both bodies are supposed to run, chaining them removes
+      behaviour.
+    - >
+      Count the arms and say how often the last one matches. Two arms save half
+      a test; eight arms with a late match save several.
+  not_a_smell_when:
+    - >
+      the branches are not mutually exclusive and more than one may legitimately
+      run, so chaining them would drop behaviour
+    - >
+      a body mutates the subject, so the later tests are asking about a different
+      value
+    - >
+      exclusivity holds for the inputs this program happens to pass rather than
+      by construction, and nothing enforces it
+    - >
+      there are two arms in a function called a handful of times, where the whole
+      saving is half a comparison
+  counter_examples:
+    - code: |
+        def normalise(text):
+            if text.startswith(" "):
+                text = text.lstrip()
+            if text.endswith(" "):
+                text = text.rstrip()
+            return text
+      why: >
+        Two `if`s on one subject and both may legitimately run -- a string can be
+        padded at both ends. Worse, the first body reassigns `text`, so the
+        second test is about a different value. Chaining these is a behaviour
+        change on the commonest input.
+    - code: |
+        def bucket(value, low, high):
+            if value > high:
+                return "above"
+            if value < low:
+                return "below"
+            return "within"
+      why: >
+        Already exclusive in effect, because each branch returns. Control never
+        reaches the second test after the first matches, so an `elif` changes
+        nothing but the punctuation.
+  refactoring:
+    summary: chain the branches with `elif` so evaluation stops at the first match
+    examples:
+      - title: the exclusivity is guaranteed by a precondition
+        before: |
+          def split_by_bounds(values, lower, upper):
+              assert upper > lower
+              below, above = [], []
+              for x in values:
+                  if x > upper:
+                      above.append(x)
+                  if x < lower:
+                      below.append(x)
+              return below, above
+        after: |
+          def split_by_bounds(values, lower, upper):
+              assert upper > lower
+              below, above = [], []
+              for x in values:
+                  if x > upper:
+                      above.append(x)
+                  elif x < lower:
+                      below.append(x)
+              return below, above
+        note: >
+          The `assert` is what licenses the edit: with `upper > lower` no value
+          can be both above and below, so an element matching the first test
+          cannot match the second. Delete the assert and the repair becomes a
+          bug. That is why `how_to_tell` asks you to name the guarantee rather
+          than eyeball the conditions.
+      - title: equality arms against distinct constants
+        before: |
+          def bonus_for(grade):
+              bonus = 0
+              if grade == "A":
+                  bonus = 3
+              if grade == "B":
+                  bonus = 2
+              if grade == "C":
+                  bonus = 1
+              return bonus
+        after: |
+          def bonus_for(grade):
+              if grade == "A":
+                  return 3
+              elif grade == "B":
+                  return 2
+              elif grade == "C":
+                  return 1
+              return 0
+        note: >
+          Exclusive by construction: one value cannot equal two distinct
+          constants. Three tests on every call become one for an "A". At three
+          arms this is close to advisory; the same shape with a dozen arms in a
+          per-element loop is worth measuring, and beyond that consider a lookup
+          instead, which is C4.S3.
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    needs many evaluations and enough arms for the skipped tests to add up; the
+    driver's data should sometimes match early and sometimes late
+  discriminators:
+    - vs: C4.S3
+      rule: >
+        C4.S4 turns *separate statements* into a chain.  C4.S3 improves a chain
+        or nest that already exists, usually by replacing it with a lookup.
+    - vs: C1.S3
+      rule: >
+        If the branches are not merely unchained but have no observable effect at
+        all -- identical bodies, empty bodies -- the finding is C1.S3.
+
+- id: C4.S5
+  signals: [expensive_comparison]
+  mechanism: >
+    A type check is cheap once and expensive per element.  `isinstance` walks the
+    class's MRO looking for a match; `type(x) == C` is a pointer comparison;
+    `str(type(x)) == "..."` builds a string.  None of them is slow in isolation,
+    and all of them are pure overhead when the answer is the same for every
+    element of a collection -- the loop is asking a question it could have
+    settled once.  The repair moves the decision off the per-element path, either
+    by hoisting it or by letting attribute lookup dispatch instead.
+  how_to_tell:
+    - >
+      Find runtime type introspection on the per-element path: `isinstance`,
+      `type(x) ==`, `hasattr` used as a type probe, a comparison against
+      `type(x).__name__`.
+    - >
+      Establish that the answer is stable across elements, or that the elements
+      can be grouped so it is. If the collection is genuinely heterogeneous and
+      the branches do different things, the check is doing real work.
+    - >
+      Say what replaces it. Hoisting needs a cheap way to settle the type once.
+      Polymorphic dispatch needs the types to share a method name.
+      `functools.singledispatch` needs the dispatch to be on the first argument.
+    - >
+      Check the replacement is not more expensive. Scanning the whole collection
+      with `all(isinstance(...))` to hoist a decision costs a full extra pass,
+      which only pays if the loop body is heavier than the check.
+    - >
+      Confirm the loop is long enough. A per-element `isinstance` over ten items
+      is nothing.
+  not_a_smell_when:
+    - >
+      the input is genuinely heterogeneous with no common interface, so the check
+      is what selects the correct behaviour
+    - >
+      the check runs once per call rather than once per element
+    - >
+      the check guards against a type that would raise, making it a correctness
+      guard rather than a dispatch mechanism
+    - >
+      hoisting would need a full extra pass over the data that costs more than
+      the per-element checks it removes
+  counter_examples:
+    - code: |
+        def flatten(items):
+            for item in items:
+                if isinstance(item, (list, tuple)):
+                    yield from flatten(item)
+                else:
+                    yield item
+      why: >
+        The check is the algorithm. The input is heterogeneous by definition and
+        the two branches do genuinely different things, so there is nothing to
+        hoist and no shared interface to dispatch on.
+    - code: |
+        def normalise(value):
+            if not isinstance(value, str):
+                raise TypeError(value)
+            return value.strip()
+      why: >
+        One check per call, and a correctness guard rather than dispatch.
+        Removing it saves no per-element work; it removes an error message.
+  refactoring:
+    summary: hoist the type decision out of the loop, or dispatch polymorphically
+    examples:
+      - title: the answer is the same for every element
+        before: |
+          def render_all(values):
+              out = []
+              for value in values:
+                  if isinstance(value, str):
+                      out.append(value.strip())
+                  else:
+                      out.append(str(value))
+              return out
+        after: |
+          def render_all(values):
+              if values and all(type(v) is str for v in values):
+                  return [v.strip() for v in values]
+              return [v.strip() if isinstance(v, str) else str(v) for v in values]
+        note: >
+          The hoisted version pays one extra pass to buy a branch-free loop, so
+          it wins only when the loop body is heavier than a comparison. Measure
+          it; if the extra pass dominates, the honest answer is that this is not
+          a smell here.
+      - title: the types already share a method
+        before: |
+          def total_area(shapes):
+              total = 0
+              for shape in shapes:
+                  if isinstance(shape, Circle):
+                      total += 3.14159 * shape.radius ** 2
+                  elif isinstance(shape, Square):
+                      total += shape.side ** 2
+              return total
+        after: |
+          def total_area(shapes):
+              return sum(shape.area() for shape in shapes)
+        note: >
+          Moving the per-type arithmetic onto the classes replaces a chain of MRO
+          walks with one attribute lookup per element. This is `cross_unit` in
+          practice -- the classes gain a method -- so name every file you
+          touched, and note it only applies when you own the classes.
+  patch_shape: structural
+  measurability: scales_with_input
+  min_workload_hint: >
+    the loop must be long; the effect is per element and each check is worth
+    tens of nanoseconds
+  notes: >
+    Related and measured: the project's own sample set compared `type(x) == AB`
+    against `isinstance(x, AB)` over a million elements, and `isinstance` came
+    out **5.4% slower** because it walks the MRO where the equality test is a
+    pointer compare.  The style preference for `isinstance` is about *semantics*
+    -- it accepts subclasses -- and it is not an energy improvement.  Do not
+    report a change from `type(x) ==` to `isinstance` as a saving.
+  discriminators:
+    - vs: C10.S2
+      rule: >
+        C10.S2 swaps one construct for a cheaper construct that does the same
+        thing, leaving the loop alone.  C4.S5 removes the check from the
+        per-element path altogether.  If the loop still asks the question once
+        per element, it is C10.S2 at best.
+    - vs: C3.S2
+      rule: >
+        Hoisting a type decision out of a loop is a special case of hoisting an
+        invariant.  Report C4.S5 when what was hoisted is *type introspection*
+        and C3.S2 when it is any other loop-invariant expression.
+
+- id: C4.S6
+  signals: [try_except_in_loop, ruff_PERF203]
+  mechanism: >
+    Entering a `try` block costs nothing measurable in modern CPython -- the
+    handler is recorded in a table rather than pushed at run time.  Raising is
+    what costs: instantiating the exception, capturing a traceback frame by
+    frame, unwinding, and matching the handler.  So the price of this pattern is
+    the raise rate multiplied by the cost of a raise, which makes it idiomatic
+    and fast when the exception is rare.  It becomes waste only when the
+    exception is the common case, at which point the code is using an error
+    mechanism as its main control flow.
+  how_to_tell:
+    - >
+      Confirm the `try` is on the per-iteration path rather than wrapped around
+      the whole loop. A `try` outside the loop raises at most once.
+    - >
+      Establish the raise *rate*, and say how you know. This is a property of
+      the data, not of the code: `table[key]` inside a `try` is excellent when
+      keys are usually present and poor when they usually are not. Read the
+      callers, the fixtures, the documentation -- or say you could not establish
+      it and reject.
+    - >
+      Name the check that would replace the raise, and confirm it is cheaper
+      than the raise it avoids. `dict.get` and `key in table` are; a second full
+      lookup, or a `try` inside the check, is not.
+    - >
+      Confirm the check is exact. `except (KeyError, TypeError)` covers two cases
+      where a `.get()` covers one, and a repair that silently changes which
+      failures are tolerated is not behaviour-preserving.
+  not_a_smell_when:
+    - >
+      the exception is genuinely rare, where EAFP is both idiomatic and faster
+      than testing first
+    - >
+      the check needed to avoid the raise costs as much as the raise, or opens a
+      race between the check and the use
+    - >
+      the `try` wraps the whole loop rather than sitting inside it
+    - >
+      the handler catches something no pre-check can predict, such as an I/O
+      failure or a decoding error
+  counter_examples:
+    - code: |
+        for path in paths:
+            try:
+                data = load(path)
+            except FileNotFoundError:
+                continue
+            process(data)
+      why: >
+        Checking `os.path.exists(path)` first does not remove the exception --
+        the file can vanish between the check and the open -- so the `try` stays
+        regardless, and the check adds a second filesystem call per path. The
+        raise rate would have to be very high before this loses.
+    - code: |
+        for row in rows:
+            try:
+                total += int(row["amount"])
+            except (KeyError, ValueError):
+                skipped += 1
+      why: >
+        Two failure modes, and one of them -- `int()` on a non-numeric string --
+        has no cheap pre-check. Replacing this with `.get()` handles the missing
+        key and silently changes what happens to a malformed value. Whether it
+        is a smell still depends on the raise rate; whether the obvious repair is
+        *correct* does not.
+  refactoring:
+    summary: replace the frequently-raised exception with an explicit check
+    examples:
+      - title: a lookup that usually misses
+        before: |
+          def lookup_all(keys, table):
+              out = []
+              for key in keys:
+                  try:
+                      out.append(table[key])
+                  except KeyError:
+                      out.append(None)
+              return out
+        after: |
+          def lookup_all(keys, table):
+              return [table.get(key) for key in keys]
+        note: >
+          A repair only when the keys usually miss. Drive it with data that
+          actually raises -- with keys that are always present the original is
+          the faster of the two and the candidate is correctly refuted.
+      - title: the raise comes from a converter called per element
+        before: |
+          def parse_ports(values):
+              ports = []
+              for value in values:
+                  try:
+                      ports.append(int(value))
+                  except ValueError:
+                      ports.append(0)
+              return ports
+        after: |
+          def parse_ports(values):
+              return [int(v) if v.lstrip("-").isdigit() else 0 for v in values]
+        note: >
+          The pre-check has to be exact or this is not behaviour-preserving:
+          `isdigit` rejects whitespace, underscores and a leading `+` where
+          `int()` accepts some of them. Getting that boundary right is most of
+          the work, and it is why this repair is often not worth making even
+          when the raise rate is high.
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    drive it with inputs that actually raise, at a rate you can defend as
+    representative; with no raises the repair shows nothing and the claim is
+    correctly rejected
+  notes: >
+    The smell is not `try`/`except` -- it is `try`/`except` where the exception is
+    the common case.  Whether that holds is a property of the *data*, so this
+    root cause cannot be confirmed without a driver whose inputs raise at a
+    realistic rate.  A case file that never raises is measuring the wrong thing
+    rather than refuting the claim.
+  discriminators:
+    - vs: C3.S3
+      rule: >
+        Both fire on the same syntax.  C4.S6 is about the *raise* being frequent;
+        C3.S3 is about per-iteration *setup* that should be hoisted.  If the
+        repair moves the `try` out of the loop it is C3.S3; if it replaces the
+        raise with a test it is C4.S6.
+    - vs: C4.S7
+      rule: >
+        C4.S6 replaces an exception-driven decision with a test.  C4.S7 adds a
+        test in front of work that would otherwise succeed expensively.  Nothing
+        raises in a C4.S7 case.
 
 - id: C4.S7
+  mechanism: >
+    A guard is a cheap test that lets the function skip an expensive path
+    entirely.  Its value is the cost of that path multiplied by how often the
+    degenerate input actually arrives, minus the cost of the test on every other
+    call.  So it is worth adding exactly when the skipped work is large and the
+    trivial case is common, and it is a net loss when the trivial case is rare --
+    then every call pays the test and almost none benefit.  The other side of the
+    ledger matters too: many library functions already short-circuit internally,
+    and a guard in front of one of those buys nothing at all.
   how_to_tell:
-    - a degenerate input (empty, single element, already sorted) reaches the full
-      general-case algorithm
+    - >
+      Name the class of input that reaches the expensive path without needing
+      it. Empty, one element, already sorted, already normalised, a value the
+      arithmetic makes irrelevant, a type with a trivial answer.
+    - >
+      Establish that the general path really does the full work on that input.
+      `sorted()` on an empty list is already cheap; `re.compile` on a fixed
+      string is already cached. Check before claiming, because this is where
+      most candidates die.
+    - >
+      Say how often the trivial input arrives and how you know. A guard is a bet
+      on the input distribution, and if you cannot describe the distribution you
+      cannot say whether the bet pays.
+    - >
+      Write the guard and confirm it returns exactly what the general path would
+      have returned for that input, including the type and the edge behaviour.
+      A fast path that is subtly different is a bug, not a repair.
+    - >
+      Check the guard itself is cheap. A guard that scans the collection to
+      decide whether to scan the collection has saved nothing.
   not_a_smell_when:
-    - the degenerate case is rare, so the guard costs more than it saves
-    - the general algorithm already short-circuits internally
+    - >
+      the degenerate case is rare, so the guard costs more across all calls than
+      it saves on the few
+    - >
+      the general algorithm already short-circuits internally, so the guard
+      duplicates a check that has already been made
+    - >
+      the guard would have to do as much work as the path it skips in order to
+      decide
+    - >
+      the fast path returns something subtly different -- another type, a shared
+      rather than a fresh container, a different error
+  counter_examples:
+    - code: |
+        def median(values):
+            ordered = sorted(values)
+            return ordered[len(ordered) // 2]
+      why: >
+        The obvious guard is `if len(values) < 2: return ...`. But `sorted()` on
+        a zero- or one-element list is already close to free, so the guard adds a
+        test to every call to save almost nothing -- and it has to invent an
+        answer for the empty case, which the original raises on. The pattern
+        matches and the repair is not worth making.
+    - code: |
+        def dedupe(items):
+            if not items:
+                return []
+            return list(dict.fromkeys(items))
+      why: >
+        The guard is already there. Reporting this as a missing guard is the
+        commonest way to get this root cause wrong: read the function's opening
+        lines before claiming one is absent.
   refactoring:
-    summary: add a guard that returns immediately for the trivial case
-    before: |
-      def median(values):
-          ordered = sorted(values)
-          return ordered[len(ordered) // 2]
-    after: |
-      def median(values):
-          if len(values) < 2:
-              return values[0] if values else None
-          ordered = sorted(values)
-          return ordered[len(ordered) // 2]
+    summary: add a cheap guard that skips the expensive path for the trivial case
+    examples:
+      - title: an algebraic fact makes the whole scan unnecessary
+        before: |
+          def count_within_bound(values, k):
+              return len([1 for x in values if abs(x) + k > 0])
+        after: |
+          def count_within_bound(values, k):
+              if k > 0:
+                  return len(values)
+              return len([1 for x in values if abs(x) + k > 0])
+        note: >
+          `abs(x)` is never negative, so with `k > 0` the per-element test cannot
+          reject anything and the answer is `len(values)`. One comparison
+          replaces a full pass plus an `abs` per element. The guard is a fact
+          about the arithmetic, which is why it needs a reader rather than a
+          rule, and why it is the strongest form of this root cause.
+      - title: a cheap property rules out the expensive check
+        before: |
+          def primes_in(values):
+              return [n for n in values if is_prime(n)]
+        after: |
+          def primes_in(values):
+              return [n for n in values if n == 2 or (n % 2 == 1 and is_prime(n))]
+        note: >
+          `is_prime` trial-divides up to n; parity settles half the inputs in one
+          modulo. The guard has to name the exception -- 2 is both even and prime
+          -- and getting that wrong is the failure mode. Note that the better
+          repair may be to fix `is_prime` itself, which is C7.S1; prefer that
+          when you own the callee.
+      - title: the fast path is in the callee and only needs asking for
+        before: |
+          def render(rows, template):
+              html = template.render(rows=rows)
+              return minify(html)
+        after: |
+          def render(rows, template):
+              html = template.render(rows=rows)
+              if "\n" not in html and "  " not in html:
+                  return html
+              return minify(html)
+        note: >
+          Worth it only if already-minimal output is common, and only after
+          checking that `minify` does not make the same test first. Both are
+          things you have to go and read, and if you cannot establish them the
+          honest answer is to reject the candidate.
   patch_shape: statement_local
   measurability: scales_with_calls
-  min_workload_hint: the driver must actually supply degenerate inputs
+  min_workload_hint: >
+    the driver must supply the degenerate inputs at a rate you can defend, and
+    the normal inputs too, so that the test the guard adds to every call is
+    charged against the saving
+  discriminators:
+    - vs: C4.S2
+      rule: >
+        C4.S7 *adds* a test that was not there.  C4.S2 *removes* one whose answer
+        was already determined.  One edit sometimes does both -- notice an
+        invariant, then use it to install a fast path -- and either label is
+        defensible; say which you chose.
+    - vs: C7.S5
+      rule: >
+        C4.S7 keeps the expensive operation and skips it for some inputs.  C7.S5
+        makes the operation itself cheaper for *all* inputs by simplifying it.
+        Branch added: C4.S7.  Arithmetic changed: C7.S5.
+    - vs: C3.S5
+      rule: >
+        C3.S5 stops a loop that is already running, once the answer is known.
+        C4.S7 stops the work before it starts.  If the repair adds a `break`, it
+        is C3.S5.
 
 - id: C4.S8
   signals: [ruff_SIM401, ruff_SIM118]
+  mechanism: >
+    CPython's compiler and its built-in types have fast paths for the idiomatic
+    spellings, and the verbose equivalents miss them.  `if not x` asks the object
+    for its truth value directly; `if len(x) == 0` calls `len`, builds an int and
+    compares two objects.  `key in mapping` probes the hash table;
+    `key in mapping.keys()` first builds a view.  `a < b < c` evaluates `b` once;
+    `a < b and b < c` evaluates it twice.  Each difference is a handful of
+    bytecodes -- small, uniform, and only visible in aggregate.
   how_to_tell:
-    - a conditional is written in a form CPython does not optimise, where an
-      idiomatic equivalent exists
+    - >
+      Point at the verbose form and name the idiom that replaces it.
+    - >
+      Establish that the two are equivalent *for this data*. This is the whole
+      difficulty: `len(x) == 0` and `not x` differ for an object with a custom
+      `__bool__` or `__len__`, and for a numpy array or a pandas frame the idiom
+      raises rather than answering.
+    - >
+      Check that the explicit form is not deliberately exact. Comparing floats
+      with `==` is sometimes precisely what was meant, and replacing it with
+      `math.isclose` changes the answer.
+    - >
+      Say how often it runs. This is worth a few bytecodes per evaluation, so it
+      is a finding only inside something hot -- and it is often more honest to
+      report it as advisory.
   not_a_smell_when:
-    - the explicit form distinguishes cases the idiom would conflate
-      (`len(x) == 0` and `not x` differ for objects with a custom `__bool__`)
-    - the comparison is deliberately exact
+    - >
+      the explicit form distinguishes cases the idiom conflates, which is the
+      usual situation for anything with a custom `__bool__` or `__len__`
+    - >
+      the comparison is deliberately exact, as float equality sometimes is
+    - >
+      the operand may be a numpy array or a pandas object, where the truthiness
+      idiom raises rather than answering
+    - >
+      it runs once on a cold path, where the whole saving is a few bytecodes
+  counter_examples:
+    - code: |
+        if len(frame) == 0:
+            return empty_result()
+      why: >
+        If `frame` is a pandas DataFrame, `if not frame` raises `ValueError` --
+        the idiom is not available and the explicit form is the correct way to
+        write this. The same applies to a numpy array with more than one
+        element. You have to know the type before applying this repair.
+    - code: |
+        if value == 0.0:
+            return "exact zero"
+      why: >
+        Exact float comparison, deliberately. `math.isclose` would report
+        `1e-300` as zero. The idiom is not always the intent.
   refactoring:
     summary: use the idiomatic form
-    before: |
-      if len(items) == 0:
-          return
-      if key in mapping.keys():
-          use(mapping[key])
-    after: |
-      if not items:
-          return
-      if key in mapping:
-          use(mapping[key])
+    examples:
+      - title: truthiness and membership
+        before: |
+          def summarise(items, mapping, key):
+              if len(items) == 0:
+                  return None
+              if key in mapping.keys():
+                  return mapping[key]
+              return None
+        after: |
+          def summarise(items, mapping, key):
+              if not items:
+                  return None
+              return mapping.get(key)
+        note: >
+          Three changes, each needing its own check: `not items` requires
+          ordinary truthiness; `key in mapping` skips building a view; `.get()`
+          replaces a membership test followed by a second lookup, which halves
+          the hashing. The third is the only one worth much.
+      - title: a chained comparison, and the branches it makes redundant
+        before: |
+          def inside(low, high, x):
+              if x < low:
+                  return False
+              if low <= x and x <= high:
+                  return True
+              elif x > high:
+                  return False
+              return False
+        after: |
+          def inside(low, high, x):
+              return low <= x <= high
+        note: >
+          The chained form evaluates `x` once instead of twice, and -- more
+          importantly here -- the whole four-branch structure collapses, because
+          the first test and the `elif` are both implied by the range
+          comparison. That part is C4.S2, and the two together are one repair:
+          report whichever describes the edit better and list the other as
+          subsumed.
   patch_shape: expression
   measurability: scales_with_input
+  min_workload_hint: >
+    needs a very hot path; each instance is worth a few bytecodes, so only a
+    case that calls the unit millions of times over trivial input will show it
+  notes: >
+    Most instances of this root cause are honestly advisory.  Report them, and do
+    not manufacture a case file that measures a difference nobody will ever
+    observe -- a claim measured badly is worse than a claim reported as
+    unmeasured.
+  discriminators:
+    - vs: C10.S2
+      rule: >
+        These overlap almost completely, and the split is by *what* the
+        alternative is.  C4.S8 is about the spelling of a **condition**, where
+        CPython has a fast path for the idiom.  C10.S2 is about choosing a
+        cheaper **function or method** for a task -- `str.startswith` over
+        `re.match`, `& 1` over `% 2`.  If the repair rewrites a boolean test it
+        is C4.S8; if it swaps a callable it is C10.S2.
+    - vs: C4.S2
+      rule: >
+        C4.S8 rewrites a test into a cheaper equivalent that asks the same
+        question.  C4.S2 deletes a test because its answer was already known.

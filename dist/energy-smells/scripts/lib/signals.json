@@ -409,18 +409,18 @@
    "name": "Redundant Conditional Evaluation",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
-   "measurability": "constant_small",
-   "advisory_only": true,
-   "repair": "delete the condition whose result is already known",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "delete the condition whose result is already determined",
    "card": "reference/root-causes/C4.S2.md"
   },
   "C4.S3": {
    "name": "Inefficient Conditional Nesting",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
-   "measurability": "constant_small",
-   "advisory_only": true,
-   "repair": "flatten with guard clauses that return early",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "flatten with guard clauses that return early, or replace a chain of equality arms with a lookup",
    "card": "reference/root-causes/C4.S3.md"
   },
   "C4.S4": {
@@ -456,7 +456,7 @@
    "category_name": "Inefficient Control Flow",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "add a guard that returns immediately for the trivial case",
+   "repair": "add a cheap guard that skips the expensive path for the trivial case",
    "card": "reference/root-causes/C4.S7.md"
   },
   "C4.S8": {
