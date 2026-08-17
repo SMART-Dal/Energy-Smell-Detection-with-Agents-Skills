@@ -117,9 +117,6 @@
   "ruff_B019": [
    "C8.S1"
   ],
-  "ruff_B020": [
-   "C3.S7"
-  ],
   "ruff_B909": [
    "C3.S7"
   ],
@@ -339,7 +336,7 @@
    "category_name": "Inefficient Iteration Patterns",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "iterate the sequence directly, or express the loop as a comprehension",
+   "repair": "use the iteration construct with the least per-element overhead",
    "card": "reference/root-causes/C3.S1.md"
   },
   "C3.S2": {
@@ -357,7 +354,7 @@
    "category_name": "Inefficient Iteration Patterns",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "build it once before the loop and reuse it",
+   "repair": "create the object once before the loop and reuse it",
    "card": "reference/root-causes/C3.S3.md"
   },
   "C3.S4": {
@@ -366,7 +363,7 @@
    "category_name": "Inefficient Iteration Patterns",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "replace the inner scan with a hash lookup, removing one loop level",
+   "repair": "replace the inner scan with a hash lookup, or halve a symmetric traversal",
    "card": "reference/root-causes/C3.S4.md"
   },
   "C3.S5": {
@@ -375,7 +372,7 @@
    "category_name": "Inefficient Iteration Patterns",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "break out, return, or use a short-circuiting builtin",
+   "repair": "stop as soon as the outcome is settled, ideally with a primitive that does so",
    "card": "reference/root-causes/C3.S5.md"
   },
   "C3.S6": {
@@ -384,7 +381,7 @@
    "category_name": "Inefficient Iteration Patterns",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "narrow the input before doing the work, or stop once enough is produced",
+   "repair": "reduce the collection before the expensive step, not after",
    "card": "reference/root-causes/C3.S6.md"
   },
   "C3.S7": {
@@ -393,7 +390,7 @@
    "category_name": "Inefficient Iteration Patterns",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "iterate a snapshot, or build the result and replace the collection",
+   "repair": "iterate over a snapshot, or build a new collection instead of editing in place",
    "card": "reference/root-causes/C3.S7.md"
   },
   "C4.S1": {
