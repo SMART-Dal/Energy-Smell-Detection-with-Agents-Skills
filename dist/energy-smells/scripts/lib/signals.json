@@ -617,7 +617,7 @@
    "category_name": "Missing Reuse",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "memoise the function",
+   "repair": "cache the result, keyed on the arguments, with a lifetime you have chosen",
    "card": "reference/root-causes/C8.S1.md"
   },
   "C8.S2": {
@@ -626,7 +626,7 @@
    "category_name": "Missing Reuse",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "build it once at module or class scope and reuse it",
+   "repair": "derive the artefact once and bind it where it survives the calls that use it",
    "card": "reference/root-causes/C8.S2.md"
   },
   "C8.S3": {
@@ -635,7 +635,7 @@
    "category_name": "Missing Reuse",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "bind the resolved value to a local before the loop",
+   "repair": "bind the resolved value to a local before the hot region",
    "card": "reference/root-causes/C8.S3.md"
   },
   "C8.S4": {
@@ -644,7 +644,7 @@
    "category_name": "Missing Reuse",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "fetch once and reuse, with a TTL if freshness matters",
+   "repair": "fetch once and reuse, with a lifetime and an invalidation rule you have stated",
    "card": "reference/root-causes/C8.S4.md"
   },
   "C9.S1": {
@@ -653,7 +653,7 @@
    "category_name": "Inefficient External Data Access",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "batch the operations into one call",
+   "repair": "combine the small operations into one bulk operation",
    "card": "reference/root-causes/C9.S1.md"
   },
   "C9.S2": {
@@ -662,7 +662,7 @@
    "category_name": "Inefficient External Data Access",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "request only the fields and rows that are used",
+   "repair": "request only the fields, rows or bytes the code consumes",
    "card": "reference/root-causes/C9.S2.md"
   },
   "C9.S3": {
@@ -671,7 +671,7 @@
    "category_name": "Inefficient External Data Access",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "fetch the related data in one query",
+   "repair": "fetch the related data in one query, or in one query per relation",
    "card": "reference/root-causes/C9.S3.md"
   },
   "C9.S4": {
@@ -680,7 +680,7 @@
    "category_name": "Inefficient External Data Access",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "use the cheaper equivalent query form",
+   "repair": "restructure the query so the engine can execute it cheaply",
    "card": "reference/root-causes/C9.S4.md"
   },
   "C10.S1": {
