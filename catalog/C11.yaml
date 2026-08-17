@@ -17,8 +17,8 @@
 # And processes are not free: a fork plus pickling both ways, per task, which is
 # why parallelism whose data transfer exceeds its compute is a regression.
 #
-# Nothing here can be decided by a static rule, because every question is about
-# what runs concurrently with what. Expect to find these by reading.
+# None of this can be settled by looking at syntax, because every question is
+# about what runs concurrently with what. Expect to find these by reading.
 #
 # The five split by what is wrong with the concurrency:
 #
@@ -469,9 +469,9 @@
                 return json.load(handle)
       why: >
         Blocking file I/O, and not a coroutine -- an ordinary synchronous function.
-        The first `how_to_tell` step exists because a rule that looks for blocking
-        calls without checking whether the enclosing function is `async` reports
-        every file read in the codebase.
+        The first `how_to_tell` step exists because looking for blocking
+        calls without first checking whether the enclosing function is `async`
+        implicates every file read in the codebase.
   refactoring:
     summary: await the async equivalent, or move the blocking work off the loop
     examples:

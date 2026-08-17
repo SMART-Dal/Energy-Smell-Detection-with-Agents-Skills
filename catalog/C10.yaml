@@ -762,11 +762,11 @@
     at least ~1M iterations; one lookup is a few nanoseconds, and below that
     scale report it as advisory instead of manufacturing a case
   notes: >
-    The static rule for this fired forty-five times on a single repository before
-    it was given a three-reads-per-iteration threshold and a two-per-loop cap --
-    more hits than every other rule combined, almost all of them worth
-    nanoseconds.  Treat a single global read in a loop as advisory unless the
-    iteration count is genuinely enormous.
+    Counting every global read inside a loop in one ordinary repository gives
+    forty-five instances -- more than every other pattern in this taxonomy put
+    together, and almost all of them worth nanoseconds.  Treat a single global
+    read in a loop as advisory unless the iteration count is genuinely enormous,
+    and prefer three or more reads per iteration before calling it a finding.
   discriminators:
     - vs: C8.S3
       rule: >

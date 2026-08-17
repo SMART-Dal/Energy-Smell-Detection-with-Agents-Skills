@@ -657,7 +657,7 @@
         return status
       why: >
         An assignment inside a loop that keeps going, which is exactly the shape
-        the rule looks for -- and breaking at the first `degraded` would miss a
+        this root cause is about -- and breaking at the first `degraded` would miss a
         later `down`. A later iteration *can* change the outcome, so there is no
         early exit here. Only when every remaining iteration is guaranteed to
         leave the value alone is the exit missing.

@@ -129,8 +129,9 @@ when a finding looks marginal.
 an analysis you did and a list you were handed, and it is measured across runs,
 so record it honestly — including the cases where you missed something.
 
-**`evidence`** lists the static signal kinds that pointed here, exactly as they
-were reported. Leave it `[]` when you found the smell by reading.
+**`evidence`** lists any deterministic observation that pointed here, named
+exactly as it was reported to you. Leave it `[]` when you found the smell by
+reading, which is the normal case.
 
 **`rejected_neighbours`** is not optional when the card lists neighbours. It is
 the record that you distinguished this root cause rather than picked it.

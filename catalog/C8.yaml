@@ -76,9 +76,8 @@
       why: >
         `cache` on a method keys on `self`, so the module-level table holds a
         strong reference to every instance the method was ever called on, for the
-        life of the process. The cost is fixed and the leak is not. This is what
-        ruff B019 detects, and the repair is a per-instance cache or
-        `cached_property`, not a decorator.
+        life of the process. The cost is fixed and the leak is not. The repair is a
+        per-instance cache or `cached_property`, never a decorator on a method.
     - code: |
         def render(template, context):
             return template.format(**context)

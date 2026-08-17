@@ -5,8 +5,8 @@
 # a hot path all three are advisory at best.
 #
 # This category has a specific hazard the others do not: a thin wrapper is good
-# design almost everywhere. The static rule for C2.S1 fired 657 times on pandas,
-# and essentially all of it was legitimate public API surface. So the hot-path
+# design almost everywhere. Counting bare forwarding wrappers in pandas gives 657
+# of them, and essentially all are legitimate public API surface. So the hot-path
 # condition is not decoration on these cards; it is the entire finding. A
 # delegating method in a library's public interface is not a smell, it is the
 # interface.
@@ -154,8 +154,8 @@
   notes: >
     Report the hotness argument explicitly in every finding here, because without
     it this root cause is indistinguishable from ordinary good design.  A wrapper
-    on a cold path is not a smell at any size, and the static signal for this is
-    graded `contextual` for exactly that reason.
+    on a cold path is not a smell at any size, however plainly the pattern is
+    present.
   discriminators:
     - vs: C2.S3
       rule: >
@@ -454,9 +454,8 @@
   notes: >
     This root cause exists between units rather than inside one, so it will not be
     found by looking at any single function.  The scan can only hint at it: the
-    static rule reports one delegating method at a time, and the call graph reports
-    which units call which, so a chain surfaces as several linked units rather
-    than as one fact.  Recognising it means following the path from the loop to the
+    most tooling can see one delegating method at a time, so a chain surfaces as
+    several separate observations rather than as one fact.  Recognising it means following the path from the loop to the
     work and counting -- which is what step 1 asks for, and why the procedure
     insists on reading callees.
   discriminators:

@@ -22,8 +22,8 @@ LAZY_CONSUMERS = frozenset({"sum", "any", "all", "min", "max", "sorted", "set",
 # they are handed, so replacing a list comprehension with a generator in front
 # of them removes no allocation at all and adds a frame resume per element; the
 # repair those shapes want is a set or dict comprehension, which is a different
-# signal (ruff's C403/C404/C409 already report it).  Deleting a `list()` *call*
-# in front of them is still a real saving, which is why only
+# signal from this one.  Deleting a `list()` *call* in front of them is still a
+# real saving, which is why only
 # `eager_comprehension` narrows to this set and `redundant_materialisation`
 # keeps the wider one.
 STREAMING_CONSUMERS = frozenset({"sum", "any", "all", "min", "max", "join",

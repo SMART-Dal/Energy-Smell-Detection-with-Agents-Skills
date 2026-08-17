@@ -76,10 +76,10 @@
                 results.append(value)
       why: >
         `cache` here is a plain dict. `.get()` in a loop is one of the commonest
-        expressions in Python, and reporting it as fragmented I/O is what the
-        static rule for this used to do -- eight false hits on a pure-Python module
-        that performs no I/O whatsoever. Establish the receiver before anything
-        else.
+        expressions in Python, and the method name tells you nothing about whether
+        it leaves the process -- one ordinary pure-Python module that performs no
+        I/O at all contains eight of these. Establish what the receiver is before
+        anything else.
     - code: |
         for record in records:
             try:

@@ -71,7 +71,7 @@
             handle = open(path, "wb")
             _register(handle)
       why: >
-        `handle` is assigned and never read, which is what the rule detects -- and
+        `handle` is assigned and never read, which is the shape exactly -- and
         the binding is what keeps the file open until `_register` takes its own
         reference. Deleting it is a behaviour change. A local nothing reads is not
         the same as a local nothing needs.
@@ -126,9 +126,9 @@
   notes: >
     Two very different findings share this root cause, and the report should say
     which.  A dead *binding* is advisory.  A dead *computation* can be the largest
-    saving in a whole analysis.  The static signal for this (ruff F841) finds the
-    first far more often than the second, so treat its hits as a prompt to look at
-    the right-hand side rather than as a finding in themselves.
+    saving in a whole analysis.  An unread local is easy to spot and usually the
+    trivial kind, so treat noticing one as a prompt to look at what its right-hand
+    side costs rather than as a finding in itself.
   discriminators:
     - vs: C1.S5
       rule: >

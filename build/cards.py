@@ -97,9 +97,10 @@ def render_category(category_id: str, taxonomy: Taxonomy, catalog: Catalog) -> s
     lines += [
         "## If nothing here fits",
         "",
-        "Say so and move on. Reporting a weak match from an already-open category "
-        "is the most common way this analysis goes wrong: the category is open "
-        "because a static signal pointed at it, not because a smell is there.",
+        "Say so and move on. Reporting a weak match from a category you have "
+        "already opened is the most common way this analysis goes wrong: the "
+        "category is open because something drew you here, which is not the same "
+        "as a smell being present.",
         "",
     ]
     return "\n".join(lines)
