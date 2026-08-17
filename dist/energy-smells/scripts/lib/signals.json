@@ -789,7 +789,7 @@
    "category_name": "Poor Hardware Locality Usage",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "traverse along the contiguous axis, or change the layout to match",
+   "repair": "traverse along the contiguous axis, or store the array in the layout the traversal needs",
    "card": "reference/root-causes/C12.S1.md"
   },
   "C12.S2": {
@@ -816,7 +816,7 @@
    "category_name": "Poor Hardware Locality Usage",
    "measurability": "constant_small",
    "advisory_only": true,
-   "repair": "declare the hot buffers first",
+   "repair": "declare the hot fields first",
    "card": "reference/root-causes/C12.S4.md"
   }
  },
