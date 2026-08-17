@@ -1,0 +1,873 @@
+{
+ "_generated_by": "python -m build",
+ "_source": "catalog/*.yaml + taxonomy/*.xlsx",
+ "signal_to_root_causes": {
+  "append_only_loop": [
+   "C10.S3",
+   "C3.S1"
+  ],
+  "blocking_call_in_async": [
+   "C11.S4"
+  ],
+  "column_major_traversal": [
+   "C12.S1"
+  ],
+  "constant_sequence_literal": [
+   "C5.S3"
+  ],
+  "construction_in_loop": [
+   "C3.S3"
+  ],
+  "copy_in_loop": [
+   "C6.S2"
+  ],
+  "dead_initialization": [
+   "C1.S6"
+  ],
+  "deep_conditional_nesting": [
+   "C4.S3"
+  ],
+  "discarded_pure_result": [
+   "C1.S5"
+  ],
+  "eager_comprehension": [
+   "C6.S3"
+  ],
+  "expensive_comparison": [
+   "C4.S5"
+  ],
+  "expensive_operand_first": [
+   "C4.S1"
+  ],
+  "filter_after_transform": [
+   "C7.S4"
+  ],
+  "float_literal_on_int_data": [
+   "C5.S3"
+  ],
+  "global_lookup_in_loop": [
+   "C10.S5"
+  ],
+  "independent_exclusive_ifs": [
+   "C4.S4"
+  ],
+  "index_based_iteration": [
+   "C3.S1"
+  ],
+  "io_call_in_loop": [
+   "C8.S4",
+   "C9.S1",
+   "C9.S3"
+  ],
+  "linear_recursion": [
+   "C7.S3"
+  ],
+  "lock_in_loop": [
+   "C11.S1"
+  ],
+  "loop_invariant_expression": [
+   "C3.S2"
+  ],
+  "manual_builtin_loop": [
+   "C10.S1"
+  ],
+  "membership_test_on_sequence": [
+   "C3.S4",
+   "C5.S1"
+  ],
+  "method_ignores_self": [
+   "C2.S2"
+  ],
+  "missing_early_exit": [
+   "C3.S5"
+  ],
+  "mutable_default_argument": [
+   "C6.S7"
+  ],
+  "mutation_during_iteration": [
+   "C3.S7"
+  ],
+  "nested_loops": [
+   "C3.S4",
+   "C7.S1"
+  ],
+  "recursion_without_memo": [
+   "C7.S2",
+   "C8.S1"
+  ],
+  "redundant_bool_branch": [
+   "C1.S3"
+  ],
+  "redundant_materialisation": [
+   "C5.S4"
+  ],
+  "regex_in_loop": [
+   "C3.S3",
+   "C8.S2"
+  ],
+  "repeated_lookup_in_loop": [
+   "C8.S3"
+  ],
+  "repeated_pure_call": [
+   "C1.S4"
+  ],
+  "ruff_B006": [
+   "C6.S7"
+  ],
+  "ruff_B019": [
+   "C8.S1"
+  ],
+  "ruff_B020": [
+   "C3.S7"
+  ],
+  "ruff_B909": [
+   "C3.S7"
+  ],
+  "ruff_C400": [
+   "C6.S3"
+  ],
+  "ruff_C401": [
+   "C6.S3"
+  ],
+  "ruff_C402": [
+   "C6.S3"
+  ],
+  "ruff_C408": [
+   "C6.S1"
+  ],
+  "ruff_C411": [
+   "C5.S4"
+  ],
+  "ruff_C414": [
+   "C5.S4"
+  ],
+  "ruff_C416": [
+   "C5.S4"
+  ],
+  "ruff_C417": [
+   "C10.S2"
+  ],
+  "ruff_C419": [
+   "C6.S3"
+  ],
+  "ruff_F841": [
+   "C1.S1"
+  ],
+  "ruff_PERF101": [
+   "C5.S4"
+  ],
+  "ruff_PERF102": [
+   "C3.S1"
+  ],
+  "ruff_PERF203": [
+   "C4.S6"
+  ],
+  "ruff_PERF401": [
+   "C10.S3",
+   "C3.S1"
+  ],
+  "ruff_PERF402": [
+   "C10.S3"
+  ],
+  "ruff_PERF403": [
+   "C3.S1"
+  ],
+  "ruff_PLR1730": [
+   "C10.S1"
+  ],
+  "ruff_PLW2901": [
+   "C1.S2"
+  ],
+  "ruff_RUF005": [
+   "C6.S1"
+  ],
+  "ruff_RUF015": [
+   "C3.S6",
+   "C6.S3"
+  ],
+  "ruff_RUF017": [
+   "C7.S1"
+  ],
+  "ruff_SIM110": [
+   "C10.S1"
+  ],
+  "ruff_SIM115": [
+   "C6.S6"
+  ],
+  "ruff_SIM118": [
+   "C10.S2",
+   "C4.S8"
+  ],
+  "ruff_SIM401": [
+   "C10.S2",
+   "C4.S8"
+  ],
+  "runtime_management_in_loop": [
+   "C1.S8"
+  ],
+  "single_use_temporary": [
+   "C1.S7"
+  ],
+  "sort_then_slice": [
+   "C7.S4"
+  ],
+  "string_concat_in_loop": [
+   "C10.S4"
+  ],
+  "trivial_delegation": [
+   "C2.S1",
+   "C2.S3"
+  ],
+  "try_except_in_loop": [
+   "C3.S3",
+   "C4.S6"
+  ],
+  "unjoined_thread": [
+   "C11.S3"
+  ],
+  "unmanaged_resource": [
+   "C6.S6"
+  ],
+  "whole_file_read": [
+   "C6.S3",
+   "C9.S2"
+  ]
+ },
+ "root_causes": {
+  "C1.S1": {
+   "name": "Dead Code",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "delete the assignment or the unreachable statement",
+   "card": "reference/root-causes/C1.S1.md"
+  },
+  "C1.S2": {
+   "name": "Redundant Assignment",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "remove the assignment that leaves state unchanged",
+   "card": "reference/root-causes/C1.S2.md"
+  },
+  "C1.S3": {
+   "name": "Redundant Control Flow",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "remove the control-flow construct that has no effect",
+   "card": "reference/root-causes/C1.S3.md"
+  },
+  "C1.S4": {
+   "name": "Repeated Computation",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "compute once into a local and reuse it",
+   "card": "reference/root-causes/C1.S4.md"
+  },
+  "C1.S5": {
+   "name": "Resultless Computation",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "delete the computation whose product is never consumed",
+   "card": "reference/root-causes/C1.S5.md"
+  },
+  "C1.S6": {
+   "name": "Unnecessary Initialization",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "move the initialisation inside the branch that needs it",
+   "card": "reference/root-causes/C1.S6.md"
+  },
+  "C1.S7": {
+   "name": "Unnecessary Variable",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "inline the single-use intermediate",
+   "card": "reference/root-causes/C1.S7.md"
+  },
+  "C1.S8": {
+   "name": "Excessive Runtime-Management Calls",
+   "category": "C1",
+   "category_name": "Redundant Computation",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "drop the manual collection, or guard the expensive log argument",
+   "card": "reference/root-causes/C1.S8.md"
+  },
+  "C2.S1": {
+   "name": "Unnecessary Method Delegation",
+   "category": "C2",
+   "category_name": "Unnecessary Call Overhead",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "call the delegate directly from the hot call site",
+   "card": "reference/root-causes/C2.S1.md"
+  },
+  "C2.S2": {
+   "name": "Missing Static Declaration",
+   "category": "C2",
+   "category_name": "Unnecessary Call Overhead",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "mark it `@staticmethod` so no bound method object is built per call",
+   "card": "reference/root-causes/C2.S2.md"
+  },
+  "C2.S3": {
+   "name": "Excessive Modularization in Hot Path",
+   "category": "C2",
+   "category_name": "Unnecessary Call Overhead",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "merge the thin layers into one function on the hot path",
+   "card": "reference/root-causes/C2.S3.md"
+  },
+  "C3.S1": {
+   "name": "Inefficient Iteration Construct",
+   "category": "C3",
+   "category_name": "Inefficient Iteration Patterns",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "iterate the sequence directly, or express the loop as a comprehension",
+   "card": "reference/root-causes/C3.S1.md"
+  },
+  "C3.S2": {
+   "name": "Recomputing Loop-Invariant Values",
+   "category": "C3",
+   "category_name": "Inefficient Iteration Patterns",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "hoist the invariant expression to just above the loop",
+   "card": "reference/root-causes/C3.S2.md"
+  },
+  "C3.S3": {
+   "name": "Inefficient Per-Iteration Setup",
+   "category": "C3",
+   "category_name": "Inefficient Iteration Patterns",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "build it once before the loop and reuse it",
+   "card": "reference/root-causes/C3.S3.md"
+  },
+  "C3.S4": {
+   "name": "Inefficient Nested Iteration",
+   "category": "C3",
+   "category_name": "Inefficient Iteration Patterns",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "replace the inner scan with a hash lookup, removing one loop level",
+   "card": "reference/root-causes/C3.S4.md"
+  },
+  "C3.S5": {
+   "name": "Missing Loop Early Exit",
+   "category": "C3",
+   "category_name": "Inefficient Iteration Patterns",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "break out, return, or use a short-circuiting builtin",
+   "card": "reference/root-causes/C3.S5.md"
+  },
+  "C3.S6": {
+   "name": "Unfiltered Bulk Iteration",
+   "category": "C3",
+   "category_name": "Inefficient Iteration Patterns",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "narrow the input before doing the work, or stop once enough is produced",
+   "card": "reference/root-causes/C3.S6.md"
+  },
+  "C3.S7": {
+   "name": "Inefficient Array Mutation in Loop",
+   "category": "C3",
+   "category_name": "Inefficient Iteration Patterns",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "iterate a snapshot, or build the result and replace the collection",
+   "card": "reference/root-causes/C3.S7.md"
+  },
+  "C4.S1": {
+   "name": "Poor Short-Circuit Ordering",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "put the cheap, most-decisive test first so short-circuiting can skip the rest",
+   "card": "reference/root-causes/C4.S1.md"
+  },
+  "C4.S2": {
+   "name": "Redundant Conditional Evaluation",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "delete the condition whose result is already known",
+   "card": "reference/root-causes/C4.S2.md"
+  },
+  "C4.S3": {
+   "name": "Inefficient Conditional Nesting",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "flatten with guard clauses that return early",
+   "card": "reference/root-causes/C4.S3.md"
+  },
+  "C4.S4": {
+   "name": "Missing Else-If",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "chain the branches with `elif` so evaluation stops at the first match",
+   "card": "reference/root-causes/C4.S4.md"
+  },
+  "C4.S5": {
+   "name": "Expensive Comparison",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "hoist the type decision out of the loop, or dispatch polymorphically",
+   "card": "reference/root-causes/C4.S5.md"
+  },
+  "C4.S6": {
+   "name": "Expensive Exception Control Flow",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "replace the frequently-raised exception with an explicit check",
+   "card": "reference/root-causes/C4.S6.md"
+  },
+  "C4.S7": {
+   "name": "Missing Edge-Case Guards",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "add a guard that returns immediately for the trivial case",
+   "card": "reference/root-causes/C4.S7.md"
+  },
+  "C4.S8": {
+   "name": "Non-Idiomatic Condition",
+   "category": "C4",
+   "category_name": "Inefficient Control Flow",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "use the idiomatic form",
+   "card": "reference/root-causes/C4.S8.md"
+  },
+  "C5.S1": {
+   "name": "Inefficient Data Structure Choice",
+   "category": "C5",
+   "category_name": "Suboptimal Data Structures",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "swap the container type at its construction site",
+   "card": "reference/root-causes/C5.S1.md"
+  },
+  "C5.S2": {
+   "name": "Missing Helper Type",
+   "category": "C5",
+   "category_name": "Suboptimal Data Structures",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "build a lookup index once, then query it",
+   "card": "reference/root-causes/C5.S2.md"
+  },
+  "C5.S3": {
+   "name": "Over-Provisioned Data Type",
+   "category": "C5",
+   "category_name": "Suboptimal Data Structures",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "use the lightest representation the data actually requires",
+   "card": "reference/root-causes/C5.S3.md"
+  },
+  "C5.S4": {
+   "name": "Unnecessary Representation Change",
+   "category": "C5",
+   "category_name": "Suboptimal Data Structures",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "delete the conversion and pass the value through directly",
+   "card": "reference/root-causes/C5.S4.md"
+  },
+  "C6.S1": {
+   "name": "Unnecessary Object",
+   "category": "C6",
+   "category_name": "Unnecessary Memory Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "reuse, share or avoid creating the object",
+   "card": "reference/root-causes/C6.S1.md"
+  },
+  "C6.S2": {
+   "name": "Unnecessary Copying",
+   "category": "C6",
+   "category_name": "Unnecessary Memory Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "operate in place or pass a reference",
+   "card": "reference/root-causes/C6.S2.md"
+  },
+  "C6.S3": {
+   "name": "Unnecessary Data Materialization",
+   "category": "C6",
+   "category_name": "Unnecessary Memory Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "make the producer lazy",
+   "card": "reference/root-causes/C6.S3.md"
+  },
+  "C6.S4": {
+   "name": "Oversized Data Retaining",
+   "category": "C6",
+   "category_name": "Unnecessary Memory Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "retain only the fields that are actually used later",
+   "card": "reference/root-causes/C6.S4.md"
+  },
+  "C6.S5": {
+   "name": "Over-Allocation",
+   "category": "C6",
+   "category_name": "Unnecessary Memory Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "size the allocation to the actual input",
+   "card": "reference/root-causes/C6.S5.md"
+  },
+  "C6.S6": {
+   "name": "Leaked Resource Handles",
+   "category": "C6",
+   "category_name": "Unnecessary Memory Usage",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "manage the resource with a `with` block",
+   "card": "reference/root-causes/C6.S6.md"
+  },
+  "C6.S7": {
+   "name": "Leaking Mutable Default Arguments",
+   "category": "C6",
+   "category_name": "Unnecessary Memory Usage",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "default to `None` and create the object inside the body",
+   "card": "reference/root-causes/C6.S7.md"
+  },
+  "C7.S1": {
+   "name": "Suboptimal Algorithm Choice",
+   "category": "C7",
+   "category_name": "Suboptimal Algorithmic",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "replace the algorithm with the better-known one",
+   "card": "reference/root-causes/C7.S1.md"
+  },
+  "C7.S2": {
+   "name": "Inefficient Problem Decomposition",
+   "category": "C7",
+   "category_name": "Suboptimal Algorithmic",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "prune, memoise or reorder the exploration",
+   "card": "reference/root-causes/C7.S2.md"
+  },
+  "C7.S3": {
+   "name": "Avoidable Recursive Implementation",
+   "category": "C7",
+   "category_name": "Suboptimal Algorithmic",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "convert the recursion to a loop with an accumulator",
+   "card": "reference/root-causes/C7.S3.md"
+  },
+  "C7.S4": {
+   "name": "Inefficient Operation Ordering",
+   "category": "C7",
+   "category_name": "Suboptimal Algorithmic",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "run the cheap, reducing step first",
+   "card": "reference/root-causes/C7.S4.md"
+  },
+  "C7.S5": {
+   "name": "Unsimplified Operation",
+   "category": "C7",
+   "category_name": "Suboptimal Algorithmic",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "simplify or pre-check the input before the expensive step",
+   "card": "reference/root-causes/C7.S5.md"
+  },
+  "C8.S1": {
+   "name": "Missing Memoization Cache",
+   "category": "C8",
+   "category_name": "Missing Reuse",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "memoise the function",
+   "card": "reference/root-causes/C8.S1.md"
+  },
+  "C8.S2": {
+   "name": "Missing Derived-Value Reuse",
+   "category": "C8",
+   "category_name": "Missing Reuse",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "build it once at module or class scope and reuse it",
+   "card": "reference/root-causes/C8.S2.md"
+  },
+  "C8.S3": {
+   "name": "Missing Local Lookup Caching",
+   "category": "C8",
+   "category_name": "Missing Reuse",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "bind the resolved value to a local before the loop",
+   "card": "reference/root-causes/C8.S3.md"
+  },
+  "C8.S4": {
+   "name": "Redundant Data Fetching",
+   "category": "C8",
+   "category_name": "Missing Reuse",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "fetch once and reuse, with a TTL if freshness matters",
+   "card": "reference/root-causes/C8.S4.md"
+  },
+  "C9.S1": {
+   "name": "Fragmented I/O Calls",
+   "category": "C9",
+   "category_name": "Inefficient External Data Access",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "batch the operations into one call",
+   "card": "reference/root-causes/C9.S1.md"
+  },
+  "C9.S2": {
+   "name": "Oversized Data Retrieval",
+   "category": "C9",
+   "category_name": "Inefficient External Data Access",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "request only the fields and rows that are used",
+   "card": "reference/root-causes/C9.S2.md"
+  },
+  "C9.S3": {
+   "name": "Inefficient Retrieval Paths",
+   "category": "C9",
+   "category_name": "Inefficient External Data Access",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "fetch the related data in one query",
+   "card": "reference/root-causes/C9.S3.md"
+  },
+  "C9.S4": {
+   "name": "Expensive Query Pattern",
+   "category": "C9",
+   "category_name": "Inefficient External Data Access",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "use the cheaper equivalent query form",
+   "card": "reference/root-causes/C9.S4.md"
+  },
+  "C10.S1": {
+   "name": "Skipping Optimized Built-ins",
+   "category": "C10",
+   "category_name": "Underused Language Primitives",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "call the builtin instead of the loop",
+   "card": "reference/root-causes/C10.S1.md"
+  },
+  "C10.S2": {
+   "name": "Inefficient Built-in Choice",
+   "category": "C10",
+   "category_name": "Underused Language Primitives",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "swap in the faster equivalent",
+   "card": "reference/root-causes/C10.S2.md"
+  },
+  "C10.S3": {
+   "name": "Missing Bulk Primitive Usage",
+   "category": "C10",
+   "category_name": "Underused Language Primitives",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "use the bulk or vectorised primitive",
+   "card": "reference/root-causes/C10.S3.md"
+  },
+  "C10.S4": {
+   "name": "Inefficient String Concatenation",
+   "category": "C10",
+   "category_name": "Underused Language Primitives",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "collect the parts in a local list and join once, so the accumulator that grows is never the aliased one",
+   "card": "reference/root-causes/C10.S4.md"
+  },
+  "C10.S5": {
+   "name": "Inefficient Scope Lookup",
+   "category": "C10",
+   "category_name": "Underused Language Primitives",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "alias the global to a local before the loop",
+   "card": "reference/root-causes/C10.S5.md"
+  },
+  "C10.S6": {
+   "name": "Expensive Operator Overloads",
+   "category": "C10",
+   "category_name": "Underused Language Primitives",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "call the underlying operation directly, or work on primitives in the loop",
+   "card": "reference/root-causes/C10.S6.md"
+  },
+  "C11.S1": {
+   "name": "Excessive Lock Contention",
+   "category": "C11",
+   "category_name": "Inefficient Concurrency Management",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "narrow the critical section to the state that actually needs protecting",
+   "card": "reference/root-causes/C11.S1.md"
+  },
+  "C11.S2": {
+   "name": "Forced Serial Bottleneck",
+   "category": "C11",
+   "category_name": "Inefficient Concurrency Management",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "replicate or pool the bottleneck resource",
+   "card": "reference/root-causes/C11.S2.md"
+  },
+  "C11.S3": {
+   "name": "Leaked Background Threads",
+   "category": "C11",
+   "category_name": "Inefficient Concurrency Management",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "give the worker a shutdown path, or make it a daemon",
+   "card": "reference/root-causes/C11.S3.md"
+  },
+  "C11.S4": {
+   "name": "Blocking The Main Thread",
+   "category": "C11",
+   "category_name": "Inefficient Concurrency Management",
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
+   "repair": "move the blocking work off the loop",
+   "card": "reference/root-causes/C11.S4.md"
+  },
+  "C11.S5": {
+   "name": "Missed Parallelism Opportunities",
+   "category": "C11",
+   "category_name": "Inefficient Concurrency Management",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "run the independent items concurrently, matching the pool to the workload",
+   "card": "reference/root-causes/C11.S5.md"
+  },
+  "C12.S1": {
+   "name": "Inefficient Large-Stride Traversal",
+   "category": "C12",
+   "category_name": "Poor Hardware Locality Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "traverse along the contiguous axis, or change the layout to match",
+   "card": "reference/root-causes/C12.S1.md"
+  },
+  "C12.S2": {
+   "name": "Sparse Element Access",
+   "category": "C12",
+   "category_name": "Poor Hardware Locality Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "sort or group the accesses so nearby indices are visited together",
+   "card": "reference/root-causes/C12.S2.md"
+  },
+  "C12.S3": {
+   "name": "Unpredictable Branches",
+   "category": "C12",
+   "category_name": "Poor Hardware Locality Usage",
+   "measurability": "scales_with_input",
+   "advisory_only": false,
+   "repair": "make the branch predictable, or replace it with branchless arithmetic",
+   "card": "reference/root-causes/C12.S3.md"
+  },
+  "C12.S4": {
+   "name": "Inefficient Array Declaration Order",
+   "category": "C12",
+   "category_name": "Poor Hardware Locality Usage",
+   "measurability": "constant_small",
+   "advisory_only": true,
+   "repair": "declare the hot buffers first",
+   "card": "reference/root-causes/C12.S4.md"
+  }
+ },
+ "categories": {
+  "C1": {
+   "name": "Redundant Computation",
+   "card": "reference/categories/C1.md"
+  },
+  "C2": {
+   "name": "Unnecessary Call Overhead",
+   "card": "reference/categories/C2.md"
+  },
+  "C3": {
+   "name": "Inefficient Iteration Patterns",
+   "card": "reference/categories/C3.md"
+  },
+  "C4": {
+   "name": "Inefficient Control Flow",
+   "card": "reference/categories/C4.md"
+  },
+  "C5": {
+   "name": "Suboptimal Data Structures",
+   "card": "reference/categories/C5.md"
+  },
+  "C6": {
+   "name": "Unnecessary Memory Usage",
+   "card": "reference/categories/C6.md"
+  },
+  "C7": {
+   "name": "Suboptimal Algorithmic",
+   "card": "reference/categories/C7.md"
+  },
+  "C8": {
+   "name": "Missing Reuse",
+   "card": "reference/categories/C8.md"
+  },
+  "C9": {
+   "name": "Inefficient External Data Access",
+   "card": "reference/categories/C9.md"
+  },
+  "C10": {
+   "name": "Underused Language Primitives",
+   "card": "reference/categories/C10.md"
+  },
+  "C11": {
+   "name": "Inefficient Concurrency Management",
+   "card": "reference/categories/C11.md"
+  },
+  "C12": {
+   "name": "Poor Hardware Locality Usage",
+   "card": "reference/categories/C12.md"
+  }
+ }
+}
