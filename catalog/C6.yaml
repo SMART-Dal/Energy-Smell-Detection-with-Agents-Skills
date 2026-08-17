@@ -1,0 +1,176 @@
+# C6 -- Unnecessary Memory Usage
+# Allocation, copying, retention and leaks.  Note that DRAM energy is a small
+# share of package energy on most hosts, so memory repairs often show up as
+# smaller measured effects than their allocation counts suggest.
+
+- id: C6.S1
+  signals: [ruff_C408, ruff_RUF005]
+  how_to_tell:
+    - more objects are created than the work requires (duplicates, short-lived
+      temporaries, instances that could be shared)
+  not_a_smell_when:
+    - each instance is mutated independently, so sharing would alias state
+    - the objects escape and must outlive the iteration
+    - the type is immutable and already interned by the runtime
+  refactoring:
+    summary: reuse, share or avoid creating the object
+    before: |
+      for row in rows:
+          buffer = []
+          buffer.append(row.value)
+          emit(buffer)
+    after: |
+      buffer = []
+      for row in rows:
+          buffer.clear()
+          buffer.append(row.value)
+          emit(buffer)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  discriminators:
+    - vs: C3.S3
+      rule: >
+        C3.S3's repair *moves* a construction out of a loop.  C6.S1's repair
+        *reduces the number* of objects, whether or not a loop is involved.
+
+- id: C6.S2
+  signals:
+    - copy_in_loop
+  how_to_tell:
+    - data is copied where a reference, view, slice or in-place operation would do
+  not_a_smell_when:
+    - the caller must not observe mutations of the original
+    - the original is mutated later and the copy is the snapshot
+    - the copy crosses a thread or process boundary
+  refactoring:
+    summary: operate in place or pass a reference
+    before: |
+      ordered = sorted(values)
+      values = ordered
+    after: |
+      values.sort()
+  patch_shape: expression
+  measurability: scales_with_input
+  counter_examples:
+    - code: |
+        for row in rows:
+            working = list(row)
+            working.sort()
+            emit(working)
+      why: |
+        the copy is load-bearing: the code mutates it and the caller's list must not change. A copy is only waste when nothing writes to it.
+- id: C6.S3
+  signals: [eager_comprehension, whole_file_read, ruff_C400, ruff_C401, ruff_C402, ruff_C419, ruff_RUF015]
+  how_to_tell:
+    - a sequence is fully materialised although it is consumed once, in order
+  not_a_smell_when:
+    - the result is iterated more than once
+    - it is indexed, sliced, or its length is needed
+    - laziness would hold a file or connection open longer than intended
+    - the collection is small and laziness adds generator overhead
+  refactoring:
+    summary: make the producer lazy
+    before: |
+      total = sum([score(x) for x in items])
+    after: |
+      total = sum(score(x) for x in items)
+  patch_shape: expression
+  measurability: scales_with_input
+  min_workload_hint: >
+    the materialised sequence must be large enough for allocation to register;
+    tens of thousands of elements at minimum
+  discriminators:
+    - vs: C9.S2
+      rule: |
+        C6.S3 is about the shape of an in-memory sequence.  C9.S2 is about how much of an external resource is pulled in.  `f.read()` on a large file routes to both: if the repair streams from the source, it is C9.S2; if the data is already in memory and the repair only avoids a copy of it, it is C6.S3.
+    - vs: C5.S4
+      rule: >
+        C6.S3 changes an eager producer into a lazy one.  C5.S4 deletes a
+        conversion and leaves the producer as it was.
+  counter_examples:
+    - code: |
+        total = sum([x * 2 for x in items])
+      why: |
+        a generator expression is not always the lighter choice. Feeding a cheap C-level reducer like `sum`, the genexp pays a frame resume per element and the materialised list wins. The saving is real when the consumer stops early, or when the sequence is large enough that holding it costs memory pressure.
+- id: C6.S4
+  how_to_tell:
+    - full objects are retained where identifiers, indices or aggregates suffice
+  not_a_smell_when:
+    - the retained fields are all used later
+    - re-fetching from an identifier would cost more than the memory saved
+  refactoring:
+    summary: retain only the fields that are actually used later
+    before: |
+      cache[session] = user            # entire user object
+    after: |
+      cache[session] = user.id
+  patch_shape: structural
+  measurability: scales_with_input
+
+- id: C6.S5
+  how_to_tell:
+    - a buffer or container is pre-sized far beyond what typical inputs need
+  not_a_smell_when:
+    - the size is a hard requirement of a format or protocol
+    - growth reallocation is measurably worse than the over-allocation
+  refactoring:
+    summary: size the allocation to the actual input
+    before: |
+      counts = [0] * 10_000_000
+      for value in values:
+          counts[value] += 1
+    after: |
+      counts = [0] * (max(values) + 1)
+      for value in values:
+          counts[value] += 1
+  patch_shape: expression
+  measurability: scales_with_input
+
+- id: C6.S6
+  signals: [unmanaged_resource, ruff_SIM115]
+  how_to_tell:
+    - an external handle is acquired and not released deterministically
+  not_a_smell_when:
+    - the handle is deliberately long-lived and closed elsewhere
+    - ownership is transferred to a caller that closes it
+    - it is a module-level singleton held for the process lifetime
+  refactoring:
+    summary: manage the resource with a `with` block
+    before: |
+      handle = open(path)
+      data = handle.read()
+    after: |
+      with open(path) as handle:
+          data = handle.read()
+  patch_shape: statement_local
+  measurability: constant_small
+  notes: >
+    Correctness and resource-exhaustion matter far more here than energy.  Report
+    it, but expect advisory: closing a file promptly rarely moves a joule meter.
+
+- id: C6.S7
+  signals: [mutable_default_argument, ruff_B006]
+  how_to_tell:
+    - a parameter default is a mutable object
+  not_a_smell_when:
+    - the shared object is deliberate memoisation and is never grown unboundedly
+  refactoring:
+    summary: default to `None` and create the object inside the body
+    before: |
+      def collect(item, into=[]):
+          into.append(item)
+          return into
+    after: |
+      def collect(item, into=None):
+          if into is None:
+              into = []
+          into.append(item)
+          return into
+  patch_shape: signature
+  measurability: scales_with_calls
+  min_workload_hint: >
+    the effect only appears across many calls, as the shared object grows; a
+    single-call driver will show nothing
+  notes: >
+    Almost always a latent bug rather than a tuning issue.  Worth reporting on
+    its own merits even when the measured effect is small.

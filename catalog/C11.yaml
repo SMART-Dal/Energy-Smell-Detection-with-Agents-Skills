@@ -1,0 +1,134 @@
+# C11 -- Inefficient Concurrency Management
+# Effectively unobserved in the published LeetCode labelling (2 samples out of
+# 3000) and the category where energy and wall-clock time diverge most sharply.
+#
+# This is the one place a repair can *lengthen* wall time while *lowering*
+# energy, or vice versa: spreading work across eight cores cuts time but raises
+# instantaneous power, and busy-waiting burns energy while making no progress.
+# Every entry here is therefore worth measuring for energy and time separately,
+# and these are the cases most likely to satisfy `Comparison.energy_only`.
+
+- id: C11.S1
+  signals: [lock_in_loop]
+  how_to_tell:
+    - a lock is held across more work than needs protecting, or acquired per iteration
+  not_a_smell_when:
+    - the whole region genuinely must be atomic
+    - narrowing the critical section would introduce a race
+    - contention is low, so the lock is nearly free
+  refactoring:
+    summary: narrow the critical section to the state that actually needs protecting
+    before: |
+      for item in items:
+          with lock:
+              value = expensive(item)
+              shared.append(value)
+    after: |
+      for item in items:
+          value = expensive(item)
+          with lock:
+              shared.append(value)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: requires a driver with several threads actually contending
+  discriminators:
+    - vs: C11.S2
+      rule: >
+        C11.S1's repair *narrows or removes a lock*.  C11.S2's repair *adds a
+        second instance* of the contended resource (a pool, a shard, a per-worker
+        copy) so the bottleneck stops being singular.
+
+- id: C11.S2
+  how_to_tell:
+    - all workers funnel through one shared resource, so parallelism yields no speedup
+  not_a_smell_when:
+    - the resource is genuinely single-instance (a hardware device, a serial port)
+    - the bottleneck stage is a negligible share of total work
+  refactoring:
+    summary: replicate or pool the bottleneck resource
+    before: |
+      connection = connect()          # one connection shared by all workers
+      def work(item):
+          with lock:
+              return connection.query(item)
+    after: |
+      pool = ConnectionPool(size=8)
+      def work(item):
+          with pool.acquire() as connection:
+              return connection.query(item)
+  patch_shape: structural
+  measurability: scales_with_input
+
+- id: C11.S3
+  signals:
+    - unjoined_thread
+  how_to_tell:
+    - threads or tasks are started and never joined, stopped or marked daemon
+  not_a_smell_when:
+    - the thread is intentionally long-lived for the process lifetime
+    - a supervisor elsewhere handles shutdown
+  refactoring:
+    summary: give the worker a shutdown path, or make it a daemon
+    before: |
+      threading.Thread(target=poll).start()
+    after: |
+      worker = threading.Thread(target=poll, daemon=True)
+      worker.start()
+      stop_event.set()
+      worker.join(timeout=5)
+  patch_shape: statement_local
+  measurability: constant_small
+  notes: >
+    Leaked threads mostly cost idle memory and periodic GIL acquisition, neither
+    of which a short measurement window resolves.  Expect advisory.
+
+- id: C11.S4
+  signals:
+    - blocking_call_in_async
+  how_to_tell:
+    - blocking CPU or I/O work runs on an event loop or UI thread
+  not_a_smell_when:
+    - the work is short enough not to stall anything
+    - there is no other work that could proceed concurrently
+  refactoring:
+    summary: move the blocking work off the loop
+    before: |
+      async def handle(request):
+          data = requests.get(url).json()     # blocks the event loop
+          return data
+    after: |
+      async def handle(request):
+          async with aiohttp.ClientSession() as session:
+              async with session.get(url) as response:
+                  return await response.json()
+  patch_shape: structural
+  measurability: scales_with_calls
+  notes: >
+    A prime candidate for an energy-without-time result: a blocked event loop
+    keeps a core spinning on synchronisation while making no progress.
+
+- id: C11.S5
+  how_to_tell:
+    - independent work items are executed one after another
+    - the machine has idle cores (CPU-bound) or idle bandwidth (I/O-bound)
+  not_a_smell_when:
+    - the items are not independent
+    - per-item work is too small to amortise task dispatch
+    - memory or a rate limit caps concurrency anyway
+    - the GIL would serialise it regardless (threads for CPU-bound work)
+  refactoring:
+    summary: run the independent items concurrently, matching the pool to the workload
+    before: |
+      results = [fetch(url) for url in urls]
+    after: |
+      with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+          results = list(pool.map(fetch, urls))
+  patch_shape: structural
+  measurability: scales_with_input
+  min_workload_hint: >
+    measure energy and time separately -- parallelising typically cuts wall time
+    while raising average power, so the energy saving is much smaller than the
+    speedup and can even be negative
+  notes: >
+    The clearest case in the taxonomy where optimising for time and optimising
+    for energy are not the same decision.

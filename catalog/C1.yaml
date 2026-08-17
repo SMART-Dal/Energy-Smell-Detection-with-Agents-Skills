@@ -1,0 +1,203 @@
+# C1 -- Redundant Computation
+# Work that does not contribute to the required output, or repeats work already
+# done in the same scope.  Several entries here are deliberately advisory: the
+# repair is correct but costs one bytecode instruction, and claiming to have
+# measured that would be dishonest.
+
+- id: C1.S1
+  signals: [ruff_F841]
+  how_to_tell:
+    - a local is assigned and never read on any path, or a statement follows an
+      unconditional return/break/continue in the same block
+  not_a_smell_when:
+    - the name is `_` or otherwise conventionally signals a deliberately unused value
+    - the assignment's right-hand side is called for its side effects
+    - the binding exists for a debugger, doctest or introspection
+    - unpacking requires the name (`a, _, c = triple`)
+  refactoring:
+    summary: delete the assignment or the unreachable statement
+    before: |
+      def total(rows):
+          scratch = [transform(r) for r in rows]   # never read again
+          return sum(r.value for r in rows)
+    after: |
+      def total(rows):
+          return sum(r.value for r in rows)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    only measurable when the dead expression itself does real work; a dead
+    assignment of a constant is not measurable at any scale
+  discriminators:
+    - vs: C1.S5
+      rule: >
+        C1.S1 when a dataflow argument shows the value is never read or the code
+        is unreachable.  C1.S5 when the code *is* reached and its result is
+        discarded by the caller -- the statement runs, it just produces nothing
+        anyone uses.
+    - vs: C1.S2
+      rule: >
+        C1.S1 deletes a binding whose value is never consumed at all.  C1.S2
+        keeps the variable but removes an assignment that changes nothing.
+
+- id: C1.S2
+  signals: [ruff_PLW2901]
+  how_to_tell:
+    - an assignment whose target already holds that value, or which is overwritten
+      before any read
+  not_a_smell_when:
+    - the assignment normalises a type whose input type is genuinely unknown
+    - the redundant write is a defensive reset inside a retry or error path
+    - the value is rebound to release a reference on purpose
+  refactoring:
+    summary: remove the assignment that leaves state unchanged
+    before: |
+      count = int(count)     # count is already an int here
+      count = count
+    after: |
+      pass
+  patch_shape: statement_local
+  measurability: constant_small
+  notes: >
+    One STORE_FAST plus a refcount pair.  Real, but below any achievable noise
+    floor; always reported as advisory.
+
+- id: C1.S3
+  signals:
+    - redundant_bool_branch
+  how_to_tell:
+    - a branch, loop or handler that cannot change observable behaviour whichever
+      way it goes
+  not_a_smell_when:
+    - the empty branch documents an intentionally handled case
+    - the handler suppresses an exception that genuinely can be raised
+    - the branch is a placeholder in code that is still being written
+  refactoring:
+    summary: remove the control-flow construct that has no effect
+    before: |
+      if ready:
+          pass
+      if ready:
+          start()
+    after: |
+      if ready:
+          start()
+  patch_shape: statement_local
+  measurability: constant_small
+
+- id: C1.S4
+  signals: [repeated_pure_call]
+  how_to_tell:
+    - the same pure expression is evaluated more than once in one scope
+    - no name it reads is rebound between the evaluations
+  not_a_smell_when:
+    - the expression is cheap (`len`, `isinstance`) and naming it would hurt clarity
+    - the repeats are on mutually exclusive branches, so only one ever runs
+    - the function is not pure, so the repeat may be intentional
+  refactoring:
+    summary: compute once into a local and reuse it
+    before: |
+      score = weigh(model, sample)
+      log(weigh(model, sample))
+    after: |
+      score = weigh(model, sample)
+      log(score)
+  patch_shape: statement_local
+  measurability: scales_with_calls
+  discriminators:
+    - vs: C3.S2
+      rule: >
+        C1.S4 is repetition across sequential statements in straight-line code.
+        C3.S2 is repetition across loop iterations.  If hoisting means "move it
+        above the `for`", it is C3.S2.
+    - vs: C8.S1
+      rule: >
+        C1.S4 stays inside one invocation.  C8.S1 spans separate invocations and
+        its repair is a cache that outlives the call.
+
+- id: C1.S5
+  signals:
+    - discarded_pure_result
+  how_to_tell:
+    - a call's return value is discarded, or a loop builds a result nothing reads
+  not_a_smell_when:
+    - the call is invoked for its side effects and the return value is incidental
+    - the result is consumed via a global, an attribute or an out-parameter
+  refactoring:
+    summary: delete the computation whose product is never consumed
+    before: |
+      expensive_format(record)          # result thrown away
+      return record.id
+    after: |
+      return record.id
+  patch_shape: statement_local
+  measurability: scales_with_input
+  discriminators:
+    - vs: C1.S1
+      rule: >
+        C1.S5 is about a *call or loop* whose product is discarded; C1.S1 is
+        about a binding or block that dataflow shows is never reached or read.
+
+- id: C1.S6
+  signals:
+    - dead_initialization
+  how_to_tell:
+    - setup runs unconditionally but is only used on a branch that is rarely taken
+  not_a_smell_when:
+    - the setup must happen before a check for correctness or ordering reasons
+    - the branch is actually the common case
+    - moving it inside would repeat it on a hot path
+  refactoring:
+    summary: move the initialisation inside the branch that needs it
+    before: |
+      buffer = []
+      if verbose:
+          buffer.extend(collect_debug())
+    after: |
+      if verbose:
+          buffer = list(collect_debug())
+  patch_shape: statement_local
+  measurability: scales_with_calls
+
+- id: C1.S7
+  signals:
+    - single_use_temporary
+  how_to_tell:
+    - a local is assigned, read exactly once, and read immediately afterwards
+  not_a_smell_when:
+    - the name explains an otherwise opaque expression
+    - the value is inspected in a debugger or logged
+    - inlining would produce an unreadably long expression
+  refactoring:
+    summary: inline the single-use intermediate
+    before: |
+      result = compute(x)
+      return result
+    after: |
+      return compute(x)
+  patch_shape: expression
+  measurability: constant_small
+  notes: >
+    One STORE_FAST and one LOAD_FAST.  Always advisory; also the clearest case
+    where the energy-optimal form and the readable form can disagree.
+
+- id: C1.S8
+  signals:
+    - runtime_management_in_loop
+  how_to_tell:
+    - an explicit `gc.collect()`, or an expensive argument built for a log call
+      that is not guarded by a level check
+  not_a_smell_when:
+    - the collection is deliberate before a memory measurement or a long pause
+    - the log call is on a cold path where the formatting cost is irrelevant
+  refactoring:
+    summary: drop the manual collection, or guard the expensive log argument
+    before: |
+      for batch in batches:
+          process(batch)
+          gc.collect()
+    after: |
+      for batch in batches:
+          process(batch)
+  patch_shape: statement_local
+  measurability: scales_with_input

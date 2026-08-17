@@ -1,0 +1,93 @@
+# C2 -- Unnecessary Call Overhead
+# Every Python call builds a frame.  That is cheap once and expensive a million
+# times, so every entry here is conditional on the unit being hot.  Outside a
+# hot path these patterns are good design, which is why `not_a_smell_when` does
+# most of the work in this category.
+
+- id: C2.S1
+  signals: [trivial_delegation]
+  how_to_tell:
+    - the function body is a single return that forwards its own parameters unchanged
+    - the wrapper is called from a loop or another hot path
+  not_a_smell_when:
+    - the wrapper is public API and the delegate is private -- the indirection is the point
+    - it adapts a name, argument order or default for readability
+    - it exists to be overridden by subclasses or patched in tests
+    - it is not on a hot path, which is the usual case
+  refactoring:
+    summary: call the delegate directly from the hot call site
+    before: |
+      def fetch(key):
+          return _store_lookup(key)
+
+      for key in keys:
+          use(fetch(key))
+    after: |
+      for key in keys:
+          use(_store_lookup(key))
+  patch_shape: cross_unit
+  measurability: scales_with_calls
+  min_workload_hint: at least ~100k calls before frame overhead clears the noise floor
+  discriminators:
+    - vs: C2.S3
+      rule: >
+        C2.S1 removes one redundant hop.  C2.S3 collapses a chain of several
+        thin layers that are individually defensible but collectively dominate
+        the useful work.
+
+- id: C2.S2
+  signals: [method_ignores_self]
+  how_to_tell:
+    - an instance method never reads `self`
+    - it is not a dunder, not decorated, and not an abstract stub
+  not_a_smell_when:
+    - subclasses override it and rely on instance dispatch
+    - it implements an interface whose signature is fixed
+    - it is expected to grow into using instance state
+  refactoring:
+    summary: mark it `@staticmethod` so no bound method object is built per call
+    before: |
+      class Parser:
+          def normalise(self, text):
+              return text.strip().lower()
+    after: |
+      class Parser:
+          @staticmethod
+          def normalise(text):
+              return text.strip().lower()
+  patch_shape: signature
+  measurability: scales_with_calls
+  min_workload_hint: at least ~1M calls; bound-method creation is tens of nanoseconds
+  counter_examples:
+    - code: |
+        class Geometry:
+            def distance(self, a, b):     # never touches self
+                return abs(a - b)
+      why: |
+        converting to `@staticmethod` is not free. A staticmethod reached through the class still builds no bound method, but the attribute lookup path differs and the saving is close to nothing on modern CPython. Accept this only where the method is called in a hot loop and the measurement clears the noise floor.
+- id: C2.S3
+  signals:
+    - trivial_delegation
+  how_to_tell:
+    - a hot path passes through three or more thin layers per item
+    - the layers do little work relative to their call overhead
+  not_a_smell_when:
+    - the layers are extension points a plugin system depends on
+    - they enforce validation or security boundaries
+    - the per-item work already dwarfs the call overhead
+  refactoring:
+    summary: merge the thin layers into one function on the hot path
+    before: |
+      for row in rows:
+          out.append(convert(normalise(validate(row))))
+    after: |
+      for row in rows:
+          out.append(_prepare(row))     # validate + normalise + convert, inlined
+  patch_shape: structural
+  measurability: scales_with_input
+  discriminators:
+    - vs: C3.S3
+      rule: >
+        C2.S3 is about the *number of call layers* per iteration.  C3.S3 is
+        about *work that could have happened once* before the loop.  If the
+        repair is "hoist it", that is C3.S3, not this.

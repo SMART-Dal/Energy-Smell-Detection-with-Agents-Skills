@@ -1,0 +1,198 @@
+# C10 -- Underused Language Primitives
+# CPython's builtins run in C.  The whole category is "let C do it", and the six
+# entries are separated by what the repair replaces: a hand-written loop (S1),
+# one builtin with another (S2), per-element calls with a bulk call (S3), string
+# building (S4), a name's scope (S5), or an operator's dispatch (S6).
+
+- id: C10.S1
+  signals: [manual_builtin_loop, ruff_SIM110, ruff_PLR1730]
+  how_to_tell:
+    - a hand-written loop reimplements a builtin's semantics exactly
+    - the loop disappears entirely after the repair
+  not_a_smell_when:
+    - the loop does more than the builtin (tracks an index, has side effects,
+      handles ties in a specific way)
+    - the builtin's edge-case behaviour differs (empty input raising vs returning)
+  refactoring:
+    summary: call the builtin instead of the loop
+    before: |
+      largest = values[0]
+      for value in values:
+          if value > largest:
+              largest = value
+    after: |
+      largest = max(values)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  discriminators:
+    - vs: C3.S1
+      rule: >
+        Ask whether a loop still exists afterwards.  C10.S1 removes it entirely.
+        C3.S1 keeps it and changes its form (index-based to direct, loop to
+        comprehension).
+    - vs: C10.S3
+      rule: >
+        C10.S1 replaces the loop with a builtin returning a *scalar* (`sum`,
+        `max`, `any`).  C10.S3 replaces per-element operations with a *bulk*
+        operation over a collection (`extend`, `np.sum`).
+  counter_examples:
+    - code: |
+        counts = {}
+        for x in items:
+            seen = counts.get(x, -1)
+            counts[x] = seen + 1 if seen != -1 else 1
+      why: |
+        the builtin is not always faster. `collections.Counter` walks the same elements through a Python-level `__init__` and an extra dict; a tight hand-written loop can beat it. Prefer the builtin when it dispatches into C in one call (`sum`, `min`, `max`, `any`), not merely because a builtin with the right name exists.
+- id: C10.S2
+  signals: [ruff_C417, ruff_SIM118, ruff_SIM401]
+  how_to_tell:
+    - a semantically equivalent but faster standard function exists for the task
+  not_a_smell_when:
+    - the two are not equivalent on the inputs that actually occur
+      (`re.match` anchors differently from `startswith` for multiline input)
+    - the slower form is clearer and the path is cold
+  refactoring:
+    summary: swap in the faster equivalent
+    before: |
+      if re.match(r"^tmp_", name):
+          skip(name)
+    after: |
+      if name.startswith("tmp_"):
+          skip(name)
+  patch_shape: expression
+  measurability: scales_with_input
+  discriminators:
+    - vs: C4.S8
+      rule: |
+        C10.S2 replaces a hand-written form with the primitive that already exists (`in dict`, `dict.get`).  C4.S8 is about the *branch structure* around a lookup, not about which lookup form is used.  If the repair deletes a branch, it is C4.S8; if it swaps one expression for a shorter equivalent, it is C10.S2.
+  counter_examples:
+    - code: |
+        squares = [f(x) for x in items]
+      why: |
+        `map` beats a comprehension only when the callable is a C builtin, because then the per-element work never re-enters the interpreter. With a Python function or a lambda, `map` adds a call per element and the comprehension wins. `map(float, xs)` is the improvement; `map(lambda x: x*2, xs)` is the regression.
+- id: C10.S3
+  signals: [append_only_loop, ruff_PERF401, ruff_PERF402]
+  how_to_tell:
+    - a loop performs one element-wise operation that a bulk primitive covers
+  not_a_smell_when:
+    - the body is conditional or has side effects the bulk form cannot express
+    - the vectorised form would materialise an array larger than memory allows
+    - the collection is small, so the bulk call's fixed cost dominates
+  refactoring:
+    summary: use the bulk or vectorised primitive
+    before: |
+      for value in extra:
+          target.append(value)
+    after: |
+      target.extend(extra)
+  patch_shape: statement_local
+  measurability: scales_with_input
+
+- id: C10.S4
+  signals: [string_concat_in_loop]
+  how_to_tell:
+    - a string accumulator is grown by `+=` or `= x + y` inside a loop
+    - >
+      a second reference to the accumulator exists, so CPython cannot resize it
+      in place. In practice this means the target is an attribute
+      (`self.buf += s`), a subscript (`d["k"] += s`, `xs[0] += s`), a global or
+      nonlocal name, or a plain local that is also read inside the loop
+    - the accumulator is not read mid-loop in a way that join could not reproduce
+  not_a_smell_when:
+    - >
+      the accumulator is a plain local with no other reference. CPython resizes
+      the string in place when its refcount is 1, so `out += part` in a loop is
+      already linear. Measured at 20k iterations: 2.9 ms as a local against
+      24 ms through an attribute. Replacing the local form with a list and a
+      join measured *slower* -- 62 ms against 56 ms at 400k iterations
+    - the loop is short and bounded
+    - the parts are produced lazily and joining would materialise them all
+  refactoring:
+    summary: >
+      collect the parts in a local list and join once, so the accumulator that
+      grows is never the aliased one
+    before: |
+      def render(self, rows):
+          self.buf = ""
+          for row in rows:
+              self.buf += render_row(row)
+    after: |
+      def render(self, rows):
+          parts = []
+          for row in rows:
+              parts.append(render_row(row))
+          self.buf = "".join(parts)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    at least ~20k iterations through an aliased accumulator, where the effect is
+    already about 8x. Do not size this by the loop count alone -- check the
+    assignment target first, because the plain-local form will not show an
+    effect at any size
+  discriminators:
+    - vs: C10.S3
+      rule: >
+        Both end in a bulk primitive. C10.S4 is about *where the string lives*:
+        the repair works because the growing value stops being aliased. C10.S3
+        is about replacing an element-at-a-time loop with a bulk call. If the
+        accumulator is a plain local, neither applies to the concatenation, and
+        any win comes from the comprehension rather than from the join.
+  notes: >
+    This entry was rewritten after measurement contradicted it. The textbook
+    rule -- "`+=` on a string in a loop is quadratic" -- is false on CPython for
+    the most commonly cited example, because of an in-place resize applied when
+    the accumulator's reference count is one. The smell is real, but it is a
+    smell about aliasing, not about concatenation. Treat a bare `out += s` loop
+    as a rejection with a reason, not as a finding.
+  counter_examples:
+    - code: |
+        out = ""
+        for part in parts:
+            out += part          # plain local, nothing else refers to it
+        return out
+      why: |
+        the accumulator is an unaliased local, so its refcount is 1 and CPython resizes the string in place. Measured at 20k iterations: this form takes 2.9 ms where `self.buf += part` takes 25.0 ms. The list-and-join repair measures *slower* here (62 ms vs 56 ms at 400k). The smell needs a second reference -- an attribute, a subscript, or a name read elsewhere in the loop.
+- id: C10.S5
+  signals:
+    - global_lookup_in_loop
+  how_to_tell:
+    - a module-level global or builtin is resolved inside a tight loop
+  not_a_smell_when:
+    - the global is deliberately re-read because another thread may rebind it
+    - the loop is short
+    - the local alias would shadow a name confusingly
+  refactoring:
+    summary: alias the global to a local before the loop
+    before: |
+      for value in values:
+          out.append(str(value))
+    after: |
+      to_text = str
+      for value in values:
+          out.append(to_text(value))
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: at least ~1M iterations; one LEGB walk is a few nanoseconds
+  discriminators:
+    - vs: C8.S3
+      rule: >
+        C10.S5 is about *scope* -- a global or builtin whose cost is the LEGB
+        walk.  C8.S3 is about an *attribute chain* whose cost is repeated dict
+        lookups.  Same repair shape, different thing being resolved.
+
+- id: C10.S6
+  how_to_tell:
+    - an operator on a user-defined type dispatches to a dunder inside a hot loop
+  not_a_smell_when:
+    - the overload is the type's whole purpose and the alternative is less readable
+    - the operation is already delegated to a C extension
+  refactoring:
+    summary: call the underlying operation directly, or work on primitives in the loop
+    before: |
+      total = Money(0)
+      for line in lines:
+          total = total + line.amount        # Money.__add__ per iteration
+    after: |
+      total = Money(sum(line.amount.cents for line in lines))
+  patch_shape: structural
+  measurability: scales_with_input

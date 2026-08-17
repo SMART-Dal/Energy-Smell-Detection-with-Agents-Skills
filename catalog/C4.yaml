@@ -1,0 +1,194 @@
+# C4 -- Inefficient Control Flow
+# Branch shape and evaluation order.  Individual branches are cheap, so almost
+# everything here is only measurable inside a hot loop.
+
+- id: C4.S1
+  signals: [expensive_operand_first]
+  how_to_tell:
+    - a boolean chain evaluates an expensive operand before a cheap one
+    - the operands are independent, so reordering preserves semantics
+  not_a_smell_when:
+    - the later operand depends on the earlier one succeeding (a None guard must
+      come first for correctness, not speed)
+    - the "expensive" call is actually cheap (`isinstance`, `len`)
+    - the expensive operand is almost always decisive, so reordering adds work
+  refactoring:
+    summary: put the cheap, most-decisive test first so short-circuiting can skip the rest
+    before: |
+      if lookup(key) and key is not None:
+          use(key)
+    after: |
+      if key is not None and lookup(key):
+          use(key)
+  patch_shape: expression
+  measurability: scales_with_input
+  notes: >
+    Reordering is only valid when the operands are independent.  Verify by
+    equivalence testing including the inputs that made the original guard matter.
+
+- id: C4.S2
+  how_to_tell:
+    - a condition is always true or always false in context, or re-tested with
+      nothing able to change it in between
+  not_a_smell_when:
+    - the invariant is defensive and documents an assumption
+    - concurrency means the value genuinely can change between checks
+  refactoring:
+    summary: delete the condition whose result is already known
+    before: |
+      if items:
+          if items:
+              process(items)
+    after: |
+      if items:
+          process(items)
+  patch_shape: statement_local
+  measurability: constant_small
+
+- id: C4.S3
+  signals: [deep_conditional_nesting]
+  how_to_tell:
+    - branches nest deeply enough that reaching the work re-tests overlapping conditions
+  not_a_smell_when:
+    - the nesting mirrors genuinely nested domain logic
+    - flattening would duplicate the conditions rather than remove them
+    - the depth comes from `try`/`with` rather than repeated tests
+  refactoring:
+    summary: flatten with guard clauses that return early
+    before: |
+      def handle(x):
+          if x is not None:
+              if x.ready:
+                  if x.size > 0:
+                      return work(x)
+          return None
+    after: |
+      def handle(x):
+          if x is None or not x.ready or x.size <= 0:
+              return None
+          return work(x)
+  patch_shape: structural
+  measurability: constant_small
+  notes: >
+    Mostly a readability repair.  Report it, but expect advisory rather than
+    verified unless the guarded work sits in a very hot loop.
+
+- id: C4.S4
+  signals: [independent_exclusive_ifs]
+  how_to_tell:
+    - consecutive `if` statements test the same subject against disjoint values
+    - no branch body can change the subject
+  not_a_smell_when:
+    - the branches are not mutually exclusive and several may legitimately run
+    - a body mutates the subject, so later tests must be re-evaluated
+  refactoring:
+    summary: chain the branches with `elif` so evaluation stops at the first match
+    before: |
+      if grade == "A": bonus = 3
+      if grade == "B": bonus = 2
+      if grade == "C": bonus = 1
+    after: |
+      if grade == "A": bonus = 3
+      elif grade == "B": bonus = 2
+      elif grade == "C": bonus = 1
+  patch_shape: statement_local
+  measurability: scales_with_input
+
+- id: C4.S5
+  signals:
+    - expensive_comparison
+  how_to_tell:
+    - runtime type introspection runs per element in a hot loop
+  not_a_smell_when:
+    - the check guards genuinely heterogeneous input with no common interface
+    - it runs once per call rather than per element
+  refactoring:
+    summary: hoist the type decision out of the loop, or dispatch polymorphically
+    before: |
+      for value in values:
+          if isinstance(value, str):
+              out.append(value.strip())
+          else:
+              out.append(str(value))
+    after: |
+      handler = str.strip if all(isinstance(v, str) for v in values) else str
+      out = [handler(v) for v in values]
+  patch_shape: structural
+  measurability: scales_with_input
+
+- id: C4.S6
+  signals: [try_except_in_loop, ruff_PERF203]
+  how_to_tell:
+    - try/except sits on the per-iteration path
+    - the exception is raised on a substantial fraction of iterations
+  not_a_smell_when:
+    - the exception is genuinely rare, where EAFP is both idiomatic and faster
+    - the check needed to avoid it would be as expensive as the exception
+    - the try wraps the whole loop rather than sitting inside it
+  refactoring:
+    summary: replace the frequently-raised exception with an explicit check
+    before: |
+      for key in keys:
+          try:
+              out.append(table[key])
+          except KeyError:
+              out.append(None)
+    after: |
+      for key in keys:
+          out.append(table.get(key))
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    drive it with inputs that actually raise; with no raises the repair shows no
+    effect and the claim is correctly rejected
+  notes: >
+    The smell is not try/except itself -- it is try/except where the exception is
+    the common case.  Whether that holds is a property of the *data*, not the
+    code, so this root cause cannot be confirmed without a representative driver.
+
+- id: C4.S7
+  how_to_tell:
+    - a degenerate input (empty, single element, already sorted) reaches the full
+      general-case algorithm
+  not_a_smell_when:
+    - the degenerate case is rare, so the guard costs more than it saves
+    - the general algorithm already short-circuits internally
+  refactoring:
+    summary: add a guard that returns immediately for the trivial case
+    before: |
+      def median(values):
+          ordered = sorted(values)
+          return ordered[len(ordered) // 2]
+    after: |
+      def median(values):
+          if len(values) < 2:
+              return values[0] if values else None
+          ordered = sorted(values)
+          return ordered[len(ordered) // 2]
+  patch_shape: statement_local
+  measurability: scales_with_calls
+  min_workload_hint: the driver must actually supply degenerate inputs
+
+- id: C4.S8
+  signals: [ruff_SIM401, ruff_SIM118]
+  how_to_tell:
+    - a conditional is written in a form CPython does not optimise, where an
+      idiomatic equivalent exists
+  not_a_smell_when:
+    - the explicit form distinguishes cases the idiom would conflate
+      (`len(x) == 0` and `not x` differ for objects with a custom `__bool__`)
+    - the comparison is deliberately exact
+  refactoring:
+    summary: use the idiomatic form
+    before: |
+      if len(items) == 0:
+          return
+      if key in mapping.keys():
+          use(mapping[key])
+    after: |
+      if not items:
+          return
+      if key in mapping:
+          use(mapping[key])
+  patch_shape: expression
+  measurability: scales_with_input

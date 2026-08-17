@@ -1,0 +1,134 @@
+# C8 -- Missing Reuse
+# The taxonomy's own dividing line: C8 spans *across calls or access sites*,
+# while C1 stays within a single scope.  Every discriminator here leans on that.
+
+- id: C8.S1
+  signals: [recursion_without_memo, ruff_B019]
+  how_to_tell:
+    - the function is deterministic and free of side effects
+    - the same arguments recur across separate invocations
+    - arguments are hashable
+  not_a_smell_when:
+    - the function is not pure, so caching would change behaviour
+    - inputs rarely repeat, making the cache pure overhead
+    - the cache would grow without bound on unbounded input
+    - results must reflect changing external state
+  refactoring:
+    summary: memoise the function
+    before: |
+      def parse_rule(text):
+          return _expensive_parse(text)
+    after: |
+      @functools.lru_cache(maxsize=1024)
+      def parse_rule(text):
+          return _expensive_parse(text)
+  patch_shape: signature
+  measurability: scales_with_calls
+  min_workload_hint: >
+    the driver must call the function repeatedly with *repeating* arguments; a
+    driver with all-distinct arguments correctly shows no effect
+  discriminators:
+    - vs: C1.S4
+      rule: >
+        C1.S4 is repetition inside one scope, repaired with a local variable.
+        C8.S1 is repetition across invocations, repaired with a cache that
+        outlives the call.
+    - vs: C7.S2
+      rule: >
+        C7.S2 when the repetition is inside a single top-level call's recursion
+        tree.  C8.S1 when it is across independent top-level calls.
+  counter_examples:
+    - code: |
+        results = [expensive(x) for x in items]
+      why: |
+        a memo is pure overhead when the inputs are distinct. Every call then pays a hash and a miss on top of the work. Memoisation is a smell repair only when the same argument recurs often enough to amortise the table.
+- id: C8.S2
+  signals: [regex_in_loop]
+  how_to_tell:
+    - an expensive derived artefact (compiled pattern, parsed config, prepared
+      statement) is rebuilt on every call
+    - the source it derives from does not change
+  not_a_smell_when:
+    - the source genuinely varies per call
+    - the artefact holds per-call state that must not be shared
+    - module-level construction would run at import time with unacceptable cost
+  refactoring:
+    summary: build it once at module or class scope and reuse it
+    before: |
+      def extract(text):
+          return re.findall(r"\d+", text)
+    after: |
+      _DIGITS = re.compile(r"\d+")
+
+      def extract(text):
+          return _DIGITS.findall(text)
+  patch_shape: cross_unit
+  measurability: scales_with_calls
+  discriminators:
+    - vs: C3.S3
+      rule: >
+        Both hoist; the difference is the destination.  C3.S3 hoists to just
+        above a loop inside the same function.  C8.S2 hoists all the way to
+        module or class scope so the artefact survives across calls.
+
+- id: C8.S3
+  signals: [repeated_lookup_in_loop]
+  how_to_tell:
+    - a global, builtin or attribute chain is resolved repeatedly in hot code
+    - nothing rebinds it in between
+  not_a_smell_when:
+    - the attribute is a property whose recomputation is intentional
+    - the object may be replaced between accesses
+    - the loop is short, so the local binding costs more than it saves
+  refactoring:
+    summary: bind the resolved value to a local before the loop
+    before: |
+      for record in records:
+          record.score *= self.config.weights.factor
+    after: |
+      factor = self.config.weights.factor
+      for record in records:
+          record.score *= factor
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: at least ~1M resolutions; each saved lookup is tens of nanoseconds
+  discriminators:
+    - vs: C3.S2
+      rule: >
+        C8.S3 hoists a pure *lookup* with no computation.  C3.S2 hoists an actual
+        *computation*.  `self.config.limit` is C8.S3; `len(xs) * scale` is C3.S2.
+    - vs: C10.S5
+      rule: >
+        These are nearly the same repair.  Prefer C8.S3 when the target is an
+        attribute chain; prefer C10.S5 when it is a module-level global or
+        builtin whose cost is the LEGB walk itself.
+
+- id: C8.S4
+  signals: [io_call_in_loop]
+  how_to_tell:
+    - the same external data is fetched more than once
+    - it changes rarely relative to the fetch frequency
+  not_a_smell_when:
+    - freshness is required and a stale read would be wrong
+    - the data changes as often as it is read
+    - cache invalidation cannot be made correct here
+  refactoring:
+    summary: fetch once and reuse, with a TTL if freshness matters
+    before: |
+      for item in items:
+          settings = load_settings()
+          apply(item, settings)
+    after: |
+      settings = load_settings()
+      for item in items:
+          apply(item, settings)
+  patch_shape: statement_local
+  measurability: scales_with_calls
+  discriminators:
+    - vs: C9.S3
+      rule: |
+        C8.S4 removes repeated I/O by *caching* a result that does not change.  C9.S3 removes it by *batching* many distinct requests into one.  Ask whether the repeated calls ask for the same thing (C8.S4) or for different things (C9.S3).
+    - vs: C9.S1
+      rule: >
+        C8.S4 removes *repeat* fetches of the same data.  C9.S1 keeps every
+        distinct operation but *batches* them into fewer round-trips.

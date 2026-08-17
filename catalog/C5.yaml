@@ -1,0 +1,555 @@
+# C5 -- Suboptimal Data Structures
+# The four entries are separated by what the repair changes: the container's
+# type (S1), a new auxiliary structure that did not exist (S2), the weight of
+# the representation (S3), or a conversion between representations (S4).
+
+- id: C5.S1
+  signals: [membership_test_on_sequence]
+  mechanism: >
+    A container's cost is paid per operation, and the same operation has a very
+    different price depending on the type holding the data.  `x in lst` compares
+    `x` with each element until one matches, so N lookups over an M-element list
+    cost N*M comparisons; the same lookups against a set cost N hash probes.
+    The repair removes no work from the program's logic -- every step it
+    performed still happens -- it changes what one of those steps costs.  That
+    is why the saving grows with the collection size *and* with the number of
+    operations, and why it vanishes when either one is small.
+  how_to_tell:
+    - >
+        Name the operation this container is used for most often on the hot
+        path: membership, positional access, ordered traversal, keyed lookup,
+        insertion or removal at the front. Say roughly how many times it happens
+        per call.
+    - >
+        Check whether that operation is the expensive one for this type. `in` is
+        a linear scan over `list`, `tuple` and `str`, and a hash probe on `set`,
+        `dict` and `frozenset`. Indexing is constant on a list and unavailable
+        on a set. Inserting at the front is linear on a list and constant on a
+        `collections.deque`. `.count()` and `.index()` are always a full scan.
+    - >
+        Find where the container is built. The repair changes that line, so if
+        it is built somewhere you cannot edit -- a caller's argument, a library
+        return value -- the repair is either a conversion at the boundary (which
+        has its own cost, see the neighbours) or nothing.
+    - >
+        Check the sizes actually involved. A set only repays its construction
+        when the collection has more than roughly a dozen elements and is
+        searched more than once. `if method in ("GET", "POST")` is correct as
+        written.
+    - >
+        Confirm the replacement can hold this data: set and dict keys must be
+        hashable, and a set discards both order and duplicates.
+  not_a_smell_when:
+    - >
+        the collection is small enough that the constant factors dominate, which
+        for membership means roughly a dozen elements or fewer
+    - >
+        order or duplicates are part of the answer, so a set would change what
+        the function returns
+    - >
+        the elements are unhashable, so a set or dict key is not available
+    - >
+        the container is built once and iterated once, never searched
+    - >
+        the type is fixed by an API boundary -- a caller's argument or a return
+        value other code depends on -- and you do not control both sides
+  counter_examples:
+    - code: |
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return self._read_only(request)
+      why: >
+        Three constant elements. A tuple scan of three items is faster than
+        hashing the key once, and CPython stores the tuple as a code constant so
+        there is no per-call construction either. Size is what decides this, not
+        the operation.
+    - code: |
+        seen = []
+        for row in rows:
+            if row.id not in seen:
+                seen.append(row.id)
+        return seen
+      why: >
+        `seen` is returned, and a list preserves first-seen order where a set
+        does not. The membership test really is linear, but the repair is C5.S2
+        -- keep the list for the answer and add a set beside it for the test --
+        not a change of this container's type.
+  refactoring:
+    summary: swap the container type at its construction site
+    examples:
+      - title: the construction site is next to the loop
+        before: |
+          def grant_all(requests):
+              allowed = ["read", "write", "admin"] + load_extra_scopes()
+              for request in requests:
+                  if request.scope in allowed:
+                      grant(request)
+        after: |
+          def grant_all(requests):
+              allowed = set(["read", "write", "admin"] + load_extra_scopes())
+              for request in requests:
+                  if request.scope in allowed:
+                      grant(request)
+        note: >
+          One line moves. `allowed` is built once and searched once per request,
+          so the hashing pass is paid once and every lookup after it is constant
+          instead of linear in the number of scopes.
+      - title: the construction site is in another method
+        before: |
+          class Router:
+              def __init__(self, routes):
+                  self.blocked = [r.path for r in routes if r.blocked]
+
+              def handle(self, requests):
+                  for request in requests:
+                      if request.path in self.blocked:      # linear, per request
+                          continue
+                      self.dispatch(request)
+        after: |
+          class Router:
+              def __init__(self, routes):
+                  self.blocked = {r.path for r in routes if r.blocked}
+
+              def handle(self, requests):
+                  for request in requests:
+                      if request.path in self.blocked:
+                          continue
+                      self.dispatch(request)
+        note: >
+          The waste is visible in `handle` and fixable only in `__init__`. That
+          is normal, and it is still one repair: read outward until you find
+          where the container is built. Before editing, check every other use of
+          `self.blocked` -- anything that indexes it or depends on its order has
+          to change too, and if something does, this is the wrong repair.
+      - title: the operation is not membership
+        before: |
+          def drain(pending):
+              while pending:
+                  job = pending.pop(0)       # shifts every remaining element
+                  run(job)
+        after: |
+          from collections import deque
+
+          def drain(pending):
+              queue = deque(pending)
+              while queue:
+                  job = queue.popleft()
+                  run(job)
+        note: >
+          `list.pop(0)` moves all n-1 remaining elements down one slot, so
+          draining a list this way is quadratic in its length. A `deque` pops
+          from either end in constant time. Same root cause, different operation
+          -- which is why step 1 asks you to name the operation first.
+  patch_shape: expression
+  measurability: scales_with_input
+  min_workload_hint: >
+    both the collection and the number of operations must be large; a
+    three-element list beats a set, and one lookup never repays building one
+  discriminators:
+    - vs: C5.S2
+      rule: >
+        C5.S1 changes an existing container's *type*, and everything that used
+        it keeps using it.  C5.S2 *adds* a second structure beside the original,
+        because the original is still needed as it is -- for its order, its
+        duplicates, or because it is what the function returns.
+    - vs: C5.S3
+      rule: >
+        C5.S1 is about the cost of an *operation* on the container.  C5.S3 is
+        about the container's *footprint*, when nothing is wrong with the
+        operations at all.
+    - vs: C3.S4
+      rule: >
+        If the repair also removes a level of loop nesting, prefer C3.S4: the
+        finding is then about the shape of the iteration, and the container
+        change is how it was achieved.  C5.S1 alone leaves the loops as they are.
+
+- id: C5.S2
+  mechanism: >
+    An index turns repeated search into arithmetic.  Scanning an n-element
+    collection to answer each of m questions costs n*m comparisons; building a
+    dict from it costs n hashes once and then answers each question in constant
+    time, for n + m in total.  The saving is the difference, so it appears when
+    m is more than a small handful and disappears entirely when m is one --
+    building an index to answer a single question is strictly more work than
+    the scan it replaces.
+  how_to_tell:
+    - >
+        Find a collection that is searched more than once with a different key
+        each time. The search may be a loop, a `next(... for ...)`, an `in`, a
+        `.index()` or a `.count()`.
+    - >
+        Establish that the collection does not change between those searches. If
+        it is appended to or filtered inside the same loop, the index would have
+        to be rebuilt and the repair does not apply.
+    - >
+        Say what the index would be keyed on, and confirm that key is hashable
+        and is what every search actually looks up.
+    - >
+        Count the lookups. A few dozen against a small collection and the index
+        costs more than it saves; say so and reject.
+    - >
+        Check that the original collection is still needed as it is. If nothing
+        relies on its order, its duplicates or its type, this is C5.S1 -- change
+        it rather than add beside it.
+  not_a_smell_when:
+    - >
+        the collection is mutated between lookups, so the index would need
+        rebuilding and the rebuild costs as much as the scans
+    - >
+        there are only a handful of lookups, so building the index is the larger
+        of the two costs
+    - >
+        the lookup key is unhashable, or the match is not equality -- a range
+        overlap, a prefix, a fuzzy comparison -- so no hash index answers it
+    - >
+        the collection is small and the code is clearer as a scan
+  counter_examples:
+    - code: |
+        def find_owner(users, email):
+            return next((u for u in users if u.email == email), None)
+      why: >
+        One lookup. The scan touches at most n elements; building a dict touches
+        all n and then does one probe. An index here is a pure loss. The same
+        code called inside a loop over many addresses is the smell.
+  refactoring:
+    summary: build a lookup index once, then query it
+    examples:
+      - title: the scan is inside the loop that needs it
+        before: |
+          def link_orders(orders, customers):
+              for order in orders:
+                  match = next(c for c in customers if c.id == order.customer_id)
+                  link(order, match)
+        after: |
+          def link_orders(orders, customers):
+              by_id = {c.id: c for c in customers}
+              for order in orders:
+                  link(order, by_id[order.customer_id])
+        note: >
+          len(orders) scans of len(customers) elements become one pass over
+          `customers` plus one hash probe per order.
+      - title: the original collection is still needed
+        before: |
+          def dedupe(rows):
+              kept = []
+              for row in rows:
+                  if row.key not in [k.key for k in kept]:   # rebuilt, then scanned
+                      kept.append(row)
+              return kept
+        after: |
+          def dedupe(rows):
+              kept = []
+              seen = set()
+              for row in rows:
+                  if row.key not in seen:
+                      seen.add(row.key)
+                      kept.append(row)
+              return kept
+        note: >
+          `kept` stays a list because the function returns it and first-seen
+          order matters. The set exists only to answer the membership question.
+          Two structures afterwards rather than one changed one is exactly what
+          separates this from C5.S1.
+      - title: the index belongs to the object, not to the call
+        before: |
+          class Catalog:
+              def __init__(self, products):
+                  self.products = products
+
+              def price_of(self, sku):
+                  for product in self.products:
+                      if product.sku == sku:
+                          return product.price
+                  raise KeyError(sku)
+        after: |
+          class Catalog:
+              def __init__(self, products):
+                  self.products = products
+                  self._by_sku = {p.sku: p for p in products}
+
+              def price_of(self, sku):
+                  try:
+                      return self._by_sku[sku].price
+                  except KeyError:
+                      raise KeyError(sku) from None
+        note: >
+          Two methods change, and that is still one repair -- an index has to be
+          built where the data arrives and read where the question is asked. It
+          also creates an obligation: `self.products` must not be mutated
+          afterwards without the index being updated. If anything mutates it,
+          say so and reject.
+  patch_shape: structural
+  measurability: scales_with_input
+  min_workload_hint: >
+    the driver must perform many lookups, not one; the effect lives in the ratio
+    of lookups to collection size
+  discriminators:
+    - vs: C5.S1
+      rule: >
+        Ask what exists after the repair.  Two structures, because the original
+        is still needed for its order, its duplicates or its type: C5.S2.  One
+        structure of a different type: C5.S1.
+    - vs: C8.S1
+      rule: >
+        C5.S2 indexes *data already in hand*, and the index lives for one
+        invocation.  C8.S1 caches *the result of a computation* so a later call
+        does not repeat it.  If the stored thing had to be computed rather than
+        merely located, it is C8.S1.
+    - vs: C3.S4
+      rule: >
+        These co-occur: adding an index is usually how a nested loop becomes a
+        single pass.  Report C3.S4 when the repair removes a loop level, and
+        C5.S2 when the loops stay and only the search inside them changes.
+
+- id: C5.S3
+  signals:
+    - float_literal_on_int_data
+    - constant_sequence_literal
+  mechanism: >
+    A heavier representation costs on three axes at once: bytes per instance,
+    the allocation and collection of those bytes, and the work the interpreter
+    does to operate on them.  A float multiply is not a slower integer multiply
+    -- it converts the operand, takes a different execution path and allocates a
+    new float for the result.  An instance with a `__dict__` is a second heap
+    object per instance and a dict lookup per attribute read.  A list literal
+    inside a function is built element by element on every call, where a tuple
+    of the same constants is stored once in the code object and merely loaded.
+  how_to_tell:
+    - >
+        Name the capability the heavier type provides: fractional values,
+        mutability, arbitrary attributes, ordering, named fields.
+    - >
+        Establish that this code does not use it. Not "does not need it in
+        principle" -- find the uses and check.
+    - >
+        Establish that no *other* code uses it either. A tuple returned to a
+        caller that appends to it is not a repair, it is a bug.
+    - >
+        Say how many instances or operations exist on the hot path. The saving
+        is a small fixed amount each time, so it needs volume before it is
+        measurable at all.
+    - >
+        Check the value's history. A number that arrives as a float is already a
+        float, and changing a literal beside it changes nothing.
+  not_a_smell_when:
+    - >
+        the extra capability is used somewhere, even if not in the unit you are
+        reading
+    - >
+        the heavier type is required at an API boundary, by a library, or by a
+        serialisation format
+    - >
+        so few instances exist that the per-instance overhead is irrelevant
+    - >
+        the lighter type would lose precision or range the data actually uses
+    - >
+        the container is mutated after construction
+  counter_examples:
+    - code: |
+        def scale(values, factor):
+            return [v * factor for v in values]
+      why: >
+        There is no literal to change. Whether this multiplies in integers or
+        floats is the caller's decision, and the measured repair -- `v * 3.0`
+        written where `v * 3` would do -- has nothing to apply to. The float
+        path is only waste when this code chose it and did not need it.
+    - code: |
+        def defaults():
+            return ["stdout", "stderr"]
+      why: >
+        The list is returned, and a caller that appends to it breaks against a
+        tuple. The per-call rebuild is real; the repair is unavailable unless
+        you can see every caller.
+  refactoring:
+    summary: use the lightest representation the data actually requires
+    examples:
+      - title: a float literal on integer data
+        before: |
+          def multiply_elements(counts):
+              return [n * 3.0 for n in counts]
+        after: |
+          def multiply_elements(counts):
+              return [n * 3 for n in counts]
+        note: >
+          Measured **+39.0% ± 0.5** over a million integers against a 1.2% noise
+          floor -- far more than a "one bytecode" intuition predicts, because
+          each multiply converts the int, runs float arithmetic and allocates a
+          float object, and the integer path does none of it. Valid only when
+          the caller does not depend on getting floats back.
+      - title: a constant sequence rebuilt on every call
+        before: |
+          def assign_type(number):
+              types = ["red", "blue", "green"]
+              return types[number % 3]
+        after: |
+          def assign_type(number):
+              types = ("red", "blue", "green")
+              return types[number % 3]
+        note: >
+          A list display is constructed element by element on every call; a
+          tuple of constants is folded into the function's constant pool and
+          loaded in one instruction. The effect is per call, so it needs a
+          genuinely hot function -- and it is only available because `types` is
+          local, never mutated and never escapes.
+      - title: instances that need no per-instance dictionary
+        before: |
+          class Point:
+              def __init__(self, x, y):
+                  self.x, self.y = x, y
+        after: |
+          class Point:
+              __slots__ = ("x", "y")
+
+              def __init__(self, x, y):
+                  self.x, self.y = x, y
+        note: >
+          `__slots__` replaces the per-instance dict with fixed offsets: less
+          memory per instance and a faster attribute read. It also forbids
+          attributes the class did not declare, and breaks anything relying on
+          `__dict__` or on multiple inheritance from another slotted class.
+          Check for those before claiming it.
+  patch_shape: structural
+  measurability: scales_with_input
+  min_workload_hint: >
+    needs many instances alive at once, or many operations, before a
+    per-instance or per-operation saving is visible
+  discriminators:
+    - vs: C6.S1
+      rule: >
+        C5.S3 keeps the same number of objects and makes each one lighter.
+        C6.S1 keeps the weight and creates fewer of them.  If the repair changes
+        a *count*, it is C6.S1.
+    - vs: C5.S1
+      rule: >
+        C5.S3 is about footprint and per-operation constant factors, with the
+        access pattern unchanged.  C5.S1 is about an operation whose complexity
+        is wrong for the container.
+
+- id: C5.S4
+  signals: [redundant_materialisation, ruff_C411, ruff_C414, ruff_C416, ruff_PERF101]
+  mechanism: >
+    A conversion walks the whole source and allocates a whole new container.
+    That is worth paying for when the new form makes later work cheaper --
+    hashing for repeated lookup, indexing for repeated access, a snapshot that
+    survives a mutation.  It is pure loss when the consumer would have accepted
+    the original.  So the tell is never the conversion itself; it is what
+    happens next, and which of the two forms that code actually needs.
+  how_to_tell:
+    - >
+        Point at the conversion and name what consumes its result.
+    - >
+        Establish that the consumer accepts the unconverted form. Most builtins
+        taking an iterable do: `sum`, `any`, `all`, `min`, `max`, `str.join`, a
+        `for` loop, `in`.
+    - >
+        Establish that the result is consumed exactly once, and never indexed,
+        sliced, measured with `len()` or iterated twice. Any of those needs a
+        sequence, and the conversion is doing real work.
+    - >
+        Check that the conversion is not a snapshot. If the source is mutated,
+        closed or exhausted before the result is read, removing it changes
+        behaviour.
+    - >
+        Check whether the *receiving operation* has a fast path for the
+        converted type. This is the step that gets skipped, and it is where the
+        answer most often flips -- see the first counter-example.
+  not_a_smell_when:
+    - >
+        the conversion snapshots a value that would otherwise be mutated or
+        closed before it is read
+    - >
+        the result is iterated more than once, indexed, sliced or measured, so a
+        lazy source would be exhausted or unusable
+    - >
+        the converted type is what an API boundary requires
+    - >
+        the target operation has a fast path for the converted type, so the
+        conversion buys more than it costs
+  counter_examples:
+    - code: |
+        missing = set(wanted).difference(set(available))
+      why: >
+        This looks exactly like a redundant conversion and is not.
+        `set.difference` runs faster against a hashed argument, so the inner
+        `set()` pays for itself. The mirror image *is* the smell:
+        `set(a).intersection(set(b))` should drop its inner `set()`, because
+        `intersection` iterates its argument and probes the receiver, so a list
+        argument costs nothing. The same edit, opposite verdicts, decided
+        entirely by which method receives it -- and both directions appear in
+        this project's own measured samples.
+    - code: |
+        rows = list(cursor.fetchall())
+        connection.close()
+        return summarise(rows)
+      why: >
+        The conversion pins the result before the connection closes. Removing it
+        does not save a pass; it raises.
+    - code: |
+        total = sum([x * 2 for x in values])
+      why: >
+        The reflex repair is a generator expression. Measured on this project's
+        host, the list comprehension was **ahead by 22%** for a short pipeline
+        consumed once by a C-level function: generator resumption is not free.
+        Prefer the generator for memory, for long pipelines, and where the
+        consumer may stop early -- not by default.
+  refactoring:
+    summary: delete the conversion and pass the value through directly
+    examples:
+      - title: the consumer already accepts an iterable
+        before: |
+          total = sum(list(values))
+        after: |
+          total = sum(values)
+        note: >
+          `sum` takes any iterable. The `list()` walks the source and allocates
+          a container that is read once and dropped.
+      - title: a chain of intermediates, none of them read twice
+        before: |
+          def active_names(records):
+              rows = list(records)
+              names = [r["name"] for r in rows]
+              return sorted(set(names))
+        after: |
+          def active_names(records):
+              return sorted({r["name"] for r in records})
+        note: >
+          Three containers become one. Each intermediate was a full pass and a
+          full allocation and none was read more than once. The `set` survives,
+          because it does real work: removing duplicates before the sort.
+      - title: the shape was chosen too early
+        before: |
+          def report(rows):
+              as_json = [json.dumps(r) for r in rows]
+              store(as_json)
+
+          def store(payloads):
+              for payload in payloads:
+                  record = json.loads(payload)          # straight back again
+                  database.insert(record["id"], record)
+        after: |
+          def report(rows):
+              store(rows)
+
+          def store(records):
+              for record in records:
+                  database.insert(record["id"], record)
+        note: >
+          This is the form that matters in real code, and it is invisible from
+          either function alone: one serialises, the other immediately parses,
+          so the round trip is two full passes and two allocations per row
+          buying nothing at all. Finding it needs the caller and the callee read
+          together. The repair spans two units -- say which ones in the finding.
+  patch_shape: expression
+  measurability: scales_with_input
+  discriminators:
+    - vs: C6.S3
+      rule: >
+        The published examples for these two overlap, so decide by what the
+        patch touches.  C5.S4 *deletes a conversion* and leaves the producer
+        alone (`sum(list(g))` becomes `sum(g)`).  C6.S3 *changes the producer*
+        from eager to lazy (`[f(x) for x in xs]` becomes `(f(x) for x in xs)`).
+    - vs: C1.S4
+      rule: >
+        C5.S4 is one conversion whose output is used as its input would have
+        been.  C1.S4 is the *same* computation performed twice.  Converting the
+        same value in two separate places is C1.S4; converting it once and never
+        needing it converted is C5.S4.

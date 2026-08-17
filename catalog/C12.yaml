@@ -1,0 +1,94 @@
+# C12 -- Poor Hardware Locality Usage
+# Only meaningful where Python touches contiguous memory: NumPy, array.array,
+# ctypes, Cython, C extensions.  In ordinary CPython the interpreter's own
+# dispatch loop dominates cache and branch behaviour, so these root causes
+# should not be proposed unless the unit actually uses array libraries -- the
+# static layer gates them on exactly that.
+#
+# This is the only category where hardware performance counters (`perf stat`
+# cache-misses, branch-misses) carry usable signal; everywhere else they measure
+# the interpreter rather than the program.
+
+- id: C12.S1
+  signals:
+    - column_major_traversal
+  how_to_tell:
+    - a contiguous array is traversed against its memory layout (column-wise over
+      a C-ordered array, or row-wise over a Fortran-ordered one)
+    - the unit uses NumPy or another contiguous-memory library
+  not_a_smell_when:
+    - the traversal order is required by the algorithm
+    - the array fits comfortably in cache
+    - the library already dispatches to a layout-aware kernel
+  refactoring:
+    summary: traverse along the contiguous axis, or change the layout to match
+    before: |
+      for column in range(matrix.shape[1]):
+          total += matrix[:, column].sum()
+    after: |
+      total = matrix.sum()          # one pass in memory order
+  patch_shape: structural
+  measurability: scales_with_input
+  min_workload_hint: the array must exceed last-level cache before misses register
+
+- id: C12.S2
+  how_to_tell:
+    - scattered indices into a large contiguous structure are read repeatedly
+  not_a_smell_when:
+    - the access pattern is dictated by the data (genuine sparsity)
+    - a sparse structure would cost more than the wasted cache lines
+  refactoring:
+    summary: sort or group the accesses so nearby indices are visited together
+    before: |
+      for index in random_indices:
+          total += values[index]
+    after: |
+      for index in sorted(random_indices):
+          total += values[index]
+  patch_shape: statement_local
+  measurability: scales_with_input
+
+- id: C12.S3
+  how_to_tell:
+    - a tight loop branches on data that is effectively unpredictable
+    - the loop runs in compiled code (Cython, a C extension) rather than pure Python
+  not_a_smell_when:
+    - the loop is interpreted Python, where bytecode dispatch swamps any
+      misprediction penalty
+    - the branch is highly predictable in practice
+    - sorting to make it predictable costs more than the mispredictions
+  refactoring:
+    summary: make the branch predictable, or replace it with branchless arithmetic
+    before: |
+      total = sum(v for v in values if v > threshold)
+    after: |
+      array = np.asarray(values)
+      total = array[array > threshold].sum()
+  patch_shape: structural
+  measurability: scales_with_input
+  notes: >
+    In pure CPython this is almost never worth claiming.  The static layer gates
+    it behind array-library usage for that reason.
+
+- id: C12.S4
+  how_to_tell:
+    - declaration or allocation order places hot buffers behind cold ones in a
+      C extension or ctypes structure
+  not_a_smell_when:
+    - the code is pure Python, where the author does not control layout
+    - the structure's field order is fixed by an external format
+  refactoring:
+    summary: declare the hot buffers first
+    before: |
+      class Frame(ctypes.Structure):
+          _fields_ = [("error_log", ctypes.c_char * 4096),
+                      ("samples", ctypes.c_double * 16)]
+    after: |
+      class Frame(ctypes.Structure):
+          _fields_ = [("samples", ctypes.c_double * 16),
+                      ("error_log", ctypes.c_char * 4096)]
+  patch_shape: structural
+  measurability: constant_small
+  notes: >
+    Effectively unreachable from pure Python.  Retained for taxonomy coverage;
+    expect it to be reported as advisory if it is ever reported at all.

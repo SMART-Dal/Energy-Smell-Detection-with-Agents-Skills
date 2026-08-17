@@ -1,0 +1,231 @@
+# C3 -- Inefficient Iteration Patterns
+# The densest category in practice: anything wasteful inside a loop is paid once
+# per iteration, so effects here scale with input and are the easiest to measure.
+
+- id: C3.S1
+  signals: [index_based_iteration, append_only_loop, ruff_PERF401, ruff_PERF403, ruff_PERF102]
+  how_to_tell:
+    - the loop survives the repair -- only its form changes
+  not_a_smell_when:
+    - the index is used for more than indexing (arithmetic, slicing, reporting)
+    - two sequences are walked by a shared index (use `zip` instead, still C3.S1)
+    - the loop body has side effects a comprehension would obscure
+    - the accumulator is conditionally reset, so a comprehension cannot express it
+  refactoring:
+    summary: iterate the sequence directly, or express the loop as a comprehension
+    before: |
+      out = []
+      for i in range(len(rows)):
+          out.append(rows[i].value)
+    after: |
+      out = [row.value for row in rows]
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: at least ~100k iterations
+  discriminators:
+    - vs: C10.S1
+      rule: >
+        C3.S1 keeps the loop and changes how it iterates.  C10.S1 removes the
+        loop entirely by calling a builtin that subsumes it.  Ask whether a
+        `for` still exists after the repair.
+    - vs: C10.S3
+      rule: >
+        C3.S1 replaces a loop with a comprehension (still Python-level looping).
+        C10.S3 replaces it with a bulk primitive that loops in C
+        (`list.extend`, `np.sum`).
+
+- id: C3.S2
+  signals: [loop_invariant_expression]
+  how_to_tell:
+    - the expression is pure
+    - none of the names it reads are rebound inside the loop
+    - it is genuinely re-evaluated per iteration (not a `for` loop's iterable,
+      which is evaluated exactly once)
+  not_a_smell_when:
+    - the expression only looks invariant because the analyzer cannot see a
+      mutation through an alias
+    - the call is impure and its repetition is the point (e.g. polling a clock)
+    - the loop body rebinds one of its inputs on a path the analyzer missed
+  refactoring:
+    summary: hoist the invariant expression to just above the loop
+    before: |
+      for item in items:
+          if item.size > config.limits.maximum:
+              flag(item)
+    after: |
+      maximum = config.limits.maximum
+      for item in items:
+          if item.size > maximum:
+              flag(item)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: at least ~100k iterations, more if the expression is cheap
+  discriminators:
+    - vs: C8.S3
+      rule: >
+        C3.S2 hoists a *computation*.  C8.S3 hoists a pure *name or attribute
+        resolution* with no computation attached.  `len(xs)` is C3.S2;
+        `self.config.limit` is C8.S3.
+    - vs: C3.S3
+      rule: >
+        C3.S2 hoists something whose value is reused unchanged.  C3.S3 hoists an
+        *object construction* that is rebuilt each iteration.
+
+- id: C3.S3
+  signals: [construction_in_loop, regex_in_loop, try_except_in_loop]
+  how_to_tell:
+    - an object, closure or compiled artefact is built inside the loop body
+    - it does not escape the iteration, or can safely be reused and cleared
+  not_a_smell_when:
+    - the object escapes -- it is appended, stored or returned, so each iteration
+      genuinely needs its own instance
+    - it holds per-iteration mutable state that reuse would corrupt
+    - construction is trivial compared with the rest of the body
+  refactoring:
+    summary: build it once before the loop and reuse it
+    before: |
+      for line in lines:
+          if re.search(r"\d+", line):
+              hits.append(line)
+    after: |
+      digits = re.compile(r"\d+")
+      for line in lines:
+          if digits.search(line):
+              hits.append(line)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  discriminators:
+    - vs: C4.S6
+      rule: |
+        C3.S3 is about per-iteration *setup* -- an object built each time round that could be built once.  C4.S6 is about exception handling used as control flow.  `try/except` inside a loop routes to both: if the repair hoists a construction out, it is C3.S3; if it replaces the exception with a test, it is C4.S6.
+    - vs: C8.S2
+      rule: >
+        Both hoist a compiled artefact; the difference is *how far*.  C3.S3
+        hoists to the enclosing function, fixing repetition within one call.
+        C8.S2 hoists to module or class scope so the artefact survives across
+        calls.  If the function is called once with a big loop, it is C3.S3; if
+        it is called many times, C8.S2.
+    - vs: C6.S1
+      rule: >
+        C3.S3's repair moves the construction (location changes).  C6.S1's
+        repair eliminates or shares the object (count changes).
+
+- id: C3.S4
+  signals: [nested_loops, membership_test_on_sequence]
+  how_to_tell:
+    - two or more nested loops range over the same or derived collections
+    - the inner loop performs a search that a hash structure could answer directly
+  not_a_smell_when:
+    - the nest is intrinsic to the problem (all pairs really are required)
+    - the inner range is a small constant, so it is a constant factor not a level
+    - the collections are tiny and building an index would cost more
+    - the loops are over unrelated data, so no index could join them
+  refactoring:
+    summary: replace the inner scan with a hash lookup, removing one loop level
+    before: |
+      for order in orders:
+          for customer in customers:
+              if customer.id == order.customer_id:
+                  link(order, customer)
+    after: |
+      by_id = {c.id: c for c in customers}
+      for order in orders:
+          customer = by_id.get(order.customer_id)
+          if customer is not None:
+              link(order, customer)
+  patch_shape: structural
+  measurability: scales_with_input
+  min_workload_hint: >
+    needs at least two input sizes; a quadratic-to-linear repair is invisible at
+    small n and obvious at large n
+  discriminators:
+    - vs: C7.S1
+      rule: >
+        C3.S4 keeps the strategy and removes a loop level, usually by adding an
+        index.  C7.S1 replaces the strategy with a *differently named* algorithm
+        (bubble sort to Timsort, linear scan to binary search).
+    - vs: C5.S2
+      rule: >
+        The two overlap heavily.  Pick C3.S4 when loop nesting depth drops.  Pick
+        C5.S2 when the new index removes repeated scans but the loop structure is
+        unchanged.
+
+- id: C3.S5
+  signals: [missing_early_exit]
+  how_to_tell:
+    - the loop reaches a conclusive result but keeps iterating
+    - no later iteration can change the outcome
+  not_a_smell_when:
+    - later iterations have side effects that must still happen
+    - the loop counts or collects every match, not just the first
+    - the loop is already bounded and short
+  refactoring:
+    summary: break out, return, or use a short-circuiting builtin
+    before: |
+      found = False
+      for record in records:
+          if record.id == target:
+              found = True
+    after: |
+      found = any(record.id == target for record in records)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    the effect depends on where the match lands; drive it with a match near the
+    start of a long sequence
+  counter_examples:
+    - code: |
+        for row in rows:
+            if matches(row):
+                found = True
+      why: |
+        adding an early `break` costs nothing but saves nothing either when the match is usually absent or last: the loop runs to the end regardless. The saving is proportional to how early the hit typically is, so it is a claim about the data, not about the code.
+- id: C3.S6
+  signals: [ruff_RUF015]
+  how_to_tell:
+    - the loop or pipeline processes every element although only a subset,
+      window or top-k reaches the output
+  not_a_smell_when:
+    - the full pass has a side effect that is required
+    - the selection predicate is more expensive than the work it would skip
+    - the collection is already small
+  refactoring:
+    summary: narrow the input before doing the work, or stop once enough is produced
+    before: |
+      scored = [expensive_score(x) for x in candidates]
+      best = sorted(scored)[:10]
+    after: |
+      best = heapq.nsmallest(10, (expensive_score(x) for x in candidates))
+  patch_shape: structural
+  measurability: scales_with_input
+  discriminators:
+    - vs: C6.S3
+      rule: |
+        C3.S6 stops the iteration early because only part of the sequence is needed.  C6.S3 avoids materialising a sequence that is consumed lazily anyway.  `list(xs)[0]` is C3.S6 if the fix is `next(iter(xs))`; it is C6.S3 if the fix is to stop building the list while still consuming all of it.
+    - vs: C7.S4
+      rule: >
+        C3.S6 reduces *how many items* are processed.  C7.S4 keeps the item count
+        and swaps the *order* of two operations.  Filtering before sorting is
+        C7.S4; taking only the top ten is C3.S6.
+
+- id: C3.S7
+  signals: [mutation_during_iteration, ruff_B909, ruff_B020]
+  how_to_tell:
+    - the collection being iterated is mutated inside its own loop
+  not_a_smell_when:
+    - the mutation is the algorithm (a worklist that intentionally grows)
+    - iteration is over a copy (`for x in list(xs)`), which is already the fix
+  refactoring:
+    summary: iterate a snapshot, or build the result and replace the collection
+    before: |
+      for item in items:
+          if item.stale:
+              items.remove(item)
+    after: |
+      items = [item for item in items if not item.stale]
+  patch_shape: statement_local
+  measurability: scales_with_input
+  notes: >
+    Usually a correctness bug before it is an energy smell -- removal while
+    iterating silently skips elements.  Worth reporting even when the measured
+    effect is small.

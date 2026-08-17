@@ -1,0 +1,96 @@
+# C9 -- Inefficient External Data Access
+# Almost absent from competitive-programming corpora (0.9% of the published
+# LeetCode labelling) and common in real repositories, so this category is one
+# of the main reasons evaluation has to run on real code.
+#
+# Measurement caveat: the energy of a remote database or API server is not
+# visible to a local RAPL meter.  What is measurable locally is the client-side
+# cost -- syscalls, serialisation, connection handling -- which understates the
+# true saving.  Claims here should be read as lower bounds.
+
+- id: C9.S1
+  signals: [io_call_in_loop]
+  how_to_tell:
+    - many small external operations are issued individually
+    - the operations are independent and a batch API exists
+  not_a_smell_when:
+    - each operation must be individually transactional or individually retried
+    - batch size would exceed a payload or memory limit
+    - ordering guarantees would be lost
+    - streaming is deliberate to bound memory
+  refactoring:
+    summary: batch the operations into one call
+    before: |
+      for record in records:
+          session.add(record)
+          session.commit()
+    after: |
+      session.add_all(records)
+      session.commit()
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: >
+    needs a local stand-in (sqlite file, local socket) so the client-side cost is
+    actually exercised; against a remote service the local meter sees mostly idle wait
+
+- id: C9.S2
+  signals: [whole_file_read]
+  how_to_tell:
+    - more data is fetched than the code consumes
+  not_a_smell_when:
+    - the unused fields are consumed by a caller
+    - narrowing the projection would require a second round-trip later
+    - the row count is small enough that projection saves nothing
+  refactoring:
+    summary: request only the fields and rows that are used
+    before: |
+      rows = db.execute("SELECT * FROM users")
+      names = [r["name"] for r in rows]
+    after: |
+      rows = db.execute("SELECT name FROM users")
+      names = [r["name"] for r in rows]
+  patch_shape: expression
+  measurability: scales_with_input
+
+- id: C9.S3
+  signals: [io_call_in_loop]
+  how_to_tell:
+    - one query returns N results and N further queries fetch related data
+    - a join or eager-load would return the same data in one round-trip
+  not_a_smell_when:
+    - the follow-up is only needed for a small subset of the results
+    - the join would produce a cartesian blow-up larger than the N queries
+  refactoring:
+    summary: fetch the related data in one query
+    before: |
+      for order in Order.objects.all():
+          use(order.customer.name)
+    after: |
+      for order in Order.objects.select_related("customer"):
+          use(order.customer.name)
+  patch_shape: statement_local
+  measurability: scales_with_input
+  discriminators:
+    - vs: C9.S1
+      rule: >
+        C9.S1 batches *independent* operations.  C9.S3 removes *dependent*
+        follow-up queries whose keys came from an earlier result.
+
+- id: C9.S4
+  how_to_tell:
+    - the query shape is intrinsically expensive for the engine (missing join
+      condition, deduplicating union, unparameterised SQL)
+  not_a_smell_when:
+    - deduplication is genuinely required
+    - the tables are small enough for the plan to be irrelevant
+  refactoring:
+    summary: use the cheaper equivalent query form
+    before: |
+      db.execute(f"SELECT * FROM a, b WHERE a.x = {value}")
+    after: |
+      db.execute("SELECT * FROM a JOIN b ON a.id = b.a_id WHERE a.x = ?", (value,))
+  patch_shape: expression
+  measurability: scales_with_input
+  notes: >
+    Server-side cost dominates and is invisible to a client-side meter.  Usually
+    reported as advisory unless a local database backs the driver.
