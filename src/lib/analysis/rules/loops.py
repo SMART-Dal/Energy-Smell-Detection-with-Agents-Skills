@@ -83,7 +83,7 @@ def _contains(outer: ast.AST, inner: ast.AST) -> bool:
 
 
 def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """`s += ...` inside a loop -- but only quadratic for some accumulators.
+    """Text accumulated inside a loop -- but only quadratic for some accumulators.
 
     The textbook version of this rule is wrong on CPython, and measurement says
     so.  When the accumulator is a plain local whose reference count is one,
@@ -100,53 +100,116 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         d["k"] += part           subscript                -> quadratic
         out += part; keep(out)   a reference escapes      -> quadratic
 
+    What makes an accumulator textual is decided from *where it starts*, not
+    from the right-hand side.  Keying on the value was the original mistake and
+    it made the rule nearly useless: `self.buf += render_row(row)` -- the card's
+    own example -- has an unrecognisable call on the right and never fired, and
+    neither did `out += chunk`, which is the commonest form there is.  An
+    accumulator initialised to `""` or `b""` is text whatever gets added to it.
+
+    Both spellings count: `s += x` and `s = s + x` allocate identically.
     Numeric accumulators are excluded throughout: `n += 1` is fine.
     """
+    accumulators = _text_accumulators(ctx.node)
+
     for node, enclosing in ctx.inside_loops():
-        if not isinstance(node, ast.AugAssign) or not isinstance(node.op, ast.Add):
+        pair = _concatenation(node)
+        if pair is None:
             continue
-        if not _looks_stringy(node.value):
+        target, value = pair
+        name = _target_name(target)
+        if name not in accumulators and not _looks_stringy(value):
             continue
+        if _looks_numeric(value) and name not in accumulators:
+            continue
+
         loop = enclosing[-1]
-        target = node.target
         if isinstance(target, (ast.Attribute, ast.Subscript)):
+            through = "an attribute" if isinstance(target, ast.Attribute) else "a subscript"
             yield _evidence(
                 unit, "string_concat_in_loop", node, ("C10.S4",),
-                f"`{_target_name(target)}` is grown by string concatenation "
-                f"inside a loop; because it is stored through "
-                f"{'an attribute' if isinstance(target, ast.Attribute) else 'a subscript'}"
-                f", CPython cannot resize it in place and copies the whole "
-                f"string every iteration",
-                accumulator=_target_name(target),
-                accumulator_kind="aliased",
+                f"`{name}` is grown by concatenation inside a loop; because it "
+                f"is stored through {through}, CPython cannot resize it in "
+                f"place and copies the whole value every iteration",
+                accumulator=name, accumulator_kind="aliased",
                 loop_line=loop.lineno,
                 strength=Strength.DEFINITE,
             )
         elif isinstance(target, ast.Name):
-            escapes = _name_is_read_in(loop, target.id)
-            if escapes:
+            if _name_is_read_in(loop, target.id, skip=node):
                 yield _evidence(
                     unit, "string_concat_in_loop", node, ("C10.S4",),
-                    f"`{target.id}` is grown by string concatenation inside a "
-                    f"loop and is also read there, so a second reference "
-                    f"exists and each iteration copies the whole string",
-                    accumulator=target.id,
-                    accumulator_kind="escaping",
+                    f"`{target.id}` is grown by concatenation inside a loop and "
+                    f"is also read there, so a second reference exists and each "
+                    f"iteration copies the whole value",
+                    accumulator=target.id, accumulator_kind="escaping",
                     loop_line=loop.lineno,
                     strength=Strength.DEFINITE,
                 )
             else:
                 yield _evidence(
                     unit, "string_concat_in_loop", node, ("C10.S4",),
-                    f"`{target.id}` is grown by string concatenation inside a "
-                    f"loop, but it is a plain local with no other reference, "
-                    f"so CPython resizes it in place and the loop is already "
-                    f"linear -- reject unless this runs on another runtime",
-                    accumulator=target.id,
-                    accumulator_kind="local",
+                    f"`{target.id}` is grown by concatenation inside a loop, but "
+                    f"it is a plain local with no other reference, so CPython "
+                    f"resizes it in place and the loop is already linear -- "
+                    f"reject unless this runs on another runtime",
+                    accumulator=target.id, accumulator_kind="local",
                     loop_line=loop.lineno,
                     strength=Strength.CONTEXTUAL,
                 )
+
+
+def _concatenation(node: ast.AST):
+    """`(target, value)` if this statement appends to its own target.
+
+    Covers both spellings, because they allocate identically:
+
+        s += x                  AugAssign
+        s = s + x               Assign whose value re-reads the target
+    """
+    if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
+        return node.target, node.value
+    if (
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.value, ast.BinOp)
+        and isinstance(node.value.op, ast.Add)
+    ):
+        target = node.targets[0]
+        rendered = _target_name(target)
+        if _target_name(node.value.left) == rendered:
+            return target, node.value.right
+        if _target_name(node.value.right) == rendered:
+            return target, node.value.left
+    return None
+
+
+def _text_accumulators(scope: ast.AST) -> set[str]:
+    """Targets this unit assigns a string or bytes value to, by rendered name.
+
+    Two shapes seed one: a direct assignment of a str/bytes constant, and
+    `container.setdefault(key, "")`, which is how a subscript accumulator is
+    usually started.
+    """
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+            if isinstance(node.value.value, (str, bytes)):
+                found.update(_target_name(t) for t in node.targets)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.annotation, ast.Name):
+            if node.annotation.id in {"str", "bytes"}:
+                found.add(_target_name(node.target))
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "setdefault"
+            and len(node.args) == 2
+            and isinstance(node.args[1], ast.Constant)
+            and isinstance(node.args[1].value, (str, bytes))
+        ):
+            found.add(f"{_target_name(node.func.value)}[...]")
+    return found
+
 
 
 def _target_name(node: ast.AST) -> str:
@@ -160,34 +223,69 @@ def _target_name(node: ast.AST) -> str:
     return "the accumulator"
 
 
-def _name_is_read_in(loop: ast.AST, name: str) -> bool:
+def _name_is_read_in(loop: ast.AST, name: str, skip: ast.AST | None = None) -> bool:
     """Whether `name` is loaded anywhere in the loop, not just assigned to.
 
     An augmented assignment stores to its target, so any *load* of the same
     name inside the loop means a second reference is taken -- which is exactly
     what stops CPython from resizing the string in place.
+
+    `skip` excludes the accumulating statement itself, because `s = s + x`
+    reads `s` as part of the accumulation.  Counting that as an escaping
+    reference would grade every long-form concatenation as aliased.
     """
+    skipped = {id(node) for node in ast.walk(skip)} if skip is not None else set()
     return any(
         isinstance(node, ast.Name)
         and node.id == name
         and isinstance(node.ctx, ast.Load)
+        and id(node) not in skipped
         for node in ast.walk(loop)
     )
 
 
 def _looks_stringy(node: ast.AST) -> bool:
-    """Best-effort check that an expression produces text."""
+    """Best-effort check that an expression produces text.
+
+    A secondary signal only.  What an accumulator *is* comes from where it was
+    initialised (`_text_accumulators`); this catches the cases where the
+    accumulator was not initialised in this unit but the value is unmistakable.
+    """
     if isinstance(node, ast.Constant):
-        return isinstance(node.value, str)
+        return isinstance(node.value, (str, bytes))
     if isinstance(node, ast.JoinedStr):  # f-string
         return True
     if isinstance(node, ast.BinOp):
         return _looks_stringy(node.left) or _looks_stringy(node.right)
     if isinstance(node, ast.Call):
-        if isinstance(node.func, ast.Name) and node.func.id in {"str", "repr", "format", "chr"}:
+        if isinstance(node.func, ast.Name) and node.func.id in {
+            "str", "repr", "format", "chr", "bytes", "hex", "oct",
+        }:
             return True
-        if isinstance(node.func, ast.Attribute) and node.func.attr in {"join", "format", "strip"}:
+        if isinstance(node.func, ast.Attribute) and node.func.attr in {
+            "join", "format", "strip", "lstrip", "rstrip", "lower", "upper",
+            "decode", "encode", "replace",
+        }:
             return True
+    return False
+
+
+def _looks_numeric(node: ast.AST) -> bool:
+    """Best-effort check that an expression produces a number.
+
+    Used only to keep a counter out of the report when nothing else identifies
+    the accumulator, so `counts[key] += 1` stays quiet.
+    """
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, (int, float, complex)) and not isinstance(
+            node.value, bool
+        )
+    if isinstance(node, ast.UnaryOp):
+        return _looks_numeric(node.operand)
+    if isinstance(node, ast.BinOp):
+        return _looks_numeric(node.left) and _looks_numeric(node.right)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        return node.func.id in {"len", "int", "float", "sum", "abs", "round", "ord"}
     return False
 
 
