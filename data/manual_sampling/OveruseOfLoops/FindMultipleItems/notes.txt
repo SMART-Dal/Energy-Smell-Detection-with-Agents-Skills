@@ -1,0 +1,3 @@
+this may go to a new label called unoptimized X look-up X iteration (algorithm), which mean we can reduce the big O complexity by just changing the algorithm, no data strucutre involved.
+
+also this name is good "Heavy|unoptimized operation inside loop"

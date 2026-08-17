@@ -1,0 +1,1 @@
+this can go to ineffecitve computation, because the result of odd items does not have affect on final value but is being computed.

@@ -1,0 +1,1 @@
+This example is taken from An Empirical Study of the Performance Impacts of Android Code Smells

@@ -1,0 +1,3 @@
+this can stay here as overuseof loops, but the new definition of loops would be:
+when we can solve the problem without using loops, for example if we have 1,2,...,n, if we want to take sum, we can use n.(n+1) / 2, so we don't need to do sum(list).
+or here in this example you see that with pure condition we could solve the problem without using max (which uses loops)

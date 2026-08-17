@@ -1,0 +1,1 @@
+because I saw that only abs() is affecting the final performance. in fact, if we change abs to addition, e.g., diff = a+b, the smelly version performance gets better.

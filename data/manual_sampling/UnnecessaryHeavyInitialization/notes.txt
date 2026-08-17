@@ -1,0 +1,1 @@
+I can make it improper intialization so that it could fit static heavy object creation within loops and unnecessary heavy initialization
