@@ -690,7 +690,7 @@
    "category_name": "Underused Language Primitives",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "call the builtin instead of the loop",
+   "repair": "replace the hand-written loop with the primitive that already does it",
    "card": "reference/root-causes/C10.S1.md"
   },
   "C10.S2": {
@@ -699,7 +699,7 @@
    "category_name": "Underused Language Primitives",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "swap in the faster equivalent",
+   "repair": "use the cheaper construct that computes the same answer",
    "card": "reference/root-causes/C10.S2.md"
   },
   "C10.S3": {
@@ -708,7 +708,7 @@
    "category_name": "Underused Language Primitives",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "use the bulk or vectorised primitive",
+   "repair": "replace the per-element operation with the batched primitive",
    "card": "reference/root-causes/C10.S3.md"
   },
   "C10.S4": {
@@ -717,7 +717,7 @@
    "category_name": "Underused Language Primitives",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "collect the parts in a local list and join once, so the accumulator that grows is never the aliased one",
+   "repair": "collect the parts in a local list and join once, so the value that grows is never the aliased one",
    "card": "reference/root-causes/C10.S4.md"
   },
   "C10.S5": {
@@ -726,7 +726,7 @@
    "category_name": "Underused Language Primitives",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "alias the global to a local before the loop",
+   "repair": "alias the global or builtin to a local before the loop",
    "card": "reference/root-causes/C10.S5.md"
   },
   "C10.S6": {
@@ -735,7 +735,7 @@
    "category_name": "Underused Language Primitives",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "call the underlying operation directly, or work on primitives in the loop",
+   "repair": "do the arithmetic on primitives inside the loop and wrap once at the end",
    "card": "reference/root-causes/C10.S6.md"
   },
   "C11.S1": {
