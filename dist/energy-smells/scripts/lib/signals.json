@@ -743,7 +743,7 @@
    "category_name": "Inefficient Concurrency Management",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "narrow the critical section to the state that actually needs protecting",
+   "repair": "hold the lock only over the shared state, or remove the need for it",
    "card": "reference/root-causes/C11.S1.md"
   },
   "C11.S2": {
@@ -752,7 +752,7 @@
    "category_name": "Inefficient Concurrency Management",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "replicate or pool the bottleneck resource",
+   "repair": "give each worker its own resource, shard the work, or stop pretending to parallelise",
    "card": "reference/root-causes/C11.S2.md"
   },
   "C11.S3": {
@@ -761,7 +761,7 @@
    "category_name": "Inefficient Concurrency Management",
    "measurability": "constant_small",
    "advisory_only": true,
-   "repair": "give the worker a shutdown path, or make it a daemon",
+   "repair": "give every worker a stopping condition, or reuse a bounded pool",
    "card": "reference/root-causes/C11.S3.md"
   },
   "C11.S4": {
@@ -770,7 +770,7 @@
    "category_name": "Inefficient Concurrency Management",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "move the blocking work off the loop",
+   "repair": "await the async equivalent, or move the blocking work off the loop",
    "card": "reference/root-causes/C11.S4.md"
   },
   "C11.S5": {
@@ -779,7 +779,7 @@
    "category_name": "Inefficient Concurrency Management",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "run the independent items concurrently, matching the pool to the workload",
+   "repair": "run the independent work concurrently, with the tool the work's nature requires",
    "card": "reference/root-causes/C11.S5.md"
   },
   "C12.S1": {
