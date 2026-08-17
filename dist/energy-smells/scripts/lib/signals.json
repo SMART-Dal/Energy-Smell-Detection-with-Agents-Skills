@@ -202,6 +202,9 @@
   "runtime_management_in_loop": [
    "C1.S8"
   ],
+  "self_delegation_chain": [
+   "C2.S3"
+  ],
   "single_use_temporary": [
    "C1.S7"
   ],
@@ -212,8 +215,7 @@
    "C10.S4"
   ],
   "trivial_delegation": [
-   "C2.S1",
-   "C2.S3"
+   "C2.S1"
   ],
   "try_except_in_loop": [
    "C3.S3",
@@ -237,7 +239,7 @@
    "category_name": "Redundant Computation",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "delete the assignment or the unreachable statement",
+   "repair": "delete the computation whose result nothing reads",
    "card": "reference/root-causes/C1.S1.md"
   },
   "C1.S2": {
@@ -246,7 +248,7 @@
    "category_name": "Redundant Computation",
    "measurability": "constant_small",
    "advisory_only": true,
-   "repair": "remove the assignment that leaves state unchanged",
+   "repair": "delete the assignment that leaves state unchanged",
    "card": "reference/root-causes/C1.S2.md"
   },
   "C1.S3": {
@@ -255,7 +257,7 @@
    "category_name": "Redundant Computation",
    "measurability": "constant_small",
    "advisory_only": true,
-   "repair": "remove the control-flow construct that has no effect",
+   "repair": "delete the control flow that cannot change the outcome",
    "card": "reference/root-causes/C1.S3.md"
   },
   "C1.S4": {
@@ -264,7 +266,7 @@
    "category_name": "Redundant Computation",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "compute once into a local and reuse it",
+   "repair": "compute the value once, bind it, and read the binding",
    "card": "reference/root-causes/C1.S4.md"
   },
   "C1.S5": {
@@ -273,7 +275,7 @@
    "category_name": "Redundant Computation",
    "measurability": "scales_with_input",
    "advisory_only": false,
-   "repair": "delete the computation whose product is never consumed",
+   "repair": "delete the computation whose result nothing consumes",
    "card": "reference/root-causes/C1.S5.md"
   },
   "C1.S6": {
@@ -282,7 +284,7 @@
    "category_name": "Redundant Computation",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "move the initialisation inside the branch that needs it",
+   "repair": "move the setup inside the branch that needs it",
    "card": "reference/root-causes/C1.S6.md"
   },
   "C1.S7": {
@@ -291,16 +293,16 @@
    "category_name": "Redundant Computation",
    "measurability": "constant_small",
    "advisory_only": true,
-   "repair": "inline the single-use intermediate",
+   "repair": "inline the single-use temporary",
    "card": "reference/root-causes/C1.S7.md"
   },
   "C1.S8": {
    "name": "Excessive Runtime-Management Calls",
    "category": "C1",
    "category_name": "Redundant Computation",
-   "measurability": "scales_with_input",
+   "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "drop the manual collection, or guard the expensive log argument",
+   "repair": "remove the housekeeping call, or defer the work until it is known to be needed",
    "card": "reference/root-causes/C1.S8.md"
   },
   "C2.S1": {
@@ -309,7 +311,7 @@
    "category_name": "Unnecessary Call Overhead",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "call the delegate directly from the hot call site",
+   "repair": "call the target directly at the hot call sites, or read the attribute directly",
    "card": "reference/root-causes/C2.S1.md"
   },
   "C2.S2": {
@@ -318,16 +320,16 @@
    "category_name": "Unnecessary Call Overhead",
    "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "mark it `@staticmethod` so no bound method object is built per call",
+   "repair": "declare the method `@staticmethod`, or move it to module scope",
    "card": "reference/root-causes/C2.S2.md"
   },
   "C2.S3": {
    "name": "Excessive Modularization in Hot Path",
    "category": "C2",
    "category_name": "Unnecessary Call Overhead",
-   "measurability": "scales_with_input",
+   "measurability": "scales_with_calls",
    "advisory_only": false,
-   "repair": "merge the thin layers into one function on the hot path",
+   "repair": "merge the thin layers on the hot path into one function, keeping the layers for any other caller",
    "card": "reference/root-causes/C2.S3.md"
   },
   "C3.S1": {
