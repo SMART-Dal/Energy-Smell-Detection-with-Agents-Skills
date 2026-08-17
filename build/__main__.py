@@ -142,6 +142,15 @@ def _excluded(relative: Path, arm: Arm) -> bool:
     return any(text == item or text.startswith(item + "/") for item in arm.excluded)
 
 
+IGNORED_IN_DIST = {"__pycache__"}
+"""Directories that appear in an arm by running it, not by building it."""
+
+
+def _generated(path: Path) -> bool:
+    """Whether this file is ours to account for, rather than a run artefact."""
+    return not any(part in IGNORED_IN_DIST for part in path.parts)
+
+
 def _prune(root: Path, keep: set[Path]) -> None:
     """Delete everything in an arm that this build did not generate.
 
@@ -152,7 +161,7 @@ def _prune(root: Path, keep: set[Path]) -> None:
     if not root.exists():
         return
     for path in sorted(root.rglob("*"), reverse=True):
-        if path.is_file() and path not in keep:
+        if path.is_file() and path not in keep and _generated(path):
             path.unlink()
         elif path.is_dir() and not any(path.iterdir()):
             path.rmdir()
@@ -196,7 +205,10 @@ def _orphans(root: Path, keep: set[Path]) -> list[Path]:
     """Files present in an arm that this build would not write."""
     if not root.exists():
         return []
-    return [p for p in root.rglob("*") if p.is_file() and p not in keep]
+    return [
+        p for p in root.rglob("*")
+        if p.is_file() and p not in keep and _generated(p)
+    ]
 
 
 def _differs(path: Path, text: str) -> bool:
