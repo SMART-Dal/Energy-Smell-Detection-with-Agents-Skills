@@ -10,21 +10,32 @@ We do not ship a detector. We ship the knowledge and the referee.
 
 ## The deliverables
 
-`python -m build` writes four skill directories under `dist/`. They differ in
-**one** thing — what static evidence the agent is given — so a difference in
-results is attributable to the evidence and not to the instructions.
+`python -m build` writes five skill directories under `dist/`. The first four
+differ in **one** thing — what static evidence the agent is given — so a
+difference between them is attributable to the evidence rather than to the
+instructions. The fifth is the control.
 
-| Directory | Evidence | Question it answers |
+| Directory | Given | Question it answers |
 |---|---|---|
-| `dist/energy-smells` | AST + ruff | do the two sources compose? |
-| `dist/energy-smells-ast` | 43 AST analyzers | what do the taxonomy-specific rules add? |
-| `dist/energy-smells-ruff` | 36 ruff rules | how far does an off-the-shelf linter get? |
-| `dist/energy-smells-knowledge` | none | how well does the agent do on the taxonomy alone? |
+| `dist/energy-smells` | cards + 43 AST analyzers + 36 ruff rules | do the two evidence sources compose? |
+| `dist/energy-smells-ast` | cards + the AST analyzers | what do the taxonomy-specific rules add? |
+| `dist/energy-smells-ruff` | cards + the ruff rules | how far does an off-the-shelf linter get? |
+| `dist/energy-smells-knowledge` | cards only | how well does the agent do on the taxonomy alone? |
+| `dist/energy-efficiency` | **no taxonomy at all** | does the taxonomy help a frontier model, or would it have found these anyway? |
 
 The arm is fixed at build time, not chosen by a flag. An arm ships only the code
 its condition allows: the knowledge arm has no scanner and no analyzer source on
 disk, because an agent that can read `rules/loops.py` has been handed the static
 analysis in its most direct form whatever the flags said.
+
+**No arm may reveal that the others exist.** No condition file, no sentence
+explaining what is absent, no enum value nothing there can produce. `scan.py`
+therefore *discovers* its analyzers -- any module in `lib/analysis` defining
+`collect()` is one -- so an installation with fewer of them behaves exactly like
+one that never had more. The control arm gets the same task, the same rigour and
+the same verifier with none of this taxonomy's vocabulary anywhere in it; without
+it we cannot tell whether the cards help or whether the model was going to find
+these things regardless.
 
 ```bash
 cp -r dist/energy-smells ~/some-repo/.claude/skills/energy-smells
@@ -42,11 +53,12 @@ calls a network.
 | Path | Role |
 |---|---|
 | `taxonomy/*.xlsx` | the published taxonomy — source |
-| `catalog/C*.yaml` | authored knowledge: preconditions, exceptions, repairs, discriminators |
+| `catalog/C*.yaml` | authored knowledge: mechanism, recognition steps, exceptions, near-misses, repairs, neighbours |
 | `src/` | the scanner and the verifier — authored Python |
-| `build/` | renders cards, compiles the routing table, emits the four arms |
+| `build/` | renders cards, compiles the routing table, emits the five arms. `CARD_SPEC.md` says how to write an entry |
 | `dist/` | **the deliverables** — generated, never edited |
 | `validation/` | measures the taxonomy's own claims (see below) |
+| `tests/rules/` | one folder per analyzer: what it must flag, and what it must not |
 | `eval/` | protocol for cold-agent runs |
 
 ```bash
@@ -58,15 +70,18 @@ python3 -m venv .venv && .venv/bin/pip install pandas openpyxl pyyaml ruff
 ## The two scripts
 
 ```bash
+python dist/energy-smells/scripts/scan.py PATH --units   # ranked reading list
 python dist/energy-smells/scripts/scan.py PATH [--top N] [--json]
 python src/verify.py CASE_FILE [--json]
 python src/verify.py --calibrate
 ```
 
-`scan.py` reports facts grouped under the root causes they point at — never a
-verdict. Units are ranked by how hot they are, which counts the loops a unit is
-*reached* through as well as the ones it contains: a helper called from inside
-someone else's nested loop outranks the loop itself.
+`scan.py` answers two questions and keeps them apart. `--units` ranks every
+function by how hot it looks and says nothing about what might be wrong with any
+of them, so it can be run before the agent has formed a view; the default report
+groups facts under the root causes they point at, never a verdict. Hotness counts
+the loops a unit is *reached* through as well as the ones it contains, so a
+helper called from inside someone else's nested loop outranks the loop itself.
 
 `verify.py` takes a case file defining `before`, `after` and `cases()`, checks
 behaviour is preserved, sizes each case so its measured window lasts about a
@@ -79,12 +94,35 @@ that interval is what this host can resolve.
 `validation/` measures the claims rather than assuming them.
 
 ```bash
+python validation/preflight.py               # is this host fit to measure on?
 python validation/generate_sample_cases.py   # convert data/manual_sampling
 python validation/run.py samples             # 84 hand-written before/after pairs
 python validation/run.py taxonomy            # cases per contested root cause
 ```
 
-Results land in `validation/results/*.jsonl`.
+Results land in `validation/results/*.jsonl`. Run `preflight.py` first: it asks
+three questions and stops at the first failure — identical code reads ~0%, a
+known saving is detected, and the same pair *swapped* reads negative. The third
+matters because a rig that answers "saving" in both directions is broken in a way
+the null canary alone cannot see.
+
+`validation/RESULTS.md` records what has been measured and what has not. The
+short version: sharing the host moved the median null canary from 0.63% to 8.25%
+and one reading to 51%, and every question worth settling landed on a
+contaminated floor. `verify.py` reports `inconclusive` rather than `refuted` in
+that band, because "the repair does nothing" and "this machine could not tell"
+are opposite claims.
+
+Analyzer precision has its own suite, which is not shipped:
+
+```bash
+python tests/rules/run.py                    # every rule
+python tests/rules/run.py missing_early_exit --verbose
+```
+
+`fires_*.py` must be flagged, `quiet_*.py` must not, and `# EXPECT` pins the
+exact lines. The quiet cases are the point: a rule the reader learns to ignore is
+worse than no rule.
 
 ## Why measurement is not optional
 
