@@ -780,7 +780,7 @@ def regex_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         # being iterated in every one of these calls, so testing the whole call
         # for a dependency rejected every true positive.
         pattern = node.args[0] if node.args else None
-        if pattern is None or ctx.read_names(pattern) & _iteration_targets(scopes):
+        if pattern is None or ctx.read_names(pattern) & ctx.iteration_names(node):
             continue
         yield _evidence(
             unit, "regex_in_loop", node, ("C3.S3", "C8.S2"),
@@ -790,22 +790,6 @@ def regex_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             loop_line=getattr(scopes[-1], "lineno", unit.lineno),
             strength=Strength.LIKELY,
         )
-
-
-def _iteration_targets(scopes: tuple[ast.AST, ...]) -> set[str]:
-    """Names bound by the enclosing loops and comprehensions."""
-    names: set[str] = set()
-    for scope in scopes:
-        targets = []
-        if isinstance(scope, (ast.For, ast.AsyncFor)):
-            targets.append(scope.target)
-        elif isinstance(scope, COMPREHENSION_NODES):
-            targets.extend(generator.target for generator in scope.generators)
-        for target in targets:
-            names.update(
-                inner.id for inner in ast.walk(target) if isinstance(inner, ast.Name)
-            )
-    return names
 
 
 def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:

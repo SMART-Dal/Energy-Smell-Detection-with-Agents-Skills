@@ -334,8 +334,8 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     Sometimes required -- the copy is mutated and must not be shared. Reported
     as `contextual` for that reason: the fact is certain, the fault is not.
     """
-    for node in ast.walk(ctx.node):
-        if not ctx.in_loop(node):
+    for node in ctx.own_nodes():
+        if not ctx.repeats(node):
             continue
         described = None
         if isinstance(node, ast.Call):
@@ -349,7 +349,10 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         elif isinstance(node, ast.Subscript) and _is_full_slice(node.slice):
             described = "a `[:]` slice"
 
-        if described:
+        # `dict(row)` in a comprehension converts the element; it does not
+        # duplicate a container the iterations share, so there is nothing to
+        # hoist and nothing being copied twice.
+        if described and not (ctx.read_names(node) & ctx.iteration_names(node)):
             yield _evidence(
                 unit, "copy_in_loop", node, ("C6.S2",),
                 f"`{ast.unparse(node)}` duplicates a container on every iteration "
@@ -389,7 +392,9 @@ def sort_then_slice(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue
         if isinstance(node.slice, ast.Slice):
             advice = "`heapq.nsmallest`/`nlargest` keeps only the elements wanted"
-        elif isinstance(node.slice, ast.Constant) and node.slice.value in (0, -1):
+        elif _end_index(node.slice) is not None:
+            # `[-1]` is a UnaryOp, not a negative Constant, so matching on the
+            # literal value missed every "take the largest" case.
             advice = "`min()`/`max()` finds the same element in one pass"
         else:
             continue
@@ -399,6 +404,20 @@ def sort_then_slice(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"most of it; {advice}",
             strength=Strength.LIKELY,
         )
+
+
+def _end_index(node: ast.AST) -> int | None:
+    """`0` or `-1` when a subscript takes the first or last element."""
+    if isinstance(node, ast.Constant) and node.value == 0:
+        return 0
+    if (
+        isinstance(node, ast.UnaryOp)
+        and isinstance(node.op, ast.USub)
+        and isinstance(node.operand, ast.Constant)
+        and node.operand.value == 1
+    ):
+        return -1
+    return None
 
 
 def filter_after_transform(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:

@@ -136,6 +136,28 @@ class UnitContext:
             for scope in self.repeats_around(node)
         )
 
+    def iteration_names(self, node: ast.AST) -> set[str]:
+        """Names bound by the loops and comprehensions enclosing `node`.
+
+        An expression that reads one of these changes with every element, so it
+        is neither hoistable nor a duplicate of something shared -- which is
+        what separates `dict(defaults)` in a loop from `dict(row)`.
+        """
+        names: set[str] = set()
+        for scope in self.repeats_around(node):
+            targets = []
+            if isinstance(scope, LOOP_NODES):
+                targets.append(getattr(scope, "target", None))
+            elif isinstance(scope, COMPREHENSION_NODES):
+                targets.extend(generator.target for generator in scope.generators)
+            for target in targets:
+                if target is None:
+                    continue
+                names.update(
+                    inner.id for inner in ast.walk(target) if isinstance(inner, ast.Name)
+                )
+        return names
+
     @cached_property
     def repeat_scopes(self) -> list[ast.AST]:
         """Every loop and comprehension in this unit, in source order."""
