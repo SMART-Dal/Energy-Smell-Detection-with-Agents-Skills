@@ -1,5 +1,7 @@
 """Cases for io_call_in_loop."""
 
+import asyncio
+
 import requests
 
 
@@ -52,3 +54,13 @@ def append_all(target, rows):
     for row in rows:
         target.insert(0, row)
     return target
+
+
+async def fetch_together(session, urls):
+    # The repair, not the smell: the round trips overlap under `gather`.
+    return await asyncio.gather(*(session.get(url) for url in urls))
+
+
+async def fetch_one_at_a_time(session, urls):
+    # Same calls, awaited in place, so they are still serial.
+    return [await session.get(url) for url in urls]

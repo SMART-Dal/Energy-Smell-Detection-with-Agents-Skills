@@ -1,6 +1,7 @@
 """Cases for global_lookup_in_loop."""
 
 import itertools
+import math
 
 MAX_RETRIES = 5
 FEATURE_FLAGS = {}
@@ -85,6 +86,16 @@ def accumulate_totals(rows, factor):
     for row in rows:
         total += row.a * scale + row.b * scale + row.c * scale
     return total
+
+
+def scale_readings(readings):
+    # A comprehension pays the same lookup per element as the loop it replaces.
+    return [math.sqrt(math.fabs(math.floor(r))) for r in readings]
+
+
+def total_readings(readings):
+    # Same three lookups, in a generator expression.
+    return sum(math.sqrt(math.fabs(math.floor(r))) for r in readings)
 
 
 class Throttle:

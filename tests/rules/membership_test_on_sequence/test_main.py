@@ -9,10 +9,11 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
-    "dedupe": 1,        # comprehension rebuilt per row, then scanned
-    "grant_all": 1,     # literal plus a call: sequence-valued, size unknown
-    "match_pairs": 1,   # nested loops, one comparison, one finding
-    "missing_ids": 1,   # `not in` against a materialised list
+    "dedupe": 1,          # comprehension rebuilt per row, then scanned
+    "grant_all": 1,       # literal plus a call: sequence-valued, size unknown
+    "match_pairs": 1,     # nested loops, one comparison, one finding
+    "missing_ids": 1,     # `not in` against a materialised list
+    "reject_agents": 1,   # module constant, scanned inside a comprehension
 }
 
 

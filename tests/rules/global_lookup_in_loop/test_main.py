@@ -14,6 +14,8 @@ EXPECTED = {
     "score_matrix": 1,        # nested loops, one name: one report, not one per level
     "summarise_batch": 2,     # two names over the threshold, both inside the cap
     "classify_tokens": 2,     # three names over it, capped at the worst two
+    "scale_readings": 1,      # a comprehension repeats as hard as a loop
+    "total_readings": 1,      # and so does a generator expression
 }
 
 

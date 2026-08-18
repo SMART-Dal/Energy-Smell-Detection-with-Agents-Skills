@@ -1,5 +1,13 @@
 """Cases for membership_test_on_sequence."""
 
+# Where a table of allowed values usually lives: above the function, not in it.
+BLOCKED_AGENTS = [
+    "curl", "wget", "python-requests", "scrapy", "httpie", "libwww",
+    "java", "go-http-client", "okhttp", "axios", "postman", "insomnia",
+    "bot", "crawler",
+]
+SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
+
 
 def dedupe(rows):
     # The haystack is rebuilt and rescanned once per row.
@@ -64,3 +72,26 @@ def error_lines(lines):
     for line in lines:
         if "ERROR" in line:
             yield line
+
+
+def reject_agents(requests):
+    # The haystack is a module constant, which the unit never assigns.
+    return [r for r in requests if r.agent in BLOCKED_AGENTS]
+
+
+def audit_methods(requests):
+    # A module constant short enough that the scan beats hashing.
+    for request in requests:
+        if request.method in SAFE_METHODS:
+            yield request
+
+
+def local_wins(requests):
+    # A local of the same name shadows the module constant, and it is short.
+    BLOCKED_AGENTS = ("curl", "wget")
+    return [r for r in requests if r.agent in BLOCKED_AGENTS]
+
+
+def check_one(agent):
+    # Outside any repetition: one scan is not a smell.
+    return agent in BLOCKED_AGENTS

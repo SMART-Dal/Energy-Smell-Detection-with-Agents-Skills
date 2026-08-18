@@ -25,7 +25,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from lib.analysis.context import UnitContext, collect_imports  # noqa: E402
+from lib.analysis.context import (  # noqa: E402
+    UnitContext,
+    collect_imports,
+    collect_module_bindings,
+)
 from lib.analysis.rules import ALL_RULES  # noqa: E402
 from lib.analysis.units import iter_units  # noqa: E402
 
@@ -43,15 +47,25 @@ def rule_named(name: str):
 
 
 def run(rule, path: Path) -> list:
-    """Every piece of evidence `rule` produces for `path`, in source order."""
+    """Every piece of evidence `rule` produces for `path`, in source order.
+
+    The context is assembled exactly as `engine.analyse_file` assembles it. A
+    harness that builds a different context tests a rule the scan never runs,
+    and that gap hid a false negative once: module-level constants were absent
+    here, so no test could notice that a rule could not see them.
+    """
     source = path.read_text()
     tree = ast.parse(source)
     imports = collect_imports(tree)
+    module_bindings = collect_module_bindings(tree)
     found = []
     for unit, node in iter_units(path, tree):
         if unit.kind == "class":
             continue
-        context = UnitContext(node=node, source=source, imports=imports)
+        context = UnitContext(
+            node=node, source=source, imports=imports,
+            module_bindings=module_bindings,
+        )
         found.extend(rule(unit, context))
     return sorted(found, key=lambda e: e.lineno)
 

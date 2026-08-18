@@ -86,3 +86,17 @@ def audit_request(request, log):
     log.flush()
     if request.scheme == "http":
         log.warn("insecure")
+
+
+def search_range(nums, target):
+    # `not first_exist` is already settled by falling through the first test,
+    # so the second condition does work whose answer is known. That is C4.S2,
+    # which no signal points at: the redundancy is in what the values mean,
+    # not in the shape. This rule reads `x == const` runs and must stay quiet.
+    first_exist = bool(nums) and nums[0] == target
+    last_exist = bool(nums) and nums[-1] == target
+    if first_exist and last_exist:
+        return -1
+    if last_exist and not first_exist:
+        return nums[0]
+    return 0

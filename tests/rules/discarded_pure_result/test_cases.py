@@ -35,3 +35,39 @@ def emit(rows):
     # `print` is not pure.
     print(len(rows))
     return rows
+
+
+def render(parts):
+    # A literal receiver: this really is `str.join`, and nothing takes it.
+    ", ".join(parts)
+    return len(parts)
+
+
+def wait_for(worker):
+    # `Thread.join` shares a name with `str.join` and blocks until the thread ends.
+    worker.start()
+    worker.join()
+
+
+def drain(queue, sink):
+    # `Queue.get` removes an item; `dict.get` does not. The name cannot say which.
+    queue.get()
+    sink.flush()
+
+
+def numeric_port(port):
+    # The exception is the answer: deleting the call deletes the check.
+    try:
+        int(port)
+    except ValueError:
+        return None
+    return port
+
+
+def first_or_none(rows):
+    # In the `except` arm, running normally, so its result really is dropped.
+    try:
+        return rows[0]
+    except IndexError:
+        sorted(rows)
+        return None

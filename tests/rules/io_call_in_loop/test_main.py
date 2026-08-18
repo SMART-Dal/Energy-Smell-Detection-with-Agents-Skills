@@ -9,9 +9,10 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
-    "load_rows": 2,   # `execute` and `fetchall`, two distinct calls
-    "save_each": 1,   # ambiguous name on an unambiguous receiver
-    "fetch_all": 1,   # the same inside a comprehension
+    "load_rows": 2,             # `execute` and `fetchall`, two distinct calls
+    "save_each": 1,             # ambiguous name on an unambiguous receiver
+    "fetch_all": 1,             # the same inside a comprehension
+    "fetch_one_at_a_time": 1,   # awaited in place, so still one round trip each
 }
 
 

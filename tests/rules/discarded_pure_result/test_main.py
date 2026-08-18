@@ -11,6 +11,8 @@ CASES = Path(__file__).with_name("test_cases.py")
 EXPECTED = {
     "rank": 1,     # `sorted` builds a list nobody takes
     "measure": 1,  # `len` computed and dropped
+    "render": 1,   # a literal receiver makes the method knowable
+    "first_or_none": 1,  # in the handler, not the guarded body
 }
 
 
