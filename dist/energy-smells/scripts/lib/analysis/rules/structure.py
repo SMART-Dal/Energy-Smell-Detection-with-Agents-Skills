@@ -299,6 +299,13 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     if not self_calls or _has_cache_decorator(ctx.node):
         return
 
+    # One self-call *inside a loop* is a tree walk: each child is a distinct
+    # subproblem, so nothing overlaps and there is nothing to memoise -- and it
+    # is not linear recursion either, which is C7.S3's own counter-example
+    # (an explicit stack would just reimplement the call stack in Python).
+    if len(self_calls) == 1 and ctx.in_loop(self_calls[0]):
+        return
+
     if len(self_calls) >= 2:
         yield _evidence(
             unit, "recursion_without_memo", self_calls[0], ("C7.S2", "C8.S1"),
@@ -335,7 +342,7 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     for node in ast.walk(ctx.node):
         if not isinstance(node, ast.Call) or ctx.in_loop(node):
             continue
-        if not node.args or not ctx.is_pure(node):
+        if not node.args or not _repeatable(node, ctx):
             continue
         if isinstance(node.func, ast.Name) and node.func.id in TRIVIAL_CALLS:
             continue  # recomputing len(x) twice is not worth a claim
@@ -353,10 +360,34 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         )
 
 
+def _repeatable(call: ast.Call, ctx: UnitContext) -> bool:
+    """Whether recomputing this call is plausibly redundant rather than required.
+
+    `is_pure` only trusts builtins and known-safe methods, and gating on it
+    alone made this rule almost unreachable: `parse_manifest(path)` three times
+    in one function -- exactly what C1.S4 is about -- is a call to a plain
+    function, which nothing can prove pure.  So a bare-name call with arguments
+    counts, and the evidence stays `contextual` with the reader asked to confirm
+    it has no side effect.
+
+    Method calls stay restricted to the recognised-pure set.  `session.get(k)`
+    repeated three times is a real finding and it is C8.S4, not this one.
+    """
+    if ctx.is_pure(call):
+        return True
+    return isinstance(call.func, ast.Name) and all(
+        isinstance(argument, (ast.Name, ast.Constant, ast.Attribute))
+        for argument in call.args
+    ) and not call.keywords
+
+
 def manual_builtin_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """A loop hand-rolling `max`, `min` or `sum` over its iterable."""
     for loop in ctx.loops:
-        if not isinstance(loop, ast.For):
+        # The tracking has to be the whole body. A loop that also records every
+        # prefix maximum computes a running series, and no single `max()` call
+        # replaces it -- reporting one was telling the reader to delete output.
+        if not isinstance(loop, ast.For) or len(loop.body) != 1:
             continue
         for node in loop.body:
             builtin = _hand_rolled_builtin(node)
@@ -373,16 +404,31 @@ def manual_builtin_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
 
 def _hand_rolled_builtin(node: ast.AST) -> str | None:
-    """Detect `if x > best: best = x` and `total += x` loop bodies."""
+    """Detect `if x > best: best = x` and `total += x` loop bodies.
+
+    The `None`-guarded form counts too.  Starting an extreme at `None` and
+    writing `if best is None or x < best:` is at least as common as seeding it
+    from the first element, and requiring a bare comparison missed all of it.
+    The repair there needs `min(..., default=None)` to keep the empty case.
+    """
     if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
         return "sum"
     if not isinstance(node, ast.If) or len(node.body) != 1 or node.orelse:
         return None
-    if not isinstance(node.test, ast.Compare) or len(node.test.ops) != 1:
-        return None
     if not isinstance(node.body[0], ast.Assign):
         return None
-    operator = node.test.ops[0]
+    return _extreme_from(node.test)
+
+
+def _extreme_from(test: ast.AST) -> str | None:
+    """`max` or `min` for a comparison, seeing through a `None` guard."""
+    if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.Or):
+        found = [_extreme_from(value) for value in test.values]
+        named = [name for name in found if name]
+        return named[0] if len(named) == 1 else None
+    if not isinstance(test, ast.Compare) or len(test.ops) != 1:
+        return None
+    operator = test.ops[0]
     if isinstance(operator, (ast.Gt, ast.GtE)):
         return "max"
     if isinstance(operator, (ast.Lt, ast.LtE)):
