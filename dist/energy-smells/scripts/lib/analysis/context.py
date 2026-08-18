@@ -56,6 +56,9 @@ class UnitContext:
     imports: dict[str, str] = field(default_factory=dict)
     """Bound name -> module it came from, e.g. {"np": "numpy"}."""
 
+    module_bindings: dict[str, ast.AST] = field(default_factory=dict)
+    """Module-level constant -> its assigned value, for names the unit only reads."""
+
     def __post_init__(self) -> None:
         self._parents: dict[ast.AST, ast.AST] = {}
         self._repeat_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
@@ -335,3 +338,25 @@ def collect_imports(tree: ast.Module) -> dict[str, str]:
             for alias in node.names:
                 imports[alias.asname or alias.name] = node.module
     return imports
+
+
+def collect_module_bindings(tree: ast.Module) -> dict[str, ast.AST]:
+    """Map each module-level constant to the value assigned to it.
+
+    A rule that can only see assignments inside its own unit cannot judge
+    `if name in ALLOWED` when `ALLOWED` is the module constant above it, which
+    is where such tables usually live.  Only names assigned exactly once are
+    kept: a name the module rebinds has no settled value to reason from.
+    """
+    bindings: dict[str, ast.AST] = {}
+    rebound: set[str] = set()
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if not isinstance(target, ast.Name):
+                continue
+            if target.id in bindings:
+                rebound.add(target.id)
+            bindings[target.id] = node.value
+    return {name: value for name, value in bindings.items() if name not in rebound}

@@ -26,8 +26,8 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, Strength, UnitRef
-from ..context import (COMPREHENSION_NODES, LOOP_NODES, PURE_BUILTINS,
-                       PURE_METHODS, UnitContext)
+from ..context import (COMPREHENSION_NODES, LOOP_NODES, OPAQUE_NODES,
+                       PURE_BUILTINS, PURE_METHODS, UnitContext)
 
 # Calls whose whole purpose is to duplicate a container.
 COPY_CALLS = frozenset({"list", "dict", "set", "copy", "deepcopy", "tuple"})
@@ -80,26 +80,6 @@ def _dotted(func: ast.AST) -> tuple[str, str] | None:
     if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
         return (func.value.id, func.attr)
     return None
-
-
-def _runs_every_iteration(ctx: UnitContext, node: ast.AST) -> bool:
-    """Whether `node` is re-evaluated on each pass of the loop that encloses it.
-
-    `ctx.in_loop` says only that a loop is somewhere above the node, and a
-    `for` loop's own iterable sits inside the loop by that measure while being
-    evaluated exactly once.  Anything that says "on every iteration" has to ask
-    this instead, or it will report `for key in list(cache)` as a per-iteration
-    copy when the copy is taken once, before the first pass.
-    """
-    loops = ctx.loops_around(node)
-    if not loops:
-        return False
-    innermost = loops[-1]
-    if isinstance(innermost, (ast.For, ast.AsyncFor)):
-        iterable = {id(n) for n in ast.walk(innermost.iter)}
-        if id(node) in iterable:
-            return len(loops) > 1
-    return True
 
 
 # -- C5.S3  over-provisioned data type -------------------------------------
@@ -270,7 +250,7 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         seen[node.id] = seen.get(node.id, 0) + 1
         first.setdefault(id(loop), {}).setdefault(node.id, node)
 
-    for loop in ctx.loops:
+    for loop in ctx.repeat_scopes:
         seen = counts.get(id(loop), {})
         worst = sorted(seen.items(), key=lambda pair: -pair[1])[:MAX_HOISTS_PER_LOOP]
         for name, uses in worst:
@@ -289,24 +269,37 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
 
 
 def _repeating_loop(ctx: UnitContext, node: ast.AST) -> ast.AST | None:
-    """The innermost loop that re-evaluates `node` on every one of its iterations.
+    """The innermost repetition that re-evaluates `node` on every one of its passes.
 
     A `for` loop's iterable is evaluated once, before the first pass, so a name
     read there belongs to the loop *outside* it -- or to no loop at all when
     there is none.  `while` tests and loop bodies repeat as expected.
+
+    Comprehensions count.  `[math.sqrt(x) for x in xs]` pays the same namespace
+    lookup per element as the statement loop it replaces, and charging only
+    statement loops meant the rule saw one and not the other.
     """
-    loops = ctx.loops_around(node)
-    while loops:
-        innermost = loops[-1]
-        if isinstance(innermost, (ast.For, ast.AsyncFor)) and _contains(innermost.iter, node):
-            loops = loops[:-1]
+    scopes = ctx.repeats_around(node)
+    while scopes:
+        innermost = scopes[-1]
+        if _contains(_iterable_clause(innermost), node):
+            scopes = scopes[:-1]
             continue
         return innermost
     return None
 
 
-def _contains(root: ast.AST, node: ast.AST) -> bool:
-    return any(child is node for child in ast.walk(root))
+def _iterable_clause(scope: ast.AST) -> ast.AST | None:
+    """The part of a repetition evaluated once, before the first pass."""
+    if isinstance(scope, (ast.For, ast.AsyncFor)):
+        return scope.iter
+    if isinstance(scope, COMPREHENSION_NODES) and scope.generators:
+        return scope.generators[0].iter
+    return None
+
+
+def _contains(root: ast.AST | None, node: ast.AST) -> bool:
+    return root is not None and any(child is node for child in ast.walk(root))
 
 
 def _parameter_names(node: ast.AST) -> set[str]:
@@ -678,11 +671,26 @@ def discarded_pure_result(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
 
     Only pure calls qualify: a call kept for its side effect is the normal case
     and is not reported.
+
+    A method call needs more than a pure-looking name.  `is_pure` matches the
+    attribute alone, because it cannot know a receiver's type, and the pure
+    method names collide with effectful APIs on other objects: `Thread.join`,
+    `Queue.get`, `shutil.copy`.  Claiming a statement is dead is a definite
+    finding, so here the receiver has to be something whose type is visible in
+    the source -- a literal, or a display -- and `t.join()` is left alone.
+
+    A discarded call guarded by `except` is not dead either.  `int(port)` alone
+    in a `try` is how the stdlib asks "is this numeric", and the answer arrives
+    as an exception rather than as a value; deleting it deletes the check.
     """
     for node in ast.walk(ctx.node):
         if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
             continue
         if not ctx.is_pure(node.value):
+            continue
+        if not _receiver_type_is_visible(node.value):
+            continue
+        if _guarded_by_handler(node, ctx):
             continue
         yield _evidence(
             unit, "discarded_pure_result", node, ("C1.S5",),
@@ -690,6 +698,37 @@ def discarded_pure_result(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             f"not used, so the work it does cannot affect anything",
             strength=Strength.DEFINITE,
         )
+
+
+def _guarded_by_handler(statement: ast.Expr, ctx: UnitContext) -> bool:
+    """Whether the statement sits in a `try` body that catches something.
+
+    Only the body counts: a call in an `except` or `finally` arm is running
+    normally and its result really is dropped.  A bare `try/finally` catches
+    nothing, so it does not excuse the call either.
+    """
+    node: ast.AST | None = statement
+    parent = ctx.parent_of(statement)
+    while parent is not None and not isinstance(parent, OPAQUE_NODES):
+        if isinstance(parent, ast.Try) and parent.handlers and node in parent.body:
+            return True
+        node, parent = parent, ctx.parent_of(parent)
+    return False
+
+
+def _receiver_type_is_visible(call: ast.Call) -> bool:
+    """Whether the source shows what `call` is being made on.
+
+    A plain function call carries its own name.  A method call only qualifies
+    when the receiver is written out -- `", ".join(parts)`, `[1, 2].count(x)`
+    -- because a bare `handle.get()` says nothing about what `handle` is.
+    """
+    if not isinstance(call.func, ast.Attribute):
+        return True
+    return isinstance(
+        call.func.value,
+        (ast.Constant, ast.JoinedStr, ast.List, ast.Tuple, ast.Set, ast.Dict),
+    )
 
 
 def runtime_management_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
