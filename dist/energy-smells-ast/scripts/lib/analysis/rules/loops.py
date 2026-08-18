@@ -667,25 +667,53 @@ def _sole_append(statement: ast.stmt) -> ast.Call | None:
 
 
 def missing_early_exit(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A search loop that sets a conclusive flag but keeps iterating.
+    """A search loop that settles its answer but keeps iterating.
 
-    Looks for a loop containing an `if` whose body only assigns a constant and
-    which contains no `break` or `return` anywhere -- the classic "found it,
-    but carry on scanning" shape.
+    The shape is an `if` whose body only assigns a constant, in a loop with no
+    `break` and no `return`.  That alone is not enough, and two shapes used to
+    be reported that are not findings:
+
+        status = "OK"
+        for server in servers:
+            if server.slow:  status = "DEGRADED"
+            elif server.down: status = "DOWN"
+
+    A later iteration can overwrite the value with a *different* one, so
+    breaking early changes the answer.  And:
+
+        for event in events:
+            if event.kind == "start": seen_start = True
+            if event.kind == "end":   seen_end = True
+
+    Two independent flags, so stopping at the first would miss the second.
+
+    So the loop has to settle exactly one name, on exactly one value: once it
+    is set, no remaining iteration can change what the loop returns.
     """
     for loop in ctx.loops:
         if _contains_exit(loop):
             continue
-        conclusive = [
-            node for node in ast.walk(loop)
-            if isinstance(node, ast.If) and _assigns_only_constants(node.body)
-        ]
-        if not conclusive:
+        settled: dict[str, set[str]] = {}
+        first: dict[str, ast.AST] = {}
+        for node in ast.walk(loop):
+            if not (isinstance(node, ast.If) and _assigns_only_constants(node.body)):
+                continue
+            for assignment in node.body:
+                for target in assignment.targets:
+                    if not isinstance(target, ast.Name):
+                        continue
+                    settled.setdefault(target.id, set()).add(ast.unparse(assignment.value))
+                    first.setdefault(target.id, node)
+        if len(settled) != 1:
+            continue
+        name, values = next(iter(settled.items()))
+        if len(values) != 1:
             continue
         yield _evidence(
-            unit, "missing_early_exit", conclusive[0], ("C3.S5",),
-            "the loop reaches a conclusive result but continues iterating; "
-            "no `break` or `return` leaves the loop",
+            unit, "missing_early_exit", first[name], ("C3.S5",),
+            f"`{name}` is set to its final value and the loop keeps going; no "
+            f"`break` or `return` leaves it, and nothing later can change it",
+            settled=name,
             loop_line=loop.lineno,
             strength=Strength.LIKELY,
         )
@@ -727,12 +755,19 @@ def try_except_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
 
 def regex_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """Regex work inside a loop, where the pattern could be compiled once.
+    """Regex work repeated per element, where the pattern could be built once.
 
     Suggests both C3.S3 and C8.S2: hoisting to the enclosing function is the
     former, hoisting to module scope so it survives across calls is the latter.
+
+    Comprehensions count -- `[re.sub(p, "", line) for line in lines]` pays the
+    same per-element lookup as the statement loop.  A pattern that depends on
+    what is being iterated does not: `[re.compile(p).findall(t) for p in
+    patterns]` has nothing to hoist, which is C3.S3's own counter-example.
     """
-    for node, enclosing in ctx.inside_loops():
+    for node in ctx.own_nodes():
+        if not ctx.repeats(node):
+            continue
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
             continue
         base = node.func.value
@@ -740,28 +775,54 @@ def regex_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue
         if (base.id, node.func.attr) not in COMPILE_CALLS:
             continue
+        scopes = ctx.repeats_around(node)
+        # Only the *pattern* has to be invariant. The subject is the element
+        # being iterated in every one of these calls, so testing the whole call
+        # for a dependency rejected every true positive.
+        pattern = node.args[0] if node.args else None
+        if pattern is None or ctx.read_names(pattern) & _iteration_targets(scopes):
+            continue
         yield _evidence(
             unit, "regex_in_loop", node, ("C3.S3", "C8.S2"),
-            f"`{base.id}.{node.func.attr}()` is called inside a loop; the "
-            f"pattern is re-resolved on every iteration",
+            f"`{base.id}.{node.func.attr}()` is called once per element; the "
+            f"pattern is re-resolved every time",
             call=f"{base.id}.{node.func.attr}",
-            loop_line=enclosing[-1].lineno,
+            loop_line=getattr(scopes[-1], "lineno", unit.lineno),
             strength=Strength.LIKELY,
         )
+
+
+def _iteration_targets(scopes: tuple[ast.AST, ...]) -> set[str]:
+    """Names bound by the enclosing loops and comprehensions."""
+    names: set[str] = set()
+    for scope in scopes:
+        targets = []
+        if isinstance(scope, (ast.For, ast.AsyncFor)):
+            targets.append(scope.target)
+        elif isinstance(scope, COMPREHENSION_NODES):
+            targets.extend(generator.target for generator in scope.generators)
+        for target in targets:
+            names.update(
+                inner.id for inner in ast.walk(target) if isinstance(inner, ast.Name)
+            )
+    return names
 
 
 def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """Mutating the very collection a `for` loop is walking."""
     for loop in ctx.loops:
-        if not isinstance(loop, ast.For) or not isinstance(loop.iter, ast.Name):
+        # An attribute is where a collection usually lives, so matching only a
+        # bare name missed `for job in self.pending: self.pending.remove(job)`.
+        # A call -- `for x in list(xs)` -- is the repair and must stay quiet.
+        if not isinstance(loop, ast.For) or not isinstance(loop.iter, (ast.Name, ast.Attribute)):
             continue
-        iterated = loop.iter.id
+        iterated = ast.unparse(loop.iter)
         for node in ast.walk(loop):
             if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
                 continue
             if node.func.attr not in {"append", "remove", "insert", "pop", "extend", "clear"}:
                 continue
-            if not (isinstance(node.func.value, ast.Name) and node.func.value.id == iterated):
+            if ast.unparse(node.func.value) != iterated:
                 continue
             yield _evidence(
                 unit, "mutation_during_iteration", node, ("C3.S7",),
