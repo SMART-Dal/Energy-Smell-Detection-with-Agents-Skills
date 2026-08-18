@@ -504,42 +504,54 @@ def _is_small_sequence(node: ast.AST, ctx: UnitContext) -> bool:
 
 
 def nested_loops(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """Loop nests of depth >= 2, which are quadratic or worse in their inputs."""
-    for loop in ctx.loops:
-        depth = ctx.loop_depth(loop) + 1
-        if depth < 2:
+    """Repetition nested two deep or more, which is quadratic in its inputs.
+
+    Comprehensions count as levels.  `[[a * b for b in right] for a in left]`
+    does exactly the work of the two statement loops it replaces, and counting
+    only `for` and `while` made the rule blind to the shorter spelling of the
+    same nest.
+
+    Reported at the innermost level only, so one nest is one finding.
+    """
+    scopes = ctx.repeat_scopes
+    encloses = {id(outer) for scope in scopes for outer in ctx.repeats_around(scope)}
+    for scope in scopes:
+        depth = ctx.repeat_depth(scope) + 1
+        if depth < 2 or id(scope) in encloses:
             continue
-        if any(isinstance(inner, LOOP_NODES) for inner in ast.iter_child_nodes(loop)):
-            continue  # report at the innermost loop only
-        outer = ctx.loops_around(loop)
         yield _evidence(
-            unit, "nested_loops", loop, ("C3.S4", "C7.S1"),
-            f"loop nest {depth} levels deep; total work grows as the product of "
-            f"the iteration counts",
+            unit, "nested_loops", scope, ("C3.S4", "C7.S1"),
+            f"repetition nested {depth} levels deep; total work grows as the "
+            f"product of the iteration counts",
             depth=depth,
-            outer_lines=[getattr(o, "lineno", 0) for o in outer],
+            outer_lines=[getattr(o, "lineno", 0) for o in ctx.repeats_around(scope)],
             strength=Strength.CONTEXTUAL,
         )
 
 
 def construction_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """Containers, lambdas or comprehensions built fresh on every iteration."""
-    for loop in ctx.loops:
-        for node in ast.iter_child_nodes(loop):
-            for sub in ast.walk(node):
-                if ctx.loops_around(sub)[-1:] != (loop,):
-                    continue
-                kind = _construction_kind(sub)
-                if kind is None:
-                    continue
-                yield _evidence(
-                    unit, "construction_in_loop", sub, ("C3.S3", "C6.S1"),
-                    f"a new {kind} is created on every iteration; if it does not "
-                    f"escape the iteration it can be hoisted or reused",
-                    construct=kind,
-                    loop_line=loop.lineno,
-                    strength=Strength.LIKELY,
-                )
+    """Containers, lambdas or comprehensions built fresh on every iteration.
+
+    Walks the unit once rather than once per loop, so a construction inside a
+    comprehension counts -- `[sorted(g, key=lambda i: i.rank) for g in groups]`
+    builds a lambda per group and used to go unreported -- and so a statement
+    inside three nested loops is reported once rather than three times.
+    """
+    for node in ctx.own_nodes():
+        if not ctx.repeats(node):
+            continue
+        kind = _construction_kind(node)
+        if kind is None:
+            continue
+        enclosing = ctx.repeats_around(node)[-1]
+        yield _evidence(
+            unit, "construction_in_loop", node, ("C3.S3", "C6.S1"),
+            f"a new {kind} is created on every iteration; if it does not "
+            f"escape the iteration it can be hoisted or reused",
+            construct=kind,
+            loop_line=getattr(enclosing, "lineno", unit.lineno),
+            strength=Strength.LIKELY,
+        )
 
 
 def _construction_kind(node: ast.AST) -> str | None:
@@ -565,30 +577,44 @@ def _has_elements(node: ast.AST) -> bool:
 
 
 def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """`for i in range(len(xs))` where the index is only used to read `xs[i]`."""
-    for loop in ctx.loops:
-        if not isinstance(loop, ast.For) or not isinstance(loop.target, ast.Name):
+    """`for i in range(len(xs))` where the index is only used to read `xs[i]`.
+
+    Comprehension generators count as well as `for` statements: the index-driven
+    form is just as common written as `[grid[i][i] for i in range(len(grid))]`.
+    """
+    for scope, target, iterable in _iteration_clauses(ctx):
+        if not isinstance(target, ast.Name):
             continue
-        sequence = _range_len_argument(loop.iter)
+        sequence = _range_len_argument(iterable)
         if sequence is None:
             continue
-        index = loop.target.id
-        subscripts = [
-            node for node in ast.walk(loop)
-            if isinstance(node, ast.Subscript)
+        index = target.id
+        if not any(
+            isinstance(node, ast.Subscript)
             and isinstance(node.slice, ast.Name)
             and node.slice.id == index
-        ]
-        if not subscripts:
+            for node in ast.walk(scope)
+        ):
             continue
         yield _evidence(
-            unit, "index_based_iteration", loop, ("C3.S1",),
+            unit, "index_based_iteration", scope, ("C3.S1",),
             f"iterating `range(len({sequence}))` and indexing back into it; "
             f"iterating the sequence directly avoids an index lookup per item",
             sequence=sequence,
             index=index,
             strength=Strength.LIKELY,
         )
+
+
+def _iteration_clauses(ctx: UnitContext):
+    """Yield `(scope, target, iterable)` for every `for` and every comprehension
+    generator in the unit, so a rule can treat both spellings alike."""
+    for node in ctx.own_nodes():
+        if isinstance(node, (ast.For, ast.AsyncFor)):
+            yield node, node.target, node.iter
+        elif isinstance(node, COMPREHENSION_NODES):
+            for generator in node.generators:
+                yield node, generator.target, generator.iter
 
 
 def _range_len_argument(node: ast.AST) -> str | None:
@@ -610,11 +636,8 @@ def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     for loop in ctx.loops:
         if not isinstance(loop, ast.For) or loop.orelse or len(loop.body) != 1:
             continue
-        statement = loop.body[0]
-        if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
-            continue
-        call = statement.value
-        if not (isinstance(call.func, ast.Attribute) and call.func.attr == "append"):
+        call = _sole_append(loop.body[0])
+        if call is None:
             continue
         yield _evidence(
             unit, "append_only_loop", loop, ("C3.S1", "C10.S3"),
@@ -623,6 +646,24 @@ def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             target=ast.unparse(call.func.value),
             strength=Strength.LIKELY,
         )
+
+
+def _sole_append(statement: ast.stmt) -> ast.Call | None:
+    """The `.append()` call a loop body consists of, if that is all it does.
+
+    An `if` around the append counts: `for x in xs: if p(x): out.append(x)` is
+    `[x for x in xs if p(x)]`, and skipping it lost the filtered form, which is
+    at least as common as the unfiltered one.  An `else` branch does not count,
+    because a comprehension has no way to express one.
+    """
+    if isinstance(statement, ast.If) and not statement.orelse and len(statement.body) == 1:
+        statement = statement.body[0]
+    if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
+        return None
+    call = statement.value
+    if isinstance(call.func, ast.Attribute) and call.func.attr == "append":
+        return call
+    return None
 
 
 def missing_early_exit(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:

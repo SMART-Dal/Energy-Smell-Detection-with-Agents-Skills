@@ -20,6 +20,10 @@ from functools import cached_property
 LOOP_NODES = (ast.For, ast.AsyncFor, ast.While)
 COMPREHENSION_NODES = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 
+# Definitions whose contents belong to a unit of their own, so the context of
+# an enclosing function must not reach into them.
+OPAQUE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+
 # Builtins with no side effects, safe to hoist out of a loop or deduplicate.
 # Anything absent from this set is treated as impure.
 PURE_BUILTINS = frozenset({
@@ -54,39 +58,70 @@ class UnitContext:
 
     def __post_init__(self) -> None:
         self._parents: dict[ast.AST, ast.AST] = {}
-        self._loop_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
-        self._comprehension_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
+        self._repeat_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
         self._index()
 
     # -- structure ---------------------------------------------------------
 
     def _index(self) -> None:
-        """Walk the unit once, recording parents and enclosing loops."""
+        """Walk the unit once, recording parents and what repeats around each node.
 
-        def walk(node: ast.AST, loops: tuple[ast.AST, ...],
-                 comprehensions: tuple[ast.AST, ...]) -> None:
+        Two things this walk deliberately does:
+
+        It records loops and comprehensions in one stack, in the order they
+        nest, so a rule can ask for either.  `for x in xs: [f(y) for y in ys]`
+        is doubly repeated and a rule that only knew about statement loops
+        could not see it.
+
+        And it stops at a nested definition.  `iter_units` emits an inner
+        function as a unit of its own with its own context, so descending into
+        one here made every enclosing function report the inner function's
+        findings a second time -- against a unit where the reader cannot act on
+        them.
+        """
+
+        def walk(node: ast.AST, repeats: tuple[ast.AST, ...]) -> None:
             for child in ast.iter_child_nodes(node):
+                if isinstance(child, OPAQUE_NODES):
+                    self._parents[child] = node
+                    continue
                 self._parents[child] = node
-                self._loop_stack[child] = loops
-                self._comprehension_stack[child] = comprehensions
-                inner = loops + (child,) if isinstance(child, LOOP_NODES) else loops
-                within = (
-                    comprehensions + (child,)
-                    if isinstance(child, COMPREHENSION_NODES)
-                    else comprehensions
+                self._repeat_stack[child] = repeats
+                inner = (
+                    repeats + (child,)
+                    if isinstance(child, LOOP_NODES + COMPREHENSION_NODES)
+                    else repeats
                 )
-                walk(child, inner, within)
+                walk(child, inner)
 
-        self._loop_stack[self.node] = ()
-        self._comprehension_stack[self.node] = ()
-        walk(self.node, (), ())
+        self._repeat_stack[self.node] = ()
+        walk(self.node, ())
+
+    def owns(self, node: ast.AST) -> bool:
+        """Whether this node belongs to this unit rather than to a nested one."""
+        return node is self.node or node in self._repeat_stack
+
+    def own_nodes(self):
+        """Every node this unit is responsible for, nested definitions excluded."""
+        return (node for node in ast.walk(self.node) if self.owns(node))
 
     def parent_of(self, node: ast.AST) -> ast.AST | None:
         return self._parents.get(node)
 
+    def repeats_around(self, node: ast.AST) -> tuple[ast.AST, ...]:
+        """Enclosing loops *and* comprehensions, outermost first."""
+        return self._repeat_stack.get(node, ())
+
+    def repeat_depth(self, node: ast.AST) -> int:
+        """How many loops and comprehensions this node is nested inside."""
+        return len(self.repeats_around(node))
+
     def loops_around(self, node: ast.AST) -> tuple[ast.AST, ...]:
-        """Enclosing loops, outermost first. Empty if the node is not in a loop."""
-        return self._loop_stack.get(node, ())
+        """Enclosing `for`/`while` statements, outermost first."""
+        return tuple(
+            scope for scope in self.repeats_around(node)
+            if isinstance(scope, LOOP_NODES)
+        )
 
     def loop_depth(self, node: ast.AST) -> int:
         return len(self.loops_around(node))
@@ -96,7 +131,18 @@ class UnitContext:
 
     def in_comprehension(self, node: ast.AST) -> bool:
         """Whether this node sits inside a comprehension or generator expression."""
-        return bool(self._comprehension_stack.get(node, ()))
+        return any(
+            isinstance(scope, COMPREHENSION_NODES)
+            for scope in self.repeats_around(node)
+        )
+
+    @cached_property
+    def repeat_scopes(self) -> list[ast.AST]:
+        """Every loop and comprehension in this unit, in source order."""
+        return [
+            node for node in self.own_nodes()
+            if isinstance(node, LOOP_NODES + COMPREHENSION_NODES)
+        ]
 
     def repeats(self, node: ast.AST) -> bool:
         """Whether this node is evaluated once per element of something.
@@ -122,7 +168,7 @@ class UnitContext:
     def _evaluated_once(self) -> set[int]:
         """Nodes in an iterable clause, which is evaluated before iteration starts."""
         once: set[int] = set()
-        for node in ast.walk(self.node):
+        for node in self.own_nodes():
             sources = []
             if isinstance(node, (ast.For, ast.AsyncFor)):
                 sources.append(node.iter)
@@ -134,8 +180,8 @@ class UnitContext:
 
     @cached_property
     def loops(self) -> list[ast.AST]:
-        """Every loop in the unit, in source order."""
-        return [n for n in ast.walk(self.node) if isinstance(n, LOOP_NODES)]
+        """Every `for`/`while` in this unit, in source order."""
+        return [n for n in self.own_nodes() if isinstance(n, LOOP_NODES)]
 
     def inside_loops(self):
         """Yield `(node, enclosing_loops)` for every node that runs in a loop.
@@ -148,7 +194,7 @@ class UnitContext:
         Nodes come out in source order, once each, with their loops outermost
         first -- so `loops[-1]` is the innermost and `len(loops)` is the depth.
         """
-        for node in ast.walk(self.node):
+        for node in self.own_nodes():
             enclosing = self.loops_around(node)
             if enclosing:
                 yield node, enclosing
