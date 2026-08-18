@@ -701,8 +701,8 @@ def runtime_management_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evid
     Correct once, ruinous per iteration: a forced collection walks every live
     object, so the loop's cost grows with the heap rather than with the batch.
     """
-    for node in ast.walk(ctx.node):
-        if not (isinstance(node, ast.Call) and ctx.in_loop(node)):
+    for node in ctx.own_nodes():
+        if not (isinstance(node, ast.Call) and ctx.repeats(node)):
             continue
         dotted = _dotted(node.func)
         if dotted in RUNTIME_MANAGEMENT:
@@ -796,8 +796,8 @@ def column_major_traversal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     """
     if not ctx.uses_arrays:
         return
-    for node in ast.walk(ctx.node):
-        if not (isinstance(node, ast.Subscript) and ctx.in_loop(node)):
+    for node in ctx.own_nodes():
+        if not (isinstance(node, ast.Subscript) and ctx.repeats(node)):
             continue
         index = node.slice
         if not isinstance(index, ast.Tuple) or len(index.elts) < 2:
