@@ -11,7 +11,7 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, Strength, UnitRef
-from ..context import UnitContext
+from ..context import OPAQUE_NODES, UnitContext
 
 # Calls that reach outside the process. Cheap once, ruinous per iteration.
 #
@@ -562,6 +562,8 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
             continue
+        if _dispatched_concurrently(node, ctx):
+            continue
         name = node.func.attr
         if name in UNAMBIGUOUS_IO_CALLS:
             confidence = Strength.LIKELY
@@ -577,6 +579,36 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             loop_line=getattr(ctx.repeats_around(node)[-1], "lineno", unit.lineno),
             strength=confidence,
         )
+
+
+CONCURRENT_DISPATCH = frozenset({
+    "gather", "wait", "as_completed", "create_task", "ensure_future",
+    "map", "starmap", "imap", "imap_unordered", "submit", "wait_for",
+})
+
+
+def _dispatched_concurrently(call: ast.Call, ctx: UnitContext) -> bool:
+    """Whether the comprehension holding `call` is handed to a concurrent runner.
+
+    `asyncio.gather(*(session.get(u) for u in urls))` is what this rule asks
+    for, so reporting it would send a reader to repair code that is already
+    repaired.  The round trips still happen once per element, but they overlap,
+    which is the whole of C9.S1's advice.
+
+    Two shapes reach a runner and both are found by walking outwards: the
+    dispatcher may wrap the whole comprehension, as `gather` does, or wrap each
+    call inside it, as `create_task` does.  A statement loop that awaits in
+    place has no such ancestor and is still reported.
+    """
+    node: ast.AST | None = ctx.parent_of(call)
+    while node is not None and not isinstance(node, OPAQUE_NODES):
+        if isinstance(node, ast.Call):
+            func = node.func
+            name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+            if name in CONCURRENT_DISPATCH:
+                return True
+        node = ctx.parent_of(node)
+    return False
 
 
 def _is_io_receiver(node: ast.AST, ctx: UnitContext) -> bool:

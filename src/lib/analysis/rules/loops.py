@@ -432,23 +432,29 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
     `request.method in ("GET", "HEAD", "OPTIONS")` as correct code; reporting
     every tuple literal made the rule fire on that, which is the fastest way to
     teach a reader to skip it.
+
+    The haystack may be a name the module binds rather than the unit, since a
+    table of allowed values is usually a module constant.
     """
-    for node, enclosing in ctx.inside_loops():
+    for node in ctx.own_nodes():
         if not isinstance(node, ast.Compare) or len(node.ops) != 1:
             continue
         if not isinstance(node.ops[0], (ast.In, ast.NotIn)):
+            continue
+        if not ctx.repeats(node):
             continue
         haystack = node.comparators[0]
         if not _is_sequence_valued(haystack, ctx):
             continue
         if _is_small_sequence(haystack, ctx):
             continue
+        enclosing = ctx.repeats_around(node)
         yield _evidence(
             unit, "membership_test_on_sequence", node, ("C5.S1", "C5.S2", "C3.S4"),
             f"membership test `{ast.unparse(node)}` scans a sequence linearly "
             f"on every iteration; a set or dict index would be constant-time",
             haystack=ast.unparse(haystack),
-            loop_line=enclosing[-1].lineno,
+            loop_line=getattr(enclosing[-1], "lineno", unit.lineno),
             strength=Strength.LIKELY,
         )
 
@@ -466,13 +472,21 @@ def _binds_sequence(name: str, ctx: UnitContext) -> bool:
 
 
 def _bindings_of(name: str, ctx: UnitContext) -> list[ast.AST]:
-    """Every value this unit assigns to `name`."""
-    return [
+    """Every value assigned to `name`, from the unit or failing that the module.
+
+    The module is only consulted when the unit never assigns the name, so a
+    local of the same name always wins.
+    """
+    local = [
         node.value
         for node in ast.walk(ctx.node)
         if isinstance(node, ast.Assign)
         and any(isinstance(t, ast.Name) and t.id == name for t in node.targets)
     ]
+    if local:
+        return local
+    module_value = ctx.module_bindings.get(name)
+    return [module_value] if module_value is not None else []
 
 
 def _is_literal_sequence(node: ast.AST) -> bool:
