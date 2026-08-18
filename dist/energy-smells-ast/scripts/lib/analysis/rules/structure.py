@@ -37,7 +37,7 @@ AMBIGUOUS_IO_CALLS = frozenset({
 IO_RECEIVERS = frozenset({
     "conn", "connection", "cur", "cursor", "db", "database", "session",
     "client", "sock", "socket", "requests", "http", "httpx", "urllib",
-    "response", "resp", "channel", "stream", "s3", "bucket", "redis", "cache",
+    "response", "resp", "channel", "stream", "s3", "bucket", "redis",
     "api", "service", "engine", "pool", "transport", "ftp", "smtp", "ssh",
     "file", "fh", "fp", "handle", "writer", "reader", "queryset", "objects",
 })
@@ -47,6 +47,10 @@ Matched on the identifier, and on the last segment of a dotted receiver, so
 `self.conn.execute(...)` counts and `self.rows.get(...)` does not. Crude, and
 deliberately so: the alternative is type inference, and a rule that guesses
 types wrongly is worse than one that admits it only recognises the obvious.
+
+`cache` was here and had to go. It reads like a remote store and is a local
+dict far more often, so `cache.get(key)` in a loop -- the exact false positive
+this split was built to stop -- came straight back through the receiver list.
 """
 
 IO_MODULES = frozenset({
@@ -55,7 +59,9 @@ IO_MODULES = frozenset({
 })
 """Imports that make a name in this file plausible as an I/O handle."""
 
-LOCK_METHODS = frozenset({"acquire", "release"})
+LOCK_METHODS = frozenset({"acquire"})
+"""`release` was here too, so an explicit acquire/release pair around one
+loop body was reported twice -- and releasing a lock is not what costs."""
 
 # Loop shapes that a single builtin already implements in C.
 BUILTIN_EQUIVALENTS = {
@@ -495,12 +501,17 @@ def trivial_delegation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
 
 def _forwards_arguments(function: ast.AST, call: ast.Call) -> bool:
-    """Whether `call` passes exactly the function's own parameters, in order."""
-    parameters = [a.arg for a in function.args.args if a.arg != "self"]
-    if not parameters or call.keywords:
+    """Whether `call` passes exactly the function's own parameters, in order.
+
+    A parameterless wrapper counts.  `def count(self): return
+    self._backend.count()` is as pure a forward as one that passes arguments,
+    and requiring at least one parameter dropped the whole family.
+    """
+    if call.keywords:
         return False
+    parameters = [a.arg for a in function.args.args if a.arg != "self"]
     passed = [a.id for a in call.args if isinstance(a, ast.Name)]
-    return passed == parameters
+    return len(passed) == len(call.args) and passed == parameters
 
 
 def _is_abstract_body(body: list[ast.stmt]) -> bool:
@@ -546,7 +557,9 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     called on something that looks like it lives outside the process -- see
     `IO_RECEIVERS` for why that test is a name match rather than a type.
     """
-    for node, enclosing in ctx.inside_loops():
+    for node in ctx.own_nodes():
+        if not ctx.repeats(node):
+            continue
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
             continue
         name = node.func.attr
@@ -560,7 +573,8 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             unit, "io_call_in_loop", node, ("C9.S1", "C9.S3"),
             f"`{ast.unparse(node.func)}()` looks like it leaves the process, and "
             f"it runs once per iteration; batching would amortise the round trip",
-            call=name, loop_line=enclosing[-1].lineno,
+            call=name,
+            loop_line=getattr(ctx.repeats_around(node)[-1], "lineno", unit.lineno),
             strength=confidence,
         )
 
