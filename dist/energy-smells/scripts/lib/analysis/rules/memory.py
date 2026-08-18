@@ -34,7 +34,8 @@ STREAMING_CONSUMERS = frozenset({"sum", "any", "all", "min", "max", "join",
 # never affect the answer, which is C3.S6 on top of the materialisation.
 SHORT_CIRCUIT_CONSUMERS = frozenset({"any", "all"})
 
-RESOURCE_OPENERS = frozenset({"open", "connect", "urlopen", "Session", "socket"})
+RESOURCE_OPENERS = frozenset({"open", "connect", "urlopen", "Session", "socket",
+                              "cursor"})
 
 # Calls that take over the closing of a handle they are given: registration
 # with an `ExitStack`, or appending to the list of handles that some caller
@@ -44,6 +45,22 @@ OWNERSHIP_SINKS = frozenset({"append", "enter_context", "push", "callback", "reg
 # Constructors whose contents are already resident in memory, so "stream it
 # instead" is not advice that applies to reading them.
 MEMORY_BUFFERS = frozenset({"BytesIO", "StringIO"})
+
+
+def _own_nodes(scope: ast.AST) -> Iterator[ast.AST]:
+    """Walk `scope` without descending into a nested definition.
+
+    `iter_units` emits a nested function as a unit of its own, so an
+    `ast.walk` from the enclosing function reported the inner function's
+    statements twice: once against the unit that contains them and once
+    against the unit that merely encloses it.  The second report names a line
+    the reader cannot act on where they were sent, which is the worse half.
+    """
+    for child in ast.iter_child_nodes(scope):
+        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        yield child
+        yield from _own_nodes(child)
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
@@ -85,11 +102,13 @@ def mutable_default_argument(unit: UnitRef, ctx: UnitContext) -> Iterator[Eviden
 def _is_mutable_default(node: ast.AST) -> bool:
     if isinstance(node, MUTABLE_DEFAULTS):
         return True
-    return (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in MUTABLE_DEFAULT_CALLS
-    )
+    if not isinstance(node, ast.Call):
+        return False
+    # Used to require a bare `Name`, so `collections.defaultdict(list)` and
+    # `collections.OrderedDict()` as defaults went unreported while the
+    # `from collections import ...` spelling of the same constructor was
+    # caught.  The final attribute is enough: nothing else is named `deque`.
+    return _called_name(node) in MUTABLE_DEFAULT_CALLS
 
 
 def unmanaged_resource(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
@@ -108,7 +127,7 @@ def unmanaged_resource(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     about real libraries -- numpy alone writes `ctx = open(path, "wb")`
     immediately followed by `with ctx as f:` in four separate modules.
     """
-    for node in ast.walk(ctx.node):
+    for node in _own_nodes(ctx.node):
         if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
             continue
         call = node.value
@@ -147,17 +166,23 @@ def _is_released(scope: ast.AST, names: set[str]) -> bool:
     `with handle:` and `with closing(handle):`.
     """
     for node in ast.walk(scope):
+        # The bound method counts, called or not: `stack.callback(handle.close)`
+        # and `atexit.register(handle.close)` schedule exactly the same close,
+        # and requiring the call parentheses reported both of them.
         if (
-            isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "close"
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id in names
+            isinstance(node, ast.Attribute)
+            and node.attr == "close"
+            and isinstance(node.value, ast.Name)
+            and node.value.id in names
         ):
             return True
         if isinstance(node, (ast.With, ast.AsyncWith)):
             for item in node.items:
-                if names & _names_read(item.context_expr):
+                # `_passes_on`, not "mentions the name anywhere": a `with` only
+                # adopts a handle it is *given*.  Reading a name off it --
+                # `with file_lock(audit.name):` -- used to count as adoption
+                # and silenced the leak on the line above.
+                if _passes_on(item.context_expr, names):
                     return True
     return False
 
@@ -176,9 +201,25 @@ def _is_handed_over(scope: ast.AST, names: set[str]) -> bool:
         elif isinstance(node, ast.Call) and _called_name(node) in OWNERSHIP_SINKS:
             if any(_passes_on(argument, names) for argument in node.args):
                 return True
-        elif isinstance(node, ast.Assign) and _passes_on(node.value, names):
+        elif isinstance(node, ast.Assign) and _stores_directly(node.value, names):
             if any(not isinstance(t, ast.Name) for t in node.targets):
                 return True
+    return False
+
+
+def _stores_directly(expression: ast.expr, names: set[str]) -> bool:
+    """Whether `expression` *is* the handle rather than something read out of it.
+
+    Storing into an attribute or a container makes its owner responsible only
+    for what is stored.  `self._raw = handle` hands the handle over;
+    `self.manifest = json.load(handle)` stores the parsed manifest and leaves
+    the handle to this unit -- and used to be read as a hand-over, so adding
+    `self.` to the target of an otherwise reported leak silenced it.
+    """
+    if isinstance(expression, ast.Name):
+        return expression.id in names
+    if isinstance(expression, (ast.Tuple, ast.List)):
+        return any(_stores_directly(element, names) for element in expression.elts)
     return False
 
 
@@ -200,14 +241,6 @@ def _passes_on(expression: ast.expr, names: set[str]) -> bool:
     return False
 
 
-def _names_read(node: ast.AST) -> set[str]:
-    return {
-        sub.id
-        for sub in ast.walk(node)
-        if isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Load)
-    }
-
-
 def redundant_materialisation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """`list(...)` handed straight to something that would consume it lazily.
 
@@ -218,24 +251,28 @@ def redundant_materialisation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
     Only the inline conversion counts.  Once the list is bound to a name it may
     be indexed, re-iterated or sliced, and deleting the conversion would then
     change what the code means rather than only what it allocates.
+
+    Every argument is checked, not only the first.  `zip`, `min`, `max` and
+    `dict` all take more than one iterable, so `zip(names, list(scores))` was
+    going unreported for no better reason than the position of the conversion.
     """
-    for node in ast.walk(ctx.node):
+    for node in _own_nodes(ctx.node):
         if not isinstance(node, ast.Call):
             continue
         consumer = _consumer_name(node)
-        if consumer not in LAZY_CONSUMERS or not node.args:
+        if consumer not in LAZY_CONSUMERS:
             continue
-        argument = node.args[0]
-        if not (isinstance(argument, ast.Call) and _called_name(argument) == "list"):
-            continue
-        yield _evidence(
-            unit, "redundant_materialisation", argument, _suggests_for(consumer,
-                                                                      ("C5.S4", "C6.S3")),
-            f"`list(...)` builds a full sequence only for `{consumer}()` to walk "
-            f"it once; the conversion allocates the whole result up front",
-            consumer=consumer,
-            strength=Strength.LIKELY,
-        )
+        for argument in node.args:
+            if not (isinstance(argument, ast.Call) and _called_name(argument) == "list"):
+                continue
+            yield _evidence(
+                unit, "redundant_materialisation", argument,
+                _suggests_for(consumer, ("C5.S4", "C6.S3")),
+                f"`list(...)` builds a full sequence only for `{consumer}()` to "
+                f"walk it once; the conversion allocates the whole result up front",
+                consumer=consumer,
+                strength=Strength.LIKELY,
+            )
 
 
 def eager_comprehension(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:

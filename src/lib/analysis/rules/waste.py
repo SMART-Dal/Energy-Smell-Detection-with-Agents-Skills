@@ -26,7 +26,8 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, Strength, UnitRef
-from ..context import LOOP_NODES, PURE_BUILTINS, PURE_METHODS, UnitContext
+from ..context import (COMPREHENSION_NODES, LOOP_NODES, PURE_BUILTINS,
+                       PURE_METHODS, UnitContext)
 
 # Calls whose whole purpose is to duplicate a container.
 COPY_CALLS = frozenset({"list", "dict", "set", "copy", "deepcopy", "tuple"})
@@ -54,6 +55,11 @@ MIN_USES_TO_HOIST = 3
 
 MAX_HOISTS_PER_LOOP = 2
 """How many names one loop may be reported for, worst first."""
+
+
+# Operators whose result type follows their operands, so one float literal
+# makes the whole expression floating point.
+FLOAT_FORCING_OPS = (ast.Mult, ast.Add, ast.Sub, ast.Pow, ast.Mod)
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
@@ -105,31 +111,74 @@ def float_literal_on_int_data(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         [i * 3.0 for i in lst]      every product is a float
         [i * 3   for i in lst]      every product stays an int
 
-    Python integers in the small range are cached and their arithmetic avoids
-    the float boxing path entirely, so the `.0` costs an allocation per element
-    for a value nobody asked to be fractional.  Only reported inside a loop or
-    comprehension: one float multiplication is nothing.
+    Small Python integers are cached and their arithmetic avoids the float
+    boxing path entirely, so the `.0` costs a conversion and an allocation per
+    element for a value nobody asked to be fractional.  Measured at +39.0% over
+    a million integers.
+
+    Three shapes this used to get wrong, all of them found by testing it against
+    what the card claims rather than against what it did:
+
+      * it keyed on `in_loop`, so it missed every comprehension -- including
+        `[n * 3.0 for n in counts]`, which is the card's own measured example;
+      * it ignored `x += 1.0`, which forces the same conversion;
+      * it fired on a literal whose sibling operand is already fractional, where
+        the result was going to be a float regardless and the `.0` costs
+        nothing.
     """
     for node in ast.walk(ctx.node):
-        if not isinstance(node, ast.BinOp) or not ctx.in_loop(node):
+        pair = _integral_float_operand(node)
+        if pair is None:
             continue
-        if not isinstance(node.op, (ast.Mult, ast.Add, ast.Sub)):
+        expression, literal = pair
+        if not ctx.repeats(expression):
             continue
-        for operand in (node.left, node.right):
-            if (
-                isinstance(operand, ast.Constant)
-                and isinstance(operand.value, float)
-                and operand.value.is_integer()
-            ):
-                yield _evidence(
-                    unit, "float_literal_on_int_data", node, ("C5.S3",),
-                    f"`{ast.unparse(node)}` forces a float result with the literal "
-                    f"`{operand.value}`, which has no fractional part; every "
-                    f"element pays for a float allocation the value does not need",
-                    literal=operand.value,
-                    strength=Strength.CONTEXTUAL,
-                )
-                break
+        yield _evidence(
+            unit, "float_literal_on_int_data", expression, ("C5.S3",),
+            f"`{ast.unparse(expression)}` forces a float result with the literal "
+            f"`{literal}`, which has no fractional part; every element pays for "
+            f"a conversion and a float allocation the value does not need",
+            literal=literal,
+            strength=Strength.CONTEXTUAL,
+        )
+
+
+def _integral_float_operand(node: ast.AST):
+    """`(expression, literal)` when arithmetic is made floating by a whole-number
+    constant that is not already implied by another operand."""
+    if isinstance(node, ast.BinOp) and isinstance(node.op, FLOAT_FORCING_OPS):
+        operands = [node.left, node.right]
+    elif isinstance(node, ast.AugAssign) and isinstance(node.op, FLOAT_FORCING_OPS):
+        operands = [node.value]
+    else:
+        return None
+
+    # A sibling that is already fractional makes the result a float whatever the
+    # whole-number literal does, so there is nothing to save by changing it.
+    if any(_is_fractional_float(operand) for operand in operands):
+        return None
+    for operand in operands:
+        if _is_integral_float(operand):
+            return node, operand.value
+    return None
+
+
+def _is_integral_float(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Constant)
+        and isinstance(node.value, float)
+        and node.value.is_integer()
+    )
+
+
+def _is_fractional_float(node: ast.AST) -> bool:
+    """A float literal with a fractional part, anywhere in this expression."""
+    return any(
+        isinstance(inner, ast.Constant)
+        and isinstance(inner.value, float)
+        and not inner.value.is_integer()
+        for inner in ast.walk(node)
+    )
 
 
 def constant_sequence_literal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
@@ -199,24 +248,36 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     iteration, where a hoist saves one dict lookup against the cost of a
     clearer name. Only a name read at least MIN_USES times per iteration is
     worth binding, and only the worst two per loop are reported.
+
+    Each read is charged to the innermost loop that actually re-evaluates it.
+    Walking every loop in turn instead used to report a name inside nested
+    loops once per enclosing level, and counted the names in a `for` loop's
+    iterable, which is evaluated once before the first pass.
     """
     local = ctx.assigned_names(ctx.node) | _parameter_names(ctx.node)
-    for loop in ctx.loops:
-        counts: dict[str, int] = {}
-        first: dict[str, ast.AST] = {}
-        for node in ast.walk(loop):
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-                if node.id in local or ctx.loop_depth(node) < 1:
-                    continue
-                counts[node.id] = counts.get(node.id, 0) + 1
-                first.setdefault(node.id, node)
+    counts: dict[int, dict[str, int]] = {}
+    first: dict[int, dict[str, ast.AST]] = {}
 
-        worst = sorted(counts.items(), key=lambda pair: -pair[1])[:MAX_HOISTS_PER_LOOP]
+    for node in ast.walk(ctx.node):
+        if not (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)):
+            continue
+        if node.id in local:
+            continue
+        loop = _repeating_loop(ctx, node)
+        if loop is None:
+            continue
+        seen = counts.setdefault(id(loop), {})
+        seen[node.id] = seen.get(node.id, 0) + 1
+        first.setdefault(id(loop), {}).setdefault(node.id, node)
+
+    for loop in ctx.loops:
+        seen = counts.get(id(loop), {})
+        worst = sorted(seen.items(), key=lambda pair: -pair[1])[:MAX_HOISTS_PER_LOOP]
         for name, uses in worst:
             if uses < MIN_USES_TO_HOIST:
                 continue
             yield _evidence(
-                unit, "global_lookup_in_loop", first[name], ("C10.S5",),
+                unit, "global_lookup_in_loop", first[id(loop)][name], ("C10.S5",),
                 f"`{name}` is not local to this unit and is read {uses} times inside "
                 f"the loop, so each read costs a namespace dict lookup; binding it "
                 f"to a local above the loop turns those into frame slot reads",
@@ -225,6 +286,27 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                 loop_line=loop.lineno,
                 strength=Strength.CONTEXTUAL,
             )
+
+
+def _repeating_loop(ctx: UnitContext, node: ast.AST) -> ast.AST | None:
+    """The innermost loop that re-evaluates `node` on every one of its iterations.
+
+    A `for` loop's iterable is evaluated once, before the first pass, so a name
+    read there belongs to the loop *outside* it -- or to no loop at all when
+    there is none.  `while` tests and loop bodies repeat as expected.
+    """
+    loops = ctx.loops_around(node)
+    while loops:
+        innermost = loops[-1]
+        if isinstance(innermost, (ast.For, ast.AsyncFor)) and _contains(innermost.iter, node):
+            loops = loops[:-1]
+            continue
+        return innermost
+    return None
+
+
+def _contains(root: ast.AST, node: ast.AST) -> bool:
+    return any(child is node for child in ast.walk(root))
 
 
 def _parameter_names(node: ast.AST) -> set[str]:
@@ -320,30 +402,112 @@ def sort_then_slice(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
 
 def filter_after_transform(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A comprehension that transforms every element, then drops some.
+    """A bulk transform whose result is filtered afterwards.
 
-        [f(x) for x in xs if p(f(x))]       f runs on everything, twice
-        [y for y in map(f, xs) if p(y)]     f still runs on everything
+        parsed = [parse_document(p) for p in paths]      parses every path
+        return [d.title for d in parsed if d.is_md]      keeps a few
 
-    When the predicate can be expressed on `x` instead, filtering first means
-    `f` runs only on the elements that survive. Reported only when the
-    transform is a call, since dropping a cheap expression saves nothing.
+    Filtering first means the transform runs on the survivors only.
+
+    Used to fire on `[f(x) for x in xs if p(x)]`, which is the *repaired*
+    order: a comprehension evaluates each generator's `if` clauses before the
+    element expression, so `f` never sees a rejected element and that code is
+    already optimal.  It keyed on "there is a call and there is an if" and so
+    reported the fix as the fault.  Two shapes are left, both of which really
+    do run the transform on every element:
+
+    * a transform bound to a name whose single reader is a filtering
+      comprehension -- if anything else reads the name, the full intermediate
+      is wanted for its own sake and the filter cannot move up;
+    * a comprehension that recomputes its own element expression inside its
+      test, which runs the call on everything and twice on each survivor.
+
+    Whether the reorder is *legal* still needs a human: a predicate that reads
+    what the transform produced cannot move in front of it.  Hence contextual.
     """
     for node in ast.walk(ctx.node):
-        if not isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+        if isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+            if _recomputed_in_test(node):
+                yield _evidence(
+                    unit, "filter_after_transform", node, ("C7.S4", "C1.S4"),
+                    f"`{ast.unparse(node.elt)}` is computed once for the test and "
+                    f"again for the element, so it runs on every input and twice on "
+                    f"each one that survives",
+                    strength=Strength.LIKELY,
+                )
             continue
-        if not isinstance(node.elt, ast.Call):
+
+        if not (isinstance(node, ast.Assign) and len(node.targets) == 1):
             continue
-        conditions = [c for generator in node.generators for c in generator.ifs]
-        if not conditions:
+        target = node.targets[0]
+        if not isinstance(target, ast.Name):
+            continue
+        transform = _elementwise_call(node.value)
+        if transform is None:
+            continue
+
+        produced = {id(n) for n in ast.walk(node.value)}
+        readers = [
+            n for n in ast.walk(ctx.node)
+            if isinstance(n, ast.Name)
+            and n.id == target.id
+            and isinstance(n.ctx, ast.Load)
+            and id(n) not in produced
+        ]
+        if len(readers) != 1:
+            continue
+        clause = ctx.parent_of(readers[0])
+        if not isinstance(clause, ast.comprehension) or clause.iter is not readers[0]:
+            continue
+        if not clause.ifs:
             continue
         yield _evidence(
             unit, "filter_after_transform", node, ("C7.S4",),
-            f"`{ast.unparse(node.elt)}` is applied to every element and the result "
-            f"is then filtered; if the condition can be written on the input, "
+            f"`{transform}` is applied to every element of `{target.id}`, and the "
+            f"only thing that reads `{target.id}` filters it at line "
+            f"{clause.ifs[0].lineno}; if the condition can be written on the input, "
             f"filtering first means the call runs only on what survives",
+            name=target.id,
+            transform=transform,
             strength=Strength.CONTEXTUAL,
         )
+
+
+def _elementwise_call(value: ast.AST) -> str | None:
+    """The per-element call a bulk transform applies, or None if it is not one.
+
+    `[f(x) for x in xs]`, `map(f, xs)` and `list(map(f, xs))` all qualify.
+    `[x.field for x in xs]` does not: moving a filter in front of an attribute
+    read saves nothing worth writing down.
+    """
+    if (
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id in {"list", "tuple", "set", "sorted"}
+        and len(value.args) == 1
+    ):
+        value = value.args[0]
+    if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+        if value.func.id == "map" and len(value.args) >= 2:
+            return f"{ast.unparse(value.args[0])}()"
+        return None
+    if isinstance(value, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+        if isinstance(value.elt, ast.Call):
+            return ast.unparse(value.elt)
+    return None
+
+
+def _recomputed_in_test(comp: ast.AST) -> bool:
+    """Whether a comprehension's element expression is also evaluated in its test."""
+    if not isinstance(comp.elt, ast.Call):
+        return False
+    wanted = ast.dump(comp.elt)
+    for generator in comp.generators:
+        for test in generator.ifs:
+            for sub in ast.walk(test):
+                if isinstance(sub, ast.Call) and ast.dump(sub) == wanted:
+                    return True
+    return False
 
 
 # -- C4.S5  expensive comparison -------------------------------------------

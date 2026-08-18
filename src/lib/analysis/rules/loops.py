@@ -12,10 +12,14 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, Strength, UnitRef
-from ..context import COMPREHENSION_NODES, LOOP_NODES, UnitContext
+from ..context import COMPREHENSION_NODES, LOOP_NODES, PURE_METHODS, UnitContext
 
 # Calls that build a fresh object; expensive to repeat inside a loop.
 CONSTRUCTOR_NAMES = frozenset({"list", "dict", "set", "tuple", "frozenset", "bytearray"})
+
+# C5.S1 puts the break-even for a set at "roughly a dozen elements"; below it,
+# scanning a sequence costs less than hashing the thing you are looking for.
+SMALL_SEQUENCE = 12
 
 # Functions that compile or parse something reusable.
 COMPILE_CALLS = {
@@ -45,7 +49,7 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
     nothing, and reporting those would bury the real findings in noise.
     """
     for loop in ctx.loops:
-        rewritten = ctx.assigned_names(loop)
+        rewritten = ctx.assigned_names(loop) | _mutated_names(loop)
         reported: list[ast.AST] = []
         for node in ctx.per_iteration_nodes(loop):
             if not isinstance(node, (ast.Call, ast.Subscript)):
@@ -73,8 +77,47 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
 
 
 def _is_trivial_call(call: ast.Call) -> bool:
-    """`len(x)` on a rewritten name is the point; `int()` on a literal is not."""
+    """`len(x)` on a rewritten name is the point; `int()` on a literal is not.
+
+    A method call is never trivial, even with no arguments.  Counting arguments
+    alone treated `region.strip().lower()` as having nothing to be invariant in
+    and dropped the whole family of zero-argument method calls on an invariant
+    receiver -- which are the expensive ones, since the receiver is an operand
+    in everything but name.
+    """
+    if isinstance(call.func, ast.Attribute):
+        return False
     return not call.args and not call.keywords
+
+
+def _mutated_names(scope: ast.AST) -> set[str]:
+    """Names whose *contents* change inside `scope` without the name being rebound.
+
+    `assigned_names` only sees rebinding, so a work-list traversal
+    (`queue.extend(...)` under `while position < len(queue)`) and an in-place
+    compaction (`del values[i]` under `while i < len(values)`) both left the
+    length looking invariant.  Both are C3.S2 counter-examples where hoisting
+    the call is a behaviour change, not an optimisation.
+    """
+    names: set[str] = set()
+
+    def base(node: ast.AST) -> str | None:
+        while isinstance(node, (ast.Subscript, ast.Attribute)):
+            node = node.value
+        return node.id if isinstance(node, ast.Name) else None
+
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr not in PURE_METHODS:
+                names.add(base(node.func.value))
+        elif isinstance(node, ast.Delete):
+            names.update(base(target) for target in node.targets)
+        elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            names.update(base(t) for t in targets
+                         if isinstance(t, (ast.Subscript, ast.Attribute)))
+    names.discard(None)
+    return names
 
 
 def _contains(outer: ast.AST, inner: ast.AST) -> bool:
@@ -295,9 +338,21 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     Each `a.b.c` costs a dict lookup per level, and each global costs a scope
     chain walk.  Only chains of depth >= 2 that appear more than once and are
     never rewritten in the loop are reported.
+
+    One chain is one finding.  Three things used to multiply that:
+    `self.limits.window.low` read twice was reported three times, once per
+    prefix; a chain inside a loop nest was reported once per enclosing loop; and
+    a chain the loop itself assigns to was reported even though the card's whole
+    point is that a local binding has to stay valid.
     """
+    reported_at: dict[int, set[str]] = {}
     for loop in ctx.loops:
         rewritten = ctx.assigned_names(loop)
+        rebound = _rebound_chains(loop)
+        covered = set().union(
+            *(reported_at.get(id(outer), set()) for outer in ctx.loops_around(loop)),
+            set(),
+        )
         seen: dict[str, list[ast.AST]] = {}
         for node in ast.walk(loop):
             if not isinstance(node, ast.Attribute) or not isinstance(node.ctx, ast.Load):
@@ -307,11 +362,21 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 continue
             if chain.split(".")[0] in rewritten:
                 continue
+            if any(prefix in rebound for prefix in _prefixes(chain)):
+                continue
             seen.setdefault(chain, []).append(node)
 
+        mine: set[str] = set()
         for chain, nodes in seen.items():
-            if len(nodes) < 2:
+            if len(nodes) < 2 or chain in covered:
                 continue
+            # A prefix is only its own finding when it is resolved more often
+            # than any chain built on it -- otherwise it is the same lookup.
+            longer = max((len(rest) for other, rest in seen.items()
+                          if other.startswith(chain + ".")), default=0)
+            if len(nodes) <= longer:
+                continue
+            mine.add(chain)
             yield _evidence(
                 unit, "repeated_lookup_in_loop", nodes[0], ("C8.S3", "C10.S5"),
                 f"`{chain}` is resolved {len(nodes)} times inside the loop; each "
@@ -321,6 +386,29 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 loop_line=loop.lineno,
                 strength=Strength.CONTEXTUAL,
             )
+        reported_at[id(loop)] = covered | mine
+
+
+def _prefixes(chain: str) -> Iterator[str]:
+    """`a.b.c` -> `a.b.c`, `a.b`, `a`: every binding a local alias would depend on."""
+    parts = chain.split(".")
+    for stop in range(len(parts), 0, -1):
+        yield ".".join(parts[:stop])
+
+
+def _rebound_chains(loop: ast.AST) -> set[str]:
+    """Attribute chains the loop stores to or deletes.
+
+    `self.total = self.total + x` reads the chain twice, and binding it to a
+    local before the loop would read a value the loop then replaces.
+    """
+    found: set[str] = set()
+    for node in ast.walk(loop):
+        if isinstance(node, ast.Attribute) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            chain = _attribute_chain(node)
+            if chain is not None:
+                found.add(chain)
+    return found
 
 
 def _attribute_chain(node: ast.Attribute) -> str | None:
@@ -337,7 +425,14 @@ def _attribute_chain(node: ast.Attribute) -> str | None:
 
 
 def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """`x in some_list` inside a loop: linear scan where a set would be O(1)."""
+    """`x in some_list` inside a loop: linear scan where a set would be O(1).
+
+    A sequence short enough to count in the source is left alone.  C5.S1 puts
+    the break-even at roughly a dozen elements and gives
+    `request.method in ("GET", "HEAD", "OPTIONS")` as correct code; reporting
+    every tuple literal made the rule fire on that, which is the fastest way to
+    teach a reader to skip it.
+    """
     for node, enclosing in ctx.inside_loops():
         if not isinstance(node, ast.Compare) or len(node.ops) != 1:
             continue
@@ -345,6 +440,8 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
             continue
         haystack = node.comparators[0]
         if not _is_sequence_valued(haystack, ctx):
+            continue
+        if _is_small_sequence(haystack, ctx):
             continue
         yield _evidence(
             unit, "membership_test_on_sequence", node, ("C5.S1", "C5.S2", "C3.S4"),
@@ -358,34 +455,52 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
 
 def _is_sequence_valued(node: ast.AST, ctx: UnitContext) -> bool:
     """Whether an expression plausibly holds a list/tuple rather than a set/dict."""
-    if isinstance(node, (ast.List, ast.Tuple, ast.ListComp)):
-        return True
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-        return node.func.id in {"list", "tuple", "sorted"}
     if isinstance(node, ast.Name):
         return _binds_sequence(node.id, ctx)
-    return False
+    return _is_literal_sequence(node)
 
 
 def _binds_sequence(name: str, ctx: UnitContext) -> bool:
     """Look for an assignment in the unit that gives `name` a list/tuple value."""
-    for node in ast.walk(ctx.node):
-        if not isinstance(node, ast.Assign):
-            continue
-        targets = [t.id for t in node.targets if isinstance(t, ast.Name)]
-        if name in targets and _is_literal_sequence(node.value):
-            return True
-    return False
+    return any(_is_literal_sequence(value) for value in _bindings_of(name, ctx))
+
+
+def _bindings_of(name: str, ctx: UnitContext) -> list[ast.AST]:
+    """Every value this unit assigns to `name`."""
+    return [
+        node.value
+        for node in ast.walk(ctx.node)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == name for t in node.targets)
+    ]
 
 
 def _is_literal_sequence(node: ast.AST) -> bool:
     if isinstance(node, (ast.List, ast.Tuple, ast.ListComp)):
         return True
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        # `["read", "write", "admin"] + load_extra_scopes()` is the C5.S1 repair
+        # site itself, and matching only bare literals walked straight past it.
+        return _is_literal_sequence(node.left) or _is_literal_sequence(node.right)
     return (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
         and node.func.id in {"list", "tuple", "sorted"}
     )
+
+
+def _is_small_sequence(node: ast.AST, ctx: UnitContext) -> bool:
+    """Whether the haystack is a literal short enough to scan faster than hash.
+
+    Only a literal we can count answers this; anything assembled at run time is
+    of unknown size and stays reportable.
+    """
+    if isinstance(node, ast.Name):
+        bindings = _bindings_of(node.id, ctx)
+        if len(bindings) != 1:
+            return False  # rebound elsewhere, so its size is not settled here
+        node = bindings[0]
+    return isinstance(node, (ast.List, ast.Tuple)) and len(node.elts) <= SMALL_SEQUENCE
 
 
 def nested_loops(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:

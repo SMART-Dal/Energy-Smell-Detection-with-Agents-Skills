@@ -55,6 +55,7 @@ class UnitContext:
     def __post_init__(self) -> None:
         self._parents: dict[ast.AST, ast.AST] = {}
         self._loop_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
+        self._comprehension_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
         self._index()
 
     # -- structure ---------------------------------------------------------
@@ -62,15 +63,23 @@ class UnitContext:
     def _index(self) -> None:
         """Walk the unit once, recording parents and enclosing loops."""
 
-        def walk(node: ast.AST, loops: tuple[ast.AST, ...]) -> None:
+        def walk(node: ast.AST, loops: tuple[ast.AST, ...],
+                 comprehensions: tuple[ast.AST, ...]) -> None:
             for child in ast.iter_child_nodes(node):
                 self._parents[child] = node
                 self._loop_stack[child] = loops
+                self._comprehension_stack[child] = comprehensions
                 inner = loops + (child,) if isinstance(child, LOOP_NODES) else loops
-                walk(child, inner)
+                within = (
+                    comprehensions + (child,)
+                    if isinstance(child, COMPREHENSION_NODES)
+                    else comprehensions
+                )
+                walk(child, inner, within)
 
         self._loop_stack[self.node] = ()
-        walk(self.node, ())
+        self._comprehension_stack[self.node] = ()
+        walk(self.node, (), ())
 
     def parent_of(self, node: ast.AST) -> ast.AST | None:
         return self._parents.get(node)
@@ -84,6 +93,44 @@ class UnitContext:
 
     def in_loop(self, node: ast.AST) -> bool:
         return bool(self.loops_around(node))
+
+    def in_comprehension(self, node: ast.AST) -> bool:
+        """Whether this node sits inside a comprehension or generator expression."""
+        return bool(self._comprehension_stack.get(node, ()))
+
+    def repeats(self, node: ast.AST) -> bool:
+        """Whether this node is evaluated once per element of something.
+
+        `in_loop` answers a narrower question -- is there a `for` or `while`
+        statement above this -- and rules about per-element cost kept reaching
+        for it, which made every one of them blind to comprehensions.  That is
+        not a small gap: a comprehension is the commonest way to write a loop in
+        Python, and it is what most of this taxonomy's own examples use.
+        `[n * 3.0 for n in counts]` is the measured example on C5.S3's card and
+        no rule keyed on `in_loop` could see it.
+
+        The clause a loop draws from is excluded, because it runs exactly once:
+        `for i in range(len(xs))` does not recompute `len(xs)` per iteration,
+        and neither does the outermost `for ... in expensive()` of a
+        comprehension.
+        """
+        if id(node) in self._evaluated_once:
+            return False
+        return self.in_loop(node) or self.in_comprehension(node)
+
+    @cached_property
+    def _evaluated_once(self) -> set[int]:
+        """Nodes in an iterable clause, which is evaluated before iteration starts."""
+        once: set[int] = set()
+        for node in ast.walk(self.node):
+            sources = []
+            if isinstance(node, (ast.For, ast.AsyncFor)):
+                sources.append(node.iter)
+            elif isinstance(node, COMPREHENSION_NODES) and node.generators:
+                sources.append(node.generators[0].iter)
+            for source in sources:
+                once.update(id(inner) for inner in ast.walk(source))
+        return once
 
     @cached_property
     def loops(self) -> list[ast.AST]:

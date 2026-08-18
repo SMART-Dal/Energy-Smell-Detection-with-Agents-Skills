@@ -66,6 +66,9 @@ BUILTIN_EQUIVALENTS = {
 
 MAX_NESTING_DEPTH = 4
 
+# Definitions whose insides belong to their own unit, not the enclosing one.
+NESTING_OPAQUE = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+
 # Calls cheap enough that putting them first in a boolean chain costs nothing.
 # Without this exclusion the short-circuit rule fires on almost every guard
 # clause in real code: `isinstance(x, T) and x.flag` is idiomatic, not a smell.
@@ -109,11 +112,42 @@ def independent_exclusive_ifs(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 if subject and (not run or _compared_subject(run[0].test) == subject):
                     run.append(statement)
                     continue
-            if len(run) >= 2:
+            if _is_chainable(run, ctx):
                 yield _exclusive_ifs_evidence(unit, run)
             run = []
-        if len(run) >= 2:
+        if _is_chainable(run, ctx):
             yield _exclusive_ifs_evidence(unit, run)
+
+
+def _is_chainable(run: list[ast.If], ctx: UnitContext) -> bool:
+    """Whether turning `run` into an `elif` chain would preserve behaviour and save tests.
+
+    Three shapes used to be reported and are not findings, all of them from the
+    card's own counter-examples:
+
+      * a body that rebinds the subject, so the later tests ask about a
+        different value and chaining them drops behaviour;
+      * arms that all return or raise, where control already never reaches the
+        later tests after a match, so `elif` changes only the punctuation;
+      * the same constant tested twice, which is not exclusive at all.
+    """
+    if len(run) < 2:
+        return False
+    if len({_compared_constant(arm.test) for arm in run}) != len(run):
+        return False
+    root = _compared_subject(run[0].test).split(".")[0]
+    if any(root in ctx.assigned_names(arm) for arm in run):
+        return False
+    return not all(_exits(arm.body) for arm in run[:-1])
+
+
+def _exits(body: list[ast.stmt]) -> bool:
+    """Whether a branch body always leaves the enclosing run."""
+    return bool(body) and isinstance(body[-1], (ast.Return, ast.Raise, ast.Continue, ast.Break))
+
+
+def _compared_constant(test: ast.AST) -> object:
+    return ast.unparse(test.comparators[0]) if isinstance(test, ast.Compare) else None
 
 
 def _exclusive_ifs_evidence(unit: UnitRef, run: list[ast.If]) -> Evidence:
@@ -128,10 +162,16 @@ def _exclusive_ifs_evidence(unit: UnitRef, run: list[ast.If]) -> Evidence:
 
 
 def _compared_subject(test: ast.AST) -> str | None:
-    """The left-hand side of a simple `x == const` style comparison."""
+    """The left-hand side of a simple `x == const` comparison.
+
+    Equality against distinct constants is the only shape that is exclusive by
+    construction. Ordering comparisons used to count as well, which reported
+    `if usage > 90: page()` followed by `if usage > 75: warn()` -- overlapping
+    ranges where both arms are meant to run.
+    """
     if not isinstance(test, ast.Compare) or len(test.ops) != 1:
         return None
-    if not isinstance(test.ops[0], (ast.Eq, ast.NotEq, ast.Lt, ast.Gt, ast.LtE, ast.GtE)):
+    if not isinstance(test.ops[0], ast.Eq):
         return None
     if not all(isinstance(c, ast.Constant) for c in test.comparators):
         return None
@@ -150,7 +190,14 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
         for position, operand in enumerate(node.values[:-1]):
             if not _contains_expensive_call(operand):
                 continue
-            cheaper = [v for v in node.values[position + 1 :] if not _contains_call(v)]
+            # A later operand that reads a name an earlier one binds cannot be
+            # promoted past it: `(row := load_row(x)) and row.active` used to be
+            # reported, and there `row` does not exist until the call has run.
+            bound = _walrus_targets(node.values[: position + 1])
+            cheaper = [
+                v for v in node.values[position + 1 :]
+                if not _contains_call(v) and not (ctx.read_names(v) & bound)
+            ]
             if not cheaper:
                 continue
             yield _evidence(
@@ -166,6 +213,16 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
 
 def _contains_call(node: ast.AST) -> bool:
     return any(isinstance(sub, ast.Call) for sub in ast.walk(node))
+
+
+def _walrus_targets(operands: list[ast.AST]) -> set[str]:
+    """Names bound by `:=` anywhere in these operands."""
+    return {
+        sub.target.id
+        for operand in operands
+        for sub in ast.walk(operand)
+        if isinstance(sub, ast.NamedExpr) and isinstance(sub.target, ast.Name)
+    }
 
 
 def _contains_expensive_call(node: ast.AST) -> bool:
@@ -191,17 +248,33 @@ def deep_conditional_nesting(unit: UnitRef, ctx: UnitContext) -> Iterator[Eviden
 
 
 def _deepest_if(node: ast.AST, depth: int) -> tuple[ast.AST | None, int]:
-    """Deepest `if` under `node`, and how many `if` levels enclose it."""
+    """Deepest `if` under `node`, and how many `if` levels enclose it.
+
+    Two shapes used to be counted as nesting and are not. An `elif` arm is a
+    separate `ast.If` in the parent's `orelse`, so a six-arm chain measured as
+    depth six -- but a chain is a linear search, not a nest, and no path
+    evaluates all of it. And a nested `def` is its own unit: counting its
+    nesting here as well reported the same lines against two units.
+    """
     best_node: ast.AST | None = None
     best_depth = depth
     for child in ast.iter_child_nodes(node):
-        child_depth = depth + 1 if isinstance(child, ast.If) else depth
-        if isinstance(child, ast.If) and child_depth > best_depth:
-            best_node, best_depth = child, child_depth
+        if isinstance(child, NESTING_OPAQUE):
+            continue
+        child_depth = depth
+        if isinstance(child, ast.If) and not _is_chained_arm(node, child):
+            child_depth = depth + 1
+            if child_depth > best_depth:
+                best_node, best_depth = child, child_depth
         found_node, found_depth = _deepest_if(child, child_depth)
         if found_depth > best_depth:
             best_node, best_depth = found_node, found_depth
     return best_node, best_depth
+
+
+def _is_chained_arm(parent: ast.AST, child: ast.If) -> bool:
+    """Whether `child` is the `elif` of `parent` rather than a level inside it."""
+    return isinstance(parent, ast.If) and parent.orelse == [child]
 
 
 # -- reuse ----------------------------------------------------------------

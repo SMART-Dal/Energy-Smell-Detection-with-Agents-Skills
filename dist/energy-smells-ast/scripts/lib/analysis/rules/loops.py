@@ -12,10 +12,14 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, Strength, UnitRef
-from ..context import COMPREHENSION_NODES, LOOP_NODES, UnitContext
+from ..context import COMPREHENSION_NODES, LOOP_NODES, PURE_METHODS, UnitContext
 
 # Calls that build a fresh object; expensive to repeat inside a loop.
 CONSTRUCTOR_NAMES = frozenset({"list", "dict", "set", "tuple", "frozenset", "bytearray"})
+
+# C5.S1 puts the break-even for a set at "roughly a dozen elements"; below it,
+# scanning a sequence costs less than hashing the thing you are looking for.
+SMALL_SEQUENCE = 12
 
 # Functions that compile or parse something reusable.
 COMPILE_CALLS = {
@@ -45,7 +49,7 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
     nothing, and reporting those would bury the real findings in noise.
     """
     for loop in ctx.loops:
-        rewritten = ctx.assigned_names(loop)
+        rewritten = ctx.assigned_names(loop) | _mutated_names(loop)
         reported: list[ast.AST] = []
         for node in ctx.per_iteration_nodes(loop):
             if not isinstance(node, (ast.Call, ast.Subscript)):
@@ -73,8 +77,47 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
 
 
 def _is_trivial_call(call: ast.Call) -> bool:
-    """`len(x)` on a rewritten name is the point; `int()` on a literal is not."""
+    """`len(x)` on a rewritten name is the point; `int()` on a literal is not.
+
+    A method call is never trivial, even with no arguments.  Counting arguments
+    alone treated `region.strip().lower()` as having nothing to be invariant in
+    and dropped the whole family of zero-argument method calls on an invariant
+    receiver -- which are the expensive ones, since the receiver is an operand
+    in everything but name.
+    """
+    if isinstance(call.func, ast.Attribute):
+        return False
     return not call.args and not call.keywords
+
+
+def _mutated_names(scope: ast.AST) -> set[str]:
+    """Names whose *contents* change inside `scope` without the name being rebound.
+
+    `assigned_names` only sees rebinding, so a work-list traversal
+    (`queue.extend(...)` under `while position < len(queue)`) and an in-place
+    compaction (`del values[i]` under `while i < len(values)`) both left the
+    length looking invariant.  Both are C3.S2 counter-examples where hoisting
+    the call is a behaviour change, not an optimisation.
+    """
+    names: set[str] = set()
+
+    def base(node: ast.AST) -> str | None:
+        while isinstance(node, (ast.Subscript, ast.Attribute)):
+            node = node.value
+        return node.id if isinstance(node, ast.Name) else None
+
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr not in PURE_METHODS:
+                names.add(base(node.func.value))
+        elif isinstance(node, ast.Delete):
+            names.update(base(target) for target in node.targets)
+        elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            names.update(base(t) for t in targets
+                         if isinstance(t, (ast.Subscript, ast.Attribute)))
+    names.discard(None)
+    return names
 
 
 def _contains(outer: ast.AST, inner: ast.AST) -> bool:
@@ -83,7 +126,7 @@ def _contains(outer: ast.AST, inner: ast.AST) -> bool:
 
 
 def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """`s += ...` inside a loop -- but only quadratic for some accumulators.
+    """Text accumulated inside a loop -- but only quadratic for some accumulators.
 
     The textbook version of this rule is wrong on CPython, and measurement says
     so.  When the accumulator is a plain local whose reference count is one,
@@ -100,53 +143,116 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         d["k"] += part           subscript                -> quadratic
         out += part; keep(out)   a reference escapes      -> quadratic
 
+    What makes an accumulator textual is decided from *where it starts*, not
+    from the right-hand side.  Keying on the value was the original mistake and
+    it made the rule nearly useless: `self.buf += render_row(row)` -- the card's
+    own example -- has an unrecognisable call on the right and never fired, and
+    neither did `out += chunk`, which is the commonest form there is.  An
+    accumulator initialised to `""` or `b""` is text whatever gets added to it.
+
+    Both spellings count: `s += x` and `s = s + x` allocate identically.
     Numeric accumulators are excluded throughout: `n += 1` is fine.
     """
+    accumulators = _text_accumulators(ctx.node)
+
     for node, enclosing in ctx.inside_loops():
-        if not isinstance(node, ast.AugAssign) or not isinstance(node.op, ast.Add):
+        pair = _concatenation(node)
+        if pair is None:
             continue
-        if not _looks_stringy(node.value):
+        target, value = pair
+        name = _target_name(target)
+        if name not in accumulators and not _looks_stringy(value):
             continue
+        if _looks_numeric(value) and name not in accumulators:
+            continue
+
         loop = enclosing[-1]
-        target = node.target
         if isinstance(target, (ast.Attribute, ast.Subscript)):
+            through = "an attribute" if isinstance(target, ast.Attribute) else "a subscript"
             yield _evidence(
                 unit, "string_concat_in_loop", node, ("C10.S4",),
-                f"`{_target_name(target)}` is grown by string concatenation "
-                f"inside a loop; because it is stored through "
-                f"{'an attribute' if isinstance(target, ast.Attribute) else 'a subscript'}"
-                f", CPython cannot resize it in place and copies the whole "
-                f"string every iteration",
-                accumulator=_target_name(target),
-                accumulator_kind="aliased",
+                f"`{name}` is grown by concatenation inside a loop; because it "
+                f"is stored through {through}, CPython cannot resize it in "
+                f"place and copies the whole value every iteration",
+                accumulator=name, accumulator_kind="aliased",
                 loop_line=loop.lineno,
                 strength=Strength.DEFINITE,
             )
         elif isinstance(target, ast.Name):
-            escapes = _name_is_read_in(loop, target.id)
-            if escapes:
+            if _name_is_read_in(loop, target.id, skip=node):
                 yield _evidence(
                     unit, "string_concat_in_loop", node, ("C10.S4",),
-                    f"`{target.id}` is grown by string concatenation inside a "
-                    f"loop and is also read there, so a second reference "
-                    f"exists and each iteration copies the whole string",
-                    accumulator=target.id,
-                    accumulator_kind="escaping",
+                    f"`{target.id}` is grown by concatenation inside a loop and "
+                    f"is also read there, so a second reference exists and each "
+                    f"iteration copies the whole value",
+                    accumulator=target.id, accumulator_kind="escaping",
                     loop_line=loop.lineno,
                     strength=Strength.DEFINITE,
                 )
             else:
                 yield _evidence(
                     unit, "string_concat_in_loop", node, ("C10.S4",),
-                    f"`{target.id}` is grown by string concatenation inside a "
-                    f"loop, but it is a plain local with no other reference, "
-                    f"so CPython resizes it in place and the loop is already "
-                    f"linear -- reject unless this runs on another runtime",
-                    accumulator=target.id,
-                    accumulator_kind="local",
+                    f"`{target.id}` is grown by concatenation inside a loop, but "
+                    f"it is a plain local with no other reference, so CPython "
+                    f"resizes it in place and the loop is already linear -- "
+                    f"reject unless this runs on another runtime",
+                    accumulator=target.id, accumulator_kind="local",
                     loop_line=loop.lineno,
                     strength=Strength.CONTEXTUAL,
                 )
+
+
+def _concatenation(node: ast.AST):
+    """`(target, value)` if this statement appends to its own target.
+
+    Covers both spellings, because they allocate identically:
+
+        s += x                  AugAssign
+        s = s + x               Assign whose value re-reads the target
+    """
+    if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
+        return node.target, node.value
+    if (
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.value, ast.BinOp)
+        and isinstance(node.value.op, ast.Add)
+    ):
+        target = node.targets[0]
+        rendered = _target_name(target)
+        if _target_name(node.value.left) == rendered:
+            return target, node.value.right
+        if _target_name(node.value.right) == rendered:
+            return target, node.value.left
+    return None
+
+
+def _text_accumulators(scope: ast.AST) -> set[str]:
+    """Targets this unit assigns a string or bytes value to, by rendered name.
+
+    Two shapes seed one: a direct assignment of a str/bytes constant, and
+    `container.setdefault(key, "")`, which is how a subscript accumulator is
+    usually started.
+    """
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+            if isinstance(node.value.value, (str, bytes)):
+                found.update(_target_name(t) for t in node.targets)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.annotation, ast.Name):
+            if node.annotation.id in {"str", "bytes"}:
+                found.add(_target_name(node.target))
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "setdefault"
+            and len(node.args) == 2
+            and isinstance(node.args[1], ast.Constant)
+            and isinstance(node.args[1].value, (str, bytes))
+        ):
+            found.add(f"{_target_name(node.func.value)}[...]")
+    return found
+
 
 
 def _target_name(node: ast.AST) -> str:
@@ -160,34 +266,69 @@ def _target_name(node: ast.AST) -> str:
     return "the accumulator"
 
 
-def _name_is_read_in(loop: ast.AST, name: str) -> bool:
+def _name_is_read_in(loop: ast.AST, name: str, skip: ast.AST | None = None) -> bool:
     """Whether `name` is loaded anywhere in the loop, not just assigned to.
 
     An augmented assignment stores to its target, so any *load* of the same
     name inside the loop means a second reference is taken -- which is exactly
     what stops CPython from resizing the string in place.
+
+    `skip` excludes the accumulating statement itself, because `s = s + x`
+    reads `s` as part of the accumulation.  Counting that as an escaping
+    reference would grade every long-form concatenation as aliased.
     """
+    skipped = {id(node) for node in ast.walk(skip)} if skip is not None else set()
     return any(
         isinstance(node, ast.Name)
         and node.id == name
         and isinstance(node.ctx, ast.Load)
+        and id(node) not in skipped
         for node in ast.walk(loop)
     )
 
 
 def _looks_stringy(node: ast.AST) -> bool:
-    """Best-effort check that an expression produces text."""
+    """Best-effort check that an expression produces text.
+
+    A secondary signal only.  What an accumulator *is* comes from where it was
+    initialised (`_text_accumulators`); this catches the cases where the
+    accumulator was not initialised in this unit but the value is unmistakable.
+    """
     if isinstance(node, ast.Constant):
-        return isinstance(node.value, str)
+        return isinstance(node.value, (str, bytes))
     if isinstance(node, ast.JoinedStr):  # f-string
         return True
     if isinstance(node, ast.BinOp):
         return _looks_stringy(node.left) or _looks_stringy(node.right)
     if isinstance(node, ast.Call):
-        if isinstance(node.func, ast.Name) and node.func.id in {"str", "repr", "format", "chr"}:
+        if isinstance(node.func, ast.Name) and node.func.id in {
+            "str", "repr", "format", "chr", "bytes", "hex", "oct",
+        }:
             return True
-        if isinstance(node.func, ast.Attribute) and node.func.attr in {"join", "format", "strip"}:
+        if isinstance(node.func, ast.Attribute) and node.func.attr in {
+            "join", "format", "strip", "lstrip", "rstrip", "lower", "upper",
+            "decode", "encode", "replace",
+        }:
             return True
+    return False
+
+
+def _looks_numeric(node: ast.AST) -> bool:
+    """Best-effort check that an expression produces a number.
+
+    Used only to keep a counter out of the report when nothing else identifies
+    the accumulator, so `counts[key] += 1` stays quiet.
+    """
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, (int, float, complex)) and not isinstance(
+            node.value, bool
+        )
+    if isinstance(node, ast.UnaryOp):
+        return _looks_numeric(node.operand)
+    if isinstance(node, ast.BinOp):
+        return _looks_numeric(node.left) and _looks_numeric(node.right)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        return node.func.id in {"len", "int", "float", "sum", "abs", "round", "ord"}
     return False
 
 
@@ -197,9 +338,21 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     Each `a.b.c` costs a dict lookup per level, and each global costs a scope
     chain walk.  Only chains of depth >= 2 that appear more than once and are
     never rewritten in the loop are reported.
+
+    One chain is one finding.  Three things used to multiply that:
+    `self.limits.window.low` read twice was reported three times, once per
+    prefix; a chain inside a loop nest was reported once per enclosing loop; and
+    a chain the loop itself assigns to was reported even though the card's whole
+    point is that a local binding has to stay valid.
     """
+    reported_at: dict[int, set[str]] = {}
     for loop in ctx.loops:
         rewritten = ctx.assigned_names(loop)
+        rebound = _rebound_chains(loop)
+        covered = set().union(
+            *(reported_at.get(id(outer), set()) for outer in ctx.loops_around(loop)),
+            set(),
+        )
         seen: dict[str, list[ast.AST]] = {}
         for node in ast.walk(loop):
             if not isinstance(node, ast.Attribute) or not isinstance(node.ctx, ast.Load):
@@ -209,11 +362,21 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 continue
             if chain.split(".")[0] in rewritten:
                 continue
+            if any(prefix in rebound for prefix in _prefixes(chain)):
+                continue
             seen.setdefault(chain, []).append(node)
 
+        mine: set[str] = set()
         for chain, nodes in seen.items():
-            if len(nodes) < 2:
+            if len(nodes) < 2 or chain in covered:
                 continue
+            # A prefix is only its own finding when it is resolved more often
+            # than any chain built on it -- otherwise it is the same lookup.
+            longer = max((len(rest) for other, rest in seen.items()
+                          if other.startswith(chain + ".")), default=0)
+            if len(nodes) <= longer:
+                continue
+            mine.add(chain)
             yield _evidence(
                 unit, "repeated_lookup_in_loop", nodes[0], ("C8.S3", "C10.S5"),
                 f"`{chain}` is resolved {len(nodes)} times inside the loop; each "
@@ -223,6 +386,29 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 loop_line=loop.lineno,
                 strength=Strength.CONTEXTUAL,
             )
+        reported_at[id(loop)] = covered | mine
+
+
+def _prefixes(chain: str) -> Iterator[str]:
+    """`a.b.c` -> `a.b.c`, `a.b`, `a`: every binding a local alias would depend on."""
+    parts = chain.split(".")
+    for stop in range(len(parts), 0, -1):
+        yield ".".join(parts[:stop])
+
+
+def _rebound_chains(loop: ast.AST) -> set[str]:
+    """Attribute chains the loop stores to or deletes.
+
+    `self.total = self.total + x` reads the chain twice, and binding it to a
+    local before the loop would read a value the loop then replaces.
+    """
+    found: set[str] = set()
+    for node in ast.walk(loop):
+        if isinstance(node, ast.Attribute) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            chain = _attribute_chain(node)
+            if chain is not None:
+                found.add(chain)
+    return found
 
 
 def _attribute_chain(node: ast.Attribute) -> str | None:
@@ -239,7 +425,14 @@ def _attribute_chain(node: ast.Attribute) -> str | None:
 
 
 def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """`x in some_list` inside a loop: linear scan where a set would be O(1)."""
+    """`x in some_list` inside a loop: linear scan where a set would be O(1).
+
+    A sequence short enough to count in the source is left alone.  C5.S1 puts
+    the break-even at roughly a dozen elements and gives
+    `request.method in ("GET", "HEAD", "OPTIONS")` as correct code; reporting
+    every tuple literal made the rule fire on that, which is the fastest way to
+    teach a reader to skip it.
+    """
     for node, enclosing in ctx.inside_loops():
         if not isinstance(node, ast.Compare) or len(node.ops) != 1:
             continue
@@ -247,6 +440,8 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
             continue
         haystack = node.comparators[0]
         if not _is_sequence_valued(haystack, ctx):
+            continue
+        if _is_small_sequence(haystack, ctx):
             continue
         yield _evidence(
             unit, "membership_test_on_sequence", node, ("C5.S1", "C5.S2", "C3.S4"),
@@ -260,34 +455,52 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
 
 def _is_sequence_valued(node: ast.AST, ctx: UnitContext) -> bool:
     """Whether an expression plausibly holds a list/tuple rather than a set/dict."""
-    if isinstance(node, (ast.List, ast.Tuple, ast.ListComp)):
-        return True
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-        return node.func.id in {"list", "tuple", "sorted"}
     if isinstance(node, ast.Name):
         return _binds_sequence(node.id, ctx)
-    return False
+    return _is_literal_sequence(node)
 
 
 def _binds_sequence(name: str, ctx: UnitContext) -> bool:
     """Look for an assignment in the unit that gives `name` a list/tuple value."""
-    for node in ast.walk(ctx.node):
-        if not isinstance(node, ast.Assign):
-            continue
-        targets = [t.id for t in node.targets if isinstance(t, ast.Name)]
-        if name in targets and _is_literal_sequence(node.value):
-            return True
-    return False
+    return any(_is_literal_sequence(value) for value in _bindings_of(name, ctx))
+
+
+def _bindings_of(name: str, ctx: UnitContext) -> list[ast.AST]:
+    """Every value this unit assigns to `name`."""
+    return [
+        node.value
+        for node in ast.walk(ctx.node)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(t, ast.Name) and t.id == name for t in node.targets)
+    ]
 
 
 def _is_literal_sequence(node: ast.AST) -> bool:
     if isinstance(node, (ast.List, ast.Tuple, ast.ListComp)):
         return True
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        # `["read", "write", "admin"] + load_extra_scopes()` is the C5.S1 repair
+        # site itself, and matching only bare literals walked straight past it.
+        return _is_literal_sequence(node.left) or _is_literal_sequence(node.right)
     return (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
         and node.func.id in {"list", "tuple", "sorted"}
     )
+
+
+def _is_small_sequence(node: ast.AST, ctx: UnitContext) -> bool:
+    """Whether the haystack is a literal short enough to scan faster than hash.
+
+    Only a literal we can count answers this; anything assembled at run time is
+    of unknown size and stays reportable.
+    """
+    if isinstance(node, ast.Name):
+        bindings = _bindings_of(node.id, ctx)
+        if len(bindings) != 1:
+            return False  # rebound elsewhere, so its size is not settled here
+        node = bindings[0]
+    return isinstance(node, (ast.List, ast.Tuple)) and len(node.elts) <= SMALL_SEQUENCE
 
 
 def nested_loops(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
