@@ -153,8 +153,8 @@ def render_root_cause(
         lines += [
             "## NOT a smell when",
             "",
-            "The pattern is present but is the right call. If any of these hold, "
-            "reject the candidate and record which clause applied.",
+            "The pattern is present and is the right call. If one of these holds, "
+            "reject and record which.",
             "",
             *[f"- {item}" for item in entry.not_a_smell_when],
             "",
@@ -164,9 +164,8 @@ def render_root_cause(
         lines += [
             "## Looks the same, is not",
             "",
-            "Each of these matches the pattern and is correct as written. Compare "
-            "the code you are judging against them before accepting the candidate: "
-            "if it is one of these, reject it.",
+            "Each of these matches the pattern and is correct as written. If the "
+            "code you are judging is one of them, reject it.",
             "",
         ]
         for example in entry.counter_examples:
@@ -201,13 +200,8 @@ def render_root_cause(
             f"**Patch shape: `{entry.patch_shape.value}`** — "
             f"{_patch_shape_note(entry)}",
             "",
-            "These examples are illustrations, not the list of permitted cases. "
-            "Real code puts the waste and the fix in different places, and the "
-            "repair you write here will not look like any of them. What the "
-            "patch shape bounds is *scale*: change what it takes to remove this "
-            "root cause — across two methods or a call chain if that is where "
-            "the waste lives — and stop there. Anything else wrong with the "
-            "code is a separate finding, or nothing.",
+            "The examples are illustrations, not the permitted cases; the repair "
+            "you write will not look like any of them.",
             "",
         ]
 
@@ -216,8 +210,7 @@ def render_root_cause(
             "## Similar root causes",
             "",
             "Open these when this card nearly fits and you cannot write a repair "
-            "from it, or when the waste is real and none of the words here match "
-            "it. Overlap is expected: if two cards both describe what you "
+            "from it. Overlap is expected; if two both describe what you "
             "repaired, file it under either and say so.",
             "",
         ]
@@ -240,19 +233,13 @@ def render_root_cause(
     lines += [
         "## Before you accept this",
         "",
-        "1. Name the lines, and say what the machine does here that it need not "
-        "do. If you cannot say it in your own words, you have matched a shape.",
-        "2. Work through `NOT a smell when` and `Looks the same, is not`. If one "
-        "of them fits, reject and record which.",
-        "3. Write the repair for *this* code. No repair, no finding.",
-        "4. Check the repair against the description at the top of this card: it "
-        "has to remove the waste *this* root cause names. If what you actually "
-        "fixed is better described by a similar card, file it there.",
-        "5. Say how often this code runs, and how large its inputs get. A saving "
-        "that exists only in principle is a rejection, and rejecting it here is "
-        "cheaper and more honest than measuring it later.",
+        "1. Say what the machine does here that it need not do, in your own words.",
+        "2. Apply `NOT a smell when` and `Looks the same, is not`.",
+        "3. Write the repair for *this* code.",
+        "4. Check it removes what *this* root cause names, not something adjacent.",
+        "5. Say how often the code runs and how large its inputs get.",
         "",
-        "Record which of the five decided it, whichever way it went.",
+        "Record which one decided it, whichever way it went.",
         "",
     ]
     return "\n".join(lines)
