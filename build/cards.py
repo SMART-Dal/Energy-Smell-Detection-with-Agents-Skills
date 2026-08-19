@@ -147,7 +147,7 @@ def render_root_cause(
         lines += ["## Example from the taxonomy", "", node.example, ""]
 
     if entry.what_to_look_for:
-        lines += ["## What to look for", "", entry.what_to_look_for, ""]
+        lines += ["## What to look for", "", _paragraphs(entry.what_to_look_for), ""]
 
     if entry.not_a_smell_when:
         lines += [
@@ -228,7 +228,7 @@ def render_root_cause(
         lines += [f"Workload hint: {entry.min_workload_hint}", ""]
 
     if entry.notes:
-        lines += ["## Notes", "", entry.notes, ""]
+        lines += ["## Notes", "", _paragraphs(entry.notes), ""]
 
     lines += [
         "## Before you accept this",
@@ -294,6 +294,17 @@ def _measurability_flag(entry: CatalogEntry | None) -> str:
         "scales_with_calls": "yes, scales with call count",
         "constant_small": "**no — advisory only**",
     }[entry.measurability.value]
+
+
+def _paragraphs(text: str) -> str:
+    """Turn a folded scalar's paragraph breaks into markdown ones.
+
+    YAML's `>` joins wrapped lines with a space and collapses a blank line to a
+    single newline, which markdown then renders as the same paragraph. Every
+    newline surviving into the loaded value was therefore a deliberate break in
+    the source, and markdown wants two.
+    """
+    return "\n\n".join(part.strip() for part in text.split("\n") if part.strip())
 
 
 def _one_line(text: str) -> str:
