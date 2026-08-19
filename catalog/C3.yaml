@@ -188,6 +188,16 @@
         evaluates its iterable exactly once before the first iteration. Nothing
         is recomputed. This is the commonest false positive for the rule, and it
         is the one thing always worth checking before hoisting anything.
+    - code: |
+        denominator = sum(map(math.exp, values))
+        return [math.exp(x) / denominator for x in values]
+      why: >
+        Nothing here is loop-invariant: `denominator` is already hoisted, and
+        `math.exp(x)` depends on `x`. The waste is a *repeated* computation --
+        `exp` runs twice per element, once for the sum and once for the result --
+        so the repair fuses the two passes rather than moving anything. That is
+        C1.S4. Compare it with the line below, which looks almost identical and
+        is this root cause.
   refactoring:
     summary: hoist the invariant expression to just above the loop
     examples:
@@ -230,6 +240,26 @@
           become one array index. Valid only if nothing in the loop -- including
           `self.accept` -- can rebind any link in that chain, which you have to
           check by reading `accept`.
+      - title: the invariant is inside a comprehension, and quadratic
+        before: |
+          def softmax(values):
+              exponentials = [math.exp(x) for x in values]
+              return [x / sum(exponentials) for x in exponentials]
+        after: |
+          def softmax(values):
+              exponentials = [math.exp(x) for x in values]
+              total = sum(exponentials)
+              return [x / total for x in exponentials]
+        note: >
+          A comprehension's body runs once per element, so `sum(exponentials)`
+          is a full pass per element and the function is quadratic where it
+          reads as linear. One line makes it linear again. Worth knowing because
+          the same rule that clears `for i in range(len(xs))` -- an iterable is
+          evaluated once -- does not clear this: it is the *body* that repeats,
+          and a comprehension has one. Two versions of this function from the
+          project's sample set differ only in where `sum` sits, and one of them
+          is C1.S4 instead.
+
       - title: a call in a `while` condition
         before: |
           def compact(values):
