@@ -5,40 +5,28 @@
 
 - id: C5.S1
   signals: [membership_test_on_sequence]
-  mechanism: >
+  in_one_line: >
+    a container whose type makes its most frequent operation the expensive one
+  what_to_look_for: >
     A container's cost is paid per operation, and the same operation has a very
     different price depending on the type holding the data.  `x in lst` compares
-    `x` with each element until one matches, so N lookups over an M-element list
-    cost N*M comparisons; the same lookups against a set cost N hash probes.
-    The repair removes no work from the program's logic -- every step it
-    performed still happens -- it changes what one of those steps costs.  That
-    is why the saving grows with the collection size *and* with the number of
-    operations, and why it vanishes when either one is small.
-  how_to_tell:
-    - >
-        Name the operation this container is used for most often on the hot
-        path: membership, positional access, ordered traversal, keyed lookup,
-        insertion or removal at the front. Say roughly how many times it happens
-        per call.
-    - >
-        Check whether that operation is the expensive one for this type. `in` is
-        a linear scan over `list`, `tuple` and `str`, and a hash probe on `set`,
-        `dict` and `frozenset`. Indexing is constant on a list and unavailable
-        on a set. Inserting at the front is linear on a list and constant on a
-        `collections.deque`. `.count()` and `.index()` are always a full scan.
-    - >
-        Find where the container is built. The repair changes that line, so if
-        it is built somewhere you cannot edit -- a caller's argument, a library
-        return value -- the repair is either a conversion at the boundary (which
-        has its own cost, see the neighbours) or nothing.
-    - >
-        Check the sizes actually involved. A set only repays its construction
-        when the collection has more than roughly a dozen elements and is
-        searched more than once. `if method in ("GET", "POST")` is correct as
-        written.
-    - >
-        Confirm the replacement can hold this data: set and dict keys must be
-        hashable, and a set discards both order and duplicates.
+    `x` against each element until one matches, so N lookups over an M-element
+    list cost N*M comparisons where the same lookups against a set cost N hash
+    probes.  The repair removes no work from the program's logic -- every step
+    still happens -- it changes what one of those steps costs, which is why the
+    saving grows with the collection size *and* with the number of operations
+    and vanishes when either is small.  So name the operation the hot path
+    performs most, then check whether it is the expensive one for this type:
+    `in` is a linear scan over `list`, `tuple` and `str` and a hash probe on
+    `set`, `dict` and `frozenset`; indexing is constant on a list and
+    unavailable on a set; inserting or removing at the front is linear on a list
+    and constant on a `collections.deque`; `.count()` and `.index()` are always
+    a full scan.  The repair happens where the container is *built*, which is
+    often another method or another file, and it is unavailable when that site
+    belongs to a caller or a library.  Two things bound it: a set only repays
+    its construction past roughly a dozen elements searched more than once, and
+    the replacement has to be able to hold this data -- set and dict keys must
+    be hashable, and a set discards both order and duplicates.
   not_a_smell_when:
     - >
         the collection is small enough that the constant factors dominate, which
@@ -138,58 +126,36 @@
           `list.pop(0)` moves all n-1 remaining elements down one slot, so
           draining a list this way is quadratic in its length. A `deque` pops
           from either end in constant time. Same root cause, different operation
-          -- which is why step 1 asks you to name the operation first.
+          -- which is why the operation has to be named before the container is
+          judged.
   patch_shape: expression
   measurability: scales_with_input
   min_workload_hint: >
     both the collection and the number of operations must be large; a
     three-element list beats a set, and one lookup never repays building one
-  discriminators:
-    - vs: C5.S2
-      rule: >
-        C5.S1 changes an existing container's *type*, and everything that used
-        it keeps using it.  C5.S2 *adds* a second structure beside the original,
-        because the original is still needed as it is -- for its order, its
-        duplicates, or because it is what the function returns.
-    - vs: C5.S3
-      rule: >
-        C5.S1 is about the cost of an *operation* on the container.  C5.S3 is
-        about the container's *footprint*, when nothing is wrong with the
-        operations at all.
-    - vs: C3.S4
-      rule: >
-        If the repair also removes a level of loop nesting, prefer C3.S4: the
-        finding is then about the shape of the iteration, and the container
-        change is how it was achieved.  C5.S1 alone leaves the loops as they are.
+  similar: [C3.S4, C5.S2, C5.S3]
 
 - id: C5.S2
-  mechanism: >
+  in_one_line: >
+    a collection searched again and again where one index built beside it would
+    answer every question
+  what_to_look_for: >
     An index turns repeated search into arithmetic.  Scanning an n-element
     collection to answer each of m questions costs n*m comparisons; building a
-    dict from it costs n hashes once and then answers each question in constant
-    time, for n + m in total.  The saving is the difference, so it appears when
-    m is more than a small handful and disappears entirely when m is one --
-    building an index to answer a single question is strictly more work than
-    the scan it replaces.
-  how_to_tell:
-    - >
-        Find a collection that is searched more than once with a different key
-        each time. The search may be a loop, a `next(... for ...)`, an `in`, a
-        `.index()` or a `.count()`.
-    - >
-        Establish that the collection does not change between those searches. If
-        it is appended to or filtered inside the same loop, the index would have
-        to be rebuilt and the repair does not apply.
-    - >
-        Say what the index would be keyed on, and confirm that key is hashable
-        and is what every search actually looks up.
-    - >
-        Count the lookups. A few dozen against a small collection and the index
-        costs more than it saves; say so and reject.
-    - >
-        Check that the original collection is still needed as it is. If nothing
-        relies on its order, its duplicates or its type, this is C5.S1 -- change
-        it rather than add beside it.
+    dict from it costs n hashes once and answers each question in constant time,
+    for n + m in total.  So look for a collection searched more than once with a
+    different key each time -- as a loop, a `next(... for ...)`, an `in`, an
+    `.index()` or a `.count()` -- and count the lookups, because m of one makes
+    the index strictly more work than the scan it replaces.  What defines this
+    root cause rather than a change of container type is that the original
+    collection is still needed as it is: for its order, its duplicates, or
+    because it is what the function returns.  Two structures exist afterwards
+    rather than one changed one.  The index has to be built where the data
+    arrives and read where the question is asked, so this repair routinely spans
+    two methods -- and building one on an object creates an obligation, since
+    anything that mutates the underlying collection afterwards invalidates it.
+    Check the key is hashable and is what every search actually looks up: a
+    range overlap, a prefix or a fuzzy comparison has no hash index.
   not_a_smell_when:
     - >
         the collection is mutated between lookups, so the index would need
@@ -282,54 +248,32 @@
   min_workload_hint: >
     the driver must perform many lookups, not one; the effect lives in the ratio
     of lookups to collection size
-  discriminators:
-    - vs: C5.S1
-      rule: >
-        Ask what exists after the repair.  Two structures, because the original
-        is still needed for its order, its duplicates or its type: C5.S2.  One
-        structure of a different type: C5.S1.
-    - vs: C8.S1
-      rule: >
-        C5.S2 indexes *data already in hand*, and the index lives for one
-        invocation.  C8.S1 caches *the result of a computation* so a later call
-        does not repeat it.  If the stored thing had to be computed rather than
-        merely located, it is C8.S1.
-    - vs: C3.S4
-      rule: >
-        These co-occur: adding an index is usually how a nested loop becomes a
-        single pass.  Report C3.S4 when the repair removes a loop level, and
-        C5.S2 when the loops stay and only the search inside them changes.
+  similar: [C3.S4, C5.S1, C8.S1]
 
 - id: C5.S3
   signals:
     - float_literal_on_int_data
     - constant_sequence_literal
-  mechanism: >
+  in_one_line: >
+    a representation heavier than the data it holds actually requires
+  what_to_look_for: >
     A heavier representation costs on three axes at once: bytes per instance,
     the allocation and collection of those bytes, and the work the interpreter
     does to operate on them.  A float multiply is not a slower integer multiply
     -- it converts the operand, takes a different execution path and allocates a
-    new float for the result.  An instance with a `__dict__` is a second heap
-    object per instance and a dict lookup per attribute read.  A list literal
-    inside a function is built element by element on every call, where a tuple
-    of the same constants is stored once in the code object and merely loaded.
-  how_to_tell:
-    - >
-        Name the capability the heavier type provides: fractional values,
-        mutability, arbitrary attributes, ordering, named fields.
-    - >
-        Establish that this code does not use it. Not "does not need it in
-        principle" -- find the uses and check.
-    - >
-        Establish that no *other* code uses it either. A tuple returned to a
-        caller that appends to it is not a repair, it is a bug.
-    - >
-        Say how many instances or operations exist on the hot path. The saving
-        is a small fixed amount each time, so it needs volume before it is
-        measurable at all.
-    - >
-        Check the value's history. A number that arrives as a float is already a
-        float, and changing a literal beside it changes nothing.
+    new float for the result, which this project measured at 39% on integer
+    data.  An instance with a `__dict__` is a second heap object per instance
+    and a dict lookup per attribute read, where `__slots__` or a `namedtuple` is
+    neither.  A list literal inside a function is built element by element on
+    every call, where a tuple of the same constants is stored once in the code
+    object and merely loaded.  So name the capability the heavier type provides
+    -- fractional values, mutability, arbitrary attributes, named fields -- and
+    then go and find whether anything uses it, here or anywhere else.  A tuple
+    returned to a caller that appends to it is a bug rather than a repair.
+    Check the value's history too: a number that arrives as a float is already a
+    float, and changing a literal beside it changes nothing.  The saving is a
+    small fixed amount per instance or per operation, so it needs volume before
+    it is measurable at all.
   not_a_smell_when:
     - >
         the extra capability is used somewhere, even if not in the unit you are
@@ -412,46 +356,33 @@
   min_workload_hint: >
     needs many instances alive at once, or many operations, before a
     per-instance or per-operation saving is visible
-  discriminators:
-    - vs: C6.S1
-      rule: >
-        C5.S3 keeps the same number of objects and makes each one lighter.
-        C6.S1 keeps the weight and creates fewer of them.  If the repair changes
-        a *count*, it is C6.S1.
-    - vs: C5.S1
-      rule: >
-        C5.S3 is about footprint and per-operation constant factors, with the
-        access pattern unchanged.  C5.S1 is about an operation whose complexity
-        is wrong for the container.
+  similar: [C5.S1, C6.S1]
 
 - id: C5.S4
   signals: [redundant_materialisation, ruff_C411, ruff_C414, ruff_C416, ruff_PERF101]
-  mechanism: >
+  in_one_line: >
+    a conversion between representations that the code on either side did not
+    need
+  what_to_look_for: >
     A conversion walks the whole source and allocates a whole new container.
     That is worth paying for when the new form makes later work cheaper --
     hashing for repeated lookup, indexing for repeated access, a snapshot that
-    survives a mutation.  It is pure loss when the consumer would have accepted
-    the original.  So the tell is never the conversion itself; it is what
-    happens next, and which of the two forms that code actually needs.
-  how_to_tell:
-    - >
-        Point at the conversion and name what consumes its result.
-    - >
-        Establish that the consumer accepts the unconverted form. Most builtins
-        taking an iterable do: `sum`, `any`, `all`, `min`, `max`, `str.join`, a
-        `for` loop, `in`.
-    - >
-        Establish that the result is consumed exactly once, and never indexed,
-        sliced, measured with `len()` or iterated twice. Any of those needs a
-        sequence, and the conversion is doing real work.
-    - >
-        Check that the conversion is not a snapshot. If the source is mutated,
-        closed or exhausted before the result is read, removing it changes
-        behaviour.
-    - >
-        Check whether the *receiving operation* has a fast path for the
-        converted type. This is the step that gets skipped, and it is where the
-        answer most often flips -- see the first counter-example.
+    survives a mutation -- and it is pure loss when the consumer would have
+    accepted the original.  So the tell is never the conversion itself but what
+    happens next, and which of the two forms that code actually needs.  Most
+    builtins taking an iterable accept the unconverted form: `sum`, `any`,
+    `all`, `min`, `max`, `str.join`, a `for` loop, `in`.  Three things make the
+    conversion load-bearing: the result being indexed, sliced, measured with
+    `len()` or iterated twice, all of which need a sequence; the conversion
+    being a snapshot taken before the source is mutated, closed or exhausted;
+    and the *receiving operation* having a fast path for the converted type.
+    That last one is the step that gets skipped and it is where the answer most
+    often flips -- this project measured `set(a).difference(set(b))` as the
+    faster spelling and `set(a).intersection(set(b))` as the slower one, the
+    same edit with opposite verdicts, decided entirely by which method receives
+    it.  The largest instances are not one expression at all: one function
+    serialises and the next immediately parses, and neither is visible from the
+    other alone.
   not_a_smell_when:
     - >
         the conversion snapshots a value that would otherwise be mutated or
@@ -540,16 +471,4 @@
           together. The repair spans two units -- say which ones in the finding.
   patch_shape: expression
   measurability: scales_with_input
-  discriminators:
-    - vs: C6.S3
-      rule: >
-        The published examples for these two overlap, so decide by what the
-        patch touches.  C5.S4 *deletes a conversion* and leaves the producer
-        alone (`sum(list(g))` becomes `sum(g)`).  C6.S3 *changes the producer*
-        from eager to lazy (`[f(x) for x in xs]` becomes `(f(x) for x in xs)`).
-    - vs: C1.S4
-      rule: >
-        C5.S4 is one conversion whose output is used as its input would have
-        been.  C1.S4 is the *same* computation performed twice.  Converting the
-        same value in two separate places is C1.S4; converting it once and never
-        needing it converted is C5.S4.
+  similar: [C1.S4, C6.S3]

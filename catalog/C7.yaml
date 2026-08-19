@@ -1,10 +1,10 @@
 # C7 -- Suboptimal Algorithmic
 #
-# The category that absorbs its neighbours if the discriminators are not
-# enforced: in the published LeetCode labelling C7 accounts for 43% of all
-# assignments and C7.S1 alone for 27%. That is what a label with an appealing
-# name does to a classifier, and it is the thing every card here is written to
-# resist. Check C3.S4, C5.S1, C5.S2 and C10.S1 before settling on one of these.
+# The category that absorbs its neighbours if nothing resists it: in the
+# published LeetCode labelling C7 accounts for 43% of all assignments and C7.S1
+# alone for 27%. That is what a label with an appealing name does to a
+# classifier, and it is the thing every card here is written against. Check
+# C3.S4, C5.S1, C5.S2 and C10.S1 before settling on one of these.
 #
 # The discipline that works: name the algorithm you are replacing and the
 # algorithm you are replacing it with. If you cannot name both, you have noticed
@@ -20,39 +20,28 @@
 
 - id: C7.S1
   signals: [nested_loops, ruff_RUF017]
-  mechanism: >
-    Complexity is the only thing in this taxonomy that changes the *shape* of the
-    cost curve rather than its constant factor.  Every other root cause makes each
-    element cheaper; this one changes how many element-operations there are.  A
-    linear scan over a sorted list is n comparisons where a binary search is
-    log2(n) -- twenty against a million -- and a quadratic pairwise scan is n^2
-    where a hash-based pass is n.  That means the saving grows without bound as
-    the input grows, and equally that it is negligible at small n, where the
-    better algorithm's constant factor and setup cost can lose outright.
-  how_to_tell:
-    - >
-      Name the algorithm the code implements and the algorithm you would replace
-      it with. Both, by name. "A linear scan over sorted data" and
-      "`bisect.bisect_left`"; "a hand-written insertion sort" and "Timsort via
-      `sorted`". If you cannot name both, this is not the root cause -- you have
-      noticed slowness, which is not the same thing.
-    - >
-      State both complexities and where they cross. The better algorithm has a
-      larger constant almost always, so there is an n below which the original
-      wins, and you should know roughly where it is.
-    - >
-      Establish that the replacement computes the same thing, including at the
-      edges: ties, duplicates, empty input, the order of equal elements, and
-      floating-point accumulation order.
-    - >
-      Establish the input reaches the size where it matters, and say how you
-      know. This is where most candidates fail: the code is quadratic and n is
-      always eight.
-    - >
-      Check the precondition the better algorithm needs. Binary search needs
-      sorted input; a hash approach needs hashable keys; a sieve needs a bounded
-      range. If the precondition has to be established first, its cost counts
-      against the repair.
+  in_one_line: >
+    an algorithm of worse complexity than the problem requires
+  what_to_look_for: >
+    Complexity is the only thing in this taxonomy that changes the *shape* of
+    the cost curve rather than its constant factor.  Every other root cause
+    makes each element cheaper; this one changes how many element-operations
+    there are.  A linear scan over sorted data is n comparisons where a binary
+    search is log2(n) -- twenty against a million -- and a quadratic pairwise
+    scan is n^2 where a hash-based pass is n.  The saving therefore grows
+    without bound with the input, and is equally negligible at small n, where
+    the better algorithm's constant factor and setup can lose outright.  The
+    discipline that keeps this card honest is naming *both* algorithms: "a
+    linear scan over sorted data" and "`bisect.bisect_left`"; "a hand-written
+    insertion sort" and "Timsort via `sorted`".  If you cannot name both, you
+    have noticed that something is slow, which is not the same as knowing it is
+    algorithmic, and this is not the root cause.  Then state both complexities
+    and roughly where they cross, and establish that the input reaches that
+    size -- most candidates die here, on code that is genuinely quadratic where
+    n is always eight.  Check the precondition the better algorithm needs, since
+    establishing it counts against the repair, and check the edges the
+    replacement has to preserve: ties, duplicates, empty input, the order of
+    equal elements, floating-point accumulation order.
   not_a_smell_when:
     - >
       the input is always small, so the asymptotically worse algorithm wins on
@@ -179,67 +168,35 @@
     where the crossover is
   notes: >
     The single most over-applied label in the taxonomy.  The discipline that
-    prevents it is `how_to_tell` step 1: name both algorithms.  "It has nested
-    loops" is not this root cause; "it is a linear scan where binary search
-    applies" is.
-  discriminators:
-    - vs: C10.S1
-      rule: >
-        The distinction that matters most here.  C7.S1 changes the *algorithm*:
-        different complexity, different approach.  C10.S1 keeps the algorithm and
-        runs it in C instead of in the interpreter.  A hand-written bubble sort
-        replaced by `sorted()` is C7.S1 -- Timsort is a different algorithm.  A
-        summing loop replaced by `sum()` is C10.S1 -- it is the same algorithm.
-    - vs: C3.S4
-      rule: >
-        C3.S4 removes a level of loop nesting while keeping the approach.  C7.S1
-        replaces the approach.  They co-occur often; report C3.S4 when the repair
-        is recognisably "index the inner scan" and C7.S1 when the new code has a
-        different name.
-    - vs: C5.S1
-      rule: >
-        If the whole repair is a container type at its construction site, it is
-        C5.S1 even though the complexity changed.  C7.S1 requires the *logic* to
-        change, not only what holds the data.
-    - vs: C7.S2
-      rule: >
-        C7.S1 swaps a known algorithm for a better-known one.  C7.S2 keeps the
-        approach and stops it exploring subproblems it did not need -- pruning,
-        ordering, reusing overlapping results.
+    prevents it is naming both algorithms.  "It has nested loops" is not this
+    root cause; "it is a linear scan where binary search applies" is.
+  similar: [C3.S4, C5.S1, C7.S2, C10.S1]
 
 - id: C7.S2
   signals: [recursion_without_memo]
-  mechanism: >
-    A search explores a space of subproblems, and its cost is how many of them it
-    visits.  Three things make that number larger than necessary and all three
-    are decomposition failures rather than algorithm failures.  Overlapping
-    subproblems get re-solved from scratch, which is what turns naive Fibonacci
-    from linear into exponential.  Branches that cannot contain a solution get
-    explored anyway, because no bound is checked before descending.  And the
-    exploration order delays the discovery that would have pruned the rest.  The
-    repair keeps the algorithm's shape and changes which parts of the space it
-    touches -- which is why the saving can be an entire exponent while the code
-    changes by three lines.
-  how_to_tell:
-    - >
-      Say what the subproblem space is and how the code walks it: recursion,
-      an explicit stack, nested loops over combinations.
-    - >
-      Name which of the three failures applies. Are the same subproblems reached
-      by more than one path (memoise)? Can a branch be ruled out before
-      descending (prune)? Would a different order find the pruning bound sooner
-      (reorder)?
-    - >
-      For the overlapping case, establish that subproblems really do repeat, by
-      describing two paths that reach the same one. A tree with no shared
-      subproblems gains nothing from memoisation but pays for the table.
-    - >
-      For pruning, name the bound and confirm it is sound -- that no pruned
-      branch could have contained a better answer. An unsound bound is a wrong
-      answer, not a faster one.
-    - >
-      Establish the space is large enough to matter. Exhaustive search over
-      twelve combinations does not need pruning.
+  in_one_line: >
+    a search exploring subproblems it could have pruned, reordered or reused
+  what_to_look_for: >
+    A search's cost is how many subproblems it visits, and three things make
+    that number larger than it needs to be.  Overlapping subproblems get
+    re-solved from scratch, which is what turns naive Fibonacci from linear into
+    exponential.  Branches that cannot contain a solution get explored anyway,
+    because no bound is checked before descending.  And the exploration order
+    delays the discovery that would have pruned the rest.  All three are
+    decomposition failures rather than algorithm failures, so the repair keeps
+    the shape of the code and changes which parts of the space it touches --
+    which is why the saving can be an entire exponent while three lines change.
+    Look for a subproblem space and how the code walks it: recursion, an
+    explicit stack, nested loops over combinations.  Then name which failure
+    applies, and be specific about the evidence.  For overlap, describe two
+    paths that reach the same subproblem, because a tree with no shared
+    subproblems gains nothing from a memo and pays for the table.  For pruning,
+    name the bound and confirm no pruned branch could have held a better answer,
+    since an unsound bound is a wrong answer rather than a faster one.  And
+    check the space is large enough to matter, because exhaustive search over
+    twelve combinations needs nothing.  This project measured the memoised form
+    of exactly this shape -- a million values drawn from a range of five hundred
+    -- at around 95%, and the same memo on unique keys is pure overhead.
   not_a_smell_when:
     - >
       the subproblems do not overlap, so a memo table is pure overhead
@@ -375,55 +332,30 @@
   min_workload_hint: >
     the input must be large enough for the exponent to show; for a memoisation
     case that usually means an input where the naive version is visibly slow
-  discriminators:
-    - vs: C8.S1
-      rule: >
-        Both add a cache and the split is what is being reused.  C7.S2 reuses
-        *subproblem results within one search*, and the memo usually dies with
-        the call.  C8.S1 caches *a function's results across calls* made by
-        unrelated callers.  Ask whether the cache would still help if the
-        function were called only once.
-    - vs: C7.S1
-      rule: >
-        C7.S2 keeps the approach and visits less of the space.  C7.S1 replaces the
-        approach.  If the code's name changes, it is C7.S1.
-    - vs: C3.S6
-      rule: >
-        C3.S6 is about a loop touching elements it did not need.  C7.S2 is about a
-        *search* exploring states it did not need.  If there is no subproblem
-        structure, it is C3.S6.
+  similar: [C3.S6, C7.S1, C8.S1]
 
 - id: C7.S3
   signals: [linear_recursion]
-  mechanism: >
-    A Python call is expensive relative to a loop iteration: a frame object of
-    two to four hundred bytes is allocated, arguments are bound into it, and it
-    is torn down on return.  CPython does no tail-call elimination, so a
-    self-recursive function pays that per level and holds every frame alive until
-    the base case returns.  A loop with an accumulator does the same arithmetic in
-    one frame.  The saving is therefore the frame cost times the depth -- and
-    there is a correctness dimension too, since the default recursion limit is
-    1000 and a linear recursion over a large input raises rather than running
-    slowly.
-  how_to_tell:
-    - >
-      Establish the recursion is *linear* -- exactly one self-call on each path
-      -- so the recursion is only sequencing, not branching. That is the case an
-      accumulator loop replaces directly.
-    - >
-      If it branches -- two or more self-calls, a tree, divide and conquer -- say
-      so and reject. An explicit stack there is a reimplementation of the call
-      stack in slower Python, and usually a regression.
-    - >
-      Say what the accumulator is and confirm the loop can carry it: a running
-      total, a product, a built list, a pair of values.
-    - >
-      Establish the depth is worth it. A recursion three levels deep saves three
-      frames; one a thousand deep is also a `RecursionError` waiting to happen,
-      and that is worth reporting even where the energy saving is not.
-    - >
-      Check the recursion is not the clearer expression of something genuinely
-      recursive, on a path where depth is bounded and small.
+  in_one_line: >
+    a linear recursion paying a frame per level where a loop would use one
+  what_to_look_for: >
+    A Python call is expensive relative to a loop iteration -- a frame of two to
+    four hundred bytes is allocated, arguments are bound into it, and it is torn
+    down on return -- and CPython does no tail-call elimination, so a
+    self-recursive function pays that per level and holds every frame alive
+    until the base case returns.  A loop with an accumulator does the same
+    arithmetic in one frame, so the saving is the frame cost times the depth;
+    this project measured an iterative factorial at 39.5% against the recursive
+    one.  There is a correctness dimension too, since the default recursion
+    limit is 1000 and a linear recursion over a large input raises rather than
+    running slowly, which is worth reporting even where the energy saving is
+    not.  The precondition is that the recursion is *linear*: exactly one
+    self-call on each path, so the recursion is sequencing rather than
+    branching, and an accumulator can carry what it was passing down.  A
+    branching recursion -- a tree walk, divide and conquer -- is not this, and
+    replacing it with an explicit stack reimplements the call stack in slower
+    Python and usually regresses.  Depth is the other half: three levels saves
+    three frames and is not a finding.
   not_a_smell_when:
     - >
       the recursion branches -- a tree walk, divide and conquer -- where an
@@ -504,50 +436,31 @@
   min_workload_hint: >
     the depth is the effect, so the case needs a large n rather than many calls
     with a small one -- and keep it under the recursion limit or `before` raises
-  discriminators:
-    - vs: C7.S2
-      rule: >
-        C7.S3 is about the *cost of the frames* in a recursion that visits each
-        subproblem once.  C7.S2 is about a recursion that visits the same
-        subproblem repeatedly.  If the saving is a complexity class rather than a
-        constant factor, it is C7.S2.
-    - vs: C2.S3
-      rule: >
-        Both are about call overhead.  C7.S3 is a function calling *itself*;
-        C2.S3 is a chain of different functions.
+  similar: [C2.S3, C7.S2]
 
 - id: C7.S4
   signals:
     - sort_then_slice
     - filter_after_transform
-  mechanism: >
-    When two operations commute, the order decides how much data the expensive
+  in_one_line: >
+    two commuting operations in the order that makes the expensive one see more
+    data
+  what_to_look_for: >
+    When two operations commute, their order decides how much data the expensive
     one sees.  Filtering before transforming means the transform runs on the
     survivors; sorting after taking the top k means the sort sees k elements
     rather than n.  The saving is the expensive operation's per-element cost
-    multiplied by the elements the cheap one removed -- so it scales with
-    selectivity, and it is nothing when the cheap step removes nothing.  This is
-    the same principle as short-circuit ordering in a boolean expression (C4.S1),
-    applied to statements instead of operands.
-  how_to_tell:
-    - >
-      Name the two operations, say which is more expensive per element, and say
-      which currently runs first.
-    - >
-      Prove they commute -- that running them in the other order gives the same
-      answer. This is where the repair usually fails: a filter whose predicate
-      reads the transform's output cannot move before it.
-    - >
-      Say what fraction the cheap operation removes. High selectivity is the
-      whole effect; a filter that keeps 95% of the rows is not worth reordering
-      for.
-    - >
-      Check the reorder does not change ties, ordering or numerical results. A
-      sort applied to a filtered list can order equal elements differently, and
-      floating-point sums change with order.
-    - >
-      Check the cheap operation is actually cheap after the move. Deduplicating a
-      million unique values to shrink a scan costs more than the scan.
+    times the elements the cheap one removed, so it scales with selectivity and
+    is nothing when the cheap step removes nothing -- a filter keeping 95% of
+    the rows is not worth reordering for.  This is short-circuit ordering
+    applied to statements instead of to boolean operands.  Commutation is the
+    precondition and it fails in one specific way that is easy to miss: a
+    predicate testing the *transform's output* cannot run first, because the
+    value it reads does not exist yet.  Then check the reorder does not change
+    the answer -- a sort over filtered data can order equal elements
+    differently, and floating-point sums change with accumulation order -- and
+    that the cheap step is still cheap on the full input, since deduplicating a
+    million unique values to shrink a scan costs more than the scan.
   not_a_smell_when:
     - >
       the operations do not commute -- the second reads what the first produced
@@ -637,55 +550,29 @@
   min_workload_hint: >
     the cheap step must remove most of the data; state the selectivity in the case
     file and make it representative rather than convenient
-  discriminators:
-    - vs: C3.S6
-      rule: >
-        Nearly the same idea and the split is scope.  C7.S4 reorders *two
-        operations* that are both already bulk steps -- two statements swapped.
-        C3.S6 is about a *loop or comprehension* touching more elements than it
-        needs -- a filter moved inside.
-    - vs: C4.S1
-      rule: >
-        The same principle at different granularity.  C4.S1 orders *operands* in
-        one boolean expression; C7.S4 orders *statements* in a pipeline.
-    - vs: C7.S5
-      rule: >
-        C7.S4 keeps both operations and swaps them.  C7.S5 makes one of them
-        cheaper, or removes it, using an algebraic fact.
+  similar: [C3.S6, C4.S1, C7.S5]
 
 - id: C7.S5
-  mechanism: >
-    An expensive operation applied to an input that could have been reduced first
-    does more work than the answer requires.  The reduction is algebraic rather
-    than structural: a term that is provably zero or an identity, a wrapper that
-    cannot change its argument, a general procedure whose result is determined by
-    a cheap property of the input, a transformation the following step is
-    invariant under.  The saving ranges from one operation per element to the
-    entire computation, and unlike everything else in this category it needs
-    knowledge of *what the values mean* rather than of the control flow -- which
-    is why it is the root cause a reading agent can find and no tool can.
-  how_to_tell:
-    - >
-      Point at the expensive operation and state the algebraic fact that makes
-      part or all of it unnecessary. Write it out: "`k = max(a, b)` so `k - a >=
-      0`, so `abs` cannot change it"; "softmax is monotonic, so `argmax` does not
-      need it".
-    - >
-      Establish the fact holds for every input the function accepts, not only for
-      the ones it usually gets. This is the step that decides correctness, and
-      "it has always been positive so far" is not the same as "it cannot be
-      negative".
-    - >
-      Say what the simplified form is and check it agrees with the original
-      everywhere -- including at the edges the fact is silent about: NaN, empty
-      input, zero, negative zero, overflow.
-    - >
-      Say what the saving is per execution: one call per element, one pass, or
-      the whole operation.
-    - >
-      Distinguish this from adding a guard. If the simplification applies to
-      *all* inputs, it is this root cause; if it applies only to some and needs a
-      branch, it is C4.S7.
+  in_one_line: >
+    an operation doing more work than an algebraic fact about its inputs requires
+  what_to_look_for: >
+    An expensive operation applied to an input that could have been reduced
+    first does more work than the answer requires, and the reduction here is
+    algebraic rather than structural: a term that is provably zero or an
+    identity, a wrapper that cannot change its argument, a general procedure
+    whose result is settled by a cheap property of the input, a transformation
+    the following step is invariant under.  Unlike everything else in this
+    category it needs knowledge of *what the values mean* rather than of the
+    control flow, which is why it is a root cause a reader can find and no tool
+    can.  The discipline is to write the fact out: "`k = max(a, b)`, so `k - a`
+    is never negative and `abs` cannot change it"; "softmax is monotonic, so
+    `argmax` does not need it".  Then establish it holds for every input the
+    function *accepts*, not only for the ones it usually gets -- "it has always
+    been positive so far" is a different claim from "it cannot be negative", and
+    this is the step that decides correctness.  Check the simplified form at the
+    edges the fact is silent about: NaN, empty input, zero, negative zero,
+    overflow.  If the simplification holds for all inputs it belongs here; if it
+    holds for some and needs a branch, the finding is the missing guard instead.
   not_a_smell_when:
     - >
       the algebraic fact does not hold for every input the function accepts
@@ -788,25 +675,4 @@
   min_workload_hint: >
     when the simplification removes per-element work, size on the element count;
     when it removes a whole stage, almost any realistic input shows it
-  discriminators:
-    - vs: C4.S7
-      rule: >
-        C7.S5 makes the operation cheaper for *every* input, with no branch added.
-        C4.S7 adds a *guard* that skips the operation for some inputs.  Branch
-        added: C4.S7.  Operation changed: C7.S5.  When one edit does both, say
-        which you picked.
-    - vs: C1.S5
-      rule: >
-        The closest neighbour, and the softmax example sits between them.  C1.S5
-        is work whose *result is never consumed at all*.  C7.S5 is work whose
-        result is consumed but whose cost was not needed to produce the answer.
-        If deleting the statement leaves the code correct with no other change,
-        it is C1.S5.
-    - vs: C4.S2
-      rule: >
-        C4.S2 deletes a *test* whose answer was determined.  C7.S5 changes an
-        *operation* using a fact about the values.  No branch is removed here.
-    - vs: C7.S4
-      rule: >
-        C7.S4 keeps both operations and reorders them.  C7.S5 makes one cheaper or
-        removes it outright.
+  similar: [C1.S5, C4.S2, C4.S7, C7.S4]

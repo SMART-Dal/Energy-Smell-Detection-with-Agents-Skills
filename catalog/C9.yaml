@@ -24,37 +24,27 @@
 
 - id: C9.S1
   signals: [io_call_in_loop]
-  mechanism: >
+  in_one_line: >
+    many small independent external operations where one bulk operation would do
+  what_to_look_for: >
     Every external operation has a fixed cost before any data moves: a syscall
     boundary, a buffer flush, a protocol frame, a query parse, a network round
-    trip.  Doing the work in N small operations pays that fixed cost N times; one
-    bulk operation pays it once and moves the same bytes.  For a file that fixed
-    cost is a syscall and a flush, a microsecond or two; for a database round trip
-    it is parsing, planning and a network hop, a millisecond or more.  So the
-    saving is N times the per-operation overhead, and it is entirely independent
-    of how much data there is -- which is why batching a thousand tiny writes
-    saves more than batching two large ones.
-  how_to_tell:
-    - >
-      Establish the call actually leaves the process. This is the first step
-      because it is where most candidates die: `.get()`, `.read()`, `.write()` and
-      `.execute()` are all ordinary in-process method names too. Read what the
-      receiver is.
-    - >
-      Count the operations per call of the enclosing unit, and say what each one
-      costs -- a syscall, a query, a network hop.
-    - >
-      Establish the operations are independent, so they can be reordered and
-      combined. If each one's input depends on the previous one's result, batching
-      is unavailable and the finding is C9.S3.
-    - >
-      Name the bulk form: `writelines`, one buffered `write`, `executemany`,
-      `bulk_create`, a batch endpoint, a single query with an `IN` clause.
-    - >
-      Check what batching changes about failure and memory. One transaction that
-      fails loses everything where a thousand lose one; one buffered write holds
-      the whole payload in memory. Both are real trade-offs and the finding should
-      name them.
+    trip.  N small operations pay that N times where one bulk operation pays it
+    once and moves the same bytes, so the saving is N times the per-operation
+    overhead and is independent of how much data there is -- which is why
+    batching a thousand tiny writes saves more than batching two large ones.
+    Most candidates die on the first question, which is whether the call
+    actually leaves the process: `.get()`, `.read()`, `.write()` and `.execute()`
+    are ordinary in-process method names too, and `store.get(key)` differs from
+    `dict.get(key)` by six orders of magnitude with nothing in the syntax to say
+    which you have.  So read what the receiver is.  Then establish the
+    operations are *independent* and could run in any order, because a call
+    whose argument comes from the previous call's result cannot be batched at
+    all.  Name the bulk form -- `writelines`, one buffered `write`,
+    `executemany`, `bulk_create`, a batch endpoint, a single query with an `IN`
+    clause -- and name what batching costs, since one transaction that fails
+    loses everything where a thousand lose one, and one buffered write holds the
+    whole payload in memory.
   not_a_smell_when:
     - >
       the calls are dependent, so each one's argument comes from the previous
@@ -98,7 +88,7 @@
         A write per chunk, and Python's buffered writer already accumulates these
         and flushes when its buffer fills -- so the syscall count is already far
         below the call count. Checking whether a lower layer already batches is
-        why the last `how_to_tell` step exists.
+        why the card asks what batching costs as well as what it saves.
   refactoring:
     summary: combine the small operations into one bulk operation
     examples:
@@ -174,56 +164,29 @@
     measurement and say so, or to report the operations avoided as a count and
     leave the energy claim unmade.  A counted claim honestly stated is worth more
     than a measured one built on an invented constant.
-  discriminators:
-    - vs: C9.S3
-      rule: >
-        C9.S1 is many *independent* operations that can be merged.  C9.S3 is many
-        *dependent* ones, where each round trip's argument comes from the previous
-        result, and the repair is a join rather than a batch.  Ask whether the
-        calls could run in any order.
-    - vs: C8.S4
-      rule: >
-        C9.S1 fetches *different* data each time and batches it.  C8.S4 fetches the
-        *same* data repeatedly and reuses it.  Read the arguments.
-    - vs: C3.S3
-      rule: >
-        If the repair moves an `open` or a `connect` out of the loop rather than
-        merging the operations inside it, the finding is C3.S3.
-    - vs: C6.S6
-      rule: >
-        C9.S1 is about how many times a resource is *used*.  C6.S6 is about whether
-        it is *released*.
+  similar: [C3.S3, C6.S6, C8.S4, C9.S3]
 
 - id: C9.S2
   signals: [whole_file_read]
-  mechanism: >
-    Data that crosses a process boundary is paid for at both ends and in between:
-    the remote system reads and serialises it, the transport carries it, and the
-    local process deserialises it into objects.  Fetching columns, rows or bytes
-    the program never consults pays all three costs for nothing.  Deserialisation
-    is usually the largest share and the least visible -- turning a wide row into
-    Python objects allocates one object per field, so a `SELECT *` that returns
+  in_one_line: >
+    more data pulled across a process boundary than the program ever consults
+  what_to_look_for: >
+    Data that crosses a process boundary is paid for at both ends and in
+    between: the remote system reads and serialises it, the transport carries
+    it, and the local process deserialises it into objects.  Deserialisation is
+    usually the largest share and the least visible, since turning a wide row
+    into Python objects allocates one object per field -- a `SELECT *` returning
     forty columns where two are used allocates thirty-eight objects per row and
-    frees them unread.
-  how_to_tell:
-    - >
-      Say what is fetched and what is actually consumed. Name the fields, or the
-      rows, or the byte range. "We use two of these columns" is the finding.
-    - >
-      Establish the source can return less. A `SELECT` can project columns and a
-      range request can fetch bytes; a fixed API endpoint may not, and then the
-      repair does not exist.
-    - >
-      Establish nothing downstream needs the rest, including code you have not
-      read -- a serialiser that reflects over the row, a logger that dumps it, a
-      caller that passes the object on.
-    - >
-      Say how much is being saved as a proportion. Two columns of forty is a
-      finding; thirty-eight of forty is not.
-    - >
-      Check the projection does not cost more elsewhere. Selecting a subset can
-      lose an index-only scan, and asking for a byte range can defeat a cache
-      that held the whole object.
+    frees them unread.  So name what is fetched against what is consumed, as a
+    proportion: two columns of forty is a finding, thirty-eight of forty is not.
+    Two things have to hold and both need reading outside the unit.  The source
+    must be able to return less, which a `SELECT` or a range request can and a
+    fixed endpoint cannot.  And nothing downstream may need the rest -- the
+    commonest way to get this wrong is a *generic* consumer, a serialiser that
+    reflects over the row or a logger that dumps it, where every column is used
+    by code that names none of them.  Check the projection does not cost more
+    elsewhere, since selecting a subset can lose an index-only scan and a byte
+    range can defeat a cache holding the whole object.
   not_a_smell_when:
     - >
       the extra data is used somewhere the reader has not looked -- a serialiser,
@@ -302,61 +265,37 @@
           The original transfers every object in full to measure it. `head`
           returns the metadata alone. The largest ratio in this category -- gigabytes
           against a few hundred bytes -- and it only exists because the protocol
-          offers a metadata call, which is the second `how_to_tell` step.
+          offers a metadata call, which is what "can the source return less"
+          is asking.
   patch_shape: expression
   measurability: scales_with_input
   min_workload_hint: >
     the effect is proportional to the bytes and objects avoided, so the case needs
     realistically wide rows or large payloads; a two-column table shows nothing
-  discriminators:
-    - vs: C6.S3
-      rule: >
-        C9.S2 reduces what *crosses the boundary*.  C6.S3 reduces what is
-        *materialised locally* from data that has already crossed it.  Streaming a
-        file you still read entirely is C6.S3; asking for a byte range is C9.S2.
-    - vs: C3.S6
-      rule: >
-        The same principle either side of a boundary.  C3.S6 filters in Python;
-        C9.S2 filters at the source.  If the repair moves a predicate into a query,
-        prefer C9.S2 -- the saving is transfer, not iteration.
-    - vs: C9.S1
-      rule: >
-        C9.S2 is one operation carrying too much.  C9.S1 is too many operations
-        each carrying too little.
+  similar: [C3.S6, C6.S3, C9.S1]
 
 - id: C9.S3
   signals: [io_call_in_loop]
-  mechanism: >
-    The N+1 pattern: one query returns N rows, and then each row triggers another
-    query for its related data.  The total is N+1 round trips where a join or a
-    prefetch would be one or two.  The cost is dominated by latency and
-    per-query overhead rather than by data volume, so it is largely independent of
-    how much each query returns -- N+1 queries returning one row each cost far
-    more than one query returning N rows, even though the bytes are comparable.
-    It is the commonest expensive mistake in ORM code, and it is invisible at the
-    call site: `order.customer` looks like an attribute read and is a network
-    round trip.
-  how_to_tell:
-    - >
-      Establish there is a loop over results of an earlier fetch, and that the loop
-      body triggers another fetch.
-    - >
-      Establish that the inner fetch is a fetch. In ORM code this is the whole
-      difficulty: a lazy relation is an attribute access that issues SQL. Read the
-      model, not only the loop.
-    - >
-      Confirm the inner fetches depend on the outer row -- different parameters
-      each time. Identical parameters means the same data is being re-fetched,
-      which is C8.S4.
-    - >
-      Name the repair and confirm the data layer supports it: a join, an `IN`
-      clause over the collected keys, `select_related`, `prefetch_related`,
-      `joinedload`, a batch endpoint.
-    - >
-      Check what the joined form costs. A join that multiplies rows across two
-      one-to-many relations can return far more data than the N+1 version did,
-      and then the repair is `prefetch_related`-style separate queries rather than
-      a single join.
+  in_one_line: >
+    one fetch per row of an earlier fetch, where a join would have taken one trip
+  what_to_look_for: >
+    The N+1 pattern: one query returns N rows and each row then triggers another
+    query for its related data, so the total is N+1 round trips where a join or
+    a prefetch is one or two.  The cost is dominated by latency and per-query
+    overhead rather than by volume, which is why N+1 queries returning one row
+    each cost far more than one query returning N rows carrying the same bytes.
+    It is the commonest expensive mistake in ORM code and it is invisible at the
+    call site, because `order.customer` looks like an attribute read and is a
+    network round trip -- so the difficulty is establishing that the inner access
+    *is* a fetch, which means reading the model rather than the loop.  Confirm
+    the inner fetches vary with the outer row; identical parameters mean the same
+    data is being re-fetched, which is a caching problem instead.  Two things
+    make the repair worse than the pattern.  A traversal guarded by a branch that
+    fires for two of ten thousand rows costs two round trips where a prefetch
+    fetches ten thousand.  And a join across two one-to-many relations multiplies
+    rows and can return far more data than N+1 did, where the answer is separate
+    prefetch queries rather than a single join.  An identity map or a local cache
+    may also mean no round trip is happening at all.
   not_a_smell_when:
     - >
       the inner data is only needed for a few of the outer rows, so N+1 fetches
@@ -451,63 +390,36 @@
           items x notes rows per order -- potentially far more data than the N+1
           version transferred. `prefetch_related` issues one query per relation
           and joins in Python. Included because the reflex repair here is the
-          wrong one, and the `how_to_tell` step about row multiplication is what
+          wrong one, and row multiplication across relations is what
           catches it.
   patch_shape: structural
   measurability: scales_with_input
   min_workload_hint: >
     the effect is N avoided round trips, so scale on N; the stub's per-call cost
     has to be defensible, since it is what the whole figure rests on
-  discriminators:
-    - vs: C9.S1
-      rule: >
-        C9.S1 is many *independent* operations, merged into a batch.  C9.S3 is many
-        *dependent* ones, where the second fetch needs the first result, merged
-        into a join.  Ask whether the inner calls could have run before the outer
-        one.
-    - vs: C8.S4
-      rule: >
-        Read the parameters of the inner fetch.  Varying per row: C9.S3.  Identical
-        every time: C8.S4, and the repair is to hoist or cache rather than to join.
-    - vs: C3.S4
-      rule: >
-        The same structure -- a nested lookup -- on either side of a process
-        boundary.  In memory it is C3.S4 and the repair is a dict; across a
-        boundary it is C9.S3 and the repair is a join.
+  similar: [C3.S4, C8.S4, C9.S1]
 
 - id: C9.S4
-  mechanism: >
-    Some queries are expensive for the engine to execute whatever the client does,
-    and the cost is paid entirely at the far end -- in CPU, in temporary storage,
-    and in energy on a machine this process is not measuring.  A missing join
-    condition produces a Cartesian product, so two ten-thousand-row tables become
-    a hundred million rows.  `UNION` sorts and deduplicates where `UNION ALL` does
-    not.  A predicate wrapped in a function -- `WHERE lower(email) = ?` -- cannot
-    use an index on `email`, so a lookup becomes a full scan.  And a query built
-    by string interpolation is textually different on every execution, so the
-    engine's plan cache never hits and every call re-parses and re-plans.
-  how_to_tell:
-    - >
-      Read the query text and name the specific structure that is expensive: a
-      missing join predicate, a deduplicating `UNION`, a function applied to an
-      indexed column, a `LIKE '%...'` that cannot use an index, a correlated
-      subquery per row.
-    - >
-      Establish it is expensive here, from the schema and the data. A Cartesian
-      product between two three-row tables is nine rows. Row counts and indexes
-      are what make this a finding, and they are facts about the database rather
-      than the code.
-    - >
-      For a parameterisation finding, establish the query text really does vary.
-      An f-string that interpolates a constant produces one distinct statement and
-      caches fine; one that interpolates an id produces a new statement per call.
-    - >
-      Name the repair and confirm it preserves the result: `UNION ALL` only when
-      the inputs are provably disjoint, a rewritten predicate only when it selects
-      the same rows including at the edges -- case, nulls, collation.
-    - >
-      Say how you would confirm it. `EXPLAIN` is the instrument for this root
-      cause, and a finding without it is a guess.
+  in_one_line: >
+    a query whose shape makes the engine do far more work than the answer needs
+  what_to_look_for: >
+    Some queries are expensive for the engine whatever the client does, and the
+    cost is paid entirely at the far end -- in CPU, in temporary storage, and in
+    energy on a machine this process is not measuring.  A missing join condition
+    produces a Cartesian product, so two ten-thousand-row tables become a
+    hundred million rows.  `UNION` sorts and deduplicates where `UNION ALL` does
+    not.  A predicate wrapped in a function -- `WHERE lower(email) = ?` --
+    cannot use an index on `email`, so a lookup becomes a full scan.  And a
+    query built by string interpolation is textually different on every
+    execution, so the plan cache never hits and every call re-parses and
+    re-plans.  Name the specific structure, then establish it is expensive
+    *here*, because row counts and indexes are facts about the database rather
+    than the code and a Cartesian product between two three-row tables is nine
+    rows.  Preserving the result is the hard part of each repair: `UNION ALL`
+    only when the inputs are provably disjoint, a rewritten predicate only when
+    it selects the same rows including at the edges of case, nulls and
+    collation.  `EXPLAIN` is the instrument for this root cause and a finding
+    without it is a guess -- the local energy meter cannot see any of this.
   not_a_smell_when:
     - >
       the tables are small enough that the structure's cost is irrelevant
@@ -600,19 +512,4 @@
     the query's measured execution time.  A finding here that quotes a local
     energy figure is quoting the wrong number -- and an honest report of a
     hundred-million-row Cartesian product needs no energy figure to be convincing.
-  discriminators:
-    - vs: C9.S2
-      rule: >
-        C9.S4 is about the *engine's* cost to execute the query.  C9.S2 is about
-        how much data comes back.  A query that returns three rows after scanning
-        ten million is C9.S4; one that returns ten million rows to use three is
-        C9.S2.
-    - vs: C9.S1
-      rule: >
-        C9.S4 is one query that is structurally expensive.  C9.S1 is many queries
-        that are individually cheap.
-    - vs: C7.S1
-      rule: >
-        The same idea in a different execution engine.  When the algorithmic
-        problem is in SQL the engine will execute, it is C9.S4; when it is in
-        Python, C7.S1.
+  similar: [C7.S1, C9.S1, C9.S2]

@@ -30,37 +30,30 @@
 
 - id: C11.S1
   signals: [lock_in_loop]
-  mechanism: >
-    An uncontended `threading.Lock` acquisition is cheap -- a few hundred
-    nanoseconds of atomic operations.  A contended one is not: the waiting thread
-    blocks on a futex, the operating system deschedules and later reschedules it,
-    and the work that could have proceeded in parallel is serialised instead.  The
-    energy cost has two parts, and the second is the one that matters.  Directly,
-    threads spin and context-switch while making no progress.  Indirectly, a lock
-    held across work that did not need protecting turns a parallel section into a
-    serial one while the process continues to pay for every thread's stack, its
-    scheduling, and its share of the GIL handoffs.  Narrowing the critical section
-    lets the unprotected work overlap again.
-  how_to_tell:
-    - >
-      Find the lock and read the critical section. Say what shared state it is
-      actually protecting -- name the variable or the structure.
-    - >
-      Identify work inside the section that touches nothing shared: a computation
-      on locals, a format, a log call, an I/O operation on a private handle. That
-      work is what the repair moves out.
-    - >
-      Establish there is real contention: more than one thread reaching this lock
-      concurrently, often enough to wait. A lock in single-threaded code costs its
-      uncontended acquisition and nothing else.
-    - >
-      Confirm narrowing preserves atomicity. Moving a read out of the section
-      creates a window where the value can change before it is used, and if the
-      code relies on read-then-write being indivisible, the repair is a race.
-    - >
-      Consider whether the lock is needed at all. A `queue.Queue`, a
-      `threading.local`, per-thread accumulators merged at the end, or an
-      immutable snapshot may remove the synchronisation instead of narrowing it.
+  in_one_line: >
+    a lock held across work that shares nothing, serialising what could overlap
+  what_to_look_for: >
+    An uncontended lock acquisition is cheap -- a few hundred nanoseconds of
+    atomic operations -- and a contended one is not: the waiting thread blocks
+    on a futex, the operating system deschedules and reschedules it, and work
+    that could have proceeded in parallel is serialised.  The energy cost has
+    two parts and the second is the one that matters.  Directly, threads
+    context-switch while making no progress.  Indirectly, a lock held across
+    work that needed no protection turns a parallel section into a serial one
+    while the process still pays for every thread's stack, its scheduling and
+    its share of the interpreter handoffs.  So read the critical section and
+    name the shared state it actually protects, then identify the work inside it
+    that touches nothing shared -- a computation on locals, a format, a log
+    call, I/O on a private handle.  That work is what moves out.  Contention is
+    the precondition and it is a fact about how the program runs rather than how
+    it is written: a lock in effectively single-threaded code costs its
+    uncontended acquisition and nothing else, and this project measured exactly
+    that, a narrowing repair reading **+0.2%** with no real contention present.
+    Narrowing must also preserve atomicity, because moving a read out of the
+    section opens a window where the value changes before it is used.  Ask too
+    whether the lock is needed at all: a `queue.Queue`, a `threading.local`, or
+    per-thread accumulators merged at the end remove the synchronisation instead
+    of narrowing it.
   not_a_smell_when:
     - >
       the whole section must be atomic, so narrowing it introduces a race
@@ -140,47 +133,31 @@
     Interpret a small effect cautiously here, and prefer to report the structural
     argument -- what was serialised and no longer is -- alongside whatever the
     meter says.
-  discriminators:
-    - vs: C11.S2
-      rule: >
-        C11.S1 is a lock held too broadly or acquired too often, and the repair
-        narrows or removes it.  C11.S2 is an *architecture* in which everything
-        must pass through one resource, and no amount of narrowing fixes it.  Ask
-        whether a smaller critical section would help.
-    - vs: C3.S3
-      rule: >
-        If the repair simply moves the acquisition out of a loop, the finding is
-        C3.S3 -- per-iteration setup that should be hoisted.
+  similar: [C3.S3, C11.S2]
 
 - id: C11.S2
-  mechanism: >
+  in_one_line: >
+    concurrency paid for in full while one shared resource serialises all of it
+  what_to_look_for: >
     Amdahl's law: if a fraction of the work must run serially, no number of
     workers reduces the total below that fraction.  A single shared resource --
-    one connection, one lock all workers acquire, one pipeline stage everything
-    passes through -- makes that fraction close to one, so the system is
-    effectively serial while still paying for concurrency in full: thread stacks,
-    process forks, pickling, scheduling, GIL handoffs, and the context switches of
-    workers waiting their turn.  That is the specific waste here.  The work would
-    have cost the same serially; the concurrency machinery is pure overhead on top.
-  how_to_tell:
-    - >
-      Identify the resource everything passes through: one connection, one lock,
-      one queue consumer, one file handle, one external service with a
-      concurrency limit of one.
-    - >
-      Establish that every worker needs it for a substantial share of its work. A
-      resource touched briefly at the start and end does not serialise the middle.
-    - >
-      Say what the serial fraction is, roughly, and what speed-up that bounds. If
-      most of the time is inside the shared resource, the concurrency is buying
-      nothing and the honest repair may be to remove it.
-    - >
-      Name the repair: a pool of the resource, a per-worker instance, sharding the
-      work so each worker owns a partition, or removing the concurrency entirely.
-    - >
-      Consider that removing the concurrency *is* a repair, and often the right
-      one. A serial program that does the same work without forking, pickling and
-      scheduling uses less energy than a parallel one that cannot parallelise.
+    one connection, one lock every worker acquires, one pipeline stage
+    everything passes through -- pushes that fraction towards one, so the system
+    is effectively serial while still paying for concurrency in full: thread
+    stacks, process forks, pickling, scheduling, interpreter handoffs, and the
+    context switches of workers waiting their turn.  The work would have cost
+    the same serially and the machinery is pure overhead on top.  So identify
+    the resource everything passes through, then establish that every worker
+    needs it for a *substantial share* of its time -- a resource touched briefly
+    at each end does not serialise the middle, and the ratio is what decides
+    this rather than the presence of sharing.  Say roughly what the serial
+    fraction is and what speed-up it bounds.  The repairs are a pool, a
+    per-worker instance, sharding so each worker owns a partition, or removing
+    the concurrency altogether -- and that last one is often right, because a
+    serial program that does the same work without forking, pickling and
+    scheduling uses less energy than a parallel one that cannot parallelise.
+    Some resources genuinely cannot be duplicated: a hardware device, a
+    single-writer file format, a service permitting one session.
   not_a_smell_when:
     - >
       the resource genuinely cannot be duplicated -- a hardware device, a
@@ -202,8 +179,7 @@
         Eight workers sharing one database connection through `store` looks like
         the shape -- and if the fetch dominates and the store is a fast local
         insert, the serial fraction is small and the pool is doing its job.
-        Whether this is a bottleneck depends on the ratio, which is the third
-        `how_to_tell` step.
+        Whether this is a bottleneck depends on that ratio, not on the sharing.
     - code: |
         writer_lock = threading.Lock()
 
@@ -262,53 +238,32 @@
     the case needs enough workers and enough per-task work for the serial fraction
     to bite; report energy and time separately, since removing pointless
     concurrency can cut energy substantially while barely moving wall time
-  discriminators:
-    - vs: C11.S1
-      rule: >
-        Ask whether a narrower critical section would help.  If yes, C11.S1.  If
-        the resource itself is the constraint however briefly it is held, C11.S2.
-    - vs: C11.S5
-      rule: >
-        Opposite directions.  C11.S5 is serial work that should be concurrent.
-        C11.S2 is nominally concurrent work that is serial in practice -- and its
-        repair is sometimes to become honestly serial.
-    - vs: C9.S1
-      rule: >
-        If the shared resource is external and the repair is to batch the
-        operations rather than to duplicate the resource, the finding is C9.S1.
+  similar: [C9.S1, C11.S1, C11.S5]
 
 - id: C11.S3
   signals: [unjoined_thread]
-  mechanism: >
-    A thread that is never stopped keeps its stack allocated -- eight megabytes of
-    virtual address space, and whatever it has actually touched resident -- for the
-    life of the process.  If it is doing anything at all, it also periodically
-    acquires the GIL, which every other thread must then wait for: a leaked poller
-    with a one-second sleep costs almost nothing, and a leaked busy-wait costs a
-    core.  Non-daemon threads additionally block interpreter shutdown, so the
-    process cannot exit.  The energy cost scales with how many accumulate, which
-    is why the serious form is a thread started per request or per iteration rather
-    than one forgotten at start-up.
-  how_to_tell:
-    - >
-      Find the `Thread(...)`, `Process(...)`, `create_task(...)` or pool
-      construction, and establish nothing stops it: no `join`, no `shutdown`, no
-      cancellation, no shutdown event it watches, and no context manager around
-      it.
-    - >
-      Say how many are created and how often. One at start-up is untidy; one per
-      request accumulates until the process dies.
-    - >
-      Say what the thread does while it lives. A blocking wait on a queue costs
-      memory only; a polling loop costs a GIL acquisition per poll; a busy-wait
-      costs a core continuously.
-    - >
-      Establish whether the lifetime is deliberate. A daemon thread meant to live
-      for the process, started once, is a design decision and not a leak -- and
-      `daemon=True` is the marker for it.
-    - >
-      Name the repair: a bounded pool reused across requests, `daemon=True` plus a
-      shutdown event, an `ExitStack`, or `asyncio.TaskGroup` for tasks.
+  in_one_line: >
+    workers started and never stopped, accumulating for the life of the process
+  what_to_look_for: >
+    A thread that is never stopped keeps its stack allocated -- eight megabytes
+    of virtual address space, and whatever it has touched resident -- for the
+    life of the process, and a non-daemon one additionally blocks interpreter
+    shutdown.  If it is doing anything at all it periodically acquires the
+    interpreter lock, which every other thread then waits for.  What the thread
+    *does* while it lives decides the size: a blocking wait on a queue costs
+    memory only, a polling loop costs a lock acquisition per poll, and a
+    busy-wait costs a core continuously.  So find a `Thread`, `Process`,
+    `create_task` or pool construction with nothing stopping it -- no `join`, no
+    `shutdown`, no cancellation, no shutdown event it watches, no context manager
+    around it -- and then ask how many are created and how often, because one at
+    start-up is untidy where one per request accumulates until the process dies.
+    A daemon thread started once for the process lifetime is a design decision
+    rather than a leak, and `daemon=True` is the marker; a `with
+    ThreadPoolExecutor(...)` shuts down on exit even with no `join` in sight.
+    Both are the commonest false positives here.  Expect the honest report to be
+    about the failure mode at scale rather than an energy figure: this project
+    measured a leaked-thread repair at **-0.1%**, because the harness cannot run
+    long enough for accumulation to cost anything.
   not_a_smell_when:
     - >
       the thread is a deliberate daemon started once for the process lifetime
@@ -398,49 +353,33 @@
     count: threads created per request, threads alive after N requests, and what
     each does while it lives.  `threading.active_count()` over a simulated load is
     more convincing here than an energy figure.
-  discriminators:
-    - vs: C6.S6
-      rule: >
-        The same failure applied to different resources.  C6.S6 is a file, socket
-        or connection not released; C11.S3 is a thread, process or task not
-        stopped.  Both are lifetime findings.
-    - vs: C11.S5
-      rule: >
-        C11.S5 adds concurrency that was missing.  C11.S3 is about concurrency that
-        was added and never cleaned up -- and a finding of C11.S5 that ignores
-        shutdown creates a C11.S3.
+  similar: [C6.S6, C11.S5]
 
 - id: C11.S4
   signals: [blocking_call_in_async]
-  mechanism: >
-    An event loop runs one coroutine at a time and switches only at an `await`.
-    A synchronous blocking call inside a coroutine therefore stops the entire
-    loop: every other task -- including ones with nothing to do but wait for I/O
-    that has already completed -- makes no progress until it returns.  The energy
-    cost is distinctive and it is the clearest divergence between energy and time
-    in the taxonomy: the core stays occupied doing nothing useful, so the process
-    draws power while the work that could have overlapped does not.  A
-    `time.sleep(5)` in a coroutine burns five seconds of a busy loop where
-    `await asyncio.sleep(5)` yields and lets everything else run.
-  how_to_tell:
-    - >
-      Establish the function is a coroutine or runs on the event loop -- `async
-      def`, or a callback scheduled on it.
-    - >
-      Find the blocking call: `time.sleep`, `requests.get`, `open`/`read`/`write`,
-      a synchronous database driver, `subprocess.run`, or a CPU-bound loop with no
-      `await` in it.
-    - >
-      Establish it blocks for long enough to matter. A microsecond of computation
-      between awaits is fine; the loop is not a real-time system. Milliseconds of
-      I/O is the finding.
-    - >
-      Name the repair: the async equivalent (`asyncio.sleep`, `httpx.AsyncClient`,
-      `aiofiles`), or `run_in_executor` for a synchronous library with no async
-      version, or a process pool for CPU-bound work.
-    - >
-      For a UI thread rather than an event loop, the same reasoning applies with
-      the main thread in place of the loop, and the symptom is a frozen interface.
+  in_one_line: >
+    a synchronous blocking call inside a coroutine, stopping every other task
+  what_to_look_for: >
+    An event loop runs one coroutine at a time and switches only at an `await`,
+    so a synchronous blocking call inside one stops the whole loop: every other
+    task makes no progress until it returns, including tasks whose I/O has
+    already completed.  The energy cost is the clearest divergence between
+    energy and time in this taxonomy, because the core stays occupied doing
+    nothing useful and the process draws power while the work that could have
+    overlapped does not -- `time.sleep(5)` in a coroutine burns five seconds of
+    a busy loop where `await asyncio.sleep(5)` yields.  This project measured the
+    repair at **+98.8%**.  The first thing to establish is that the enclosing
+    function actually runs on the loop, because looking for blocking calls
+    without checking for `async def` first implicates every file read in the
+    codebase.  Then find the call -- `time.sleep`, a synchronous HTTP client, a
+    synchronous database driver, `subprocess.run`, plain `open`/`read`, or a
+    CPU-bound loop with no `await` in it -- and establish it blocks long enough
+    to matter, since microseconds of computation between awaits are fine and
+    milliseconds of I/O are the finding.  The repair is the async equivalent, or
+    `run_in_executor` for a synchronous library with no async version, or a
+    process pool for CPU-bound work; where none exists the finding is real and
+    blocked.  For a UI thread the same reasoning applies with the main thread in
+    place of the loop, and the symptom is a frozen interface.
   not_a_smell_when:
     - >
       the call is genuinely fast, so blocking for microseconds is cheaper than a
@@ -469,9 +408,9 @@
                 return json.load(handle)
       why: >
         Blocking file I/O, and not a coroutine -- an ordinary synchronous function.
-        The first `how_to_tell` step exists because looking for blocking
-        calls without first checking whether the enclosing function is `async`
-        implicates every file read in the codebase.
+        Establishing that the enclosing function is a coroutine comes first for
+        exactly this reason: without it, every file read in the codebase looks
+        like a finding.
   refactoring:
     summary: await the async equivalent, or move the blocking work off the loop
     examples:
@@ -524,58 +463,32 @@
     with little energy change if the loop was mostly idle.  Report both numbers and
     say which one moved; the divergence is the interesting finding, not a
     complication.
-  discriminators:
-    - vs: C11.S5
-      rule: >
-        C11.S4 is work blocking a thread that must stay responsive.  C11.S5 is
-        independent work not overlapped at all.  A serial loop of blocking calls in
-        a coroutine is both; report whichever the repair matches and subsume the
-        other.
-    - vs: C11.S1
-      rule: >
-        C11.S1 is a lock serialising threads.  C11.S4 is a blocking call
-        serialising coroutines on one thread.  No lock is involved.
-    - vs: C9.S1
-      rule: >
-        If the repair batches the external calls rather than overlapping them, the
-        finding is C9.S1.
+  similar: [C9.S1, C11.S5]
 
 - id: C11.S5
-  mechanism: >
+  in_one_line: >
+    independent work run one item at a time when the waits could have overlapped
+  what_to_look_for: >
     Independent work run serially takes the sum of its parts where concurrency
-    could take the maximum.  Whether that lowers *energy* rather than only time
-    depends entirely on what the work is waiting for.  For I/O-bound work the
+    takes the maximum.  Whether that lowers *energy* rather than only time
+    depends entirely on what the work waits for, and this is the one root cause
+    where the two can move in opposite directions.  For I/O-bound work the
     process is idle during each wait, so overlapping the waits removes idle time
-    the machine was paying for anyway -- energy falls with time.  For CPU-bound
-    work there is no idle to reclaim: eight cores at load draw more than one core
-    at load, and the total energy is roughly unchanged or worse while wall time
-    falls.  And two Python-specific costs cut against it in both cases: the GIL
-    means threads do not parallelise CPU work at all, and processes pay a fork
-    plus pickling of every argument and every result.
-  how_to_tell:
-    - >
-      Establish the work items are genuinely independent: no shared mutable state,
-      no ordering requirement, no dependency between one result and the next
-      input.
-    - >
-      Classify the work as I/O-bound or CPU-bound, and say which. This decides
-      both the mechanism and the tool, and getting it wrong produces a repair that
-      cannot help: threads for CPU-bound Python work gain nothing because of the
-      GIL.
-    - >
-      Estimate the bytes transferred per task against the work per task. For a
-      process pool every argument and every result is pickled both ways, so a
-      task that receives a large structure and computes for microseconds is
-      dominated by transfer.
-    - >
-      Say what you expect to happen to energy *and* to time, separately, before
-      measuring. For I/O-bound work expect both to fall; for CPU-bound expect time
-      to fall and energy to be flat or worse. A repair that only improves time is
-      still worth reporting, labelled honestly.
-    - >
-      Account for what concurrency costs even when it works: pool creation,
-      scheduling, and a shutdown path that must exist or you have created a
-      C11.S3.
+    the machine was paying for anyway and energy falls with time -- measured here
+    at **+86.4%**.  For CPU-bound work there is no idle to reclaim: eight cores
+    at load draw more than one core at load, so wall time falls while total
+    energy is flat or worse.  Say which of the two you have before proposing
+    anything, and say what you expect to happen to energy and to time
+    separately; a repair that improves only time is still worth reporting,
+    labelled honestly.  Two Python-specific costs cut against the repair.
+    Threads do not parallelise CPU-bound Python work at all.  And a process pool
+    pickles every argument and every result both ways, so a task that receives a
+    large structure and computes for microseconds is dominated by transfer --
+    this project's own sample sent a 500x500 matrix to every task to do one row
+    of work, and the pickling swamped everything.  Independence is the
+    precondition: no shared mutable state, no ordering requirement, no dependency
+    between one result and the next input.  And whatever you start needs a
+    shutdown path, or the repair has created a leak.
   not_a_smell_when:
     - >
       the items are not independent -- shared state, required ordering, a
@@ -624,7 +537,7 @@
       why: >
         Independent-looking and strictly ordered: migration N assumes N-1 has run.
         Nothing in the loop says so. Independence is a fact about the domain, and
-        this is the reason step 1 asks you to establish it rather than observe it.
+        independence has to be established rather than observed.
   refactoring:
     summary: run the independent work concurrently, with the tool the work's nature requires
     examples:
@@ -669,33 +582,12 @@
   notes: >
     The card most likely to produce a *regression* if applied by reflex, and the
     sample corpus contains one: a matrix multiply parallelised per row with the
-    whole right-hand matrix pickled to every task.  Two questions prevent it, and
-    both are in `how_to_tell` -- is this CPU-bound or I/O-bound, and how many bytes
-    move per unit of work.
+    whole right-hand matrix pickled to every task.  Two questions prevent it --
+    is this CPU-bound or I/O-bound, and how many bytes move per unit of work.
 
     Also note the honest reporting requirement.  For CPU-bound work the expected
     outcome is that wall time falls and energy does not, and reporting that
     faithfully is more valuable than finding a saving: it is direct evidence for
     the claim that energy is not time, which is one of the things this taxonomy
     exists to test.
-  discriminators:
-    - vs: C11.S2
-      rule: >
-        Opposite directions, and worth checking before proposing either.  C11.S5
-        adds concurrency; C11.S2 is concurrency already added that cannot help
-        because everything funnels through one resource.  Adding workers to a
-        C11.S2 system makes it worse.
-    - vs: C11.S4
-      rule: >
-        C11.S4 is a blocking call preventing overlap on a thread that must stay
-        responsive.  C11.S5 is work never arranged to overlap at all.
-    - vs: C10.S3
-      rule: >
-        Check this one first for numeric work.  A vectorised call is usually faster
-        than a process pool and has no transfer or fork cost, so C10.S3 is the
-        better repair whenever it is available -- which for array arithmetic it
-        almost always is.
-    - vs: C11.S3
-      rule: >
-        A C11.S5 repair that starts workers without a shutdown path has introduced
-        C11.S3.  Every finding here must say how the pool stops.
+  similar: [C9.S1, C10.S3, C11.S2, C11.S3, C11.S4]

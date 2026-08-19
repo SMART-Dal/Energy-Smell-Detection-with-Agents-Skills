@@ -1,15 +1,14 @@
 # C8 -- Missing Reuse
 #
 # The taxonomy's own dividing line: C8 spans *across calls or access sites*,
-# while C1 stays within a single scope. Every discriminator here leans on that,
-# and the practical test is what the repair introduces -- a local binding fixes
-# a C1 problem; something that outlives the call fixes a C8 one.
+# while C1 stays within a single scope. The practical test is what the repair
+# introduces -- a local binding fixes a C1 problem; something that outlives the
+# call fixes a C8 one.
 #
 # All four share a shape and therefore share a hazard: the repair stores
 # something, and anything stored has a lifetime. A cache that fixes the cost and
 # grows without bound has traded a measurable saving for an unmeasurable leak,
-# which is why every card here has a step about the key space and a discriminator
-# against C6.S4.
+# which is why every card here says what bounds the thing it adds.
 #
 # The four split by what is being reused:
 #
@@ -20,38 +19,28 @@
 
 - id: C8.S1
   signals: [recursion_without_memo, ruff_B019]
-  mechanism: >
-    Memoisation replaces a computation with a dict probe.  Whether that is a
+  in_one_line: >
+    a deterministic computation repeated across calls that a cache would answer
+  what_to_look_for: >
+    Memoisation replaces a computation with a dict probe, and whether that is a
     saving depends on one ratio: how many distinct inputs there are against how
-    many calls.  A million calls over five hundred distinct values means the
-    function runs five hundred times instead of a million, and the other 999 500
-    calls become hash lookups -- which is where the 95% figures in this project's
-    measurements come from.  A million calls over a million distinct values means
-    a million computations plus a million dict insertions, which is strictly
-    worse, plus a table holding every result for the rest of the process.  The
-    key space against the call count is the whole finding.
-  how_to_tell:
-    - >
-      Establish the function is deterministic: same arguments, same result, no
-      dependence on a clock, a random source, a file, or mutable global state.
-    - >
-      Establish it is free of side effects. A memoised function that writes,
-      logs or increments something stops doing so on a hit.
-    - >
-      Say the ratio -- roughly how many distinct argument values against how many
-      calls -- and say how you know. This is the step that decides whether the
-      repair is a saving or a regression, and it is a fact about the data rather
-      than the code.
-    - >
-      Confirm the arguments are hashable, and think about the key. `(x, y)` and
-      `(y, x)` are different keys for a symmetric function, and normalising them
-      to `(min, max)` can double the hit rate for free.
-    - >
-      Say what the cache's lifetime and bound will be. `functools.cache` is
-      unbounded; on a small integer key space that is correct, and on
-      user-supplied strings it is a leak. Choose `lru_cache(maxsize=...)` when the
-      key space is open, and never `@cache` on a method -- it keys on `self` and
-      keeps every instance alive.
+    many calls.  A million calls over five hundred distinct values runs the
+    function five hundred times and turns the other 999 500 into hash lookups,
+    which is where this project's 95% measurements come from.  A million calls
+    over a million distinct values is a million computations *plus* a million
+    dict insertions, which is strictly worse, plus a table holding every result
+    for the rest of the process.  So the key space against the call count is the
+    whole finding, it is a fact about the data rather than the code, and it has
+    to be stated.  Two preconditions: the function must be deterministic -- no
+    clock, no random source, no file, no mutable global -- and free of side
+    effects, because a memoised function that writes, logs or increments
+    something stops doing so on a hit.  Think about the key as well as the
+    ratio: `(x, y)` and `(y, x)` are different keys for a symmetric function,
+    and normalising to `(min, max)` can double the hit rate for nothing.  Then
+    bound the cache.  `functools.cache` is unbounded, which is correct on a
+    small integer key space and a leak on user-supplied strings; use
+    `lru_cache(maxsize=...)` when the key space is open, and never `@cache` on a
+    method, since it keys on `self` and keeps every instance alive.
   not_a_smell_when:
     - >
       the function is not deterministic -- it reads a clock, a random source, a
@@ -171,60 +160,32 @@
     the driver must call the unit many times with *repeating* arguments at a ratio
     you can defend; a driver with all-distinct arguments measures the regression
     rather than the saving, and is measuring the wrong thing
-  discriminators:
-    - vs: C1.S4
-      rule: >
-        The line that defines this whole category.  C1.S4 is the same computation
-        twice *in one scope*, repaired with a local.  C8.S1 is the same computation
-        across calls, repaired with something that outlives the call.  If a local
-        fixes it, it is C1.S4.
-    - vs: C5.S2
-      rule: >
-        C8.S1 stores *the result of a computation*.  C5.S2 indexes *data already in
-        hand*, and the index lives for one invocation.  If the stored thing had to
-        be computed rather than merely located, it is C8.S1.
-    - vs: C7.S2
-      rule: >
-        C7.S2 memoises *subproblems within one search*, and the memo usually dies
-        with the call.  C8.S1 caches across unrelated callers.  Ask whether the
-        cache would still help if the function were called only once.
-    - vs: C6.S4
-      rule: >
-        These point in opposite directions and both can be right about one cache.
-        C8.S1 says store more so work is not repeated; C6.S4 says store less so
-        memory is not held.  When you add a cache, say what bounds it.
+  similar: [C1.S4, C5.S2, C6.S4, C7.S2]
 
 - id: C8.S2
   signals: [regex_in_loop]
-  mechanism: >
-    Some artefacts are expensive to derive and cheap to reuse: a compiled regular
-    expression, a parsed configuration file, a prepared SQL statement, a loaded
-    template, a `struct.Struct`.  Deriving one per use pays the compilation or the
-    parse every time; deriving it once and binding it at module or instance scope
-    pays once for the process.  Unlike memoisation there is no key space to worry
-    about, because there is exactly one artefact -- which makes this the safest
-    repair in the category and the one with the fewest exceptions.  The cost saved
-    is the derivation, which for a regex is a parse and a state-machine build, and
-    for a config file is a syscall plus a parse.
-  how_to_tell:
-    - >
-      Point at the derivation and say what it produces: a compiled pattern, a
-      parsed document, a prepared statement, a formatter.
-    - >
-      Establish the inputs to the derivation are constant. A pattern built from a
-      literal is hoistable; one built from an argument is not.
-    - >
-      Establish the artefact is safe to share. A compiled pattern is immutable and
-      thread-safe; a database cursor is not, and a parsed config that callers
-      mutate becomes shared mutable state.
-    - >
-      Decide where it goes -- module scope, a class attribute, or an instance
-      attribute -- and say why. Module scope costs the derivation at import time,
-      which is wrong if the path may never run.
-    - >
-      Check the standard library is not already doing this. `re` caches compiled
-      patterns internally, so the saving for a regex is the cache probe and the
-      call rather than the compilation, which is smaller than it looks.
+  in_one_line: >
+    an expensive artefact derived again on every use instead of once for the
+    process
+  what_to_look_for: >
+    Some artefacts are expensive to derive and cheap to reuse: a compiled
+    regular expression, a parsed configuration file, a prepared SQL statement, a
+    loaded template, a `struct.Struct`.  Deriving one per use pays the
+    compilation or the parse every time; deriving it once and binding it at
+    module or instance scope pays once for the process.  Unlike memoisation
+    there is no key space to worry about because there is exactly one artefact,
+    which makes this the safest repair in the category and the one with the
+    fewest exceptions.  The precondition is that the derivation's inputs are
+    constant -- a pattern built from a literal hoists, one built from an
+    argument does not.  Then check the artefact is safe to share: a compiled
+    pattern is immutable and thread-safe, a database cursor is not, and a parsed
+    config that callers mutate becomes shared mutable state.  Where it goes
+    matters and should be justified, since module scope pays the derivation at
+    import time, which is wrong when the path may never run and wrong again when
+    the source can change under the process.  Check the library is not already
+    doing this: `re` caches compiled patterns internally, so the saving there is
+    the cache probe and the call rather than the compilation, which is smaller
+    than it looks.
   not_a_smell_when:
     - >
       the derivation depends on runtime values, so there is nothing constant to
@@ -317,54 +278,31 @@
   min_workload_hint: >
     many calls over small inputs; the saving is one derivation per call avoided,
     so a case that calls the unit once measures nothing whatever the input size
-  discriminators:
-    - vs: C3.S3
-      rule: >
-        Same repair, different destination, and that is the whole distinction.
-        Above the loop, so it is re-derived on the next call: C3.S3.  At module or
-        instance scope, so it survives across calls: C8.S2.
-    - vs: C8.S1
-      rule: >
-        C8.S2 derives *one* artefact from constants.  C8.S1 caches *many* results
-        keyed on varying arguments.  If the repair needs a dict, it is C8.S1.
-    - vs: C10.S2
-      rule: >
-        Replacing `re.match(r"^abc", s)` with a precompiled pattern is C8.S2 --
-        the repair is reuse.  Replacing it with `s.startswith("abc")` is C10.S2 --
-        the repair is a cheaper operation.  Ask whether the repair stores
-        something or swaps something.
+  similar: [C3.S3, C8.S1, C10.S2]
 
 - id: C8.S3
   signals: [repeated_lookup_in_loop]
-  mechanism: >
-    Resolving a name is not free, and the cost depends on where it lives.  A local
-    is an array index.  A global is a dict probe in the module namespace, with a
-    second probe into builtins on a miss.  Each dot in an attribute chain is a
-    `__dict__` lookup on the instance, then on the type and its bases, and
-    possibly a descriptor invocation on top.  So `self.config.limits.batch` inside
-    a loop is three lookups plus whatever the descriptors do, per iteration, for a
-    value that never changes.  Binding it to a local before the loop makes every
-    later read a single array index.  Each saved lookup is a few tens of
-    nanoseconds, so this needs a genuinely hot region.
-  how_to_tell:
-    - >
-      Point at the chain or the name and count the resolutions per iteration: one
-      per dot, plus one for the base.
-    - >
-      Establish nothing in the loop can rebind any link in the chain, including
-      through any function the loop calls. A method that reassigns
-      `self.config` invalidates the binding.
-    - >
-      Check for a property or a descriptor in the chain. If one link computes, the
-      saving is much larger than a dict lookup -- and the semantics may differ,
-      because the property was being re-evaluated on purpose.
-    - >
-      Say how many iterations. A three-link chain resolved a thousand times is
-      microseconds; the same chain resolved ten million times is worth doing.
-    - >
-      Check the local alias reads clearly. `batch = self.config.limits.batch` is
-      fine; aliasing four things into cryptic names to save a loop is a net loss
-      outside genuinely critical code.
+  in_one_line: >
+    a name or attribute chain re-resolved every iteration for a value that never
+    moves
+  what_to_look_for: >
+    Resolving a name is not free, and the cost depends on where it lives.  A
+    local is an array index.  A global is a dict probe in the module namespace,
+    with a second probe into builtins on a miss.  Each dot in an attribute chain
+    is a `__dict__` lookup on the instance, then on the type and its bases, and
+    possibly a descriptor invocation on top.  So `self.config.limits.batch`
+    inside a loop is three lookups per iteration plus whatever the descriptors
+    do, for a value that never changes, where a local bound before the loop
+    makes every later read a single array index.  Count the resolutions -- one
+    per dot, plus one for the base -- and multiply by the iterations, because
+    each saved lookup is a few tens of nanoseconds and this needs a genuinely
+    hot region.  The precondition is that nothing in the loop can rebind any
+    link in the chain, including through a function the loop calls.  Look for a
+    property or a descriptor in the chain: if a link computes, the saving is
+    much larger than a dict lookup, and the semantics may differ because the
+    recomputation was deliberate.  Weigh the readability, too -- one clearly
+    named alias is fine, and aliasing four things into cryptic names to save a
+    loop is a net loss outside genuinely critical code.
   not_a_smell_when:
     - >
       a link in the chain can be rebound during the loop, directly or by a callee
@@ -446,55 +384,31 @@
   min_workload_hint: >
     hundreds of thousands of iterations at least; each saved lookup is tens of
     nanoseconds, so below that report it as advisory
-  discriminators:
-    - vs: C10.S5
-      rule: >
-        C8.S3 is an *attribute chain* whose cost is repeated `__dict__` lookups and
-        possibly the descriptor protocol.  C10.S5 is a *global or builtin* whose
-        cost is a namespace probe.  Same repair shape, different thing being
-        resolved.
-    - vs: C3.S2
-      rule: >
-        C3.S2 hoists a *computation* whose result is invariant.  C8.S3 hoists a
-        *resolution* -- nothing was being computed, only looked up.
-    - vs: C2.S1
-      rule: >
-        If the chain ends in a call to a wrapper that forwards, the larger finding
-        is C2.S1 -- remove the layer rather than caching the path to it.
+  similar: [C2.S1, C3.S2, C10.S5]
 
 - id: C8.S4
   signals: [io_call_in_loop]
-  mechanism: >
-    An external fetch costs orders of magnitude more than anything in the process:
-    a filesystem read is a syscall and possibly a disk seek, a database query adds
-    parsing, planning and a round trip, and a network call adds latency measured in
-    milliseconds.  Repeating one for data that has not changed pays all of that
-    again for a value already in memory.  The energy is spent in three places at
-    once -- the local CPU serialising and waiting, the network interface, and the
-    remote system doing the work again -- which is why this category has the
-    largest per-instance effects in the taxonomy and the least need for a large
-    input to demonstrate them.
-  how_to_tell:
-    - >
-      Point at the fetch and establish the same data is retrieved more than once:
-      the same query, the same file, the same endpoint with the same parameters.
-    - >
-      Establish how often the source actually changes. This is the load-bearing
-      step and it is not a fact about the code: a config that changes on restart
-      can be cached for the process, one that changes per minute needs a TTL, one
-      that changes per write cannot be cached without invalidation.
-    - >
-      Say what staleness would cost. Caching is a correctness decision as much as
-      a performance one, and "how wrong can this be before someone notices" is the
-      question the repair turns on.
-    - >
-      Choose the lifetime and say why: per request, per process, a TTL, or
-      invalidated on write. "Cache it" is not a repair; "cache it for the life of
-      the request" is.
-    - >
-      Check the fetch is not already cached a layer down -- by the ORM's identity
-      map, an HTTP cache header, or the operating system's page cache. If it is,
-      the saving is much smaller than the round trip suggests.
+  in_one_line: >
+    the same external data fetched again when the copy in memory was still good
+  what_to_look_for: >
+    An external fetch costs orders of magnitude more than anything inside the
+    process: a filesystem read is a syscall and possibly a seek, a database
+    query adds parsing, planning and a round trip, and a network call adds
+    latency measured in milliseconds.  Repeating one for data that has not
+    changed pays all of it again for a value already in memory, and the energy
+    is spent in three places at once -- the local CPU serialising and waiting,
+    the network interface, and the remote system doing the work again -- which
+    gives this the largest per-instance effects in the taxonomy and the least
+    need for a large input to show them.  Establishing the repetition is the
+    easy half.  The load-bearing half is how often the source actually changes,
+    which is not a fact about the code: a config that changes on restart can be
+    cached for the process, one that changes per minute needs a TTL, one that
+    changes per write cannot be cached without invalidation.  So caching is a
+    correctness decision as much as a performance one, and "cache it" is not a
+    repair where "cache it for the life of the request" is.  Check the fetch is
+    not already cached a layer down -- an ORM identity map, an HTTP cache
+    header, the operating system's page cache -- because if it is, the saving is
+    much smaller than the round trip suggests.
   not_a_smell_when:
     - >
       the data changes between the fetches, so reuse would serve something stale
@@ -586,24 +500,4 @@
     to stub at a cost you can justify from an observed latency and to state that
     figure in the finding, or to report the round trips avoided as a count rather
     than as an energy figure.
-  discriminators:
-    - vs: C9.S1
-      rule: >
-        C8.S4 is the *same* data fetched more than once, and the repair reuses it.
-        C9.S1 is *different* data fetched in many small calls, and the repair
-        batches them.  Ask whether the repair removes fetches or merges them.
-    - vs: C9.S3
-      rule: >
-        C9.S3 is one query per row for *different* rows -- the N+1 pattern -- and
-        the repair joins them.  C8.S4 is the same query repeated.  Read the
-        parameters: identical means C8.S4, varying means C9.S3.
-    - vs: C8.S1
-      rule: >
-        C8.S1 caches a *computation*.  C8.S4 caches a *retrieval*.  The difference
-        matters because a retrieval can go stale and a pure computation cannot,
-        which is why C8.S4 needs an invalidation rule and C8.S1 does not.
-    - vs: C3.S2
-      rule: >
-        When the repair is simply hoisting the fetch above a loop, both fit.
-        Prefer C8.S4 to record that the hoisted work crossed a process boundary,
-        which is where the cost was.
+  similar: [C6.S4, C8.S1, C9.S1, C9.S3]

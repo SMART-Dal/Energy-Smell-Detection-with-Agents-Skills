@@ -18,37 +18,25 @@
 
 - id: C3.S1
   signals: [index_based_iteration, append_only_loop, ruff_PERF401, ruff_PERF403, ruff_PERF102]
-  mechanism: >
-    Iteration forms differ in how much interpreter work they do per element.
-    `for i in range(len(xs))` with `xs[i]` builds an index object, does a
-    bounds-checked subscript and rebinds a name each time; `for x in xs` asks the
-    iterator for the next pointer.  A comprehension goes further: it uses a
-    dedicated `LIST_APPEND` bytecode with no attribute lookup and no call, where
-    an explicit `.append()` loop resolves the method on every iteration.  None of
-    this changes what the loop computes; it changes how much ceremony surrounds
-    each element, which is why the effect is a per-element constant factor rather
-    than a complexity change.
-  how_to_tell:
-    - >
-      Name the construct and the alternative, and say what work the alternative
-      stops doing -- an index object not built, an attribute not resolved, a
-      subscript not bounds-checked.
-    - >
-      Check the index is genuinely unused. `for i in range(len(xs))` is only
-      replaceable by `for x in xs` if `i` is used for nothing but `xs[i]`; if it
-      is also used to index a second list, `zip` is the repair, and if it is used
-      arithmetically, `enumerate` is.
-    - >
-      For an `append` loop becoming a comprehension, establish the body does
-      nothing else. A `continue`, a side effect, an early `break`, or two
-      appends to different lists all block the repair.
-    - >
-      Establish the result type is unchanged. A slice returns the input's type
-      where a comprehension always returns a list, and `map` returns an iterator
-      rather than a list.
-    - >
-      Count the elements. This is a per-element constant factor of tens of
-      nanoseconds, so it needs thousands before it is measurable.
+  in_one_line: >
+    a loop written in a form that does more interpreter work per element than it
+    needs to
+  what_to_look_for: >
+    Iteration forms differ in how much ceremony surrounds each element.  `for i
+    in range(len(xs))` with `xs[i]` builds an index object, does a
+    bounds-checked subscript and rebinds a name each pass, where `for x in xs`
+    asks the iterator for the next pointer.  A comprehension goes further,
+    using a dedicated append bytecode with no attribute lookup and no call,
+    where an explicit `.append()` loop resolves the method every iteration.
+    None of this changes what the loop computes, so the effect is a per-element
+    constant factor of tens of nanoseconds and needs thousands of elements
+    before it is visible.  Two things decide most candidates.  What the index is
+    used for: `zip` is the repair when it walks a second sequence and
+    `enumerate` when it is used arithmetically, and neither is obviously an
+    improvement when both are needed.  And what else the body does: a
+    `continue`, a `break`, a side effect or a second append all block a
+    comprehension.  Watch the result type too, since a slice returns the input's
+    type and a comprehension always returns a list.
   not_a_smell_when:
     - >
       the index is needed for something other than the subscript, so the direct
@@ -141,50 +129,28 @@
     pipeline consumed once by `sum`, because generator resumption costs more per
     element than the allocation saves at that size.  Neither construct is
     categorically better; see C10.S2 and C6.S3.
-  discriminators:
-    - vs: C10.S3
-      rule: >
-        Turning an `append` loop into a comprehension fits both.  C3.S1 frames it
-        as the *iteration construct* being wrong; C10.S3 frames it as a
-        *per-element call* that should be batched.  Pick one, say which, and do
-        not report both.
-    - vs: C10.S1
-      rule: >
-        C3.S1 keeps a loop and changes how it is written.  C10.S1 removes the
-        loop entirely in favour of a primitive that returns the answer.
-    - vs: C3.S2
-      rule: >
-        C3.S1 is about the loop's *form*.  C3.S2 is about a *computation in the
-        body* that did not need repeating.
+  similar: [C3.S2, C10.S1, C10.S3]
 
 - id: C3.S2
   signals: [loop_invariant_expression]
-  mechanism: >
+  in_one_line: >
+    an expression recomputed every iteration whose answer never changes
+  what_to_look_for: >
     An expression whose operands do not change inside the loop produces the same
-    value every iteration, so the loop pays N times for one answer.  The repair
-    computes it once above the loop and reads a local afterwards.  What makes
-    this worth more than it looks is that the invariant is often not a cheap
-    expression: a `len()` in a `while` condition, an attribute chain, a
-    dictionary lookup, a call that builds a set.  The saving is (N-1) times
-    whatever that expression costs, so a heavy invariant in a long loop is one of
-    the larger effects available.
-  how_to_tell:
-    - >
-      Point at the expression and name every operand it reads.
-    - >
-      Establish that none of those operands is rebound or mutated inside the
-      loop, including by any function the loop calls. This is where candidates
-      die: a method call on an object the loop also mutates is not invariant.
-    - >
-      Establish the expression is pure. A call that logs, increments a counter,
-      or advances an iterator must run each time even if its value never changes.
-    - >
-      Check it is actually evaluated per iteration. A `for` loop's iterable is
-      evaluated exactly once when the loop starts, so `for i in range(len(xs))`
-      does *not* recompute `len(xs)` -- but `while i < len(xs)` does.
-    - >
-      Say what the expression costs and how many iterations there are. Hoisting
-      an attribute read from a ten-iteration loop is not a finding.
+    value every pass, so the loop pays N times for one answer and the repair
+    computes it once above.  The saving is (N-1) times whatever that expression
+    costs, which makes a heavy invariant in a long loop one of the larger
+    effects available -- and invariants are often not cheap: a `len()` in a
+    `while` condition, an attribute chain, a dictionary lookup, a call that
+    builds a set.  Most candidates die on one of two checks.  Whether the
+    operands really are stable: a method call on an object the loop also mutates
+    is not invariant, and a `while position < len(queue)` over a queue the body
+    appends to is the algorithm rather than a mistake.  And whether the
+    expression is evaluated per iteration at all -- a `for` loop evaluates its
+    iterable exactly once before the first pass, so `for i in range(len(xs))`
+    does not recompute `len(xs)`, which is the commonest false positive here.
+    Purity matters too, since a call that logs or advances an iterator must run
+    each time however constant its value.
   not_a_smell_when:
     - >
       an operand is rebound or mutated inside the loop, directly or through a
@@ -221,7 +187,7 @@
         `len(values)` appears inside the loop statement, but a `for` loop
         evaluates its iterable exactly once before the first iteration. Nothing
         is recomputed. This is the commonest false positive for the rule, and it
-        is why `how_to_tell` has a step about it.
+        is the one thing always worth checking before hoisting anything.
   refactoring:
     summary: hoist the invariant expression to just above the loop
     examples:
@@ -289,55 +255,29 @@
   min_workload_hint: >
     the saving is (iterations - 1) times the expression's own cost, so size the
     case on both -- a heavy invariant needs fewer iterations to show
-  discriminators:
-    - vs: C3.S3
-      rule: >
-        Both hoist something out of a loop, and the split is what kind of thing.
-        C3.S2 hoists a *computed value* that turns out to be constant.  C3.S3
-        hoists the *creation of an object or resource* -- a compiled pattern, a
-        connection, a container -- where the point is the allocation rather than
-        the arithmetic.
-    - vs: C8.S2
-      rule: >
-        C3.S2 hoists to just above the loop, so the value is recomputed on the
-        next call.  C8.S2 hoists to module or instance scope so it survives
-        *across* calls.  Ask where the repair puts it.
-    - vs: C1.S4
-      rule: >
-        C1.S4 is the same computation done twice in straight-line code.  C3.S2 is
-        the same computation done N times because it sits in a loop.
+  similar: [C1.S4, C3.S3, C8.S2]
 
 - id: C3.S3
   signals: [construction_in_loop, regex_in_loop, try_except_in_loop]
-  mechanism: >
-    Creating an object costs an allocation, an `__init__`, and eventually a
-    collection; creating an expensive one -- a compiled regular expression, a
-    connection, a `Decimal` context, a lambda -- costs considerably more.  Doing
-    it inside a loop pays that per iteration for something the loop could have
-    shared.  For resources it is worse than arithmetic waste: opening a file or a
-    connection per iteration adds a syscall and a handshake to every pass, and
-    can exhaust a pool.  The repair moves the creation above the loop, which is
-    available exactly when the object does not carry per-iteration state.
-  how_to_tell:
-    - >
-      Point at the creation inside the loop: a literal container, a class
-      instantiation, `re.compile`, `open`, a lambda or a nested `def`, a
-      `Decimal` or `datetime` format object.
-    - >
-      Establish that it does not depend on the loop variable. A `re.compile` on a
-      fixed pattern is hoistable; one built from the current row is not.
-    - >
-      Establish that the object carries no state across the iteration boundary
-      that must be fresh. A list accumulated into and then reset each iteration
-      can be hoisted *and cleared*; one that is stored or returned cannot,
-      because every iteration would share the same object.
-    - >
-      For a resource, establish the lifetime is safe to extend. One connection
-      held across the whole loop is usually right, but not if the loop is long
-      enough for a timeout, or if the resource is not reentrant.
-    - >
-      Say what the creation costs and how many iterations. A bare `[]` per
-      iteration is cheap; `re.compile` is not.
+  in_one_line: >
+    an object or resource created once per iteration that the whole loop could
+    share
+  what_to_look_for: >
+    Creating an object costs an allocation, an `__init__` and eventually a
+    collection; creating an expensive one -- a compiled pattern, a connection, a
+    `Decimal` context, a lambda -- costs considerably more, and doing it inside
+    a loop pays that per iteration for something the loop could have shared.
+    For resources it is worse than arithmetic waste: opening a file or a
+    connection per pass adds a syscall and a handshake to every iteration and
+    can exhaust a pool, so those are worth far more than the allocation count
+    suggests.  The repair is available exactly when the object carries no
+    per-iteration state.  Two things block it.  Dependence on the loop variable
+    -- `re.compile` on a fixed pattern hoists, one built from the current row
+    does not.  And escape: a list that is accumulated into and reset each pass
+    can be hoisted and cleared, but one that is stored or returned cannot,
+    because every iteration would then share the same object.  For a resource,
+    also ask whether the lifetime is safe to extend past a timeout or a lock's
+    intended scope.
   not_a_smell_when:
     - >
       the object depends on the loop variable, so a shared one would be wrong
@@ -439,59 +379,35 @@
           One allocation instead of N, available only because the instance is
           rendered to a string immediately and never escapes. If `out` collected
           the objects rather than their renderings, every entry would be the same
-          object and the repair would be a bug -- which is the third
-          `how_to_tell` step doing its work.
+          object and the repair would be a bug. Reuse is available only when the
+          object cannot escape the iteration that filled it.
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: >
     scale by what is created rather than by the loop length; a per-iteration
     `open` shows at hundreds of iterations, a per-iteration `[]` needs millions
-  discriminators:
-    - vs: C3.S2
-      rule: >
-        C3.S3 hoists the *creation of an object or resource*.  C3.S2 hoists a
-        *computed value*.  If the repair moves an allocation, it is C3.S3.
-    - vs: C6.S1
-      rule: >
-        These overlap when the object is cheap.  C3.S3 is about the creation
-        being *per iteration* when it need not be; C6.S1 is about objects being
-        created that are not needed at all.  If the loop is incidental, it is
-        C6.S1.
-    - vs: C8.S2
-      rule: >
-        Same repair, different destination.  Above the loop: C3.S3.  At module or
-        instance scope so it survives across calls: C8.S2.
+  similar: [C3.S2, C6.S1, C8.S2]
 
 - id: C3.S4
   signals: [nested_loops, membership_test_on_sequence]
-  mechanism: >
-    Nested loops multiply: an outer loop of n and an inner of m run n*m times, so
-    anything in the inner body is paid n*m times.  The repair replaces the inner
-    *search* with a constant-time lookup, turning n*m into n+m -- which is a
-    complexity change rather than a constant-factor one, and therefore the
-    largest class of effect in the taxonomy.  A related but distinct form applies
-    when the two loops range over the same collection and the relation is
-    symmetric: iterating only the upper triangle halves the comparisons.  That
-    one is a constant factor, not a complexity change, and it is not free -- see
-    the counter-example.
-  how_to_tell:
-    - >
-      Establish that the inner loop is a *search* -- it scans looking for
-      matching elements -- rather than work that genuinely has to touch every
-      pair.
-    - >
-      Say what the index would be keyed on, and confirm the key is hashable and
-      is what the inner loop actually compares.
-    - >
-      Establish neither collection is mutated inside the loops, so the index
-      stays valid.
-    - >
-      For the triangular form, establish the relation is symmetric and that the
-      loop's writes can be mirrored. Then check what the mirroring costs: halving
-      the comparisons while doubling the appends is not a win.
-    - >
-      Say the sizes. n*m against n+m only matters when both are large; two
-      nested loops over ten items each is a hundred iterations and no finding.
+  in_one_line: >
+    an inner loop that searches, where a lookup would turn n*m into n+m
+  what_to_look_for: >
+    Nested loops multiply, so anything in the inner body is paid n*m times.  The
+    repair that matters replaces the inner *search* with a constant-time lookup,
+    turning n*m into n+m -- a complexity change rather than a constant factor,
+    and therefore the largest class of effect in the taxonomy.  So the first
+    thing to establish is whether the inner loop is scanning for matching
+    elements or genuinely doing work for every pair: a distance matrix has no
+    search to index away.  Then that the key is hashable and is what the inner
+    loop actually compares, and that neither collection is mutated inside the
+    loops.  A second, weaker form applies when both loops range over the same
+    collection and the relation is symmetric: walking only the upper triangle
+    halves the comparisons.  That one is a constant factor and it is not free --
+    this project measured a triangular version losing to the full n^2, because
+    halving the comparisons doubled the appends onto n separately growing lists.
+    Fewer operations is not automatically less work.  Sizes decide the rest:
+    two nested loops over ten items each is a hundred iterations and no finding.
   not_a_smell_when:
     - >
       the inner loop does work for every pair rather than searching, so there is
@@ -586,55 +502,28 @@
   min_workload_hint: >
     both dimensions must be large; the effect is the gap between n*m and n+m, so
     a case with a small inner collection shows almost nothing
-  discriminators:
-    - vs: C5.S2
-      rule: >
-        These co-occur constantly, because adding an index is *how* a nested loop
-        becomes a single pass.  Report C3.S4 when the repair removes a level of
-        loop nesting, and C5.S2 when the loops stay and only the search inside
-        them changes.
-    - vs: C7.S1
-      rule: >
-        C3.S4 keeps the same approach and removes a level of iteration.  C7.S1
-        replaces the approach with a different algorithm.  If the repair's name
-        is an algorithm -- binary search, Timsort, a sieve -- it is C7.S1.
-    - vs: C7.S2
-      rule: >
-        C7.S2 is about the *decomposition* -- exploring subproblems that could
-        have been pruned or reused.  C3.S4 is about two literal loops.
+  similar: [C5.S2, C7.S1, C7.S2]
 
 - id: C3.S5
   signals: [missing_early_exit]
-  mechanism: >
-    A loop that has already determined its answer and keeps going pays for every
-    remaining iteration.  How much that is worth depends entirely on where the
-    answer arrives: a search that finds its target in the first percent of a
-    million-element list wastes 99% of the traversal, while one that usually
-    finds it at the end wastes nothing.  So the saving is not a property of the
-    code but of the data, and the expected value is the loop's cost multiplied by
-    the expected fraction remaining when the answer is settled.
-  how_to_tell:
-    - >
-      Identify the point at which the outcome is decided -- a target found, a
-      validation failed, an accumulator reaching a conclusive state.
-    - >
-      Prove that no later iteration can change it. This is the step that matters.
-      A loop that assigns a *constant* and keeps going is a genuine missing exit;
-      a loop that assigns a *value derived from the element* is not, because a
-      later iteration may overwrite it with something different, and breaking
-      changes the answer.
-    - >
-      Check for work after the loop that depends on it having run to completion
-      -- a counter, a side effect on every element, a variable the following code
-      reads.
-    - >
-      Estimate where the answer typically arrives. Early on most inputs means a
-      large saving; late means almost none, and the honest report is that the
-      pattern is present and not worth repairing.
-    - >
-      Prefer the primitive that already short-circuits. `any`, `all`, `next`,
-      `in` and `str.find` all stop at the answer, and using one is usually the
-      better repair than adding a `break`.
+  in_one_line: >
+    a loop that keeps going after its answer is already settled
+  what_to_look_for: >
+    A loop that has determined its answer and keeps going pays for every
+    remaining iteration, so the saving is not a property of the code but of the
+    data: a search that finds its target in the first percent of a
+    million-element list wastes 99% of the traversal, and one that usually finds
+    it at the end wastes nothing.  Expect the report to state where the answer
+    typically arrives, because that is the whole finding.  The load-bearing
+    check is whether a later iteration could still change the outcome.  A loop
+    that assigns a *constant* and keeps going has a genuine missing exit; a loop
+    that assigns a *value derived from the element* does not, because breaking
+    early returns the first match where the original returned the last.  Look
+    also for work after the loop that depends on it having completed -- a
+    counter, a per-element side effect, a final index.  Prefer the primitive
+    that already short-circuits: `any`, `all`, `next`, `in` and `str.find` all
+    stop at the answer, and reaching for one is usually a better repair than
+    adding a `break`.
   not_a_smell_when:
     - >
       a later iteration can still change the outcome, so breaking changes the
@@ -715,53 +604,27 @@
   min_workload_hint: >
     the driver's data decides everything: the answer must arrive early on the
     large case, and the case file should say why that is representative
-  discriminators:
-    - vs: C3.S6
-      rule: >
-        C3.S5 stops a traversal *once the answer is known*.  C3.S6 avoids
-        touching elements that were never relevant.  Break added: C3.S5.  Filter
-        or slice moved earlier: C3.S6.
-    - vs: C4.S7
-      rule: >
-        C3.S5 stops work that has already started.  C4.S7 stops it before it
-        starts, with a guard.
-    - vs: C10.S1
-      rule: >
-        Replacing the loop with `any`/`all`/`next` is both.  Report C3.S5 when
-        the point is the early exit and C10.S1 when the point is that a primitive
-        does the whole job in C.
+  similar: [C3.S6, C4.S7, C10.S1]
 
 - id: C3.S6
   signals: [ruff_RUF015]
-  mechanism: >
-    Processing the whole collection when a subset is wanted pays for every
-    element that never reaches the result.  The repair moves the reduction
-    earlier -- filtering before transforming, taking before sorting, selecting at
-    the source rather than in Python -- so that the expensive step sees only the
-    elements that matter.  The saving is the expensive step's per-element cost
-    multiplied by the elements removed, which makes it one of the larger effects
-    when the selectivity is high and nothing at all when it is low.
-  how_to_tell:
-    - >
-      Say what fraction of the processed elements reach the result. If it is most
-      of them, there is nothing to save.
-    - >
-      Establish the reduction can move earlier without changing the answer.
-      Filtering before a transform is only equivalent if the predicate does not
-      depend on the transform's output.
-    - >
-      Name the reduction. `heapq.nlargest` instead of a full sort;
-      `itertools.islice` instead of building and slicing; a `WHERE` clause
-      instead of filtering in Python; `set()` before a per-element test when
-      duplicates are dense.
-    - >
-      For the deduplicate-first form, establish the duplicate ratio. It pays when
-      a large collection has few distinct values and is a pure extra pass when
-      the values are unique.
-    - >
-      Check the reduction is not itself the expensive step. Deduplicating a
-      million unique elements to run a cheap test on them costs more than the
-      test did.
+  in_one_line: >
+    the whole collection processed when only a subset was ever wanted
+  what_to_look_for: >
+    Processing everything when a subset is wanted pays the expensive step's
+    per-element cost for every element that never reaches the result.  The
+    repair moves the reduction earlier: filter before transform, take before
+    sort, `heapq.nlargest` instead of a full sort, `itertools.islice` instead of
+    building and slicing, a `WHERE` clause instead of selecting in Python, a
+    `set()` before a per-element test when duplicates are dense.  Selectivity is
+    the whole finding -- high selectivity makes this one of the larger effects
+    available and low selectivity makes it nothing -- so say what fraction of
+    the processed elements reach the result.  Equivalence needs one check:
+    filtering before a transform only holds when the predicate does not depend
+    on the transform's output.  And the reduction has to be cheaper than what it
+    removes.  This project measured deduplicating a million values drawn from
+    101 distinct ones as a large win and the same edit on unique data as a pure
+    extra pass, which is the same rule seen from both sides.
   not_a_smell_when:
     - >
       most of the processed elements do reach the result, so the reduction
@@ -852,54 +715,27 @@
     the same waste in the opposite direction.  `Counter(values)` followed by a
     filter to odd keys tallies every even value for nothing, and a hand loop that
     skips them beats it.  Reducing first applies to primitives too.
-  discriminators:
-    - vs: C7.S4
-      rule: >
-        These are nearly the same idea and the split is scope.  C3.S6 is about a
-        *loop or comprehension* touching more elements than it needs.  C7.S4 is
-        about the *order of two operations* in a pipeline, where both are already
-        bulk steps.  Filter moved into a loop: C3.S6.  Two statements swapped:
-        C7.S4.
-    - vs: C3.S5
-      rule: >
-        C3.S6 never touches the irrelevant elements.  C3.S5 touches them until
-        the answer is known and then stops.
-    - vs: C9.S2
-      rule: >
-        When the reduction moves across a process boundary -- into a query, into
-        an API call -- report C9.S2, because the saving is transfer rather than
-        iteration.
+  similar: [C3.S5, C7.S4, C9.S2]
 
 - id: C3.S7
   signals: [mutation_during_iteration, ruff_B909]
-  mechanism: >
-    Mutating a collection while iterating it is primarily a correctness problem:
-    removing from a list shifts the remaining elements down, so the iterator's
-    index skips one; appending during iteration can extend the loop
-    indefinitely; a dict or set raises `RuntimeError` outright.  The energy
-    consequence follows from the correctness one.  Each `list.remove` or
-    `del lst[i]` moves every subsequent element, so a filtering loop written this
-    way is quadratic where a rebuild is linear -- and an unbounded loop consumes
-    energy without ever finishing.
-  how_to_tell:
-    - >
-      Confirm the collection being mutated is the one being iterated, and not a
-      different one with a similar name or a copy.
-    - >
-      Say which mutation it is: removal, insertion, append, or a reorder. Each
-      has a different consequence -- removal skips, append may not terminate,
-      reorder gives an undefined visit sequence.
-    - >
-      Establish whether the behaviour is currently wrong. This is a correctness
-      finding first: if elements are being skipped, the repair fixes a bug and
-      the energy saving is secondary. Say which you are claiming.
-    - >
-      Name the repair -- iterate a copy, build a new collection, or collect the
-      indices and apply afterwards -- and check it preserves what the code
-      actually does today, including any accidental behaviour callers depend on.
-    - >
-      For a `while` loop, check the termination condition is updated on every
-      path. A `continue` that skips the increment is the classic unbounded loop.
+  in_one_line: >
+    a collection edited while it is being walked, which costs correctness first
+    and energy second
+  what_to_look_for: >
+    This is a correctness problem with an energy consequence, and the report has
+    to say which of the two it is claiming.  Removing from a list shifts the
+    remaining elements down so the iterator skips one; appending during
+    iteration can run the loop indefinitely; a dict or set raises `RuntimeError`
+    outright.  The cost follows: every `list.remove` or `del lst[i]` moves the
+    whole tail, so a filtering loop written this way is quadratic where a
+    rebuild is linear.  Confirm the mutated collection really is the one being
+    iterated rather than a copy or a similarly named sibling -- `for item in
+    list(pending)` is a snapshot and correct as written.  Mutation during
+    iteration is also sometimes the algorithm: `while queue: queue.extend(...)`
+    is how a work-list traversal works.  For a `while` loop, check the
+    termination variable is updated on every path, since a `continue` that skips
+    the increment is the classic unbounded loop.
   not_a_smell_when:
     - >
       the loop iterates a copy, a slice, or a materialised `list(...)` of the
@@ -982,16 +818,4 @@
     correctness finding with an energy consequence, measured on a variant that
     fixes the skip in both arms, so that the measurement isolates the quadratic
     removal rather than the bug.
-  discriminators:
-    - vs: C7.S1
-      rule: >
-        If the loop is correct and the cost is repeated linear `remove` or
-        `del`, the finding is C7.S1 -- a quadratic approach where a linear one
-        exists.  C3.S7 is specifically about mutating the collection *being
-        iterated*.
-    - vs: C6.S2
-      rule: >
-        Rebuilding rather than editing in place trades a copy for correctness.
-        If a reviewer would call the new allocation the problem, that is C6.S2 --
-        and the two point in opposite directions, so say which cost you are
-        choosing to pay.
+  similar: [C6.S2, C7.S1]

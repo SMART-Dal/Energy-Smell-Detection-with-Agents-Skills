@@ -11,44 +11,30 @@
 # redundant may be a call, a pass over a collection, or an entire stage of a
 # computation. Before reporting anything here, say which half you are in.
 #
-# The distinguishing question for the whole category is *what the repair
-# deletes*: a binding (S1, S7), a store (S2), a branch (S3), a recomputation
-# (S4), a result nobody consumes (S5), setup on a path that did not need it (S6),
-# or a housekeeping call (S8).
+# The entries are separated by *what the repair deletes*: a binding (S1, S7), a
+# store (S2), a branch (S3), a recomputation (S4), a result nobody consumes
+# (S5), setup on a path that did not need it (S6), or a housekeeping call (S8).
 #
 # Note the boundary with C8: everything here is redundancy *within one scope*.
 # The same work repeated across calls or call sites is C8.
 
 - id: C1.S1
   signals: [ruff_F841]
-  mechanism: >
-    A computation whose result is never read still runs in full: the call is made,
-    the objects are allocated, the reference counts are adjusted, and the value is
-    stored into a local that nothing loads.  The waste is therefore not the
-    assignment -- that is one instruction -- but everything on the right-hand
-    side, which may be a scan of a collection or a network round trip.
-    Unreachable code after a `return` costs nothing at run time and is a
-    maintenance finding rather than an energy one; say which of the two you have.
-  how_to_tell:
-    - >
-      Point at the binding and establish nothing reads it: not later in the
-      function, not through a closure, not by `locals()`, not by a debugger hook
-      or an `except` block that inspects it.
-    - >
-      Say what the right-hand side costs. This is what decides whether the finding
-      matters: `x = 1` unread is a bytecode, `rows = fetch_all()` unread is a
-      query.
-    - >
-      Establish the expression has no side effect that is the actual point. A
-      call whose return value is ignored may be there for what it does, not for
-      what it returns -- see C1.S5, which is the case where the call itself is
-      pure.
-    - >
-      For unreachable code, say so explicitly and report it as a maintenance
-      finding. It costs nothing to execute because it never executes.
-    - >
-      Check for a deliberate discard. `_ = f()`, or a binding kept to hold a
-      reference alive so an object is not collected, are both intentional.
+  in_one_line: >
+    a value computed and bound to a name that nothing ever reads
+  what_to_look_for: >
+    A binding nothing reads still evaluates everything on its right-hand side:
+    the call is made, the objects are allocated, the value is stored into a
+    local that nothing loads.  The size of the finding is therefore the size of
+    that expression and never the assignment -- an unread `x = 1` is one
+    bytecode, an unread `rows = fetch_all()` is a query and a full
+    materialisation -- so what matters is what got computed, not that a name
+    went unused.  Two things make this shape appear where there is no waste: the
+    expression's side effect may be the reason it is there, and a binding may
+    exist to hold a reference alive.  Reads are easy to miss as well -- a
+    closure, `locals()`, a template, a debugger hook.  Unreachable code after a
+    `return` is a different finding entirely, since it costs nothing to execute
+    because it never executes.
   not_a_smell_when:
     - >
       the expression has a side effect that is the reason it is there, so only
@@ -101,8 +87,8 @@
         note: >
           A query, a transfer and a full materialisation, all discarded. The
           binding is a bytecode; the statement is a round trip. This is the form
-          worth reporting -- and the reason `how_to_tell` asks what the right-hand
-          side costs before anything else.
+          worth reporting, and the reason to size the right-hand side before
+          deciding anything.
       - title: a loop that builds something and drops it
         before: |
           def audit(records):
@@ -129,52 +115,27 @@
     saving in a whole analysis.  An unread local is easy to spot and usually the
     trivial kind, so treat noticing one as a prompt to look at what its right-hand
     side costs rather than as a finding in itself.
-  discriminators:
-    - vs: C1.S5
-      rule: >
-        C1.S1 is a result *bound to a name* that nothing reads.  C1.S5 is a
-        computation whose result is *not even bound* -- a bare expression
-        statement, or a loop whose accumulation leaves the scope unused.  Same
-        waste, and the repair is the same deletion; pick by whether there is an
-        assignment.
-    - vs: C1.S7
-      rule: >
-        C1.S7's binding *is* read, exactly once, and the repair inlines it.
-        C1.S1's binding is never read, and the repair deletes the whole statement.
-    - vs: C1.S2
-      rule: >
-        C1.S2 is a store that is *overwritten* before being read.  C1.S1 is a
-        store that is never read at all.
+  similar: [C1.S2, C1.S5, C1.S7]
 
 - id: C1.S2
   signals: [ruff_PLW2901]
-  mechanism: >
-    An assignment costs a `STORE_FAST` for a local -- an index into the frame's
-    array -- plus a reference count increment on the new value and a decrement on
-    whatever the name held before.  For a global or a class attribute it is a dict
-    write instead.  That is one to three instructions, and no input size makes it
-    more, because the redundancy is in the *store* and not in what produced the
-    value.  Where the value being stored was expensive to compute, the finding is
-    C1.S1 or C1.S4 and the saving is much larger.
-  how_to_tell:
-    - >
-      Point at the store and say why it leaves state unchanged: the name is
-      reassigned before being read, the value is the name's current value
-      (`x = x`), or the operation is idempotent on this value (`int()` on an int,
-      `str()` on a str, `.strip()` on stripped text).
-    - >
-      Establish nothing between the two stores reads the name, including through a
-      call that could reach it as a global or an attribute.
-    - >
-      Say what the right-hand side costs. If it is a call, the finding is not this
-      one -- it is C1.S1 for a discarded result or C1.S4 for a repeat.
-    - >
-      Confirm the store has no observable effect. A property setter, an attribute
-      on an object with `__setattr__`, or a name a closure captures all make the
-      assignment do work.
-    - >
-      Accept that the answer is advisory. This is one to three instructions;
-      report it as such and do not build a case file.
+  in_one_line: >
+    a store that leaves the program's state exactly as it already was
+  what_to_look_for: >
+    An assignment is a `STORE_FAST` into the frame's array plus a reference
+    count adjustment, or a dict write for a global or an attribute: one to three
+    instructions, and no input size makes it more.  Look for a store whose
+    effect the machine already has -- a name reassigned before anything reads
+    it, `x = x`, or a conversion that cannot change this particular value
+    (`int()` on an int, `.strip()` on stripped text).  Because the cost is the
+    store and not the value, this stays advisory whatever the right-hand side
+    is; if the value was expensive to compute, the finding is a discarded result
+    or a repeated computation and it is much larger.  The exception worth
+    knowing is that an idempotent *call* is not free -- `.strip()` on an
+    already-stripped string still scans it from both ends -- so a redundant
+    operation inside a loop can scale where a redundant store never does.  Watch
+    for stores that do observable work: a property setter, a descriptor,
+    `__setattr__`, or a name that a closure or a callee can read in between.
   not_a_smell_when:
     - >
       the assignment triggers a property setter, a descriptor or `__setattr__`, so
@@ -250,44 +211,25 @@
     already-normalised string still scans it.  When the redundant operation is a
     call rather than a store, check whether the finding is really C1.S4 or C1.S1
     before settling for advisory.
-  discriminators:
-    - vs: C1.S1
-      rule: >
-        C1.S2's store is overwritten before it is read.  C1.S1's is never read at
-        all.  If deleting the statement removes a computation as well as a
-        binding, it is C1.S1.
-    - vs: C1.S4
-      rule: >
-        C1.S4 repeats a *computation*.  C1.S2 repeats a *store*.  If the
-        right-hand side is a call, it is C1.S4.
+  similar: [C1.S1, C1.S4]
 
 - id: C1.S3
   signals: [redundant_bool_branch]
-  mechanism: >
-    A branch that cannot change what the program does still costs the evaluation
-    of its condition and the dispatch of its jump: two to four instructions.
-    `if cond: pass`, a `match` whose arms are identical, a `try` whose body cannot
-    raise the exception caught -- all of them execute and none of them affects the
-    outcome.  This is a constant cost per evaluation with nothing behind it, which
-    is why it stays advisory unless the condition itself is expensive to compute.
-  how_to_tell:
-    - >
-      Establish that the outcome is the same whichever way the branch goes: the
-      bodies are identical, one is empty, or every arm returns the same value.
-    - >
-      Distinguish this from a branch whose *test* was already decided. If the
-      bodies differ and only the condition is redundant, the finding is C4.S2.
-    - >
-      Say what the condition costs. A bare name test is advisory; a condition that
-      calls something is C1.S5 territory, because the call is the waste and the
-      branch is incidental.
-    - >
-      Check for a deliberate placeholder. `if x: pass` is sometimes a
-      documented not-yet-implemented case or a deliberate no-op with a comment,
-      and deleting it removes the record of a decision.
-    - >
-      For a `try` that cannot raise what it catches, confirm that by reading the
-      body's callees rather than by inspection of the body alone.
+  in_one_line: >
+    a branch whose outcome is the same whichever way it goes
+  what_to_look_for: >
+    A branch that cannot change what the program does still evaluates its
+    condition and dispatches its jump -- two to four instructions, with nothing
+    behind them.  The shapes are an `if` whose body is empty, arms that compute
+    the same answer, a `match` whose cases are identical, and a `try` that
+    catches something its body cannot raise.  That last one is settled by
+    reading the callees rather than the body: `json.loads` raises a `ValueError`
+    subclass, so a handler that looks unreachable is not.  This stays advisory
+    unless the *condition* is expensive to evaluate, in which case the waste is
+    the call and the branch is incidental.  An empty arm is also frequently
+    load-bearing -- it stops a value reaching the `elif` below it -- and is
+    sometimes a documented decision whose comment was lost, so read what it
+    excludes before removing it.
   not_a_smell_when:
     - >
       the branch is a documented placeholder, and deleting it removes the record
@@ -360,49 +302,26 @@
           something nobody meant.
   patch_shape: statement_local
   measurability: constant_small
-  discriminators:
-    - vs: C4.S2
-      rule: >
-        C1.S3 is a branch that makes no difference *whichever way it goes* -- the
-        bodies are equivalent.  C4.S2 is a branch whose *test* could only ever
-        answer one way, with bodies that do differ.
-    - vs: C4.S4
-      rule: >
-        C4.S4 is separate `if`s that should be chained, where each still does
-        something distinct.  C1.S3 is arms that do the same thing.
-    - vs: C1.S5
-      rule: >
-        If the condition itself performs the expensive work, report C1.S5 -- the
-        waste is the call, not the branch.
+  similar: [C1.S5, C4.S2, C4.S4]
 
 - id: C1.S4
   signals: [repeated_pure_call]
-  mechanism: >
-    Computing the same value twice in one scope pays for it twice.  How much that
-    matters is entirely the cost of the expression: `len(x)` twice is two C calls
-    and a few nanoseconds, while a parse or a query twice is the whole thing
-    twice.  The repair binds the value once and reads a local afterwards, which
-    is a `LOAD_FAST` -- so the saving is one full evaluation minus one array
-    index.  The condition that makes it valid is that nothing between the two
-    evaluations can change the answer, which for anything but a pure function of
-    immutable arguments means reading the code in between.
-  how_to_tell:
-    - >
-      Point at both evaluations and confirm the expression is textually or
-      semantically identical, including its arguments.
-    - >
-      Establish the expression is pure. A call that logs, mutates, advances an
-      iterator, or reads a clock must run both times.
-    - >
-      Establish nothing between the two changes the result: no rebinding of any
-      operand, no mutation of any container they read, no call that could reach
-      either.
-    - >
-      Say what one evaluation costs. This decides whether the finding is worth
-      reporting: two `len()` calls is advisory, two parses is not.
-    - >
-      Check the two are in the same scope. Repetition across calls or call sites
-      is C8, and needs a cache rather than a local.
+  in_one_line: >
+    the same value computed twice in one scope, where one local would serve both
+  what_to_look_for: >
+    Computing the same value twice pays for it twice, and the repair replaces
+    the second evaluation with a `LOAD_FAST`.  What the finding is worth is
+    entirely the cost of the expression -- two `len()` calls are a few
+    nanoseconds, two parses are a whole parse -- so establish that before
+    anything else.  What makes the repair valid is that nothing between the two
+    evaluations can change the answer: no operand rebound, no container mutated,
+    no call that could reach either.  For anything but a pure function of
+    immutable arguments, that means reading the code in between.  Purity is the
+    other condition and it is where identical-looking calls diverge, since
+    `queue.get()` twice consumes two items.  Count the evaluations that actually
+    happen rather than the occurrences in the text, because two of three
+    appearances may sit on mutually exclusive paths.  Repetition *across* calls
+    is a different problem needing a cache rather than a local.
   not_a_smell_when:
     - >
       the expression has a side effect that must happen each time
@@ -477,49 +396,27 @@
   min_workload_hint: >
     the effect is one evaluation per call, so size on the call count and on what
     the expression costs; a repeated `len()` needs millions of calls to show
-  discriminators:
-    - vs: C3.S2
-      rule: >
-        C1.S4 is the same computation twice in straight-line code, and the repair
-        binds it above both uses.  C3.S2 is the same computation N times because
-        it sits in a loop, and the repair hoists it above the loop.
-    - vs: C8.S1
-      rule: >
-        The boundary that defines C1 against C8.  C1.S4 is redundancy *within one
-        scope*, repaired with a local.  C8.S1 is redundancy *across invocations*,
-        repaired with a cache.  If a local fixes it, it is C1.S4.
-    - vs: C1.S2
-      rule: >
-        C1.S4 repeats a computation.  C1.S2 repeats a store.
+  similar: [C1.S2, C3.S2, C8.S1]
 
 - id: C1.S5
   signals: [discarded_pure_result]
-  mechanism: >
-    A computation whose result no subsequent code consumes runs in full for
-    nothing: every allocation, every pass, every call.  Unlike a dead binding
-    (C1.S1) there is often no assignment to notice -- the waste is a stage of a
-    pipeline whose output the next stage does not actually need, and finding it
-    means understanding what the answer depends on rather than tracking a name.
-    That makes it one of the largest effects available and one of the hardest to
-    see, because every individual line looks purposeful.
-  how_to_tell:
-    - >
-      Name the computation and trace its result forwards. Say precisely what
-      consumes it, or that nothing does.
-    - >
-      Establish the computation is pure. A call whose return value is ignored may
-      exist for its side effect, and deleting it removes that.
-    - >
-      For a loop, establish whether all iterations matter or only the last. A loop
-      that overwrites a variable each pass and is read once afterwards did n-1
-      iterations for nothing -- unless the earlier ones had side effects.
-    - >
-      For a pipeline stage, ask whether the *next* stage is invariant under it.
-      This is the form that hides: a normalisation before a case-insensitive
-      compare, a sort before a `sum`, a softmax before an `argmax`. Establish the
-      invariance and the whole stage goes.
-    - >
-      Say what the deleted work costs, so the report states the consequence.
+  in_one_line: >
+    a computation run in full whose result nothing downstream actually needs
+  what_to_look_for: >
+    A computation nothing consumes runs in full for nothing -- every allocation,
+    every pass, every call.  The small form is a bare call whose return value is
+    dropped.  The form that matters is a pipeline stage the *next* stage is
+    invariant under: a normalisation before a case-insensitive compare, a sort
+    before a `sum`, a softmax before an `argmax`.  That form is invisible line
+    by line, because every statement looks purposeful and the redundancy lives
+    in the relationship between them, so it is found by asking what the answer
+    actually depends on rather than by looking at any one line.  Loops have
+    their own version: one that overwrites a variable each pass and is read once
+    afterwards did n-1 iterations for nothing.  Purity is the condition
+    throughout -- a discarded return value is often the whole point of the call,
+    when it validates, warms a cache, takes a lock or advances a counter.
+    Expect this to be one of the largest effects available and one that leaves
+    no syntactic trace at all.
   not_a_smell_when:
     - >
       the call has a side effect that is the reason for it: validation that
@@ -547,8 +444,9 @@
                 self.lookup(key)
       why: >
         A loop whose results are all discarded, which is the shape exactly -- and
-        the function's entire purpose is the cache `lookup` populates. This is why
-        `how_to_tell` asks about side effects before anything else.
+        the function's entire purpose is the cache `lookup` populates. Purity is
+        the condition, and it fails here on the side effect rather than on the
+        return value.
   refactoring:
     summary: delete the computation whose result nothing consumes
     examples:
@@ -574,8 +472,9 @@
           exponentiation and normalisation of a million logits is dead work. Note
           the initial value must change from `0` to `-inf`, because logits can be
           negative where probabilities cannot: without that the repair is silently
-          wrong on all-negative input. Arguably C7.S5 as well -- see the
-          discriminator.
+          wrong on all-negative input. C7.S5 describes this equally well, since
+          the answer never needed probabilities; either attribution is fine as
+          long as the repair matches the words on the card you file it under.
       - title: a loop where only the last iteration is read
         before: |
           def resolve(candidates, request):
@@ -604,55 +503,27 @@
     intermediate *nobody needed*, and it is invisible line by line: each statement
     looks purposeful and the redundancy is in the relationship between them.  That
     is what makes this a reading finding rather than a rule finding.
-  discriminators:
-    - vs: C1.S1
-      rule: >
-        C1.S1's result is bound to a name that nothing reads.  C1.S5's result is
-        not bound at all, or is bound and then made irrelevant by what the
-        consumer actually needs.  Same deletion; pick by whether there is an
-        assignment.
-    - vs: C7.S5
-      rule: >
-        The closest neighbour, and the softmax example sits on the line.  C1.S5 is
-        work whose result is *not consumed*.  C7.S5 is work whose result *is*
-        consumed but whose cost was unnecessary to produce the answer.  If
-        deleting the statement leaves the code correct with no other change, it is
-        C1.S5; if the operation has to be rewritten rather than removed, it is
-        C7.S5.
-    - vs: C3.S5
-      rule: >
-        C3.S5 is a loop that should stop once the answer is known.  C1.S5 is a
-        loop whose earlier iterations were never going to contribute.
+  similar: [C1.S1, C3.S5, C7.S5]
 
 - id: C1.S6
   signals: [dead_initialization]
-  mechanism: >
-    Setup performed unconditionally on a path that may not need it pays its full
-    cost on every call, and returns value only on the fraction of calls that reach
-    the code using it.  An empty list at the top of a function is one allocation,
-    which is advisory.  A configuration load, a connection, a compiled pattern or
-    a large buffer created before the check that decides whether it is wanted is a
-    real cost paid on every call that then discards it.  The repair moves the
-    setup inside the branch that needs it, so the expected cost becomes the setup
-    times the probability of taking that branch.
-  how_to_tell:
-    - >
-      Point at the initialisation and the code that uses it, and establish they
-      are on different paths -- the value is only read inside a branch, or after
-      an early return that often fires.
-    - >
-      Say how often the using path is taken. That fraction is the whole finding:
-      setup needed on 95% of calls is not worth moving.
-    - >
-      Say what the setup costs. An allocation is advisory; an I/O operation or a
-      compile is not.
-    - >
-      Establish that moving it does not duplicate it. If three branches each need
-      it, moving it into all three is worse than leaving it at the top.
-    - >
-      Check the setup has no side effect that the current unconditional
-      positioning guarantees -- a lock taken, a directory created, a counter
-      registered.
+  in_one_line: >
+    setup done unconditionally that only one path actually needs
+  what_to_look_for: >
+    Setup performed before the check that decides whether it is wanted is paid
+    on every call and returns value only on the fraction of calls that reach the
+    code using it.  Moving it inside the branch makes the expected cost the
+    setup times the probability of that branch, which makes the hit rate the
+    whole finding and something the report has to state -- a repair worth 90% on
+    a warm cache is worth nothing on a cold one.  Size the setup honestly: an
+    empty list is one allocation and advisory, while a configuration load, a
+    connection, a compiled pattern or a large zeroed buffer is not.  Two things
+    block the move.  If several branches each need the value, pushing it down
+    duplicates it and costs more than it saves; and if a `finally` or an
+    `except` refers to the name, the unconditional position is what stops that
+    being a `NameError`.  Watch also for setup whose side effect the current
+    position guarantees -- a lock taken, a directory created, a counter
+    registered.
   not_a_smell_when:
     - >
       the value is used on almost every path, so the branch is nearly always taken
@@ -743,49 +614,26 @@
     the driver must call the unit many times with the *common* argument values, so
     that the calls which skip the setup dominate; a driver that always takes the
     using path measures nothing
-  discriminators:
-    - vs: C1.S1
-      rule: >
-        C1.S6's value *is* used, on some paths.  C1.S1's is used on none.  If the
-        repair is a deletion it is C1.S1; if it is a move, C1.S6.
-    - vs: C4.S7
-      rule: >
-        C4.S7 adds a guard that skips expensive work.  C1.S6 moves existing work
-        behind a guard that is already there.  Ask whether you wrote a new branch.
-    - vs: C6.S1
-      rule: >
-        If the finding is about the object being unnecessary rather than
-        unnecessarily *early*, it is C6.S1.
+  similar: [C1.S1, C4.S7, C6.S1]
 
 - id: C1.S7
   signals: [single_use_temporary]
-  mechanism: >
-    A binding costs a `STORE_FAST`, a reference count increment on the value and a
-    decrement on whatever the name held, and each later read costs a `LOAD_FAST`.
-    For a name used exactly once, inlining removes the store and the load: two to
-    three instructions per execution, and no input size makes it more.  This is
-    the smallest repair in the taxonomy.  It is worth reporting where a hot loop
-    executes it millions of times and it is worth reporting as advisory
-    everywhere else -- and it is worth *not* reporting when the name is what makes
-    the expression readable.
-  how_to_tell:
-    - >
-      Establish the name is read exactly once, and that the read immediately
-      follows the store with nothing in between.
-    - >
-      Establish the name carries no explanatory weight. A binding that gives a
-      name to a complicated subexpression is doing a job, and this repair
-      destroys it. This is the step that should reject most candidates.
-    - >
-      Say how often the statement executes. Inside a million-iteration loop this
-      is measurable; anywhere else it is advisory.
-    - >
-      Check that inlining does not change evaluation order or lifetime. Moving an
-      expression into a `return` changes when its value is released, which matters
-      if it holds a resource.
-    - >
-      Confirm the result is not needed for a debugger, a traceback, or an
-      exception message that reads the local.
+  in_one_line: >
+    a name bound, read exactly once, and never needed again
+  what_to_look_for: >
+    A binding costs a store and a refcount adjustment, and each read costs a
+    load, so inlining a name used exactly once removes two or three instructions
+    per execution and no input size makes it more.  This is the smallest repair
+    in the taxonomy, and the card is more useful as a reason to reject than as
+    one to accept: a name that explains what a complicated subexpression means
+    is doing a job that two instructions do not pay for.  Report it where a hot
+    loop executes it millions of times, and advisory everywhere else.  When you
+    do find one inside a loop, look past it -- a single-use temporary there is
+    usually a symptom of a larger repair, an `append` loop that wants to be a
+    comprehension or a value that should not be computed per iteration at all.
+    Check too that inlining does not move when a value is released, which
+    matters when it holds a resource, and that no debugger, traceback or
+    exception message reads the local.
   not_a_smell_when:
     - >
       the name explains what the expression means, so inlining costs
@@ -859,47 +707,28 @@
     for the larger repair it is a symptom of: an explicit `append` loop that
     should be a comprehension, or a value that should not be computed per
     iteration at all.
-  discriminators:
-    - vs: C1.S1
-      rule: >
-        C1.S7's binding is read once.  C1.S1's is never read.  Read once means
-        inline; never read means delete the statement.
-    - vs: C3.S1
-      rule: >
-        When the temporary lives in a loop that becomes a comprehension, the
-        comprehension is the finding and this is subsumed.  Report the larger one.
+  similar: [C1.S1, C3.S1]
 
 - id: C1.S8
   signals: [runtime_management_in_loop]
-  mechanism: >
-    Runtime housekeeping is expensive and mostly unnecessary.  `gc.collect()`
-    performs a full traversal of every tracked object in the process, so calling
-    it in a loop turns a per-iteration cost into something proportional to the
-    whole heap -- and CPython's automatic collector is already tuned to do this at
-    sensible intervals.  Logging has a subtler version of the same problem: the
-    arguments to a log call are evaluated before the logger decides whether the
-    level is enabled, so an expensive f-string or a `json.dumps` inside a
-    `debug()` call is computed in full and then discarded in production.  In both
-    cases the work is real and the benefit is zero.
-  how_to_tell:
-    - >
-      Point at the housekeeping call: `gc.collect`, `gc.freeze`, an explicit
-      `__del__` trigger, `sys.settrace`, a profiler start, or a log call.
-    - >
-      For `gc.collect`, establish there is no specific reason for it. There are
-      legitimate ones -- before forking, before a memory measurement, after
-      releasing a large graph in a long-running process -- and each is a
-      deliberate decision rather than a habit.
-    - >
-      For a log call, establish that its arguments are expensive to build and that
-      the level is usually disabled. A plain `%s` of a small value costs nothing;
-      an f-string that formats a whole record costs the formatting on every call.
-    - >
-      Say how often it happens. `gc.collect()` once at start-up is fine;
-      per-iteration is the finding.
-    - >
-      Confirm the repair keeps the diagnostic available when it is wanted --
-      guarding with `isEnabledFor` rather than deleting the log line.
+  in_one_line: >
+    runtime housekeeping invoked far more often than anything needs it
+  what_to_look_for: >
+    Look for work that exists to manage the runtime rather than to compute the
+    answer, executed once per iteration rather than once.  `gc.collect()`
+    traverses every tracked object in the process, so calling it in a loop turns
+    a per-iteration cost into one proportional to the whole heap -- and
+    CPython's collector is already running on allocation thresholds.  Logging
+    has a quieter version of the same problem: a log call's arguments are
+    evaluated before the logger decides whether the level is enabled, so an
+    f-string or a `json.dumps` inside `debug()` is built in full and thrown away
+    in production.  Both have legitimate forms that a name match cannot tell
+    apart -- a collection before a fork or a memory measurement is a deliberate
+    decision, and `log.debug("processed %s", record.id)` already defers its
+    formatting and has nothing to guard.  The repair keeps the diagnostic
+    available rather than deleting it, which means guarding with `isEnabledFor`
+    *and* passing `%s` arguments, since either change alone still evaluates or
+    still builds.
   not_a_smell_when:
     - >
       the collection is deliberate and documented -- before a fork, before a
@@ -968,19 +797,4 @@
     for `gc.collect` the effect scales with the live heap as well as the call
     count, so the case needs a realistic amount of tracked data alive; for logging
     the level must be disabled, as it is in production
-  discriminators:
-    - vs: C1.S5
-      rule: >
-        An expensive log argument that is discarded is C1.S5 in substance -- work
-        whose result nothing consumes.  Report C1.S8 when the framing is
-        *housekeeping being invoked too often*, and C1.S5 when it is a computed
-        value nobody reads.
-    - vs: C3.S3
-      rule: >
-        If the repair moves the call out of the loop rather than deleting it, the
-        finding is C3.S3.
-    - vs: C6.S4
-      rule: >
-        `gc.collect()` in a loop is sometimes a symptom: someone added it because
-        memory was growing.  If the real problem is retention, report C6.S4 and
-        note that the collection call was masking it.
+  similar: [C1.S5, C3.S3, C6.S4]

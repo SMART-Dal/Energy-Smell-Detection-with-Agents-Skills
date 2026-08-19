@@ -16,32 +16,22 @@
 
 - id: C4.S1
   signals: [expensive_operand_first]
-  mechanism: >
+  in_one_line: >
+    a boolean chain that evaluates its expensive operand before the cheap one
+    that usually decides
+  what_to_look_for: >
     `and` stops at the first false operand and `or` at the first true one, so
-    every operand after the deciding one is never evaluated.  Ordering therefore
-    decides what a condition costs on average: a chain that puts the expensive
-    test first pays it on every evaluation, where the same chain reordered pays
-    it only on the fraction of inputs the cheap test lets through.  The saving is
-    the expensive operand's cost multiplied by how often the cheap test would
-    have short-circuited -- which is why an operand that is almost never decisive
-    is worth nothing to move.
-  how_to_tell:
-    - >
-      Find an `and`/`or` chain where an earlier operand calls something and a
-      later operand does not. A cheap operand is a comparison, an attribute
-      read, a `len`, an `isinstance`; an expensive one is a call that does work.
-    - >
-      Establish that the operands are independent, so reordering cannot change
-      the result. This is the step that matters: `if x is not None and
-      x.ready()` must stay in that order for correctness, and swapping it is a
-      bug rather than a repair.
-    - >
-      Estimate how often the cheap test would decide the result. If it is false
-      on most inputs, moving it first skips the call on most calls; if it is
-      almost always true, reordering adds a test and saves nothing.
-    - >
-      Confirm the chain runs often enough for a skipped call to matter. One
-      evaluation on a cold path saves one call.
+    every operand after the deciding one is never evaluated and the order of a
+    chain decides what it costs on average.  Look for a chain where an earlier
+    operand calls something and a later one does not -- a comparison, an
+    attribute read, a `len`, an `isinstance` are all free by comparison.  The
+    saving is the expensive operand's cost times how often the cheap test would
+    have short-circuited, so an operand that is almost never decisive is worth
+    nothing to move, and the report has to say which way the data usually goes.
+    Independence is the check that matters: `if handle is not None and
+    handle.is_open()` has to stay in that order, and swapping it is a bug rather
+    than a repair.  Watch too for an operand with a side effect that has to
+    happen on every evaluation.
   not_a_smell_when:
     - >
       the later operand depends on the earlier one succeeding, so the order is
@@ -109,53 +99,31 @@
     the driver must supply inputs where the cheap test actually short-circuits;
     with data that always reaches the expensive operand the repair correctly
     measures as nothing
-  discriminators:
-    - vs: C4.S2
-      rule: >
-        C4.S1 keeps every test and changes their order.  C4.S2 *deletes* a test
-        because its outcome was already determined.  If the repair removes an
-        operand rather than moving it, it is C4.S2.
-    - vs: C4.S7
-      rule: >
-        C4.S1 reorders tests that already exist.  C4.S7 *adds* one that did not.
-    - vs: C7.S4
-      rule: >
-        The same idea at a different scale.  C4.S1 orders operands inside one
-        boolean expression; C7.S4 orders whole operations in a pipeline, such as
-        filtering before sorting.  Decide by what the patch moves -- an operand
-        or a statement.
+  similar: [C4.S2, C4.S7, C7.S4]
 
 - id: C4.S2
-  mechanism: >
-    A test whose outcome is already fixed still costs the full evaluation:
-    loading the operands, the comparison, the branch.  When that is one
-    comparison on a straight-line path it is worth a bytecode and nothing more.
-    What makes this root cause worth reporting is the case where the determined
-    test *guards work* -- the second half of an `and` that can never fail, an
-    `elif` whose condition is the negation of the `if` above it, or a check
-    standing between the caller and a scan the code did not need to perform.
-    Then what the repair deletes is not the comparison but everything behind it.
-  how_to_tell:
-    - >
-      Point at a condition and say what makes its outcome already known. There
-      are three sources and you must name which one applies. A prior test on the
-      same path has settled it. A domain fact makes it unconditional --
-      `math.floor(x) <= math.ceil(x)` always, `abs(x) >= 0` always, an `assert`
-      at the top of the function. Or the value was assigned a known constant
-      with nothing able to change it in between.
-    - >
-      Establish that nothing between the two points can change the answer: no
-      assignment, no call that could mutate the operands, no `await` or lock
-      release that lets another thread in.
-    - >
-      Say what the test is guarding. A determined test in front of one cheap
-      statement is worth a bytecode. A determined test in front of a loop, a
-      sort or a call is worth all of it, and that difference decides whether the
-      finding is worth reporting at all.
-    - >
-      Check that the redundancy is not deliberate. A re-check documenting an
-      invariant, or one that exists because a maintainer cannot see the callers,
-      is defensive code; deleting it is a change in kind rather than a repair.
+  in_one_line: >
+    a test whose answer was already settled before it ran
+  what_to_look_for: >
+    A determined test still costs the full evaluation -- loading the operands,
+    the comparison, the branch -- and on a straight-line path that is one
+    bytecode and nothing more.  What makes this worth reporting is the case
+    where the determined test *guards work*: the second half of an `and` that
+    can never fail, an `elif` restating the negation of the `if` above it, or a
+    check standing between the caller and a scan the code did not need to
+    perform.  Then what the repair deletes is not the comparison but everything
+    behind it, so say what the test is guarding before deciding whether there is
+    a finding at all.  Three things determine an answer in advance, and the
+    report should name which one applies: a prior test on the same path has
+    settled it; a fact about the domain makes it unconditional
+    (`math.floor(x) <= math.ceil(x)`, `abs(x) >= 0`, an `assert` at the top of
+    the function); or the value was assigned a known constant with nothing able
+    to change it in between.  That middle source is the interesting one and it
+    has no syntactic signature at all -- it is found by knowing what the values
+    mean.  Two things make the shape appear where the repair is wrong:
+    concurrency, where an `await` or a released lock genuinely lets the answer
+    change between two identical tests, and defensive re-checks that document an
+    invariant for callers a maintainer cannot see.
   not_a_smell_when:
     - >
       the test is a defensive assertion documenting an assumption the function
@@ -180,8 +148,8 @@
       why: >
         Two tests on related subjects, neither implied by the other, both
         load-bearing. Anything that pattern-matches "two ifs about `amount`"
-        reports this. Nothing here is determined -- which is why step 1 asks you
-        to *name* what determines it rather than notice repetition.
+        reports this. Nothing here is determined, which is why the card asks you
+        to *name* what determines an answer rather than to notice repetition.
     - code: |
         with self._lock:
             if key in self._cache:
@@ -225,6 +193,34 @@
           `floor < limit` and the second test can never fail. The fact comes
           from the domain, not from the syntax -- which is exactly why no static
           rule finds this and a reader does.
+      - title: a prior branch has already settled half the next condition
+        before: |
+          def search_range(nums, target):
+              first_exists = bool(nums) and nums[0] == target
+              last_exists = bool(nums) and nums[-1] == target
+              if first_exists and last_exists:
+                  return -1
+              if last_exists and not first_exists:
+                  return nums[0]
+              return 0
+        after: |
+          def search_range(nums, target):
+              first_exists = bool(nums) and nums[0] == target
+              last_exists = bool(nums) and nums[-1] == target
+              if first_exists and last_exists:
+                  return -1
+              if last_exists:
+                  return nums[0]
+              return 0
+        note: >
+          Reaching the second `if` means `first_exists and last_exists` was
+          false, so once `last_exists` holds there, `not first_exists` is already
+          known. The repair is one operand and worth a bytecode -- included
+          because it is the shape the description is really about, and because
+          nothing syntactic distinguishes it from the `withdraw` counter-example
+          above. What separates them is a fact about the booleans, which is why
+          this form is found by reading and not by a rule.
+
       - title: an `elif` that restates the negation of its `if`
         before: |
           def relu(x):
@@ -272,61 +268,28 @@
     `floor <= ceil`, `abs(x) >= 0`, an `elif` restating a negation, and four
     range branches collapsing to `low <= x <= high`.  None is findable
     syntactically, and every one is ordinary code somebody wrote on purpose.
-  discriminators:
-    - vs: C4.S7
-      rule: >
-        C4.S2 *removes* a test that was always going to answer the same way.
-        C4.S7 *adds* a test that was not there.  When one edit does both --
-        recognising an invariant and using it to install a fast path -- either
-        label is defensible; say which you picked and why.
-    - vs: C7.S5
-      rule: >
-        C4.S2 deletes a *test*.  C7.S5 changes the *operation*: replacing
-        `abs(k - x)` with `k - x` because `k >= x` always holds is C7.S5, since
-        no branch is removed and the arithmetic itself got cheaper.
-    - vs: C1.S3
-      rule: >
-        C1.S3 is control flow with no observable effect whichever way it goes --
-        an `if` with an empty body, a `match` whose arms are identical.  C4.S2 is
-        a branch that does something, reached by a test that could only ever
-        answer one way.
-    - vs: C1.S4
-      rule: >
-        C1.S4 is the same *computation* performed twice.  C4.S2 is the same
-        *condition* tested twice, or one whose answer was already implied.  If
-        the repair caches a value, it is C1.S4.
+  similar: [C1.S3, C1.S4, C4.S7, C7.S5]
 
 - id: C4.S3
   signals: [deep_conditional_nesting]
-  mechanism: >
-    Nesting itself costs nothing beyond the tests it contains -- reaching depth
-    four evaluates four conditions whether they are nested or chained.  Two
-    things make deep nesting expensive rather than merely ugly.  Overlapping
-    tests get re-evaluated on paths where an earlier branch already settled them.
-    And a long chain of `elif` comparisons is a linear search: with N arms the
-    average case evaluates about N/2, where a dict lookup or an index is one
-    probe regardless of N.
-  how_to_tell:
-    - >
-      Count the depth, then check what the nesting is made of. `if` inside `if`
-      is a candidate; depth that comes from `try`, `with` or `for` is not this
-      root cause.
-    - >
-      Find the actual waste. Either the same subexpression is tested on more
-      than one path, or a run of arms all compare the same subject against
-      different constants. If neither holds, the nesting is a readability matter
-      and out of scope here.
-    - >
-      For a comparison chain, count the arms and check they are exhaustive and
-      dense enough to index. Four arms keyed on `n % 4` become a tuple index;
-      four arms on unrelated predicates do not.
-    - >
-      Confirm the flattening does not duplicate the conditions it removed. Guard
-      clauses only help when they let you stop testing, not when they restate
-      the same tests in a different order.
-    - >
-      Say how often the branch runs. Removing two comparisons from a function
-      called twice is not a finding.
+  in_one_line: >
+    a nest or chain of branches that tests more than it has to, where a lookup
+    would test once
+  what_to_look_for: >
+    Nesting by itself costs nothing beyond the tests it contains -- reaching
+    depth four evaluates four conditions whether they are nested or chained -- so
+    depth alone is a readability matter and out of scope here.  Two things make
+    it expensive.  The same subexpression re-evaluated on paths where an earlier
+    branch already settled it.  And a run of arms comparing one subject against
+    different constants, which is a linear search: N arms average about N/2
+    comparisons where a dict lookup or an index is one probe regardless of N.
+    So find the actual waste before proposing anything, and check the arms are
+    exhaustive and dense enough to index -- four arms keyed on `n % 4` become a
+    tuple index, four arms on unrelated predicates do not, and ordered range
+    boundaries have no key at all.  Guard clauses only help when they let you
+    stop testing rather than restate the same tests in another order, which is
+    why the flattening form of this repair usually measures as nothing and the
+    dispatch-table form is the measurable one.
   not_a_smell_when:
     - >
       the nesting mirrors genuinely nested domain logic, so flattening would
@@ -420,49 +383,27 @@
     evaluates the same tests in the same number.  Report it, and expect advisory
     rather than verified unless the guarded work is in a hot loop.  The
     dispatch-table form is the measurable one.
-  discriminators:
-    - vs: C4.S4
-      rule: >
-        C4.S4 is about tests written as *separate statements*, where every one is
-        evaluated even after an earlier one matched.  C4.S3 is about tests that
-        are already chained or nested and still cost more than they need to.
-    - vs: C10.S1
-      rule: >
-        Replacing a comparison chain with a dict dispatch can be read either way.
-        Prefer C4.S3 when what changed is the *branch structure*, and C10.S1 when
-        the repair hands the whole job to a standard-library primitive that
-        already implements it.
+  similar: [C4.S4, C10.S1]
 
 - id: C4.S4
   signals: [independent_exclusive_ifs]
-  mechanism: >
+  in_one_line: >
+    consecutive `if`s on one subject that are exclusive in fact but not in form
+  what_to_look_for: >
     Separate `if` statements each evaluate their condition unconditionally, so N
-    of them cost N tests on every pass.  An `if`/`elif` chain stops at the first
-    match: one test in the best case, N in the worst, around N/2 on average for
-    a uniformly distributed subject.  The saving is the difference, paid per
-    evaluation -- proportional to how many arms there are and how early the
-    matching one usually sits.
-  how_to_tell:
-    - >
-      Find two or more consecutive `if` statements testing the same subject.
-    - >
-      Prove the branches are mutually exclusive, and say what makes them so.
-      This is the load-bearing step and it is where the repair usually dies. A
-      set of `==` tests against distinct constants is exclusive by construction.
-      Range tests are only exclusive if the ranges cannot overlap, and that
-      often depends on a precondition -- an `assert`, a validated argument, a
-      documented invariant. Name it.
-    - >
-      Establish that no branch body changes the subject or anything the later
-      tests read. A body that mutates the subject makes the later tests
-      genuinely different questions.
-    - >
-      Establish that no branch is meant to fall through. If two conditions can
-      both hold and both bodies are supposed to run, chaining them removes
-      behaviour.
-    - >
-      Count the arms and say how often the last one matches. Two arms save half
-      a test; eight arms with a late match save several.
+    of them cost N tests on every pass; an `if`/`elif` chain stops at the first
+    match, which is around N/2 on average.  The saving is the difference, paid
+    per evaluation, so it is proportional to the number of arms and to how early
+    the matching one usually sits -- two arms save half a comparison, a dozen
+    arms in a per-element loop are worth measuring.  The repair lives or dies on
+    exclusivity, and the report has to *name* what guarantees it rather than
+    eyeball the conditions.  Equality tests against distinct constants are
+    exclusive by construction.  Range tests are only exclusive when the ranges
+    cannot overlap, which usually rests on a precondition -- an `assert`, a
+    validated argument, a documented invariant -- and deleting that precondition
+    later turns the repair into a bug.  Two other things end candidates: a
+    branch body that reassigns the subject, which makes the later tests
+    different questions, and branches that are genuinely both meant to run.
   not_a_smell_when:
     - >
       the branches are not mutually exclusive and more than one may legitimately
@@ -528,8 +469,8 @@
           The `assert` is what licenses the edit: with `upper > lower` no value
           can be both above and below, so an element matching the first test
           cannot match the second. Delete the assert and the repair becomes a
-          bug. That is why `how_to_tell` asks you to name the guarantee rather
-          than eyeball the conditions.
+          bug, which is why the guarantee has to be named in the finding rather
+          than assumed from the shape of the conditions.
       - title: equality arms against distinct constants
         before: |
           def bonus_for(grade):
@@ -561,46 +502,29 @@
   min_workload_hint: >
     needs many evaluations and enough arms for the skipped tests to add up; the
     driver's data should sometimes match early and sometimes late
-  discriminators:
-    - vs: C4.S3
-      rule: >
-        C4.S4 turns *separate statements* into a chain.  C4.S3 improves a chain
-        or nest that already exists, usually by replacing it with a lookup.
-    - vs: C1.S3
-      rule: >
-        If the branches are not merely unchained but have no observable effect at
-        all -- identical bodies, empty bodies -- the finding is C1.S3.
+  similar: [C1.S3, C4.S3]
 
 - id: C4.S5
   signals: [expensive_comparison]
-  mechanism: >
-    A type check is cheap once and expensive per element.  `isinstance` walks the
-    class's MRO looking for a match; `type(x) == C` is a pointer comparison;
-    `str(type(x)) == "..."` builds a string.  None of them is slow in isolation,
-    and all of them are pure overhead when the answer is the same for every
-    element of a collection -- the loop is asking a question it could have
-    settled once.  The repair moves the decision off the per-element path, either
-    by hoisting it or by letting attribute lookup dispatch instead.
-  how_to_tell:
-    - >
-      Find runtime type introspection on the per-element path: `isinstance`,
-      `type(x) ==`, `hasattr` used as a type probe, a comparison against
-      `type(x).__name__`.
-    - >
-      Establish that the answer is stable across elements, or that the elements
-      can be grouped so it is. If the collection is genuinely heterogeneous and
-      the branches do different things, the check is doing real work.
-    - >
-      Say what replaces it. Hoisting needs a cheap way to settle the type once.
-      Polymorphic dispatch needs the types to share a method name.
-      `functools.singledispatch` needs the dispatch to be on the first argument.
-    - >
-      Check the replacement is not more expensive. Scanning the whole collection
-      with `all(isinstance(...))` to hoist a decision costs a full extra pass,
-      which only pays if the loop body is heavier than the check.
-    - >
-      Confirm the loop is long enough. A per-element `isinstance` over ten items
-      is nothing.
+  in_one_line: >
+    a type or identity check asked once per element when the answer never varies
+  what_to_look_for: >
+    A type check is cheap once and expensive per element.  `isinstance` walks
+    the class's MRO looking for a match, `type(x) == C` is a pointer comparison,
+    and `str(type(x)) == "..."` builds a string; none is slow in isolation and
+    all are pure overhead when the answer is the same for every element of a
+    collection.  Look for runtime introspection on the per-element path --
+    `isinstance`, `type(x) ==`, `hasattr` used as a type probe, a comparison
+    against `type(x).__name__` -- and ask whether the loop is asking a question
+    it could have settled once.  The repair either hoists the decision or lets
+    attribute lookup dispatch instead, and both have preconditions: hoisting
+    needs a cheap way to settle the type once, polymorphic dispatch needs the
+    types to share a method name, and `functools.singledispatch` needs the
+    dispatch to be on the first argument.  Check the replacement is not the more
+    expensive one, since scanning the collection with `all(isinstance(...))` to
+    hoist a decision costs a full extra pass that only pays when the loop body
+    is heavier than the check.  A genuinely heterogeneous input whose branches do
+    different things has no smell here -- the check is the algorithm.
   not_a_smell_when:
     - >
       the input is genuinely heterogeneous with no common interface, so the check
@@ -686,48 +610,30 @@
     pointer compare.  The style preference for `isinstance` is about *semantics*
     -- it accepts subclasses -- and it is not an energy improvement.  Do not
     report a change from `type(x) ==` to `isinstance` as a saving.
-  discriminators:
-    - vs: C10.S2
-      rule: >
-        C10.S2 swaps one construct for a cheaper construct that does the same
-        thing, leaving the loop alone.  C4.S5 removes the check from the
-        per-element path altogether.  If the loop still asks the question once
-        per element, it is C10.S2 at best.
-    - vs: C3.S2
-      rule: >
-        Hoisting a type decision out of a loop is a special case of hoisting an
-        invariant.  Report C4.S5 when what was hoisted is *type introspection*
-        and C3.S2 when it is any other loop-invariant expression.
+  similar: [C3.S2, C10.S2]
 
 - id: C4.S6
   signals: [try_except_in_loop, ruff_PERF203]
-  mechanism: >
-    Entering a `try` block costs nothing measurable in modern CPython -- the
+  in_one_line: >
+    an exception used as ordinary control flow, on a path where it is raised
+    often
+  what_to_look_for: >
+    Entering a `try` costs nothing measurable in modern CPython, because the
     handler is recorded in a table rather than pushed at run time.  Raising is
     what costs: instantiating the exception, capturing a traceback frame by
-    frame, unwinding, and matching the handler.  So the price of this pattern is
-    the raise rate multiplied by the cost of a raise, which makes it idiomatic
-    and fast when the exception is rare.  It becomes waste only when the
-    exception is the common case, at which point the code is using an error
-    mechanism as its main control flow.
-  how_to_tell:
-    - >
-      Confirm the `try` is on the per-iteration path rather than wrapped around
-      the whole loop. A `try` outside the loop raises at most once.
-    - >
-      Establish the raise *rate*, and say how you know. This is a property of
-      the data, not of the code: `table[key]` inside a `try` is excellent when
-      keys are usually present and poor when they usually are not. Read the
-      callers, the fixtures, the documentation -- or say you could not establish
-      it and reject.
-    - >
-      Name the check that would replace the raise, and confirm it is cheaper
-      than the raise it avoids. `dict.get` and `key in table` are; a second full
-      lookup, or a `try` inside the check, is not.
-    - >
-      Confirm the check is exact. `except (KeyError, TypeError)` covers two cases
-      where a `.get()` covers one, and a repair that silently changes which
-      failures are tolerated is not behaviour-preserving.
+    frame, unwinding, and matching the handler.  So the price is the raise rate
+    times the cost of a raise, which makes `try`/`except` idiomatic and fast
+    when the exception is rare and waste only when it is the common case.  The
+    smell is therefore not the syntax -- it is a property of the *data*, so a
+    finding here needs a defensible statement of how often the exception
+    actually fires, and a case file that never raises is measuring the wrong
+    thing rather than refuting the claim.  Check the `try` is inside the loop
+    rather than around it, and that the replacement check is both cheaper and
+    exact: `except (KeyError, ValueError)` covers two failures where `.get()`
+    covers one, and a repair that silently changes which failures are tolerated
+    is not behaviour-preserving.  Some raises have no cheap pre-check at all --
+    a file that can vanish between the test and the open, an `int()` on
+    arbitrary text -- and those stay as they are.
   not_a_smell_when:
     - >
       the exception is genuinely rare, where EAFP is both idiomatic and faster
@@ -816,50 +722,29 @@
     root cause cannot be confirmed without a driver whose inputs raise at a
     realistic rate.  A case file that never raises is measuring the wrong thing
     rather than refuting the claim.
-  discriminators:
-    - vs: C3.S3
-      rule: >
-        Both fire on the same syntax.  C4.S6 is about the *raise* being frequent;
-        C3.S3 is about per-iteration *setup* that should be hoisted.  If the
-        repair moves the `try` out of the loop it is C3.S3; if it replaces the
-        raise with a test it is C4.S6.
-    - vs: C4.S7
-      rule: >
-        C4.S6 replaces an exception-driven decision with a test.  C4.S7 adds a
-        test in front of work that would otherwise succeed expensively.  Nothing
-        raises in a C4.S7 case.
+  similar: [C3.S3, C4.S7]
 
 - id: C4.S7
-  mechanism: >
-    A guard is a cheap test that lets the function skip an expensive path
-    entirely.  Its value is the cost of that path multiplied by how often the
-    degenerate input actually arrives, minus the cost of the test on every other
-    call.  So it is worth adding exactly when the skipped work is large and the
-    trivial case is common, and it is a net loss when the trivial case is rare --
-    then every call pays the test and almost none benefit.  The other side of the
-    ledger matters too: many library functions already short-circuit internally,
-    and a guard in front of one of those buys nothing at all.
-  how_to_tell:
-    - >
-      Name the class of input that reaches the expensive path without needing
-      it. Empty, one element, already sorted, already normalised, a value the
-      arithmetic makes irrelevant, a type with a trivial answer.
-    - >
-      Establish that the general path really does the full work on that input.
-      `sorted()` on an empty list is already cheap; `re.compile` on a fixed
-      string is already cached. Check before claiming, because this is where
-      most candidates die.
-    - >
-      Say how often the trivial input arrives and how you know. A guard is a bet
-      on the input distribution, and if you cannot describe the distribution you
-      cannot say whether the bet pays.
-    - >
-      Write the guard and confirm it returns exactly what the general path would
-      have returned for that input, including the type and the edge behaviour.
-      A fast path that is subtly different is a bug, not a repair.
-    - >
-      Check the guard itself is cheap. A guard that scans the collection to
-      decide whether to scan the collection has saved nothing.
+  in_one_line: >
+    a missing cheap test that would let a common trivial input skip the
+    expensive path
+  what_to_look_for: >
+    A guard is worth the cost of the path it skips times how often the
+    degenerate input arrives, minus the test charged to every other call.  So
+    look for a class of input that reaches the full machinery without needing it
+    -- empty, one element, already sorted, already normalised, a value the
+    arithmetic makes irrelevant -- and then say how often it actually arrives.
+    A guard is a bet on the input distribution, and a distribution you cannot
+    describe is a candidate you cannot defend.  Most candidates die on the other
+    half of the ledger: the general path may already short-circuit.  `sorted()`
+    on an empty list is close to free, `re.compile` on a fixed string is cached,
+    and many library functions make the same test internally, so a guard in
+    front of one buys nothing.  The guard also has to be cheap -- one that scans
+    the collection to decide whether to scan the collection has saved nothing --
+    and it has to return exactly what the general path would have, including the
+    type, the identity of the container, and what it raises.  The strongest form
+    of this root cause comes from an algebraic fact rather than a size check,
+    and that form needs a reader rather than a rule.
   not_a_smell_when:
     - >
       the degenerate case is rare, so the guard costs more across all calls than
@@ -946,50 +831,26 @@
     the driver must supply the degenerate inputs at a rate you can defend, and
     the normal inputs too, so that the test the guard adds to every call is
     charged against the saving
-  discriminators:
-    - vs: C4.S2
-      rule: >
-        C4.S7 *adds* a test that was not there.  C4.S2 *removes* one whose answer
-        was already determined.  One edit sometimes does both -- notice an
-        invariant, then use it to install a fast path -- and either label is
-        defensible; say which you chose.
-    - vs: C7.S5
-      rule: >
-        C4.S7 keeps the expensive operation and skips it for some inputs.  C7.S5
-        makes the operation itself cheaper for *all* inputs by simplifying it.
-        Branch added: C4.S7.  Arithmetic changed: C7.S5.
-    - vs: C3.S5
-      rule: >
-        C3.S5 stops a loop that is already running, once the answer is known.
-        C4.S7 stops the work before it starts.  If the repair adds a `break`, it
-        is C3.S5.
+  similar: [C3.S5, C4.S2, C7.S5]
 
 - id: C4.S8
   signals: [ruff_SIM401, ruff_SIM118]
-  mechanism: >
+  in_one_line: >
+    a condition spelled the long way round, missing the interpreter's fast path
+  what_to_look_for: >
     CPython's compiler and its built-in types have fast paths for the idiomatic
-    spellings, and the verbose equivalents miss them.  `if not x` asks the object
-    for its truth value directly; `if len(x) == 0` calls `len`, builds an int and
-    compares two objects.  `key in mapping` probes the hash table;
-    `key in mapping.keys()` first builds a view.  `a < b < c` evaluates `b` once;
-    `a < b and b < c` evaluates it twice.  Each difference is a handful of
-    bytecodes -- small, uniform, and only visible in aggregate.
-  how_to_tell:
-    - >
-      Point at the verbose form and name the idiom that replaces it.
-    - >
-      Establish that the two are equivalent *for this data*. This is the whole
-      difficulty: `len(x) == 0` and `not x` differ for an object with a custom
-      `__bool__` or `__len__`, and for a numpy array or a pandas frame the idiom
-      raises rather than answering.
-    - >
-      Check that the explicit form is not deliberately exact. Comparing floats
-      with `==` is sometimes precisely what was meant, and replacing it with
-      `math.isclose` changes the answer.
-    - >
-      Say how often it runs. This is worth a few bytecodes per evaluation, so it
-      is a finding only inside something hot -- and it is often more honest to
-      report it as advisory.
+    spellings and the verbose equivalents miss them.  `if not x` asks the object
+    for its truth value directly where `if len(x) == 0` calls `len`, builds an
+    int and compares two objects.  `key in mapping` probes the hash table where
+    `key in mapping.keys()` first builds a view.  `a < b < c` evaluates `b` once
+    where `a < b and b < c` evaluates it twice.  Each difference is a handful of
+    bytecodes, so this is a finding only inside something very hot and is
+    honestly advisory almost everywhere else.  The whole difficulty is
+    equivalence *for this data*: `len(x) == 0` and `not x` differ for an object
+    with a custom `__bool__` or `__len__`, and on a numpy array or a pandas
+    frame the idiom raises rather than answering.  The explicit form is also
+    sometimes deliberately exact -- float equality occasionally is precisely
+    what was meant -- so establish the type before rewriting the test.
   not_a_smell_when:
     - >
       the explicit form distinguishes cases the idiom conflates, which is the
@@ -1067,16 +928,4 @@
     not manufacture a case file that measures a difference nobody will ever
     observe -- a claim measured badly is worse than a claim reported as
     unmeasured.
-  discriminators:
-    - vs: C10.S2
-      rule: >
-        These overlap almost completely, and the split is by *what* the
-        alternative is.  C4.S8 is about the spelling of a **condition**, where
-        CPython has a fast path for the idiom.  C10.S2 is about choosing a
-        cheaper **function or method** for a task -- `str.startswith` over
-        `re.match`, `& 1` over `% 2`.  If the repair rewrites a boolean test it
-        is C4.S8; if it swaps a callable it is C10.S2.
-    - vs: C4.S2
-      rule: >
-        C4.S8 rewrites a test into a cheaper equivalent that asks the same
-        question.  C4.S2 deletes a test because its answer was already known.
+  similar: [C4.S2, C10.S2]
