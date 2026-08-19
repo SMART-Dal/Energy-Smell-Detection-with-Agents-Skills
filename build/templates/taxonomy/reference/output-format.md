@@ -43,7 +43,7 @@ right.
 
       "evidence": ["string_concat_in_loop"],
 
-      "rejected_neighbours": [
+      "also_considered": [
         {"id": "C10.S1", "why": "no repeated type conversion; the parts are already strings"}
       ],
 
@@ -79,7 +79,7 @@ right.
   ],
 
   "refuted": [
-    // Same object shape. Candidates that were accepted at step 4, repaired,
+    // Same object shape. Candidates that were accepted at step 3, repaired,
     // measured, and did not save anything on a clean noise floor. Keep them:
     // they are evidence about the taxonomy, not failures to hide.
   ],
@@ -104,10 +104,12 @@ right.
       "suspicions": [
         {"root_cause": "C10.S4", "confidence": "high",   "found_by": "both"},
         {"root_cause": "C3.S2",  "confidence": "medium", "found_by": "reading"},
-        {"root_cause": "C6.S1",  "confidence": "low",    "found_by": "rules"}
+        {"root_cause": "C6.S1",  "confidence": "low",    "found_by": "rules"},
+        {"root_cause": "C5.S4",  "confidence": "low",    "found_by": "sweep"}
       ],
       "dropped": [
-        {"root_cause": "C6.S1", "at_step": 3, "why": "subsumed by the C10.S4 repair"}
+        {"root_cause": "C5.S4", "at_step": 3, "why": "the conversion feeds a second use, so nothing is redundant"},
+        {"root_cause": "C6.S1", "at_step": 4, "why": "subsumed by the C10.S4 repair"}
       ],
       "found": ["C10.S4"]
     }
@@ -125,20 +127,24 @@ with `+=` across `rows`" is.
 causes are only smells on a hot path, and this is the field a reader checks
 when a finding looks marginal.
 
-**`found_by`** records how you came to suspect it. It is the difference between
-an analysis you did and a list you were handed, and it is measured across runs,
-so record it honestly — including the cases where you missed something.
+**`found_by`** records how you came to suspect it: `reading`, `rules`, `both`,
+`sweep` for the index pass at the end of step 2, or `cards` for a root cause
+that first appeared while you were reading a card in step 3. It is the
+difference between an analysis you did and a list you were handed, it is
+measured across runs, so record it honestly — including the cases where you
+missed something.
 
 **`evidence`** lists any deterministic observation that pointed here, named
 exactly as it was reported to you. Leave it `[]` when you found the smell by
 reading, which is the normal case.
 
-**`rejected_neighbours`** is not optional when the card lists neighbours. It is
-the record that you distinguished this root cause rather than picked it.
+**`also_considered`** names the similar cards you opened and did not file this
+under. Not a requirement to prove one card excludes another — these overlap on
+purpose — but a record of where you looked. Leave it out if you opened none.
 
 **`subsumed`** lists candidates that disappeared when this repair landed —
-checked in step 6, after applying it. Each needs a reason. Do not put anything
-here that you did not actually re-check.
+checked in step 4, after applying it and re-deciding what was left. Each needs
+a reason. Do not put anything here that you did not actually re-check.
 
 **`spans_units`** names every unit the repair edits. One entry for most
 findings; more when the waste lived in the arrangement rather than in a line.

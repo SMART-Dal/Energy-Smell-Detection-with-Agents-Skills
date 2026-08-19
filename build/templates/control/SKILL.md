@@ -23,7 +23,7 @@ Three consequences you have to hold onto:
 
 - **No repair, no finding.** If you cannot write the actual edit for this code,
   you have not found anything — you have made an observation.
-- **No measurement, no claim.** Step 5 is not optional. Received wisdom about
+- **No measurement, no claim.** Step 4 is not optional. Received wisdom about
   what is fast in Python is wrong often enough that an unmeasured claim is
   worth nothing, however confident it sounds.
 - **Report the failures too.** A repair you built, measured, and found saves
@@ -43,8 +43,22 @@ once, because they only existed to serve the search. When that happens:
 - do **not** widen the repair to cover extra observations, and do not split one
   edit into several findings to raise the count.
 
-So after a repair lands, **re-read the unit** (step 6) and see what is left.
-What survives gets its own repair. What evaporated gets recorded as subsumed.
+## How much you may change
+
+The edit should be as small as removing the waste allows. That bounds its
+**size**, never its location, and never how much code you may read to decide.
+
+So you may edit more than one function when that is where the waste lives. A
+value shaped wrongly by its producer and compensated for by three consumers is
+one repair, made in the producer. A list built in `__init__` and searched in a
+method is one repair, made in `__init__`. Moving work between a caller and a
+callee, or changing a helper's signature and its call sites, is allowed when
+that is what removes the waste. Name every unit you touched in `spans_units`.
+
+What you may not do is bring anything else along. A patch that also renames
+variables, tidies an unrelated branch, or fixes a second problem cannot be
+attributed to one reason, and the measurement stops meaning anything. The
+second problem is a second finding, or it is nothing.
 
 ## Two things that are not energy waste
 
@@ -70,10 +84,12 @@ you can find.
 
 ## Procedure
 
-Six steps, in order, one unit at a time. Each step says what it takes in and
-what it must produce; do not carry work forward that the step did not produce.
+Five steps, in order, one unit at a time. Each step states what it takes in and
+what it must produce. Produce it before moving on: every step after the second
+one is a check on what the second one wrote down, and a check you run against
+nothing checks nothing.
 
-### 1. Select — *in:* a path · *out:* a ranked list of units to examine
+### 1. Select — *in:* a path · *out:* the units you will examine, in order
 
 Choose the units yourself.
 
@@ -87,10 +103,21 @@ this order of priority:
 3. **the repository's own hot path** — what it benchmarks, what its main entry
    point spends its time in.
 
-Examine at least 10 units, or all of them if the target has fewer. Record every
-unit you looked at, including the ones you cleared.
+Examine at least 10 units, or all of them if the target has fewer.
 
-### 2. Read and observe — *in:* one unit · *out:* `observations[]`
+```jsonc
+{
+  "units_ranked": 128,
+  "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"],
+  "order_changed": "promoted `parse_row`: cli.py calls it once per input line"
+}
+```
+
+Keep this list. Every unit on it appears in the final report, including the
+ones you clear — a run that examined three functions and one that examined
+three hundred have to be distinguishable.
+
+### 2. Read and observe — *in:* one unit · *out:* one record, with `observations[]`
 
 **2a. Read the code and say what it does.** Read the whole unit, then follow it
 outward in both directions:
@@ -140,63 +167,102 @@ loop" is.
 }
 ```
 
-**At most 8 observations per unit.** The cap is there to make you rank rather
-than list. If you have more than eight, keep the ones you would actually spend
-an hour repairing.
+**At most 12 observations per unit.** The cap makes you rank rather than list.
+If you are at the cap, keep the ones you would actually spend an hour
+repairing.
 
-### 3. Narrow — *in:* `observations[]` · *out:* ≤5 `candidates[]` per unit
+### 3. Decide — *in:* `observations[]` · *out:* the same list, each one accepted or rejected
 
-Not everything wasteful is worth repairing. Drop an observation when:
+Not everything wasteful is worth repairing, and this is where that gets
+settled. Each observation carries forward as the same object, with its values
+corrected wherever a second reading taught you better, plus the verdict.
 
-- the saving is a fixed, tiny amount per execution that no input size can grow;
-- the unit does not run often enough for any saving to exist;
-- the repair would change behaviour, not just cost;
-- the expense buys something — a check that is there for correctness, a copy
-  that protects a caller, a wrapper that is public API.
+Four checks. Work through them for each observation:
 
-Carry at most **5 candidates per unit** into step 4, and record what you
-dropped and why.
+1. **Can you write the repair for *this* code**, as an edit rather than a
+   rewrite of the unit? No repair, no finding.
+2. **Does the repair preserve behaviour** on every input, including the edge
+   cases and whatever the callers rely on?
+3. **Can you state the mechanism** — what work stops happening, and why that
+   costs less — rather than appealing to a rule of thumb? "Built-ins are
+   faster" is not a mechanism, and it is wrong often enough to matter.
+4. **Does this unit run often enough, on large enough data**, for the saving to
+   exist at all?
 
-### 4. Decide — *in:* `candidates[]` · *out:* accepted / rejected, each with a reason
+The last one rejects more candidates than the rest put together, and it costs
+nothing to apply here. A real inefficiency on a path that runs eleven times per
+process is not a finding, and finding that out now is much cheaper than finding
+it out after you have built a case file.
 
-For each candidate:
+Record every rejection with the check that decided it; a rejection with a
+reason is a result. The list may also **grow** here — reading a second time to
+write a repair is one of the better ways to notice something you missed.
 
-1. Can you write the repair for *this* code, as a minimal edit rather than a
-   rewrite of the unit?
-2. Does the repair preserve behaviour on every input, including the edge cases?
-3. Does this unit run often enough, on large enough data, for the saving to be
-   measurable at all?
-4. Is the reason you expect a saving something you can state mechanically —
-   what work stops happening, and why — rather than a rule of thumb?
+```jsonc
+{
+  "lines": [31], "verdict": "accepted",
+  "what": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
+  "why_wasteful": "each request scans every blocked path; a set makes each lookup one hash probe",
+  "changed_from": {"lines": [58]},
+  "why_changed": "the repair changes where the container is built, not where it is searched",
+  "hotness": "one call per request; `routes` is 400-2000 entries",
+  "repair_sketch": "build `self.blocked` as a set",
+  "spans_units": ["src/router.py::Router.__init__"]
+}
 
-Accept only if you can answer all four. Record every rejection with the check
-that decided it; a rejection with a reason is a result.
-
-### 5. Repair and measure — *in:* accepted candidates · *out:* a verdict each
-
-Write the repair, then one case file per candidate, then measure it:
-
-```bash
-python $SKILL/scripts/verify.py cases/case_render_concat.py
+{
+  "lines": [58], "verdict": "rejected",
+  "why_rejected": "check 4 — `handle` runs once per process, over the static route table"
+}
 ```
 
-Read `$SKILL/reference/verifying.md` before your first case file. It has the
-contract, how to build a case that resembles the real code rather than a toy,
-the sizing rules, and what each verdict means.
+### 4. Repair and measure — *in:* accepted candidates · *out:* a verdict each
+
+**Order them before you start.** Sort by how much of the code the repair moves,
+largest first. Big repairs dissolve small ones — a search rewritten from
+scratch takes the redundant conversion inside it with it — so doing the small
+ones first means measuring work that was about to disappear anyway.
+
+Then, one candidate at a time:
+
+1. **Write the repair** as you would commit it.
+2. **Write the case file and measure it.** Read `$SKILL/reference/verifying.md`
+   before your first one. The part that matters most is that `before` is this
+   repository's function copied, not a small illustration of the pattern: a
+   repair worth 30% of a five-line sketch can be worth 2% of the real function,
+   and the sketch will not tell you which you have.
+
+   ```bash
+   python $SKILL/scripts/verify.py cases/case_render_concat.py
+   ```
+
+3. **If it is confirmed, apply it** to the working copy.
+4. **Then go back to step 3 with what is left.** Re-read the repaired unit and
+   re-decide every remaining accepted candidate. This is a real re-decision,
+   not a formality:
+   - candidates that no longer apply are `subsumed` by the repair that removed
+     them. Record them there and **do not measure them** — the code they
+     described is gone;
+   - candidates that still apply keep their place in the queue, and their
+     `lines` may have moved;
+   - a candidate can also be *created* by a repair. Add it and decide it.
+
+Repeat until the queue is empty.
 
 If a repair's saving is a fixed and very small amount per execution — a single
 bytecode instruction, say — no workload size will lift it above the noise
 floor. Report it as `advisory` with your reasoning, and do not claim it was
 measured.
 
-### 6. Re-check and report — *in:* verdicts · *out:* `findings.json` + `REPORT.md`
+### 5. Report — *in:* verdicts · *out:* `findings.json` + `REPORT.md`
 
-Before writing anything, apply each confirmed repair and **read the unit
-again**. For every remaining candidate, ask whether it still applies. Those
-that do not are `subsumed` by the repair that removed them — record them there,
-not as separate findings.
+Write the JSON first and the report from it.
+`$SKILL/reference/output-format.md` has the exact schema.
 
-Then write both files. `$SKILL/reference/output-format.md` has the exact schema.
+The report has to carry the negative results as well as the positive ones: what
+was refuted, what the host could not resolve, what each repair subsumed, and
+every unit you cleared. A run that only lists what it found cannot be
+distinguished from a run that only looked where it expected to find something.
 
 ---
 
@@ -216,15 +282,20 @@ Five failure modes, in the order they actually happen:
 4. **Skipping measurement because the waste is obvious.** The obvious ones are
    exactly where a wrong assumption about hotness hides.
 5. **Rewriting the unit.** A patch that changes everything cannot be attributed
-   to one reason, and cannot be measured against one. Keep the edit minimal —
-   that bounds what you *change*, never what you are allowed to read.
+   to one reason, and cannot be measured against one. Change what removes the
+   waste and stop.
 
 ## Scope
 
 Python.
 
-A unit is normally a function or a method: it is the granularity at which a
-repair is scoped and measured. It is not a limit on how much code you may read,
-and it is not a limit on where the waste may live. When the waste is in the
-arrangement of several units, say which units it spans and repair the smallest
-set that removes it.
+A **unit** is a function or a method. That is the granularity at which units are
+ranked, cleared and reported, and at which a repair is measured — a case file
+calls something, and this is the something.
+
+It is not a boundary on anything else. Read as far as you need in either
+direction. Repair across as many units as removing the waste requires. And when
+the waste exists only in the arrangement — two methods of a class that each look
+reasonable and are wrong together, a helper whose shape forces its four callers
+to compensate — report it against the unit where you would make the edit, and
+name the rest in `spans_units`.

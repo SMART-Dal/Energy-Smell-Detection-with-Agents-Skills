@@ -23,6 +23,14 @@ ablation is answering a different question from the one we asked, and the
 comparison is spoiled. Anything an arm needs to say about its own limits has to
 be sayable from inside, as a statement about static analysis in general.
 
+That constraint reaches further than it looks, which is why the four taxonomy
+arms all ship a directory named `energy-smells` and differ only in the *parent*
+directory holding it -- the parent is the experimenter's filing, never copied
+into a target repository. It is also why the sub-steps of step 2 are assembled
+from arm-supplied fragments rather than written into the template with fixed
+letters: an arm whose step 2 ran a, b, c, e would be announcing that something
+used to sit at d.
+
 Two things stay identical across every arm: the verifier, and what a finding
 has to be to count. Otherwise the arms would not be comparable.
 """
@@ -38,6 +46,13 @@ class Arm:
 
     name: str
     directory: str
+    """Path under `dist/`, as `<condition>/<skill name>`.
+
+    The last component is what gets copied into a target repository, so it has
+    to be the same in every arm that ships the taxonomy. The condition lives in
+    the component above it, which stays behind.
+    """
+
     question: str
     """What this arm is for. Printed by the build; never shipped."""
     templates: str = "taxonomy"
@@ -45,7 +60,13 @@ class Arm:
     step_select: str = ""
     """Body of `1. Select` in SKILL.md."""
     step_evidence: str = ""
-    """Body of `2d`, where the static rules enter. Empty when there are none."""
+    """The sub-step of step 2 that runs the static rules. Empty when there are none."""
+    step_sweep: str = ""
+    """The sub-step of step 2 that sweeps the full index.
+
+    Carries its own sub-step letter, which is why it differs between arms that
+    have a rules sub-step before it and arms that do not.
+    """
     excluded: tuple[str, ...] = field(default=())
     """Paths under scripts/ that must not exist in this arm."""
     ships_taxonomy: bool = True
@@ -75,8 +96,7 @@ from other files. So read the repository too — its entry points, what its test
 exercise, what its README says it is for — and override the order wherever you
 know better.
 
-Examine at least 10 units, or all of them if the target has fewer. Record every
-unit you looked at, including the ones you cleared.
+Examine at least 10 units, or all of them if the target has fewer.
 """
 
 _KNOWLEDGE_SELECT = """\
@@ -92,11 +112,10 @@ this order of priority:
 3. **the repository's own hot path** — what it benchmarks, what its main entry
    point spends its time in.
 
-Examine at least 10 units, or all of them if the target has fewer. Record every
-unit you looked at, including the ones you cleared.
+Examine at least 10 units, or all of them if the target has fewer.
 """
 
-# -- step 2d, for arms that have a scanner ---------------------------------
+# -- the rules sub-step, for arms that have a scanner ----------------------
 
 _SCANNER_EVIDENCE = """\
 **2d. Now, and only now, run the rules.**
@@ -105,10 +124,12 @@ _SCANNER_EVIDENCE = """\
 python $SKILL/scripts/scan.py <path> --top 15
 ```
 
-This applies a fixed set of deterministic rules and reports **facts** — "a
-string is grown with `+=` inside a loop at line 45" — grouped under the root
-causes each fact could indicate. Facts are graded by how far the fact alone
-gets you:
+This is an assistant, not an authority. It applies a fixed set of deterministic
+rules and reports **facts** — "a string is grown with `+=` inside a loop at line
+45" — grouped under the root causes each fact could point at. One fact often
+appears under two or three root causes, because the shape alone does not say
+which; and one root cause often collects several facts, which is the useful
+case. Facts are graded by how far the fact alone gets you:
 
 | Grade | Meaning |
 |---|---|
@@ -116,69 +137,111 @@ gets you:
 | `likely` | usually a smell; check the card's exceptions |
 | `contextual` | a fact and nothing more. **Justify it against this specific code, or drop it.** |
 
-Treat the output as a **second opinion**, and reconcile it against the list you
-have already written:
+Two things follow from what a rule is, and they point in opposite directions.
+
+**It reports shapes, so some of what it reports is wrong.** Every pattern here
+is the right thing to write somewhere. Whether it is right *in this code*
+depends on what the code is for, what the author was constrained by, and how
+often it runs — three things you can read and the rule cannot. Expect false
+positives and say so when you find one.
+
+**It only knows shapes somebody described in advance, so it misses the rest.**
+Waste that lives in the arrangement of a program has no fixed syntax and leaves
+no trace here however expensive it is. Silence from this tool is not evidence of
+anything.
+
+So reconcile it against the list you already wrote, and keep your own judgement:
 
 - **it agrees with you** — you now have two independent reasons;
-- **it saw something you did not** — go back and read that code again, then
-  decide for yourself. Being pointed at a line is not being told it is wrong;
+- **it saw something you did not** — read that code again and decide for
+  yourself. Being pointed at a line is not being told it is wrong;
 - **it flags something you judged fine** — you may well be right. Keep your
-  judgement, and record why;
-- **it is silent where you are suspicious** — that means nothing at all. These
-  rules recognise shapes someone thought to describe in advance. Waste that
-  does not take one of those shapes leaves no trace here however expensive it
-  is. Keep your suspicion and carry it forward.
+  judgement and record why;
+- **it is silent where you are suspicious** — that means nothing at all. Keep
+  the suspicion and carry it forward.
 
-Add a `found_by` field to every suspicion: `"reading"`, `"rules"`, or
-`"both"`. Record it honestly, including the cases where the rules saw something
-you had missed.
+Add `found_by` to every suspicion: `"reading"`, `"rules"`, or `"both"`.
 
-Every shape these rules match is the right thing to write somewhere. Deciding
-whether it is right *here* needs to know what the code is for, what the author
-was constrained by, and how often it runs. You can read all three. The rules
-cannot read any of them.
 """
+
+# -- the index sweep, present in every arm that ships the taxonomy ---------
+
+
+def _sweep(letter: str) -> str:
+    """The final sub-step of step 2, lettered to follow whatever came before.
+
+    Placed last on purpose. Read before the code, a list of sixty-five labels
+    is a menu and the agent picks the familiar ones; read after the agent has
+    written its own account of what is wrong, the same list is a check for
+    omissions -- which is what it is here for.
+    """
+    return f"""\
+**2{letter}. Sweep the full index for what you have not named.**
+
+Read `$SKILL/reference/README.md`, which lists all sixty-five root causes with
+one line each. Go down it once, against this unit, asking a single question:
+
+> is any of these happening here, that I have not already written down?
+
+You are looking for two things in particular. Waste you *noticed* while reading
+but could not name, which is what this index is for. And waste you did not
+notice at all, where the one-line description makes you go back and look.
+
+Add anything you find to `suspicions` with `found_by: "sweep"`. Do not revise
+anything already on the list, and do not drop items because the sweep did not
+independently produce them — the point of doing this last is that your own
+reading stays the primary account and this only adds to it.
+
+Expect most sweeps to add nothing. That is a normal outcome and not a sign you
+did it wrong.
+
+"""
+
 
 # -- the arms ---------------------------------------------------------------
 
 FULL = Arm(
     name="full",
-    directory="energy-smells",
+    directory="full/energy-smells",
     question="Do the two evidence sources compose, or does one crowd out the other?",
     step_select=_SCANNER_SELECT,
     step_evidence=_SCANNER_EVIDENCE,
+    step_sweep=_sweep("e"),
 )
 
 AST_ONLY = Arm(
     name="ast",
-    directory="energy-smells-ast",
+    directory="ast/energy-smells",
     question="What do the taxonomy-specific analyzers contribute on their own?",
     step_select=_SCANNER_SELECT,
     step_evidence=_SCANNER_EVIDENCE,
+    step_sweep=_sweep("e"),
     excluded=("lib/analysis/linters.py",),
 )
 
 RUFF_ONLY = Arm(
     name="ruff",
-    directory="energy-smells-ruff",
+    directory="ruff/energy-smells",
     question="How far does an off-the-shelf linter get, with the same cards and protocol?",
     step_select=_SCANNER_SELECT,
     step_evidence=_SCANNER_EVIDENCE,
+    step_sweep=_sweep("e"),
     excluded=("lib/analysis/rules",),
 )
 
 KNOWLEDGE_ONLY = Arm(
     name="knowledge",
-    directory="energy-smells-knowledge",
+    directory="knowledge/energy-smells",
     question="How well does the agent do on the taxonomy alone?",
     step_select=_KNOWLEDGE_SELECT,
     step_evidence="",
+    step_sweep=_sweep("d"),
     excluded=("scan.py", "lib/analysis", "lib/signals.py"),
 )
 
 CONTROL = Arm(
     name="control",
-    directory="energy-efficiency",
+    directory="control/energy-efficiency",
     question="How much does a frontier model save with no taxonomy, given the "
              "same task, the same rigour and the same verifier?",
     templates="control",

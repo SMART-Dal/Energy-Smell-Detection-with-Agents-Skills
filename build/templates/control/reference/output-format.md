@@ -69,7 +69,7 @@ right.
   ],
 
   "refuted": [
-    // Same object shape. Candidates that were accepted at step 4, repaired,
+    // Same object shape. Candidates that were accepted at step 3, repaired,
     // measured, and did not save anything on a clean noise floor. Keep them:
     // a repair that turned out not to help is a result, not a failure to hide.
   ],
@@ -118,7 +118,8 @@ only worth repairing on a hot path, and this is the field a reader checks when
 a finding looks marginal.
 
 **`subsumed`** lists observations that disappeared when this repair landed —
-checked in step 6, after applying it. Each needs a reason. Do not put anything
+checked in step 4, after applying it and re-deciding what was left. Each
+needs a reason. Do not put anything
 here that you did not actually re-check.
 
 **`spans_units`** names every unit the repair edits. One entry for most
