@@ -187,6 +187,47 @@ What the repair *changes*. Not a limit on how much code may be read.
 
 ---
 
+## What measurement may and may not change
+
+The taxonomy is the reference. Its 65 root causes come from a literature
+review, and `description` and `example` render verbatim from the spreadsheet.
+**Nothing measured here revises them, and no authored field may argue that one
+of them is wrong.** A repair that fails to pay, on one host, in the shapes we
+happened to try, is a fact about those shapes -- not evidence that the root
+cause is imaginary.
+
+What measurement is for is the authored half: saying where a root cause pays,
+how much, and where it does not, so an agent knows what to expect before it
+spends a measurement of its own.
+
+Every root cause has three case files under `validation/taxonomy/`, deliberately
+different in shape, each with large / normal / edge cases and, where the card
+makes a conditional claim, a case that puts the condition on the wrong side.
+Write the results in according to what they show:
+
+**All three pay.** Put the derivation in `what_to_look_for` -- what the size
+tracks, roughly how big it gets, what the numbers were. That is the most useful
+thing a card can carry, because it lets the agent size a candidate before
+building anything.
+
+**Some pay and some do not.** Say in `what_to_look_for` what to expect in
+general and what decides it. Put the shapes that did not pay into
+`not_a_smell_when` and `counter_examples`, with the readings. And put **only
+the shapes that paid** into `refactoring.examples` -- an example the agent is
+told to copy should be one that worked.
+
+**None of them pay.** Do not reject the root cause and do not write it down as
+refuted. Say plainly that the repair did not pay in the shapes tried, that it
+may still pay in ones we did not, and leave the judgement with the agent for
+its own context. Mark it advisory if the mechanism says the effect is
+constant-small; otherwise let the agent decide and measure. The definition
+stands either way -- read it and it makes sense, and Python may simply not be
+where the mechanism shows.
+
+Phrase all of this as *where to expect it to work*, never as a correction. "The
+description names X; measured here it costs more, because ..." is right. "The
+description is wrong about X" is not.
+
 ## House rules
 
 **Consistency inside a card.** If you change the repair, re-read
@@ -199,7 +240,8 @@ than the card it sits on, since every neighbour renders it.
 published spreadsheet and are rendered above your text. Your fields must be
 about the same root cause the description defines — narrower is fine, different
 is not. **Never invent a root cause, never widen one to cover something the
-description excludes.**
+description excludes, and never write a card that argues its own description is
+mistaken.**
 
 **No fabricated numbers.** Cite a measurement only if it appears in
 `SAMPLE_NUANCES.md` or `validation/RESULTS.md`. Everything else is mechanism, not
