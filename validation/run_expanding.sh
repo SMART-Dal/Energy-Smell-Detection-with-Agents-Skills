@@ -9,6 +9,12 @@
 #   tail -f validation/results/taxonomy.log
 #
 # Stop it when authoring is finished and the log reports "0 to run" twice.
+#
+# Do NOT edit anything under src/ while this is running. Each case runs as a
+# fresh subprocess that re-imports the verifier, so a half-finished edit is
+# picked up immediately and every case in flight fails against it -- once, this
+# turned thirty-two cases into `NameError` rows that had to be deleted and
+# redone. Stop the loop, edit, restart.
 set -u
 cd /home/javad/energy_smell_detection
 while true; do
