@@ -32,6 +32,9 @@ def after(tasks, work):
 
 
 def cases():
-    return [("many-tasks", lambda: (16, 400_000)),
-            ("few-tasks",  lambda: (2, 400_000)),
-            ("edge",       lambda: (1, 1_000))]
+    # Deliberately modest. `after` spins up a pool per call, and the harness
+    # repeats each call until its window lasts about a second -- so a large
+    # per-call cost multiplies into hundreds of process spawns and a timeout.
+    return [("many-tasks", lambda: (8, 60_000)),
+            ("few-tasks",  lambda: (2, 60_000)),
+            ("edge",       lambda: (1, 500))]

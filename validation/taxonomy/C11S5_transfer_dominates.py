@@ -40,6 +40,7 @@ def _matrix(n, m):
 
 
 def cases():
-    return [("big-payload",   lambda: (_matrix(24, 200), _matrix(200, 200))),
-            ("small-payload", lambda: (_matrix(24, 20), _matrix(20, 20))),
+    # Same reason as the sibling file: a pool per call, repeated.
+    return [("big-payload",   lambda: (_matrix(8, 120), _matrix(120, 120))),
+            ("small-payload", lambda: (_matrix(8, 12), _matrix(12, 12))),
             ("edge",          lambda: (_matrix(1, 4), _matrix(4, 4)))]
