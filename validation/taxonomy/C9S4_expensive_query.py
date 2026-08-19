@@ -1,25 +1,67 @@
-"""C9.S4 Expensive Query Pattern -- filtering after retrieval instead of before."""
+"""C9.S4 Expensive Query Pattern -- a predicate that defeats its own index.
 
-class Store:
-    def __init__(self, rows):
-        self.rows = rows
+The previous version compared filtering a Python list after retrieval against
+filtering it inside a stub method. Both ran the same comprehension over the same
+list, so it measured the cost of a lambda and lost; nothing about it reached the
+query engine, which is the only place this root cause lives.
 
-    def all_rows(self):
-        return list(self.rows)
+`WHERE lower(email) = ?` cannot use an index on `email`, so the engine scans
+every row; with the values already normalised, dropping the call makes the same
+query an index lookup. That is the card's first repair example, executed by a
+real planner. `sqlite3` is in the standard library and needs no network.
 
-    def where(self, predicate):
-        return [r for r in self.rows if predicate(r)]
+Both variants return the same rows. The emails are stored lower-cased, which is
+the precondition the card insists on -- without it the repair silently stops
+matching, and the right fix is a functional index instead.
+"""
+
+import sqlite3
+
+USERS = 200_000
 
 
-def before(store, k):
-    return [r for r in store.all_rows() if r > k]
+def _database():
+    """One in-memory database with a usable index, built at import."""
+    connection = sqlite3.connect(":memory:")
+    connection.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, email TEXT)")
+    connection.executemany(
+        "INSERT INTO users VALUES (?, ?)",
+        [(i, f"user{i}@example.com") for i in range(USERS)],
+    )
+    connection.execute("CREATE INDEX users_email ON users (email)")
+    connection.commit()
+    return connection
 
 
-def after(store, k):
-    return store.where(lambda r: r > k)
+DB = _database()
+
+
+def before(connection, addresses):
+    """`lower()` on the column makes the index unusable: a full scan per lookup."""
+    out = []
+    for address in addresses:
+        row = connection.execute(
+            "SELECT id FROM users WHERE lower(email) = ?", (address.lower(),)
+        ).fetchone()
+        out.append(row[0] if row else None)
+    return out
+
+
+def after(connection, addresses):
+    """The same question asked of the column directly, so the index applies."""
+    out = []
+    for address in addresses:
+        row = connection.execute(
+            "SELECT id FROM users WHERE email = ?", (address.lower(),)
+        ).fetchone()
+        out.append(row[0] if row else None)
+    return out
 
 
 def cases():
-    rows = list(range(200_000))
-    return [("selective", lambda: (Store(list(rows)), 199_000)),
-            ("unselective", lambda: (Store(list(rows)), -1))]
+    hits = [f"User{i * 977 % USERS}@Example.com" for i in range(200)]
+    return [
+        ("many-lookups", lambda: (DB, list(hits))),
+        ("one-lookup", lambda: (DB, hits[:1])),
+        ("no-lookups", lambda: (DB, [])),
+    ]

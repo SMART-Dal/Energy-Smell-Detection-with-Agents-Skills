@@ -247,6 +247,16 @@
         equivalent comprehension. The rule is about the callable, not about
         `map`.
     - code: |
+        same_contents = sorted(first) == sorted(second)
+      why: >
+        `Counter(first) == Counter(second)` is the reflex repair and is
+        asymptotically better -- one pass against a sort. Measured on
+        five-element lists compared a hundred thousand times, it is **twelve
+        times slower**: two dicts have to be built and hashed where two tiny
+        sorts are a handful of comparisons in C. Complexity decides this only
+        once the sequences are long, and nothing in the expression says how long
+        they are. Whichever way you propose to change it, say what the length is.
+    - code: |
         if n % 2:
             handle_odd(n)
       why: >
