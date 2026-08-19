@@ -133,10 +133,10 @@ class CounterExample:
     correct as written, plus the one difference that makes it so.
 
     C10.S4 is why this field exists. Three examples of `s += x` inside a loop
-    would all have been wrong, because the published claim was wrong. What
-    separates the smell from the non-smell is one character of the assignment
-    target -- `out +=` against `self.buf +=` -- and no amount of positive
-    examples surfaces that.
+    would all have taught the wrong lesson, because what separates the case that
+    pays from the case that does not is one character of the assignment target
+    -- `out +=` against `self.buf +=` -- and no number of positive examples
+    surfaces that.
     """
 
     code: str

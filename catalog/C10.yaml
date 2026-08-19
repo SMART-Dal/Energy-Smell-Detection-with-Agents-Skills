@@ -228,12 +228,12 @@
             if isinstance(item, Widget):
                 render(item)
       why: >
-        The published description names `type(x) == C` becoming
-        `isinstance(x, C)` as an improvement. Measured here over a million
-        elements, `isinstance` is **5.4% slower**: it walks the class's MRO where
-        `type(x) == C` is a pointer comparison. The style advice is entirely
-        about *semantics* -- `isinstance` accepts subclasses, which is nearly
-        always what you want -- and it is not an energy repair. Do not report a
+        The description names `type(x) == C` becoming `isinstance(x, C)` as an
+        improvement, and it is one -- `isinstance` accepts subclasses, which is
+        nearly always what you want. What it is not is an *energy* improvement:
+        measured over a million elements it costs **5.4% more**, because it walks
+        the class's MRO where the equality test is a pointer comparison. Take the
+        change for the semantics, and do not report it as a saving. Do not report a
         change in this direction as a saving, and do not report the reverse
         direction as one either, because it changes behaviour for subclasses.
     - code: |
@@ -437,23 +437,23 @@
     a string grown with `+=` in a loop, where the target is aliased or the parts
     are many
   what_to_look_for: >
-    Python strings are immutable, so `s = s + part` should have to allocate a
-    new object and copy both operands, which over N concatenations of average
-    length M is O(N*M) bytes.  That is the textbook account and it is **not what
-    CPython does** for the commonest case: when the accumulator's reference
-    count is exactly one, the interpreter knows nothing else can observe the old
-    string and resizes it in place, making the loop linear.  So the first thing
-    to identify is the *assignment target*, before anything else.  An attribute
-    (`self.buf += s`), a subscript (`d["k"] += s`), a global or a nonlocal all
-    mean a second reference exists, the resize cannot fire, and every iteration
-    copies everything accumulated so far -- measured here at **99.9%** for the
-    repair.  A plain local that is never read inside the loop keeps the
-    optimisation, and a plain local that *is* read -- passed to a function,
-    appended to something, captured by a closure -- takes a second reference and
-    loses it again.
+    The description above gives the cost exactly: each `+=` allocates a new
+    string and copies everything already accumulated, so N concatenations of
+    average length M is O(N*M).  What decides whether a *particular* loop pays
+    that is the assignment target, so identify it before anything else.  When
+    the accumulator's reference count is one, CPython can resize the string in
+    place instead of copying and the O(N*M) term collapses; a second reference
+    anywhere stops the optimisation, and the full cost is what happens.  An
+    attribute (`self.buf += s`), a subscript (`d["k"] += s`), a global or a
+    nonlocal all hold that second reference, so every iteration copies
+    everything accumulated so far -- the case the description names, measured
+    here at **+99.9%** for the repair.  A plain local that nothing inside the
+    loop reads keeps the optimisation; a plain local that *is* read -- passed to
+    a function, appended to something, captured by a closure -- takes a second
+    reference and pays the full cost again.
 
-    The unaliased local is still worth measuring, and the size is decided by the
-    number of parts rather than by the total length.  Measured on a clean floor:
+    Where the resize does fire, there is still something to find, and its size
+    is decided by the number of parts rather than by the total length.  Measured on a clean floor:
     200 000 short parts gave the join **+18.4% +-0.6**, and 2 000 long parts
     totalling ten times as many bytes gave **+1.2%**, which is nothing.  With
     the resize firing, both forms are linear in bytes and what remains is
@@ -486,9 +486,9 @@
             return out
       why: >
         An unaliased local, so its refcount is one and CPython resizes the string
-        in place: the loop is linear, not quadratic, and this is the shape the
-        textbook rule gets wrong. What is left is per-part interpreter work,
-        which at a dozen parts is nothing. The same code over 200 000 parts *is*
+        in place: on this shape the copying the description names does not
+        happen, and what is left is per-part interpreter work, which at a dozen
+        parts is nothing. The same code over 200 000 parts *is*
         a finding, worth 18.4% -- so the count is what decides this, and the
         aliasing decides how large it can get.
     - code: |
@@ -553,17 +553,15 @@
     plain local it needs on the order of 100k parts to reach double digits, and
     2k parts of any size show nothing
   notes: >
-    This entry has been rewritten from measurement twice, and it is the
-    project's standing example of why every claim gets measured.  The textbook
-    rule -- "`+=` on a string in a loop is quadratic" -- is false on CPython for
-    the most commonly cited example, because of an in-place resize applied when
-    the accumulator's reference count is one.  The first rewrite concluded that
-    the plain-local form was therefore not a smell at all.  Measured again on an
-    idle host, that was too strong: the resize does fire and both forms are
-    linear in bytes, but the per-part interpreter work remains and the join is
-    worth 18.4% +-0.6 at 200 000 parts and 1.2% at 2 000.  So there are two
-    findings on this card of very different size, and the report has to say
-    which: aliasing, worth almost everything, and part count, worth a fifth.
+    Where this root cause pays has been measured twice and the guidance here
+    revised both times; the description itself has not changed and did not need
+    to.  What measurement adds is *when* the quadratic term it names actually
+    appears.  Through an aliased target it appears in full, and the repair is
+    worth almost everything.  Through an unaliased local CPython's in-place
+    resize removes it, and what remains is per-part interpreter work: +18.4%
+    +-0.6 at 200 000 parts, +1.2% at 2 000 -- real, a fifth of the size, and
+    driven by the part count rather than by the total length.  A report here
+    should say which of the two it found.
   similar: [C6.S1, C10.S3]
 
 - id: C10.S5

@@ -1,5 +1,24 @@
 # Validation results
 
+## What this measures, and what it does not
+
+**The taxonomy is the reference.** Its 65 root causes come from a literature
+review, each names a real mechanism, and nothing here is evidence that one of
+them is not a root cause. A repair that fails to pay, on this host, in the one
+shape a case file happened to use, is not a refutation of anything — it is a
+fact about that shape on that host.
+
+What these suites are for is the *authored* half of each card: where a root
+cause pays, how much, where it does not, and what an agent should expect before
+it spends a measurement of its own. Every number below feeds `what_to_look_for`,
+`NOT a smell when`, `Looks the same, is not` or the repair examples. None of it
+feeds the description or the example, which are rendered verbatim from the
+published taxonomy and are not ours to edit.
+
+Where a repair did not pay anywhere we tried, the card says so and leaves the
+judgement with the agent, because the shapes we tried are not all the shapes
+there are.
+
 Two suites, both run on 2026-08-18/19 on an idle host. The earlier run of the
 samples suite happened while the machine was shared and is superseded — its
 median null canary was 8.25% and one reading reached 51%, which put every
@@ -50,14 +69,16 @@ and the small ones are small, in the range a card should describe as advisory
 or nearly so: C4.S3 conditional nesting +1.7%, C1.S2 redundant assignment
 +2.9%, C1.S7 single-use temporary +3.4%, C1.S3 redundant boolean branch +6.1%.
 
-### Eight clean refutations
+### Eight where the repair did not pay
 
-Measured, equivalent, and no saving on a floor low enough to mean it:
+Measured, behaviour-preserving, and no saving on a floor low enough to mean it.
+Read these as "not here, not in this shape" rather than as verdicts on the root
+cause:
 
 | Case | Reading | Floor | What it says |
 |---|---|---|---|
-| `C4S1_short_circuit_order` | −1.0% | 1.2% | reordering the operands bought nothing here |
-| `C6S7_mutable_default` | −0.7% | 0.3% | the correctness bug is real; the energy claim is not |
+| `C4S1_short_circuit_order` | −1.0% | 1.2% | reordering the operands bought nothing in this shape |
+| `C6S7_mutable_default` | −0.7% | 0.3% | the correctness bug is real; the energy cost is the unbounded growth, which a one-second window cannot show |
 | `C1S6_unnecessary_init` | −0.7% | 2.8% | moving the setup into the branch saved nothing at this hit rate |
 | `C12S4_declaration_order` | +0.6% | 2.1% | `__slots__` order does not decide layout in CPython, as the card says |
 | `C4S7_edge_case_guard` | +0.2% | 0.8% | the guard's cost across all calls matched what it saved on the few |
@@ -98,18 +119,21 @@ where the card says it applies, and loses where the card says it does not". The
 second is more informative and also more abusable, so it is left for a decision
 rather than taken.
 
-**Four are genuine, and two of those change a card.**
+**Four are real losses for the repair as written**, and each is written onto
+its card as a place not to apply it:
 
 - `C12S2_sparse_access` **−126%**, on both cases, floor 0.8%. Sorting scattered
   indices before a gather costs far more than the cache misses it avoids. The
   card warned about this; it can now say it with a number.
-- `C12S3_unpredictable_branch` **−35%** and **−65%**. Branchless arithmetic in
-  interpreted Python is a loss: `total += x * (x > 0)` pays a comparison, a
-  coercion and a multiply where `if x > 0` skips the work outright. The card
-  said the effect is unreachable from CPython; it is worse than unreachable.
+- `C12S3_unpredictable_branch` **−35%** and **−65%**. Branch misprediction is
+  real hardware behaviour; what these readings show is that an interpreted loop
+  is not where you reach it. `total += x * (x > 0)` pays a comparison, a
+  coercion and a multiply where `if x > 0` skips the work outright. The
+  mechanism lives one level down, in compiled code, and the card now says so.
 - `C2S2_static_method` **−5.3%** over many calls. The card already carried a
-  warning that the direction was unconfirmed, and this settles it: on a modern
-  CPython, `@staticmethod` is not the cheaper declaration.
+  warning that the direction was unconfirmed. Modern CPython specialises method
+  calls, so the declaration change is worth making for what it says about the
+  method's design and is not worth reporting as a saving.
 - `C6S6_leaked_handle` −2.9%. Using `with` costs slightly more than not closing,
   which is true and beside the point — the claim is about descriptor exhaustion.
 

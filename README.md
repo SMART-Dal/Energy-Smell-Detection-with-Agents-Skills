@@ -140,28 +140,28 @@ map from unit qualname to hit count; anything unlisted must produce nothing. Of
 347 units, 191 exist to stay silent. The quiet cases are the point: a rule the
 reader learns to ignore is worse than no rule.
 
-## Why measurement is not optional
+## What measurement is for
 
-C10.S4 has now been rewritten from measurement twice, in opposite directions,
-and the second time was the more instructive.
+**The taxonomy is the reference, and measurement does not sit in judgement on
+it.** The 65 root causes come from a literature review; each one names a real
+mechanism, and a repair that fails to pay on one host in one shape does not make
+the mechanism imaginary. What measurement settles is narrower and more useful:
+*where* a root cause pays, *how much*, and *where it does not* — so the cards can
+tell an agent what to expect instead of asserting a rule.
 
-It began saying what every style guide says: growing a string with `+=` in a
-loop is quadratic, so collect the parts and join once. Measured, the textbook
-example got **slower**. CPython resizes a string in place when its reference
-count is one, so the canonical example was already linear, and the analyzer had
-been written to fire on exactly the case that is *not* a smell. The real root
-cause turned out to be aliasing: through an attribute, where the in-place
-optimisation cannot fire, the same repair measures **+99.9%**. The card, the
-analyzer and the workload hint were rewritten from that.
+C10.S4 is the standing example. Its published description says each `+=`
+allocates and copies, so N concatenations of average length M cost O(N*M). That
+is exactly right, and the guidance around it has been rewritten twice from
+measurement without the description changing once.
 
-The rewrite then over-corrected, and said the plain-local form was not a smell
-at all. Measured again on an idle host, that is also wrong. The resize does fire
-and both forms are linear in bytes, but per-part interpreter work remains, and
-the join is worth **+18.4% ± 0.6** over 200 000 short parts and **+1.2%** over
-2 000 long ones. So the deciding variable is the number of parts, not the total
-length, and one card carries two findings of very different size.
+Through an aliased target — an attribute, a subscript, a global — the described
+cost is what happens, and the repair measures **+99.9%**. Through a plain local
+that nothing else reads, CPython resizes the string in place, the O(N*M) term
+collapses, and what remains is per-part interpreter work: **+18.4% ± 0.6** over
+200 000 short parts and **+1.2%** over 2 000 long ones. So the deciding variable
+is the number of parts, not the total length, and one card now carries two
+findings of very different size.
 
-Neither correction was available by reasoning. Both came from a paired
-measurement on a floor low enough to believe — which is why the verifier is not
-an optional final step, and why a card that has been measured says what it
-measured and on what.
+None of that was available by reasoning. It came from paired measurement on a
+floor low enough to believe — which is why the verifier is not an optional final
+step, and why a card that has been measured says what it measured and on what.

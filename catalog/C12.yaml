@@ -276,8 +276,9 @@
     `total += x * (x > 0)` for `if x > 0: total += x` -- came out **34% worse**
     on unpredictable data, because in the interpreter the arithmetic form pays a
     comparison, a bool-to-int coercion and a multiply per element where the
-    branch simply skipped the work.  So if the loop is interpreted Python, the
-    answer is no and saying so is the correct outcome.
+    branch simply skipped the work.  So an interpreted loop is not where this
+    root cause is found, and saying so is the correct outcome; the mechanism the
+    description names is real and lives one level down, in compiled code.
 
     Where the loop *is* compiled -- Cython with bounds checking off, a C
     extension, a numba kernel -- establish the branch is close to a coin toss

@@ -371,13 +371,13 @@
     sequence consumed fully, expect the eager form to win and the candidate to be
     correctly refuted
   notes: >
-    The published description says to prefer a generator "when the result is
-    consumed exactly once", and this project's own measurement contradicts that
-    as a blanket rule: for a short pipeline consumed once by a C-level function
-    the list comprehension was ahead.  Both facts fit together once the mechanism
-    is stated -- laziness buys allocation and peak memory and costs per-element
-    resumption -- so the card asks the reader to establish which side dominates
-    here rather than to apply the rule.
+    The description says to prefer a generator "when the result is consumed
+    exactly once", and measurement qualifies *when* that pays rather than
+    disputing it: on a short pipeline consumed once by a C-level function the
+    list comprehension came out ahead.  Both fit together once the mechanism is
+    stated -- laziness buys allocation and peak memory and costs per-element
+    resumption -- so what this card asks is which side dominates in the code in
+    front of you.
   similar: [C3.S5, C5.S4, C6.S1]
 
 - id: C6.S4
