@@ -107,9 +107,9 @@ Examine at least 10 units, or all of them if the target has fewer.
 
 ```jsonc
 {
-  "units_ranked": 128,
+  "units_considered": 128,
   "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"],
-  "order_changed": "promoted `parse_row`: cli.py calls it once per input line"
+  "why_this_order": "`parse_row` first: cli.py calls it once per input line"
 }
 ```
 
