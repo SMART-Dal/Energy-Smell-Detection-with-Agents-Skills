@@ -1,112 +1,170 @@
 # Validation results
 
-Two suites. `samples` has run; `taxonomy` has not, and the reason matters.
+Two suites, both run on 2026-08-18/19 on an idle host. The earlier run of the
+samples suite happened while the machine was shared and is superseded — its
+median null canary was 8.25% and one reading reached 51%, which put every
+question worth settling on a contaminated floor.
 
-## The machine was shared, and it cost us the interesting half
+## The host, this time
 
-Every run records a **null canary**: `before` measured against `before`, identical
-code compared to itself. Whatever that reads is contamination, because the true
-answer is zero.
+`validation/preflight.py` passed before either batch: null canary **2.43%**,
+the known saving read +99.1%, and the same pair swapped read negative. The
+per-case canaries are the number to trust, and they were much better than the
+preflight suggests.
 
-| | idle host (earlier session) | shared host (this run) |
+| | shared host (superseded) | idle host (this run) |
 |---|---|---|
-| median canary | 0.63% | **8.25%** |
-| worst canary | 0.84% | **51.07%** |
-| direct reading, 14:15 | — | **−3.99% ± 12.98%** |
+| median per-case canary | 8.25% | **1.07%** |
+| 90th percentile | — | 2.44% |
+| readings above 3% | most | **5 of 69** |
 
-Nothing smaller than about 13% is resolvable while the machine is shared. Large
-effects still are — a 96% saving clears a 10% floor comfortably — which is why
-the confirmations below stand and the null results do not.
+The one bad floor is `C11S5_missed_parallelism` at 25.1%, and the cause is the
+case itself: it starts a thread pool, so the canary measures a host the case
+file is disturbing. Its +86.4% clears even that, but treat the magnitude as
+approximate.
 
-**Consequence for the verdicts.** `refuted` used to mean two different things:
-"we measured cleanly and the repair does nothing", and "we could not tell".
-Those are opposite claims, and collapsing them writes a busy machine down as
-evidence against the taxonomy. `verify.py` now emits **`inconclusive`** when the
-canary exceeds `USABLE_FLOOR_PCT` (3.0%), and `validation/preflight.py` refuses
-to start a batch on a host that fails it.
+---
 
-Re-grading the 84 completed sample runs under that rule:
+## Taxonomy suite: 69 cases, all 65 root causes
 
-| Verdict | Count |
+**49 confirmed, 8 refuted, 12 regressed.** Every root cause now has at least one
+measurement on a floor low enough to believe, which was the point of the suite
+and had never been done.
+
+### What the confirmations establish
+
+The large effects are where the taxonomy says they are — complexity, external
+access, and work that never needed doing:
+
+| | |
 |---|---|
-| confirmed, effect ≫ floor | **50** |
-| confirmed, effect near floor | 7 |
-| inconclusive (floor too high) | 11 |
-| refuted on a clean floor | 4 |
-| regressed | 3 |
-| not equivalent | 9 |
+| +100% | C1.S8 runtime management (`gc.collect()` per iteration) |
+| +99.9% | C10.S4 aliased string concatenation · C7.S1 algorithm choice · C7.S2 decomposition |
+| +99.8% | C3.S7 mutation during iteration |
+| +99.5% | C5.S2 missing index · C3.S4 nested scan · C8.S4 redundant fetching |
+| +99.2% | C3.S3 per-iteration setup · C5.S1 membership on a list |
+| +98.8% | C11.S4 blocking call in a coroutine |
+| +97.0% | C9.S1 fragmented I/O |
 
-## What is established
+and the small ones are small, in the range a card should describe as advisory
+or nearly so: C4.S3 conditional nesting +1.7%, C1.S2 redundant assignment
++2.9%, C1.S7 single-use temporary +3.4%, C1.S3 redundant boolean branch +6.1%.
 
-50 of your 92 pairs confirm with the effect far above the floor. That is the
-taxonomy working: `min`/`max` over a hand loop (+48%), a set over a linear scan
-(+85–96%), `Counter` over manual tallying where the data has duplicates (+96%),
-memoisation over recomputation (+95%), `str * n` over `"".join([str] * n)`
-(+98.7%), iterative over recursive factorial (+39.5%).
+### Eight clean refutations
 
-Three results are worth more than the rest because they refine a card rather
-than confirm it, and all three landed on a floor low enough to believe:
+Measured, equivalent, and no saving on a floor low enough to mean it:
 
-| Sample | Result | What it settles |
-|---|---|---|
-| `MultiplyByFactor` | **+39.0% ± 0.5** (floor 1.2) | C5.S3 holds: `x * 3.0` against `x * 3` is a real 39% on integer data. Validates the new `float_literal_on_int_data` analyzer. |
-| `ChangeListElementsType` | **+46.8% ± 4.3** (floor 4.0) | `map` with a **C builtin** beats a comprehension. |
-| `SumFilterMap` | **+24.6% ± 1.5** (floor 0.8) | a comprehension beats `map` with a **lambda**. |
-
-The last two together resolve the apparent contradiction between two of your own
-samples. The rule is not "prefer `map`" or "prefer comprehensions" — it is
-whether the mapped callable re-enters the interpreter. `map(float, xs)` is an
-improvement; `map(lambda x: x*2, xs)` is a regression. C10.S2's card now carries
-that as a counter-example.
-
-## Nine of your pairs are not behaviour-preserving
-
-These were rejected before measurement, which is the equivalence check doing its
-job. They are not useless — several are interesting — but they cannot be used as
-evidence about energy, because the two sides compute different things.
-
-| Pair | What differs |
-|---|---|
-| `BuiltInBehavior/SumTopK` | `lst.sort()` mutates the caller's list; also only wins because the driver re-runs on already-sorted data |
-| `OveruseOfLoops/MergeLists` | `lst1.extend(lst2)` mutates its argument, `lst1 + lst2` does not |
-| `BuiltInBehavior/OperatingOnList2` | rewrites the input in place and returns it |
-| `ImproperDataStructure/DifferenceBetweenNumbers` | different return shape entirely (dict of lists vs list of lists) |
-| `ImproperDataStructure/GreaterThanK` | returns a set where the original returned a list |
-| `OveruseOfLoops/FindMultipleItems` | returns indices where the original returned values |
-| `OveruseOfLoops/OccurenceOfOddItems2`, `3` | off-by-one in the seeded counts |
-| `ExtraUsageOfArrays/MatMulNumpy` | float dtype vs int arithmetic |
-
-## What is NOT established, and why it matters
-
-Every claim I most wanted to settle landed on a contaminated floor:
-
-| Question | Reading | Floor | Status |
+| Case | Reading | Floor | What it says |
 |---|---|---|---|
-| Does a hand loop beat `Counter`? (C10.S1) | −4.5% ± 1.0 | 10.0% | inconclusive |
-| Is a listcomp faster than a genexp for `sum`? (C6.S3) | +22.1% ± 0.6 | **51.1%** | inconclusive |
-| Is the plain-local `+=` really not a smell? (C10.S4) | −18.9% ± 23.0 | 16.2% | inconclusive |
-| Is `isinstance` slower than `type(x) ==`? | −0.5% ± 21.5 | 25.6% | inconclusive |
-| Is a constant tuple faster than a list literal? (C5.S3) | +14.9% ± 10.5 | 13.5% | inconclusive |
+| `C4S1_short_circuit_order` | −1.0% | 1.2% | reordering the operands bought nothing here |
+| `C6S7_mutable_default` | −0.7% | 0.3% | the correctness bug is real; the energy claim is not |
+| `C1S6_unnecessary_init` | −0.7% | 2.8% | moving the setup into the branch saved nothing at this hit rate |
+| `C12S4_declaration_order` | +0.6% | 2.1% | `__slots__` order does not decide layout in CPython, as the card says |
+| `C4S7_edge_case_guard` | +0.2% | 0.8% | the guard's cost across all calls matched what it saved on the few |
+| `C11S1_lock_contention` | +0.2% | 0.9% | narrowing a critical section with no contention present |
+| `C11S2_serial_bottleneck` | −0.2% | 0.9% | |
+| `C11S3_leaked_thread` | −0.1% | 1.4% | |
 
-The `SumMap1` row is the clearest illustration: a **±0.6%** confidence interval
-on the effect, and a **51%** canary. The effect is probably real, and I will not
-write it down as a fact until the canary agrees.
+The C11 cluster is a limit of the harness rather than a fact about the
+taxonomy, and the cards now say so. A one-second paired window cannot exercise
+contention, cannot accumulate leaked threads, and cannot make a bottleneck bite.
+What those three cards claim is a failure mode at scale, and the honest report
+for them is the mechanism plus a count, not an energy figure.
 
-## To finish this
+### Twelve regressed, and they are not one thing
 
-On an idle machine:
+`regressed` means the repair helped the deciding case and hurt another one by
+more than 1% of the deciding case's own cost. That covers three different
+situations, and lumping them together would misread the taxonomy badly.
+
+**Five are the card's own precondition, measured.** The case file deliberately
+includes the input where the card says to reject the candidate, and the repair
+loses there. These confirm the cards rather than contradicting them:
+
+| Case | Where it holds | Where it does not |
+|---|---|---|
+| `C8S1_memoization` | +89.4% many repeats | −14.2% all distinct |
+| `C10S1_counter` | +63.1% many duplicates | −12.5% all distinct |
+| `C4S6_exception_control_flow` | +73.8% always raises | −36.4% never raises |
+| `C7S4_sort_then_slice` | +69.9% k tiny, n large | −971% k near n |
+| `C9S2_oversized_retrieval` | +99.9% needs few columns | −204% needs all |
+
+Each of those "where it does not" columns is a `not_a_smell_when` clause on the
+card, stated before the measurement. **This is an open question about the
+harness, not about the taxonomy**: a case file that spans both regimes can only
+ever come back `regressed`, so either the case files should stay inside the
+stated precondition, or the verdict vocabulary needs a way to say "confirmed
+where the card says it applies, and loses where the card says it does not". The
+second is more informative and also more abusable, so it is left for a decision
+rather than taken.
+
+**Four are genuine, and two of those change a card.**
+
+- `C12S2_sparse_access` **−126%**, on both cases, floor 0.8%. Sorting scattered
+  indices before a gather costs far more than the cache misses it avoids. The
+  card warned about this; it can now say it with a number.
+- `C12S3_unpredictable_branch` **−35%** and **−65%**. Branchless arithmetic in
+  interpreted Python is a loss: `total += x * (x > 0)` pays a comparison, a
+  coercion and a multiply where `if x > 0` skips the work outright. The card
+  said the effect is unreachable from CPython; it is worse than unreachable.
+- `C2S2_static_method` **−5.3%** over many calls. The card already carried a
+  warning that the direction was unconfirmed, and this settles it: on a modern
+  CPython, `@staticmethod` is not the cheaper declaration.
+- `C6S6_leaked_handle` −2.9%. Using `with` costs slightly more than not closing,
+  which is true and beside the point — the claim is about descriptor exhaustion.
+
+**Three were the case file, not the taxonomy**, and are rewritten and queued to
+re-run: `C4S5_expensive_comparison` measured `sorted` against `Counter` and lost
+by 1222%, which is a true reading of a claim C4.S5 does not make; `C9S3` and
+`C9S4` stood a dict and a list in for the external store, which removes the only
+cost C9 is about. C9.S1, which uses real file writes, confirmed at +97%.
+
+### Cards changed by this run
+
+| Card | Change |
+|---|---|
+| C10.S4 | the plain-local `+=` is a real 18.4% at 200 000 parts and 1.2% at 2 000; the part count decides it, not the total length. The card had said it was not a smell at all |
+| C6.S4, C6.S5 | reclassified from advisory to measurable: +28.8% and +22.2% |
+| C1.S2, C1.S3, C1.S7 | reclassified from advisory to `scales_with_calls`: +2.9%, +6.1%, +3.4%, all in loops that do almost nothing else |
+| C12.S2, C12.S3 | the reflex repair measured as a large loss, with the number |
+| C11.S1, C11.S3 | the precondition failing, and what to report instead of energy |
+| C10.S2 | `Counter` against `sorted` on five-element lists: twelve times slower |
+
+Advisory-only root causes: **eight before this run, three after** — C6.S6,
+C11.S3 and C12.S4.
+
+---
+
+## Samples suite: 84 of the project owner's hand-written pairs
+
+Running. This section is filled in when it completes.
+
+Superseded findings from the shared-host run that this batch re-tests: 50 of 84
+confirmed with the effect far above the floor, 11 inconclusive on a floor too
+high to resolve, 4 refuted, 3 regressed, 9 rejected by the equivalence check.
+
+The nine that are not behaviour-preserving stay rejected and are a result in
+themselves — `SumTopK` mutates the caller's list, `MergeLists` mutates its
+argument, `GreaterThanK` returns a set where the original returned a list, and
+so on. They cannot be used as evidence about energy because the two sides
+compute different things.
+
+---
+
+## Reproducing
 
 ```bash
 python validation/preflight.py          # must pass before anything else
-python validation/run.py samples --restart
-python validation/run.py taxonomy --restart
+python validation/run.py taxonomy
+python validation/run.py samples
 ```
 
-`validation/taxonomy/` holds **69 case files covering all 65 root causes**, each
-with 2–3 input cases spanning large / small / edge, plus second files for the
-root causes where a sample contradicts a card. All 69 pass the equivalence check
-already, so the remaining cost is measurement time — roughly 90 minutes for the
-taxonomy suite and 80 for the samples.
+Both are resumable: a case already in `validation/results/<suite>.jsonl` is
+skipped, so an interrupted batch costs only the case it was on. To re-measure
+one case, delete its line.
 
-Cards will be revised from those results, not before them. The eight
-counter-examples written so far all cite a measurement that cleared its floor.
+One caution learned in this run. `verify.py`'s verdict rules changed midway
+through the first taxonomy batch — a loss now has to clear the host's noise
+floor, the same bar a saving has to clear — so every `regressed` case was
+re-run afterwards to keep the batch internally consistent. A batch measured
+under two rule sets is not one batch.

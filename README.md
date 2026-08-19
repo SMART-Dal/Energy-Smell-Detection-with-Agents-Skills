@@ -117,11 +117,16 @@ matters because a rig that answers "saving" in both directions is broken in a wa
 the null canary alone cannot see.
 
 `validation/RESULTS.md` records what has been measured and what has not. The
-short version: sharing the host moved the median null canary from 0.63% to 8.25%
-and one reading to 51%, and every question worth settling landed on a
-contaminated floor. `verify.py` reports `inconclusive` rather than `refuted` in
-that band, because "the repair does nothing" and "this machine could not tell"
-are opposite claims.
+short version, from an idle host: **all 65 root causes now have a measurement
+on a floor low enough to believe** — median per-case canary 1.07%, and 5 of 69
+readings above 3%. Forty-nine confirmed, eight refuted, twelve regressed, and
+the twelve are not one thing: five are a card's own precondition being
+demonstrated, four are genuine, and three were case files that did not exercise
+their own root cause.
+
+`verify.py` reports `inconclusive` rather than `refuted` when the canary is too
+high to resolve an effect, because "the repair does nothing" and "this machine
+could not tell" are opposite claims. Nothing in this run needed it.
 
 Analyzer precision has its own suite, which is not shipped:
 
