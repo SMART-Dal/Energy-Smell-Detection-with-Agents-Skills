@@ -14,6 +14,11 @@ where C7.S1 alone took 27% of assignments and C11 took 0.07%.  Narrowing the
 candidate set *before* the choice is made keeps the decision driven by the code
 in front of it.
 
+The one place all sixty-five appear together is `render_root_cause_index`, and
+it is deliberately positioned late in the protocol -- the agent sweeps it only
+after it has read the code and written its own account of what is wrong, so the
+list is a check for omissions rather than a menu to choose from.
+
 Cards are generated, never hand-edited, so `catalog/*.yaml` and the taxonomy
 spreadsheet stay the single source of truth.
 """
@@ -27,7 +32,7 @@ CATEGORY_PATH = "reference/categories/{id}.md"
 ROOT_CAUSE_PATH = "reference/root-causes/{id}.md"
 
 
-# -- level 0 fragment ------------------------------------------------------
+# -- level 0 fragments -----------------------------------------------------
 
 
 def render_category_index(taxonomy: Taxonomy, catalog: Catalog) -> str:
@@ -44,6 +49,30 @@ def render_category_index(taxonomy: Taxonomy, catalog: Catalog) -> str:
             f"| `{CATEGORY_PATH.format(id=category.id)}` ({count}) |"
         )
     return "\n".join(lines)
+
+
+def render_root_cause_index(taxonomy: Taxonomy, catalog: Catalog) -> str:
+    """All sixty-five root causes, one line each, grouped by category.
+
+    This is the list the agent reads at the end of step 2, against code it has
+    already formed a view about.  One line per root cause is the right width
+    for that: enough to recognise something already noticed and dismissed as
+    unnameable, not enough to decide anything from.
+    """
+    lines = []
+    for category in taxonomy.categories:
+        lines += [
+            f"### {category.id} — {category.name}",
+            "",
+            "| ID | Name | Looks for |",
+            "|---|---|---|",
+        ]
+        for node in taxonomy.children_of(category.id):
+            entry = catalog.entries.get(node.id)
+            looks_for = entry.in_one_line if entry else "—"
+            lines.append(f"| **{node.id}** | {_cell(node.name)} | {_cell(looks_for)} |")
+        lines.append("")
+    return "\n".join(lines).rstrip()
 
 
 # -- level 1 ---------------------------------------------------------------
@@ -64,15 +93,16 @@ def render_category(category_id: str, taxonomy: Taxonomy, catalog: Catalog) -> s
         "",
         "## Root causes in this category",
         "",
-        "| ID | Name | The repair | Measurable? |",
-        "|---|---|---|---|",
+        "| ID | Name | Looks for | The repair | Measurable? |",
+        "|---|---|---|---|---|",
     ]
     for node in children:
         entry = catalog.entries.get(node.id)
         repair = entry.refactoring.summary if entry and entry.refactoring else "—"
+        looks_for = entry.in_one_line if entry else "—"
         lines.append(
-            f"| **{node.id}** | {_cell(node.name)} | {_cell(repair)} "
-            f"| {_measurability_flag(entry)} |"
+            f"| **{node.id}** | {_cell(node.name)} | {_cell(looks_for)} "
+            f"| {_cell(repair)} | {_measurability_flag(entry)} |"
         )
 
     lines += [
@@ -81,20 +111,6 @@ def render_category(category_id: str, taxonomy: Taxonomy, catalog: Catalog) -> s
             f"`{ROOT_CAUSE_PATH.format(id=node.id)}`" for node in children
         ),
         "",
-    ]
-
-    cross = _cross_category_discriminators(category_id, catalog, taxonomy)
-    if cross:
-        lines += [
-            "## Telling this category from its neighbours",
-            "",
-            "These come up often enough to check before you commit:",
-            "",
-            *cross,
-            "",
-        ]
-
-    lines += [
         "## If nothing here fits",
         "",
         "Say so and move on. Reporting a weak match from a category you have "
@@ -130,25 +146,8 @@ def render_root_cause(
     if node.example:
         lines += ["## Example from the taxonomy", "", node.example, ""]
 
-    if entry.mechanism:
-        lines += ["## Where the energy goes", "", entry.mechanism, ""]
-
-    if entry.how_to_tell:
-        lines += [
-            "## How to tell",
-            "",
-            "The description above says what this root cause *is*. This says how "
-            "to decide whether a particular piece of code has it. Work through "
-            "the steps in order; every one has to hold, and you should be able "
-            "to point at the code that settles each.",
-            "",
-            *[f"{n}. {item}" for n, item in enumerate(entry.how_to_tell, start=1)],
-            "",
-            "If a step cannot be answered from the code in front of you, that is "
-            "an answer: read further out until it can be, or reject the "
-            "candidate and say which step you could not settle.",
-            "",
-        ]
+    if entry.what_to_look_for:
+        lines += ["## What to look for", "", entry.what_to_look_for, ""]
 
     if entry.not_a_smell_when:
         lines += [
@@ -202,33 +201,32 @@ def render_root_cause(
             f"**Patch shape: `{entry.patch_shape.value}`** — "
             f"{_patch_shape_note(entry)}",
             "",
-            "That bounds what the repair *changes*. It does not bound how much "
-            "code you may read to decide, and it does not mean the waste has to "
-            "live in one place. A patch that rewrites everything cannot be "
-            "attributed to any one root cause, which is the only thing this "
-            "constraint is protecting.",
+            "These examples are illustrations, not the list of permitted cases. "
+            "Real code puts the waste and the fix in different places, and the "
+            "repair you write here will not look like any of them. What the "
+            "patch shape bounds is *scale*: change what it takes to remove this "
+            "root cause — across two methods or a call chain if that is where "
+            "the waste lives — and stop there. Anything else wrong with the "
+            "code is a separate finding, or nothing.",
             "",
         ]
 
-    if entry.discriminators:
+    if entry.similar:
         lines += [
-            "## Neighbours",
+            "## Similar root causes",
             "",
-            "These root causes match similar-looking code. Open them before you "
-            "decide, and pick the one whose repair is the edit you would "
-            "actually make. If two fit equally well, pick either and say so — "
-            "the repair is what gets measured, and forcing a distinction the "
-            "code does not make helps nobody.",
-            "",
-            "They are also where to look when this card nearly fits and you "
-            "cannot write a repair from it.",
+            "Open these when this card nearly fits and you cannot write a repair "
+            "from it, or when the waste is real and none of the words here match "
+            "it. Overlap is expected: if two cards both describe what you "
+            "repaired, file it under either and say so.",
             "",
         ]
-        for discriminator in entry.discriminators:
-            neighbour = taxonomy[discriminator.against]
+        for neighbour_id in entry.similar:
+            neighbour = taxonomy[neighbour_id]
+            summary = catalog[neighbour_id].in_one_line
             lines += [
                 f"- **[{neighbour.id} {neighbour.name}]"
-                f"(../root-causes/{neighbour.id}.md)** — {discriminator.rule}",
+                f"(../root-causes/{neighbour.id}.md)** — {summary}",
             ]
         lines.append("")
 
@@ -240,16 +238,21 @@ def render_root_cause(
         lines += ["## Notes", "", entry.notes, ""]
 
     lines += [
-        "## Decision",
+        "## Before you accept this",
         "",
-        "1. Every `How to tell` step holds, and I can name the code for each.",
-        "2. No `NOT a smell when` clause applies.",
-        "3. This is not one of the `Looks the same, is not` cases.",
-        "4. No neighbour describes it better.",
-        "5. I can write the repair for *this* code, at this patch shape.",
-        "6. This code runs often enough for the saving to exist at all.",
+        "1. Name the lines, and say what the machine does here that it need not "
+        "do. If you cannot say it in your own words, you have matched a shape.",
+        "2. Work through `NOT a smell when` and `Looks the same, is not`. If one "
+        "of them fits, reject and record which.",
+        "3. Write the repair for *this* code. No repair, no finding.",
+        "4. Check the repair against the description at the top of this card: it "
+        "has to remove the waste *this* root cause names. If what you actually "
+        "fixed is better described by a similar card, file it there.",
+        "5. Say how often this code runs, and how large its inputs get. A saving "
+        "that exists only in principle is a rejection, and rejecting it here is "
+        "cheaper and more honest than measuring it later.",
         "",
-        "All six, or reject — and record which one decided it.",
+        "Record which of the five decided it, whichever way it went.",
         "",
     ]
     return "\n".join(lines)
@@ -304,29 +307,6 @@ def _measurability_flag(entry: CatalogEntry | None) -> str:
         "scales_with_calls": "yes, scales with call count",
         "constant_small": "**no — advisory only**",
     }[entry.measurability.value]
-
-
-def _cross_category_discriminators(
-    category_id: str, catalog: Catalog, taxonomy: Taxonomy
-) -> list[str]:
-    """Discriminators pointing outside this category, surfaced one level early.
-
-    A root cause in another category is exactly what a level-1 reader is most
-    likely to miss, because they will never open its card by accident.
-    """
-    lines = []
-    for entry in catalog.entries.values():
-        if entry.category_id != category_id:
-            continue
-        for discriminator in entry.discriminators:
-            if discriminator.against.split(".")[0] == category_id:
-                continue
-            neighbour = taxonomy[discriminator.against]
-            lines.append(
-                f"- **{entry.id} vs {neighbour.id} {neighbour.name}** — "
-                f"{discriminator.rule}"
-            )
-    return lines
 
 
 def _one_line(text: str) -> str:

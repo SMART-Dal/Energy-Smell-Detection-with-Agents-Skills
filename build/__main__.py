@@ -28,7 +28,12 @@ import sys
 from pathlib import Path
 
 from .arms import ARMS, Arm
-from .cards import render_category, render_category_index, render_root_cause
+from .cards import (
+    render_category,
+    render_category_index,
+    render_root_cause,
+    render_root_cause_index,
+)
 from .catalog import Catalog, load_catalog
 from .taxonomy import Taxonomy, load_taxonomy
 
@@ -38,11 +43,19 @@ SOURCE_SCRIPTS = PROJECT_ROOT / "src"
 DIST_DIR = PROJECT_ROOT / "dist"
 
 TOKENS = {
-    "{{CATEGORY_INDEX}}": lambda arm, index: index,
-    "{{STEP_SELECT}}": lambda arm, index: arm.step_select,
-    "{{STEP_EVIDENCE}}": lambda arm, index: arm.step_evidence,
+    "{{CATEGORY_INDEX}}": lambda arm, rendered: rendered["categories"],
+    "{{ROOT_CAUSE_INDEX}}": lambda arm, rendered: rendered["root_causes"],
+    "{{STEP_SELECT}}": lambda arm, rendered: arm.step_select,
+    "{{STEP_EVIDENCE}}": lambda arm, rendered: arm.step_evidence,
+    "{{STEP_SWEEP}}": lambda arm, rendered: arm.step_sweep,
 }
-"""Placeholders substituted into templates, and what fills each one."""
+"""Placeholders substituted into templates, and what fills each one.
+
+Two kinds. `{{CATEGORY_INDEX}}` and `{{ROOT_CAUSE_INDEX}}` are the taxonomy
+rendered as tables, identical in every arm that ships it. The `STEP_*` tokens
+are the parts of the protocol that differ by arm -- which is the whole
+experiment, so they live on the arm rather than in the template.
+"""
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -110,12 +123,15 @@ def _render_arm(arm: Arm, taxonomy: Taxonomy, catalog: Catalog) -> dict[Path, st
                 render_root_cause(node.id, taxonomy, catalog)
             )
 
-    index = render_category_index(taxonomy, catalog)
+    rendered = {
+        "categories": render_category_index(taxonomy, catalog),
+        "root_causes": render_root_cause_index(taxonomy, catalog),
+    }
     template_root = TEMPLATE_DIR / arm.templates
     for source in sorted(template_root.rglob("*.md")):
         text = source.read_text()
         for token, fill in TOKENS.items():
-            text = text.replace(token, fill(arm, index))
+            text = text.replace(token, fill(arm, rendered))
         files[root / source.relative_to(template_root)] = text
 
     for source in sorted(SOURCE_SCRIPTS.rglob("*.py")):
@@ -216,16 +232,20 @@ def _differs(path: Path, text: str) -> bool:
 
 
 def _report(taxonomy: Taxonomy, catalog: Catalog, *, written: int, changed: int) -> None:
-    discriminators = sum(len(e.discriminators) for e in catalog.entries.values())
-    exceptions = sum(len(e.not_a_smell_when) for e in catalog.entries.values())
-    advisory = sum(1 for e in catalog.entries.values() if e.is_advisory_only)
+    entries = catalog.entries.values()
+    # `similar` is symmetric, so every edge is counted from both ends.
+    edges = sum(len(e.similar) for e in entries) // 2
+    exceptions = sum(len(e.not_a_smell_when) for e in entries)
+    near_misses = sum(len(e.counter_examples) for e in entries)
+    advisory = sum(1 for e in entries if e.is_advisory_only)
     signals = catalog.signal_index()
 
     routed = {rc for ids in signals.values() for rc in ids}
     print(f"wrote {written} files to dist/ ({changed} changed)")
     print(f"  {len(taxonomy.categories)} categories, "
           f"{len(taxonomy.root_causes)} root causes")
-    print(f"  {discriminators} discriminators, {exceptions} context exceptions")
+    print(f"  {edges} similarity edges, {exceptions} context exceptions, "
+          f"{near_misses} near-misses")
     print(f"  {advisory} advisory-only root causes (repair too small to measure)")
     print(f"  {len(signals)} static signals routing to {len(routed)} root causes "
           f"({len(taxonomy.root_causes) - len(routed)} have none)")
@@ -233,7 +253,7 @@ def _report(taxonomy: Taxonomy, catalog: Catalog, *, written: int, changed: int)
     for arm in ARMS:
         withheld = ", ".join(arm.excluded) if arm.excluded else "nothing"
         taxonomy_note = "" if arm.ships_taxonomy else ", no taxonomy"
-        print(f"    dist/{arm.directory:<28} withholds {withheld}{taxonomy_note}")
+        print(f"    dist/{arm.directory:<34} withholds {withheld}{taxonomy_note}")
 
 
 if __name__ == "__main__":
