@@ -199,21 +199,22 @@ reason is a result. The list may also **grow** here — reading a second time to
 write a repair is one of the better ways to notice something you missed.
 
 ```jsonc
-{
-  "lines": [31], "verdict": "accepted",
-  "what": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-  "why_wasteful": "each request scans every blocked path; a set makes each lookup one hash probe",
-  "changed_from": {"lines": [58]},
-  "why_changed": "the repair changes where the container is built, not where it is searched",
-  "hotness": "one call per request; `routes` is 400-2000 entries",
-  "repair_sketch": "build `self.blocked` as a set",
-  "spans_units": ["src/router.py::Router.__init__"]
-}
-
-{
-  "lines": [58], "verdict": "rejected",
-  "why_rejected": "check 4 — `handle` runs once per process, over the static route table"
-}
+[
+  {
+    "lines": [31], "verdict": "accepted",
+    "what": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
+    "why_wasteful": "each request scans every blocked path; a set makes each lookup one hash probe",
+    "changed_from": {"lines": [58]},
+    "why_changed": "the repair changes where the container is built, not where it is searched",
+    "hotness": "one call per request; `routes` is 400-2000 entries",
+    "repair_sketch": "build `self.blocked` as a set",
+    "spans_units": ["src/router.py::Router.__init__"]
+  },
+  {
+    "lines": [58], "verdict": "rejected",
+    "why_rejected": "check 4 — `handle` runs once per process, over the static route table"
+  }
+]
 ```
 
 ### 4. Repair and measure — *in:* accepted candidates · *out:* a verdict each

@@ -56,6 +56,9 @@ same loss is 0.01% and correctly ignored.
 A repair that costs 20% on a case a tenth the size of the deciding one is a
 different matter: that is 2% of real work, it clears this bar, and the verdict
 calls it a trade-off.
+
+This is one of two bars. The loss must also clear the host's noise floor, for
+the same reason a saving must. See `_worst_regression`.
 """
 
 TIMING_CALLS = 3
@@ -366,9 +369,19 @@ def _decide(result: Verification) -> None:
 def _worst_regression(result: Verification, deciding: CaseOutcome) -> CaseOutcome | None:
     """The case the repair hurts most, if any loss is big enough to matter.
 
-    "Big enough" is judged against the deciding case's per-call cost, so a
-    relative blow-up on a microsecond input cannot veto a repair that saves
-    real work on the input the code actually sees. See the tolerance constant.
+    A loss has to pass two tests, because there are two different ways for one
+    to be an artefact.
+
+    It has to be *large enough to care about*, judged against the deciding
+    case's per-call cost rather than its own, so a relative blow-up on a
+    microsecond input cannot veto a repair that saves real work on the input
+    the code actually sees. See the tolerance constant.
+
+    And it has to be *large enough to believe*, which means clearing this
+    host's noise floor -- the same bar a saving has to clear to be confirmed.
+    Without the symmetry the rig can refuse to call a saving real at 2% and
+    still let a 2% loss on another case sink the whole verdict, which is the
+    contamination deciding the answer in one direction only.
     """
     if deciding.before_s_per_call <= 0:
         return None
@@ -378,6 +391,7 @@ def _worst_regression(result: Verification, deciding: CaseOutcome) -> CaseOutcom
         if case.significant
         and case.energy_saved_pct < 0
         and case.excess_s_per_call > threshold
+        and abs(case.energy_saved_pct) > result.noise_floor_pct
     ]
     return max(harmful, key=lambda c: c.excess_s_per_call, default=None)
 

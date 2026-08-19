@@ -104,7 +104,6 @@ nothing checks nothing.
 ### 1. Select — *in:* a path · *out:* the units you will examine, in order
 
 {{STEP_SELECT}}
-
 ```jsonc
 {
   "units_ranked": 128,
@@ -240,23 +239,24 @@ process is not a finding, and finding that out now is much cheaper than finding
 it out after you have built a case file.
 
 ```jsonc
-{
-  "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
-  "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-  "changed_from": {"root_cause": "C5.S2", "lines": [58]},
-  "why_changed": "nothing needs the list's order, so the container's type changes rather than an index being added beside it",
-  "hotness": "one call per request; `routes` is 400-2000 entries",
-  "repair_sketch": "build `self.blocked` as a set",
-  "patch_shape": "expression",
-  "spans_units": ["src/router.py::Router.__init__"],
-  "found_by": "reading"
-}
-
-{
-  "root_cause": "C3.S4", "lines": [58], "verdict": "rejected",
-  "why_rejected": "check 5 — `handle` runs once per process, over the static route table",
-  "found_by": "rules"
-}
+[
+  {
+    "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
+    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
+    "changed_from": {"root_cause": "C5.S2", "lines": [58]},
+    "why_changed": "nothing needs the list's order, so the container's type changes rather than an index being added beside it",
+    "hotness": "one call per request; `routes` is 400-2000 entries",
+    "repair_sketch": "build `self.blocked` as a set",
+    "patch_shape": "expression",
+    "spans_units": ["src/router.py::Router.__init__"],
+    "found_by": "reading"
+  },
+  {
+    "root_cause": "C3.S4", "lines": [58], "verdict": "rejected",
+    "why_rejected": "check 5 — `handle` runs once per process, over the static route table",
+    "found_by": "rules"
+  }
+]
 ```
 
 ### 4. Repair and measure — *in:* accepted candidates · *out:* a verdict each

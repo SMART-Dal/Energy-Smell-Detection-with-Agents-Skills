@@ -21,12 +21,11 @@ So the card has to survive being taken literally.
 
 ```yaml
 - id: C7.S4
-  signals: [sort_then_slice, filter_after_transform]   # analyzer kinds, optional
-  mechanism: >
+  in_one_line: >
     ...
-  how_to_tell:
-    - >
-      ...
+  signals: [sort_then_slice, filter_after_transform]   # analyzer kinds, optional
+  what_to_look_for: >
+    ...
   not_a_smell_when:
     - >
       ...
@@ -49,45 +48,54 @@ So the card has to survive being taken literally.
   measurability: scales_with_input | scales_with_calls | constant_small
   min_workload_hint: >
     ...
-  discriminators:
-    - vs: C3.S6
-      rule: >
-        ...
+  similar: [C3.S6, C4.S1]
   notes: >
     ...
 ```
 
-### `mechanism` — where the energy goes
+Any key not on that list is a build error. A misspelled one used to be ignored
+silently and take a whole section of a card with it.
 
-Two to five sentences on **what the machine does differently**, in terms of
-work: what gets allocated, copied, hashed, dispatched, re-entered, or paid per
-element, and how that scales.
+### `in_one_line` — what this root cause hunts for
 
-This is the field that turns a pattern into a cost the reader can reason about.
-Without it a card teaches a shape to match, and an agent that has only learned
-shapes cannot tell a smell from its near-miss.
+One clause, lower case, no full stop. Written as a thing to look for rather
+than as a definition: "an inner loop that searches, where a lookup would turn
+n*m into n+m", not "inefficient nested iteration".
 
-Not "this is slower". *Why* it is slower, mechanically.
+It is written once and rendered in three places — the category card's table,
+the full index the agent sweeps at the end of step 2, and every *other* card
+that lists this one under `similar`. That is what keeps those three consistent,
+and it means each card describes its neighbours in the neighbours' own words.
 
-### `how_to_tell` — the recognition procedure
+Precise enough to recognise something by; not enough to decide anything from.
 
-Three to six **full sentences**, in the order you would actually check them.
-Each one names something to look at in the code and says what would settle it.
-Every step must hold for the root cause to apply.
+### `what_to_look_for` — the symptom and its cost, together
 
-This replaced a field called `preconditions`, which was a list of terse clauses.
-Two things went wrong with those, and both are easy to reintroduce:
+One passage, five to twelve sentences. It has to do two jobs at once:
 
-- **Unreadable without the answer.** "the container's construction site is
-  editable" tells someone who already knows what to do exactly nothing new.
-  Write "Find where the container is built. The repair changes that line, so if
-  it is built somewhere you cannot edit, the repair is not available."
-- **Read instead of the card.** A short checklist under a definitive heading
-  invites the description above it to be skipped. These steps are written to be
-  read *after* the description, and they should sound like it — they add the
-  operational detail the paper's prose does not carry.
+- **the cost, mechanically.** What gets allocated, copied, hashed, dispatched,
+  re-entered, or paid per element, and how that scales. Not "this is slower" —
+  *why* it is slower. Without this a card teaches a shape to match, and an agent
+  that has only learned shapes cannot tell a smell from its near-miss.
+- **the symptom, in general terms.** What the redundancy looks like, what
+  usually decides the case, and what most often makes the pattern correct as
+  written. Name the one or two checks that reject most candidates, and say what
+  each turns on.
 
-Order matters. Put the step that rejects most candidates first.
+**Write it as prose, not as a checklist.** This field replaced a numbered
+`how_to_tell` whose every step had to hold, and the numbering was the problem:
+under a definitive heading, a list of steps reads as the set of permitted cases,
+and an agent that has learned the enumerated shapes rejects everything else. The
+expensive instances of most of these root causes are the ones nobody enumerated.
+
+Concrete shapes belong in `refactoring.examples`, where they read as
+illustrations. Facts belong here — `in` is linear on a list and a probe on a
+set, a `for` loop evaluates its iterable once, a log call's arguments are built
+before the level is checked. Carry every fact the old steps carried; drop only
+the framing that made them a gate.
+
+Cite a measurement if there is one, with the number and what it was measured
+on. `validation/results/` and `SAMPLE_NUANCES.md` are the only sources.
 
 ### `not_a_smell_when` — contexts where the pattern is correct
 
@@ -111,7 +119,8 @@ target — `out +=` against `self.buf +=`.
 
 One or two per root cause. Prefer near-misses that a competent reader would
 actually get wrong, especially ones this project has measured. Do not invent
-measurements; if you cite a number, it must come from `NUANCES.md`.
+measurements; if you cite a number, it must come from `SAMPLE_NUANCES.md` or
+`validation/results/`.
 
 ### `refactoring.examples` — one to three before/after pairs
 
@@ -134,18 +143,25 @@ The `before` must be code someone would plausibly write. Do not write
 `if items: if items:` — nobody writes that, and a card whose example is a
 strawman gets pattern-matched against nothing.
 
-### `discriminators` — neighbours
+### `similar` — where else to look
 
-Root causes that match similar-looking code. Written in terms of **what the
-repair changes**, because prose descriptions overlap where repairs do not.
+A bare list of root cause IDs. The renderer fills each one in with that card's
+own `in_one_line`, so there is no prose to write and none to keep in sync.
 
-These are rendered as an invitation to open the neighbour's card, not as an
-exclusion test: when two fit, the reader is told to pick the one whose repair
-they would actually write, and to say so if it was a coin toss. They are also
-the "I am stuck, where else should I look" list.
+This is not a discrimination test, and it deliberately no longer carries one.
+Two agents that repair the same waste and file it under two overlapping root
+causes have both done the job, as long as each repair matches the definition it
+was filed under — so the paragraphs that used to defend each distinction were
+defending something the project does not need. What a reader actually needs is
+a way out of a card that nearly fits.
 
-Two or three each. Include cross-category neighbours — those are the ones a
+Two to four each, and include cross-category ones: those are the neighbours a
 reader will never open by accident.
+
+**The relation is symmetric.** `load_catalog` mirrors every edge, so writing it
+once on either side is enough, and a card can end up listing a neighbour it does
+not itself name. That is intended — a neighbour reachable in one direction only
+is a dead end for whichever reader arrives from the wrong side.
 
 ### `patch_shape`
 
@@ -173,10 +189,11 @@ What the repair *changes*. Not a limit on how much code may be read.
 
 ## House rules
 
-**Consistency inside a card.** If you change the repair, re-read the mechanism,
-the steps, the exceptions and the neighbours and make them agree. A card whose
-`how_to_tell` describes one thing and whose `refactoring` shows another is worse
-than either half alone.
+**Consistency inside a card.** If you change the repair, re-read
+`in_one_line`, `what_to_look_for`, the exceptions and the near-misses and make
+them agree. A card whose symptoms describe one thing and whose repair shows
+another is worse than either half alone. Changing `in_one_line` reaches further
+than the card it sits on, since every neighbour renders it.
 
 **Fidelity to the taxonomy.** The `description` and `example` come from the
 published spreadsheet and are rendered above your text. Your fields must be
@@ -185,7 +202,7 @@ is not. **Never invent a root cause, never widen one to cover something the
 description excludes.**
 
 **No fabricated numbers.** Cite a measurement only if it appears in
-`NUANCES.md` or `validation/RESULTS.md`. Everything else is mechanism, not
+`SAMPLE_NUANCES.md` or `validation/RESULTS.md`. Everything else is mechanism, not
 measurement.
 
 **Voice.** Plain declarative sentences. Say what to do and why. No hedging
@@ -194,18 +211,18 @@ adverbs, no "simply", no exclamation marks. British spelling.
 ## YAML gotchas
 
 A plain scalar cannot contain `": "` — YAML reads it as a mapping key. Every
-prose item under `how_to_tell` and `not_a_smell_when` is therefore written as a
-folded block:
+prose item under `not_a_smell_when` is therefore written as a folded block:
 
 ```yaml
-  how_to_tell:
+  not_a_smell_when:
     - >
-      Name the operation this container is used for most often on the hot
-      path: membership, positional access, ordered traversal.
+      the type is fixed by an API boundary: a caller's argument, or a return
+      value other code depends on
 ```
 
-`mechanism`, `why`, `note`, `rule` and `min_workload_hint` use `>` for the same
-reason. `code`, `before` and `after` use `|`, which preserves newlines.
+`in_one_line`, `what_to_look_for`, `why`, `note` and `min_workload_hint` use
+`>` for the same reason. `code`, `before` and `after` use `|`, which preserves
+newlines.
 
 After editing, run `python -m build` from the project root. It validates the
 catalog against the taxonomy and will tell you what is wrong.
