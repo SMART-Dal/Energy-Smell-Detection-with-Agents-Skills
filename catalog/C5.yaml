@@ -176,6 +176,20 @@
         One lookup. The scan touches at most n elements; building a dict touches
         all n and then does one probe. An index here is a pure loss. The same
         code called inside a loop over many addresses is the smell.
+    - code: |
+        def assign(tasks, workers):
+            for task in tasks:
+                free = next(w for w in workers if w.load < w.capacity)
+                free.load += 1
+                free.queue.append(task)
+      why: >
+        A repeated scan of one collection inside a loop, which is the shape --
+        and the loop body changes what the scan would find. An index built
+        before the loop is stale after the first assignment, and the predicate
+        is a comparison between two fields rather than an equality on a key, so
+        there is nothing to hash on either. Both halves of the precondition fail
+        at once. The repair here is a heap ordered by remaining capacity, which
+        is C7.S1.
   refactoring:
     summary: build a lookup index once, then query it
     examples:

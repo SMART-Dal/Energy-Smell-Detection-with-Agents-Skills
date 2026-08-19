@@ -479,16 +479,23 @@
           instead. This is a real trade: it moves the work earlier and makes it
           unconditional, so it is wrong if `headline` is often not called.
   patch_shape: structural
-  measurability: constant_small
+  measurability: scales_with_input
+  min_workload_hint: >
+    many retained items, and a driver that also *traverses* what it retained --
+    the collector-time half is spread over the process and will not appear in a
+    one-second window, so what a case file can show is the allocation and the
+    traversal
   notes: >
-    Honest measurability is the difficulty here.  Retention costs collector time
-    and footprint, neither of which the paired A/B harness observes well: the
-    cost is spread over the process lifetime rather than concentrated in the
-    measured window, and the collector may not run inside it at all.  Report this
-    as advisory with the retained volume stated -- "N objects held for the
-    process lifetime where N identifiers would do" -- rather than manufacturing a
-    case file whose number will be noise.  `tracemalloc` or `sys.getsizeof`
-    evidence is more informative here than an energy figure.
+    This was classified as advisory, on the argument that retention costs
+    collector time and footprint and that a paired A/B harness sees neither.
+    Measured, that was too pessimistic: keeping 50 000 whole records where one
+    field is used, and then summing that field, is **+28.8% +-4.2** on a 1.4%
+    floor.  The collector-time half is genuinely unobservable in a one-second
+    window, but the allocation and the traversal of the retained data are not,
+    and those are usually the larger share anyway.  Report the measured number
+    *and* the retained volume -- "N objects held for the process lifetime where N
+    identifiers would do" -- because the second is the part the measurement
+    cannot reach.
   similar: [C5.S3, C6.S5, C8.S1]
 
 - id: C6.S5
@@ -581,14 +588,19 @@
           removes the Python loop, which is C10.S3; one repair, three plausible
           labels, so pick the one that describes the edit and subsume the rest.
   patch_shape: statement_local
-  measurability: constant_small
+  measurability: scales_with_input
+  min_workload_hint: >
+    the allocation must happen per call rather than once at start-up, and the
+    gap between the reserved size and the used size is the effect -- size the
+    case on that ratio
   notes: >
-    Like C6.S4 this is hard to measure honestly with a paired energy comparison,
-    because the cost is footprint rather than per-element work -- though the
-    *zeroing* of a large buffer is real CPU work and does show up when the
-    allocation happens per call rather than once.  If the over-allocation is
-    inside a hot function, it is measurable; if it happens once at start-up,
-    report it as advisory with the two sizes stated.
+    Classified as advisory until measurement contradicted it: reserving a
+    million slots for a hundred-element input measured **+22.2% +-0.8** on a
+    1.0% floor.  The card had already noted that zeroing a large buffer is real
+    CPU work; what was wrong was letting the footprint framing decide the
+    classification.  Footprint is still the part a paired comparison cannot see,
+    so an over-allocation that happens once at start-up remains a finding
+    reported with the two sizes and no number.
   similar: [C6.S1, C6.S4]
 
 - id: C6.S6

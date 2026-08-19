@@ -4,12 +4,12 @@
 # done in the same scope.
 #
 # The category splits sharply into two halves, and confusing them is how this
-# category gets misreported. Four entries -- S2, S3, S6, S7 -- are usually worth
-# one or two bytecode instructions, and no workload size lifts them above a
-# noise floor; they are marked advisory and should be reported without numbers.
-# The other four -- S1, S4, S5, S8 -- can be arbitrarily large, because what is
-# redundant may be a call, a pass over a collection, or an entire stage of a
-# computation. Before reporting anything here, say which half you are in.
+# category gets misreported. Three entries -- S2, S3, S7 -- are worth one or two
+# bytecode instructions per execution, and measure at 3-6% in a million-
+# iteration loop and nothing at all outside one. The others -- S1, S4, S5, S6,
+# S8 -- can be arbitrarily large, because what is redundant may be a call, a
+# pass over a collection, or an entire stage of a computation. Before reporting
+# anything here, say which half you are in and at what scale.
 #
 # The entries are separated by *what the repair deletes*: a binding (S1, S7), a
 # store (S2), a branch (S3), a recomputation (S4), a result nobody consumes
@@ -128,9 +128,11 @@
     effect the machine already has -- a name reassigned before anything reads
     it, `x = x`, or a conversion that cannot change this particular value
     (`int()` on an int, `.strip()` on stripped text).  Because the cost is the
-    store and not the value, this stays advisory whatever the right-hand side
-    is; if the value was expensive to compute, the finding is a discarded result
-    or a repeated computation and it is much larger.  The exception worth
+    store and not the value, the size does not change with the right-hand side;
+    if the value was expensive to compute, the finding is a discarded result or
+    a repeated computation and it is much larger.  Measured, a redundant store
+    inside a million-iteration loop is worth **+2.9% +-0.7** -- real, but only
+    where a tight loop executes it and nothing else in the body dilutes it.  The exception worth
     knowing is that an idempotent *call* is not free -- `.strip()` on an
     already-stripped string still scans it from both ends -- so a redundant
     operation inside a loop can scale where a redundant store never does.  Watch
@@ -169,7 +171,7 @@
       why: >
         Genuinely redundant -- and `str.strip` on an already-stripped string still
         scans it from both ends, so unlike the `int` case this is proportional to
-        the string length. Included because it shows the advisory framing has an
+        the string length. Included because it shows the size argument has an
         exception: an idempotent operation is not always constant-cost.
   refactoring:
     summary: delete the assignment that leaves state unchanged
@@ -186,7 +188,8 @@
         note: >
           The first store is read by the second, so nothing here is dead -- what
           the repair removes is two bindings, not a computation. One or two
-          instructions. Report advisory.
+          instructions, so this is only worth reporting where it runs a great
+          many times.
       - title: an idempotent conversion inside a loop
         before: |
           def totals(counts):
@@ -204,13 +207,20 @@
           really C10.S1: once the redundant conversion goes, `sum` does the rest.
           Report the larger finding and subsume this.
   patch_shape: statement_local
-  measurability: constant_small
+  measurability: scales_with_calls
+  min_workload_hint: >
+    a tight loop with almost nothing else in the body, executed on the order of
+    a million times; measured at +2.9% there and invisible anywhere shorter
   notes: >
-    Advisory in the ordinary case.  There is one exception worth knowing: an
-    idempotent *call* is not free, and `.strip()` or `.lower()` on an
-    already-normalised string still scans it.  When the redundant operation is a
-    call rather than a store, check whether the finding is really C1.S4 or C1.S1
-    before settling for advisory.
+    This was classified as advisory -- too small for any workload to measure --
+    until it was measured at **+2.9% +-0.7** in a million-iteration loop on a
+    0.9% floor.  The cost per execution really is one to three instructions;
+    what was wrong was the claim that no workload could lift it.  A hot enough
+    loop can, and the honest report is a small confirmed saving rather than an
+    unmeasured note.  There is one exception worth knowing on top: an idempotent
+    *call* is not free, and `.strip()` or `.lower()` on an already-normalised
+    string still scans it, which scales with the string rather than with the
+    call count.
   similar: [C1.S1, C1.S4]
 
 - id: C1.S3
@@ -224,9 +234,12 @@
     the same answer, a `match` whose cases are identical, and a `try` that
     catches something its body cannot raise.  That last one is settled by
     reading the callees rather than the body: `json.loads` raises a `ValueError`
-    subclass, so a handler that looks unreachable is not.  This stays advisory
-    unless the *condition* is expensive to evaluate, in which case the waste is
-    the call and the branch is incidental.  An empty arm is also frequently
+    subclass, so a handler that looks unreachable is not.  The size is a couple
+    of instructions per evaluation, so it needs a hot path -- measured at
+    **+6.1% +-0.6** for `if c: return True else: return False` collapsed to
+    `return c`, called once per element over half a million elements.  Where the
+    *condition* is expensive to evaluate the waste is the call rather than the
+    branch, and the finding is much larger.  An empty arm is also frequently
     load-bearing -- it stops a value reaching the `elif` below it -- and is
     sometimes a documented decision whose comment was lost, so read what it
     excludes before removing it.
@@ -285,7 +298,6 @@
           Three comparisons on average become one hash probe, and the branch
           structure disappears. Note this is only *just* worth measuring -- and if
           the set were larger it would be C4.S3, a chain that should be a lookup.
-          At three arms, report advisory.
       - title: a condition guarding nothing
         before: |
           def flush(self, records):
@@ -296,12 +308,20 @@
           def flush(self, records):
               self._write(records)
         note: >
-          An attribute read and a jump, per call. Two instructions. Report
-          advisory -- and check the version history first, because an empty arm
-          under a flag is often a removal that lost its comment rather than
-          something nobody meant.
+          An attribute read and a jump, per call. Two instructions, so this is
+          a finding only on a path that runs a great many times -- and check the
+          version history first, because an empty arm under a flag is often a
+          removal that lost its comment rather than something nobody meant.
   patch_shape: statement_local
-  measurability: constant_small
+  measurability: scales_with_calls
+  min_workload_hint: >
+    the branch must be evaluated per element of a large collection; measured at
+    +6.1% over half a million evaluations, and nothing at all below that scale
+  notes: >
+    Classified as advisory until it was measured at **+6.1% +-0.6** on a 0.9%
+    floor, collapsing `if c: return True else: return False` into `return c` in
+    a per-element helper.  The analyzer had graded this shape `definite` while
+    the card called it unmeasurable; the analyzer was closer to right.
   similar: [C1.S5, C4.S2, C4.S4]
 
 - id: C1.S4
@@ -626,8 +646,11 @@
     per execution and no input size makes it more.  This is the smallest repair
     in the taxonomy, and the card is more useful as a reason to reject than as
     one to accept: a name that explains what a complicated subexpression means
-    is doing a job that two instructions do not pay for.  Report it where a hot
-    loop executes it millions of times, and advisory everywhere else.  When you
+    is doing a job that two instructions do not pay for.  Measured in a
+    million-iteration loop whose body is one arithmetic expression, inlining is
+    worth **+3.4% +-1.0** on a 2.0% floor -- real, and about as small as a
+    confirmed finding gets.  Anywhere less hot than that it is worth reporting
+    without a number.  When you
     do find one inside a loop, look past it -- a single-use temporary there is
     usually a symptom of a larger repair, an `append` loop that wants to be a
     comprehension or a value that should not be computed per iteration at all.
@@ -693,17 +716,21 @@
         after: |
               return self._template.format(**row)
         note: >
-          Two instructions per call. Genuinely redundant, genuinely tiny, and the
-          right report is advisory with no case file. Included because it is the
-          canonical example and because the canonical example is not worth
+          Two instructions per call. Genuinely redundant, genuinely tiny, and on
+          a per-request path not worth reporting at all. Included because it is
+          the canonical example and because the canonical example is not worth
           measuring -- which is the most useful thing this card can teach.
   patch_shape: expression
-  measurability: constant_small
+  measurability: scales_with_calls
+  min_workload_hint: >
+    a loop of a million iterations whose body is otherwise one expression;
+    measured at +3.4% there, and a body that does any real work buries it
   notes: >
-    Advisory by construction, and the card should be read as a reason to reject
-    more often than to accept.  The published description is accurate about the
-    mechanism -- a `STORE_FAST` and a refcount adjustment -- and that mechanism is
-    two instructions.  Where a single-use temporary appears inside a loop, look
+    Classified as advisory until measurement put it at **+3.4% +-1.0** on a 2.0%
+    floor.  It clears, barely, and only in a loop that does almost nothing else.
+    Read the card as a reason to reject more often than to accept.  The
+    published description is accurate about the mechanism -- a `STORE_FAST` and a
+    refcount adjustment -- and that mechanism is two instructions.  Where a single-use temporary appears inside a loop, look
     for the larger repair it is a symptom of: an explicit `append` loop that
     should be a comprehension, or a value that should not be computed per
     iteration at all.

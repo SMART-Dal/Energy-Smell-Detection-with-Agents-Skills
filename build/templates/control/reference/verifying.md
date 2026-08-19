@@ -127,6 +127,15 @@ of *calls* rather than with input size — removing per-call overhead, say — t
 large case should call the unit many times over a small input, rather than once
 over a large one.
 
+**The shape of the large case can matter as much as its size.** Two cases of
+the same repair, on the same host: a string accumulator fed 200 000 short parts
+measured +18.4%, and the same accumulator fed 2 000 parts ten times the total
+length measured +1.2%. Same total bytes moved, same code, and one case would
+have reported a real effect while the other reported nothing. So when the
+mechanism suggests a variable — a count against a length, a hit rate, a
+duplicate ratio — vary that variable across your cases rather than only the
+overall size, and say in the docstring which one the repair actually tracks.
+
 ## When "identical" is stricter than "the same answer"
 
 By default `after` has to match `before` on the return value, the state of the

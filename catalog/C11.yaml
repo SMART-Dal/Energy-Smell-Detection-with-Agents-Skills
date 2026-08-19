@@ -448,6 +448,44 @@
           serving -- and because it is CPU-bound and the GIL is held, this
           improves *responsiveness* rather than throughput. If throughput is the
           problem, a process pool is the repair. Say which you are claiming.
+      - title: the blocking call is two functions below the coroutine
+        before: |
+          class Reporter:
+              async def publish(self, batch):
+                  for record in batch:
+                      await self._sink.send(self._enrich(record))
+
+              def _enrich(self, record):
+                  record.region = self._region_for(record.ip)
+                  return record
+
+              def _region_for(self, ip):
+                  return geoip.lookup(ip)          # opens a file, seeks, reads
+        after: |
+          class Reporter:
+              async def publish(self, batch):
+                  loop = asyncio.get_running_loop()
+                  enriched = await loop.run_in_executor(
+                      None, lambda: [self._enrich(r) for r in batch]
+                  )
+                  for record in enriched:
+                      await self._sink.send(record)
+
+              def _enrich(self, record):
+                  record.region = self._region_for(record.ip)
+                  return record
+
+              def _region_for(self, ip):
+                  return geoip.lookup(ip)
+        note: >
+          `publish` is a clean coroutine with an `await` in its loop, and nothing
+          in it blocks. The blocking sits two calls down, in a helper whose name
+          suggests a dictionary lookup and whose body touches the filesystem
+          once per record. This is what the shape usually looks like in real
+          code, and it is only findable by reading the call path -- no rule sees
+          past `self._enrich(record)`. Note the repair moves the whole enrichment
+          pass rather than the one call, because a per-record executor hop costs
+          more than the lookup does.
   patch_shape: statement_local
   measurability: scales_with_calls
   min_workload_hint: >
