@@ -28,6 +28,7 @@ written from scratch each time, by a model, under no schema.
 from __future__ import annotations
 
 import importlib.util
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -203,13 +204,29 @@ def _read_cases(module: ModuleType, path: Path) -> tuple[Case, ...]:
 
 
 def _import(path: Path) -> ModuleType:
-    """Import a file by path, under a name that cannot collide with anything."""
-    spec = importlib.util.spec_from_file_location(f"_case_{path.stem}", path)
+    """Import a file by path, under a name that cannot collide with anything.
+
+    The module is registered in `sys.modules` before it executes, which matters
+    for one specific and otherwise baffling failure: `multiprocessing` pickles a
+    worker function *by name*, so a case file that hands one to a
+    `ProcessPoolExecutor` gets `Can't pickle <function ...>: import of module
+    failed` unless the name resolves. That blocked exactly the repair some cards
+    recommend for CPU-bound work, and the error names neither the case file nor
+    the pool.
+
+    Registering before `exec_module` rather than after is deliberate: a module
+    that fails halfway is removed again below, and a module that imports itself
+    would otherwise recurse.
+    """
+    name = f"_case_{path.stem}"
+    spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
         raise CaseFileError(f"cannot import {path}")
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     try:
         spec.loader.exec_module(module)
     except Exception as exc:  # noqa: BLE001 -- the agent needs the real reason
+        del sys.modules[name]
         raise CaseFileError(f"{path.name} failed to import: {exc!r}") from exc
     return module
