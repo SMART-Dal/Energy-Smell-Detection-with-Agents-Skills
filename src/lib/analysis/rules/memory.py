@@ -244,9 +244,10 @@ def _passes_on(expression: ast.expr, names: set[str]) -> bool:
 def redundant_materialisation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """`list(...)` handed straight to something that would consume it lazily.
 
-    Suggests C5.S4 and C6.S3, which the discriminators separate by patch shape:
-    deleting a conversion call is C5.S4, changing an eager producer into a lazy
-    one is C6.S3.
+    Suggests C5.S4 and C6.S3, and the shape alone does not say which: deleting
+    a conversion call is C5.S4, changing an eager producer into a lazy one is
+    C6.S3.  Both are named, because the reader can tell them apart and this
+    cannot.
 
     Only the inline conversion counts.  Once the list is bound to a name it may
     be indexed, re-iterated or sliced, and deleting the conversion would then
