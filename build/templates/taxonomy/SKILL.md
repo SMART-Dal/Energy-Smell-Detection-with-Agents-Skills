@@ -200,12 +200,12 @@ you are at the cap, keep the ones you would actually spend an hour repairing.
 
 Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion.
 
-**Read the whole card.** The description at the top, `What to look for`, the
-exceptions, the near-misses, the repair examples: all of it is evidence about
-whether this is the right root cause, and the examples in particular are where
-you find out what the repair actually involves. A card read only for the
-section that sounds like a checklist has been used as a label, not as
-knowledge.
+**Read the whole card**, not the section whose heading matches your question.
+The description at the top, `What to look for`, the exceptions, the
+near-misses, the repair examples — all of it is evidence about whether this is
+the right root cause. The near-misses decide the hard cases, and the repair
+examples are where you find out what the edit actually involves, which is
+usually not what the name suggested.
 
 Now settle each suspicion. It carries forward as the same object, with its
 values corrected wherever the card taught you better, plus the verdict. You may
@@ -227,16 +227,27 @@ happens, add it with `found_by: "cards"` and hold it to exactly the same
 checks. Step 2's cap does not apply to this step: narrowing is not the goal,
 and a rejection carrying a reason is as much a result as an acceptance.
 
-**Each card ends with five checks.** Work through them. In summary: say in your
-own words what the machine is doing that it need not do; apply the `NOT a smell
-when` clauses and the `Looks the same, is not` cases; write the repair for
-*this* code; confirm the repair removes what this root cause names rather than
-something adjacent; and say how often the code runs.
+**Each card ends with the same five checks**, in a line apiece. What each one
+is actually asking:
 
-The last one rejects more candidates than the rest put together, and it costs
-nothing to apply here. A real pattern on a path that runs eleven times per
-process is not a finding, and finding that out now is much cheaper than finding
-it out after you have built a case file.
+1. **Say what the machine does here that it need not do**, in your own words,
+   naming the lines. If you cannot say it without the card's words, you have
+   matched a shape rather than found something.
+2. **Apply `NOT a smell when` and `Looks the same, is not`.** These are the
+   cases where the pattern is present and correct, and they are the most
+   valuable thing on the card. If one fits, reject and record which.
+3. **Write the repair for *this* code**, not the card's example. No repair, no
+   finding — and the repair is also where you discover that the card did not
+   quite fit.
+4. **Check the repair removes what this root cause names**, and not something
+   adjacent. If what you actually fixed is better described by a similar card,
+   file it there and say so.
+5. **Say how often the code runs, and how large its inputs get.**
+
+The fifth rejects more candidates than the other four put together, and it
+costs nothing here. A real pattern on a path that runs eleven times per process
+is not a finding, and establishing that now is much cheaper than establishing
+it after you have built a case file.
 
 ```jsonc
 [
