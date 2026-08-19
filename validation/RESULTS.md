@@ -137,7 +137,13 @@ C11.S3 and C12.S4.
 
 ## Samples suite: 84 of the project owner's hand-written pairs
 
-Running. This section is filled in when it completes.
+**Running, 48 of 84 recorded.** It continues in a detached tmux session started
+on 2026-08-19; see *Finishing this* below. This section is written up when the
+batch completes.
+
+Of the 48 settled so far, the pattern matches the taxonomy suite: large,
+clean confirmations where the taxonomy predicts them, and a handful of
+refutations on floors low enough to mean it.
 
 Superseded findings from the shared-host run that this batch re-tests: 50 of 84
 confirmed with the effect far above the floor, 11 inconclusive on a floor too
@@ -150,6 +156,25 @@ so on. They cannot be used as evidence about energy because the two sides
 compute different things.
 
 ---
+
+## Finishing this
+
+The remaining work runs itself:
+
+```bash
+tmux attach -t energy                       # watch it
+tail -f validation/results/samples.log      # or just the log
+```
+
+`validation/run_remaining.sh` runs the samples suite to completion and then the
+three rewritten taxonomy cases, **strictly one measurement at a time**. That
+sequencing is not tidiness: two concurrent measurements share the package
+energy counter and corrupt each other, which happened once during this session
+and cost a restart.
+
+It is finished when `=== ALL BATCHES FINISHED ===` appears in either log. At
+that point `validation/results/samples.jsonl` has 84 rows and
+`taxonomy.jsonl` has 69, and both want committing.
 
 ## Reproducing
 
