@@ -78,12 +78,46 @@ def _row(case_path: Path, status: str, reason: str, started: float) -> dict:
     }
 
 
+def _drop(log: Path, root: Path, stems: list[str], prune: bool) -> None:
+    """Remove stored rows so the next pass measures them again.
+
+    A row is dropped when its stem matches one of `stems`, or -- with `prune` --
+    when the case file behind it is gone. Everything else is rewritten
+    untouched, which is what makes a re-measurement cost minutes instead of the
+    hours a `--restart` would.
+    """
+    kept, dropped = [], 0
+    for line in log.read_text().splitlines():
+        if not line:
+            continue
+        row = json.loads(line)
+        path = root / row["case_file"]
+        if any(stem in path.stem for stem in stems) or (prune and not path.exists()):
+            dropped += 1
+            continue
+        kept.append(line)
+    log.write_text("".join(f"{line}\n" for line in kept))
+    print(f"dropped {dropped} stored rows, {len(kept)} kept", flush=True)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("suite", help="subdirectory of validation/ to run")
     parser.add_argument("--only", default="", help="substring filter on the filename")
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--restart", action="store_true", help="discard earlier results")
+    parser.add_argument(
+        "--redo",
+        default="",
+        help="comma-separated stems to re-measure: their stored rows are dropped "
+             "first, so only those are run again. Use this rather than --restart "
+             "when a handful of case files changed -- a full suite is hours.",
+    )
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="drop stored rows whose case file no longer exists, then continue",
+    )
     args = parser.parse_args(argv)
 
     suite = ROOT / "validation" / args.suite
@@ -95,6 +129,9 @@ def main(argv: list[str] | None = None) -> int:
     log = RESULTS / f"{args.suite}.jsonl"
     if args.restart and log.exists():
         log.unlink()
+
+    if log.exists() and (args.redo or args.prune):
+        _drop(log, ROOT, [s for s in args.redo.split(",") if s], args.prune)
 
     done = set()
     if log.exists():

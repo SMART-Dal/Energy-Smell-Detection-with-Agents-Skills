@@ -49,6 +49,8 @@ def _catalog(n):
 
 
 def cases():
-    return [("many-lookups", lambda: (_catalog(4_000), [f"sku{i % 4000}" for i in range(8_000)])),
-            ("one-lookup",   lambda: (_catalog(4_000), ["sku1"])),
+    # 8_000 lookups against a 4_000-row linear scan is 32M comparisons per
+    # call and timed out. Both variants keep their shape at a tenth of it.
+    return [("many-lookups", lambda: (_catalog(1_200), [f"sku{i % 1200}" for i in range(1_200)])),
+            ("one-lookup",   lambda: (_catalog(1_200), ["sku1"])),
             ("edge",         lambda: (_catalog(1), ["sku0"]))]

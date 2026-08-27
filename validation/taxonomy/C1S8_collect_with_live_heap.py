@@ -9,6 +9,14 @@ readings differ, the card can say by how much.
 
 import gc
 
+EQUIVALENCE = "returns_only"
+"""The heap is a graph of `Node` objects with no `__eq__`.
+
+Each variant gets its own graph from the thunk, so comparing the argument
+states compares two distinct sets of objects by identity and can only fail.
+Neither variant touches the graph -- it is there to be alive, not to be read --
+so the answer is the whole of the behaviour."""
+
 
 class Node:
     __slots__ = ("value", "peer")

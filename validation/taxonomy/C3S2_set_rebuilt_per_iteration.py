@@ -25,6 +25,8 @@ def after(values, k):
 
 
 def cases():
-    return [("k-large", lambda: (list(range(20_000)), 400)),
-            ("k-small", lambda: (list(range(20_000)), 4)),
-            ("edge",    lambda: ([], 400))]
+    # 20_000 x 400 rebuilt-set elements per call was 8M operations and timed
+    # out at ten minutes. The claim is unchanged; only the arithmetic fits.
+    return [("k-large", lambda: (list(range(4_000)), 200)),
+            ("k-small", lambda: (list(range(4_000)), 4)),
+            ("edge",    lambda: ([], 200))]

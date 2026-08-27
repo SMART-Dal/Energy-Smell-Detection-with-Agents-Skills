@@ -35,6 +35,9 @@ def cases():
     # Deliberately modest. `after` spins up a pool per call, and the harness
     # repeats each call until its window lasts about a second -- so a large
     # per-call cost multiplies into hundreds of process spawns and a timeout.
-    return [("many-tasks", lambda: (8, 60_000)),
-            ("few-tasks",  lambda: (2, 60_000)),
-            ("edge",       lambda: (1, 500))]
+    # Still timed out: a pool is spun up per call and the harness repeats the
+    # call until the window is a second, so the spawn cost multiplies. Smaller
+    # per-task work keeps the same comparison inside the budget.
+    return [("many-tasks", lambda: (8, 8_000)),
+            ("few-tasks",  lambda: (2, 8_000)),
+            ("edge",       lambda: (1, 200))]

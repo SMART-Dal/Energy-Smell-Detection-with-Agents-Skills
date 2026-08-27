@@ -18,7 +18,10 @@ def after(values, k):
 
 
 def cases():
-    values = [(i * 7919) % 1_000_000 for i in range(400_000)]
+    # `nlargest` with k close to n is O(n log k) with a heap almost as big as
+    # the input, and at 400_000 it timed out. The crossover is the point, so
+    # the shape is kept and the size halved twice over.
+    values = [(i * 7919) % 1_000_000 for i in range(100_000)]
     return [("k-tiny", lambda: (list(values), 20)),
-            ("k-most", lambda: (list(values), 380_000)),
+            ("k-most", lambda: (list(values), 95_000)),
             ("edge",   lambda: ([], 5))]

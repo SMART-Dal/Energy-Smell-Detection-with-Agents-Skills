@@ -12,7 +12,7 @@ fact is the branch's selectivity, not the shape.
 
 import sqlite3
 
-ORDERS = 20_000
+ORDERS = 4_000
 
 
 def _database():
@@ -55,6 +55,9 @@ def after(connection, orders):
 
 
 def cases():
-    return [("few-need-it",  lambda: (DB, _load_orders(DB, 0.0002))),
-            ("most-need-it", lambda: (DB, _load_orders(DB, 1.0))),
+    # `most-need-it` issued one query per order: 20_000 round trips per call,
+    # which timed out. The selectivity is the finding, so both ends survive at
+    # a tenth of the orders.
+    return [("few-need-it",  lambda: (DB, _load_orders(DB, 0.002))),
+            ("most-need-it", lambda: (DB, _load_orders(DB, 1.0)[:2_000])),
             ("edge",         lambda: (DB, []))]

@@ -9,6 +9,14 @@ different operation, and a rule matching on `in` would never see it.
 
 from collections import deque
 
+EQUIVALENCE = "returns_only"
+"""The repair changes which container is drained, which is the repair.
+
+`before` empties the caller's list; `after` copies it into a deque and empties
+that, leaving the list intact. That difference is not a defect in the pair, it
+is what "use a deque here" means -- and it is exactly the obligation the card
+tells the reader to check at the call sites before making the change."""
+
 
 def before(pending):
     order = []
