@@ -14,9 +14,6 @@ from typing import Iterator
 from ..models import Evidence, Strength, UnitRef
 from ..context import COMPREHENSION_NODES, LOOP_NODES, PURE_METHODS, UnitContext
 
-# Calls that build a fresh object; expensive to repeat inside a loop.
-CONSTRUCTOR_NAMES = frozenset({"list", "dict", "set", "tuple", "frozenset", "bytearray"})
-
 # C5.S1 puts the break-even for a set at "roughly a dozen elements"; below it,
 # scanning a sequence costs less than hashing the thing you are looking for.
 SMALL_SEQUENCE = 12
@@ -543,53 +540,6 @@ def nested_loops(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         )
 
 
-def construction_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """Containers, lambdas or comprehensions built fresh on every iteration.
-
-    Walks the unit once rather than once per loop, so a construction inside a
-    comprehension counts -- `[sorted(g, key=lambda i: i.rank) for g in groups]`
-    builds a lambda per group and used to go unreported -- and so a statement
-    inside three nested loops is reported once rather than three times.
-    """
-    for node in ctx.own_nodes():
-        if not ctx.repeats(node):
-            continue
-        kind = _construction_kind(node)
-        if kind is None:
-            continue
-        enclosing = ctx.repeats_around(node)[-1]
-        yield _evidence(
-            unit, "construction_in_loop", node, ("C3.S3", "C6.S1"),
-            f"a new {kind} is created on every iteration; if it does not "
-            f"escape the iteration it can be hoisted or reused",
-            construct=kind,
-            loop_line=getattr(enclosing, "lineno", unit.lineno),
-            strength=Strength.LIKELY,
-        )
-
-
-def _construction_kind(node: ast.AST) -> str | None:
-    if isinstance(node, ast.Lambda):
-        return "lambda"
-    if isinstance(node, COMPREHENSION_NODES):
-        return "comprehension"
-    if isinstance(node, (ast.List, ast.Dict, ast.Set)) and _has_elements(node):
-        return "container literal"
-    if (
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id in CONSTRUCTOR_NAMES
-    ):
-        return f"{node.func.id}()"
-    return None
-
-
-def _has_elements(node: ast.AST) -> bool:
-    if isinstance(node, ast.Dict):
-        return bool(node.keys)
-    return bool(getattr(node, "elts", []))
-
-
 def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """`for i in range(len(xs))` where the index is only used to read `xs[i]`.
 
@@ -838,7 +788,6 @@ RULES = [
     repeated_lookup_in_loop,
     membership_test_on_sequence,
     nested_loops,
-    construction_in_loop,
     index_based_iteration,
     append_only_loop,
     missing_early_exit,

@@ -288,14 +288,8 @@ def _decide(result: Verification) -> None:
 
     worst = _worst_regression(result, deciding)
     if worst is not None:
-        cost = 100.0 * worst.excess_s_per_call / deciding.before_s_per_call
         result.status = "regressed"
-        result.reason = (
-            f"the repair helps the large case but costs {abs(worst.energy_saved_pct):.1f}% "
-            f"on {worst.label!r} -- worth {cost:.1f}% of the deciding case's own "
-            f"cost, so it is real work and not rounding. That is a trade-off, not "
-            f"a fix: report it under `refuted` and say which case it hurt."
-        )
+        result.reason = _regression_reason(result, deciding, worst)
         return
 
     clears_floor = deciding.energy_saved_pct > result.noise_floor_pct
@@ -364,6 +358,60 @@ def _decide(result: Verification) -> None:
             f"the repair saves nothing: {deciding.energy_saved_pct:+.1f}% on "
             f"{deciding.label!r}."
         )
+
+
+def _regression_reason(
+    result: Verification, deciding: CaseOutcome, worst: CaseOutcome
+) -> str:
+    """Say what actually happened, rather than what usually happens.
+
+    This used to be one fixed sentence: "the repair helps the large case but
+    costs N% on X". Both halves were claims the verdict had never checked. The
+    deciding case is whichever costs most per call and is named by the case
+    file, so it is only called "large" by coincidence -- and in most regressions
+    it is precisely the case the repair made worse, which makes "the repair
+    helps" it exactly backwards.
+
+    Three situations hide behind one verdict, and the report needs them apart:
+    a genuine trade-off, a repair that helps some input but not the one that
+    dominates the cost, and a repair that is worse everywhere it was measured.
+    """
+    gained = [c.label for c in result.per_case
+              if c.significant and c.energy_saved_pct > 0]
+
+    if worst is deciding:
+        # The share-of-deciding-cost figure exists to say "this loss is real
+        # work, not a ratio on a microsecond input". It says nothing when the
+        # case that lost is the one being compared against.
+        loss = f"{abs(worst.energy_saved_pct):.1f}% lost on it"
+        elsewhere = ""
+    else:
+        cost = 100.0 * worst.excess_s_per_call / deciding.before_s_per_call
+        loss = (f"{abs(worst.energy_saved_pct):.1f}% lost on {worst.label!r}, "
+                f"worth {cost:.1f}% of {deciding.label!r}'s own per-call cost, "
+                f"so it is real work and not rounding")
+        elsewhere = f" and {loss}"
+
+    if deciding.significant and deciding.energy_saved_pct > 0:
+        return (
+            f"a trade-off rather than a fix: {deciding.energy_saved_pct:.1f}% "
+            f"saved on {deciding.label!r}, the case that dominates the cost, "
+            f"against {loss}. Report under `refuted` and name both cases."
+        )
+    if gained:
+        helped = ", ".join(repr(label) for label in gained)
+        return (
+            f"the repair helps {helped}, but not {deciding.label!r}, the case "
+            f"that dominates the cost, which read "
+            f"{deciding.energy_saved_pct:+.1f}%{elsewhere}. Report under "
+            f"`refuted` and say which inputs it is for."
+        )
+    return (
+        f"no case improved: {deciding.label!r}, the case that dominates the "
+        f"cost, read {deciding.energy_saved_pct:+.1f}%{elsewhere}. The repair "
+        f"costs more than the code it replaces on every input measured; report "
+        f"under `refuted`."
+    )
 
 
 def _worst_regression(result: Verification, deciding: CaseOutcome) -> CaseOutcome | None:

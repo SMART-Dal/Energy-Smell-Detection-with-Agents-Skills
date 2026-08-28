@@ -21,7 +21,12 @@ from pathlib import Path
 
 from . import __path__ as _ANALYSIS_PATH, __name__ as _ANALYSIS_PACKAGE
 from .callgraph import CallSite, calls_made_by, link
-from .context import UnitContext, collect_imports, collect_module_bindings
+from .context import (
+    UnitContext,
+    collect_imports,
+    collect_module_bindings,
+    collect_overridden_methods,
+)
 from .models import Evidence, Strength, UnitRef
 from .units import iter_units, parse_file, unit_source
 
@@ -117,7 +122,8 @@ class UnitFindings:
         )
 
 
-def _measure_unit(node, source: str, imports: dict, module_bindings: dict | None = None):
+def _measure_unit(node, source: str, imports: dict, module_bindings: dict | None = None,
+                  overridden_methods: frozenset[str] = frozenset()):
     """Structural facts about one unit: loop depth, array use, call sites.
 
     Computed here rather than by an analyzer, because they are what ranks the
@@ -126,6 +132,7 @@ def _measure_unit(node, source: str, imports: dict, module_bindings: dict | None
     return UnitContext(
         node=node, source=source, imports=imports,
         module_bindings=module_bindings or {},
+        overridden_methods=overridden_methods,
     )
 
 
@@ -169,6 +176,7 @@ def analyse_file(path: Path) -> list[UnitFindings]:
     source = path.read_text(encoding="utf-8", errors="replace")
     imports = collect_imports(tree)
     module_bindings = collect_module_bindings(tree)
+    overridden = collect_overridden_methods(tree)
     units = iter_units(path, tree)
 
     # A unit is where a repair gets scoped and measured. It is not a claim that
@@ -179,7 +187,7 @@ def analyse_file(path: Path) -> list[UnitFindings]:
     for unit, node in units:
         if unit.kind == "class":
             continue
-        contained = _measure_unit(node, source, imports, module_bindings)
+        contained = _measure_unit(node, source, imports, module_bindings, overridden)
         findings[unit.qualname] = UnitFindings(
             unit=unit,
             source=unit_source(source, unit),

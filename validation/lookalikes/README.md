@@ -20,8 +20,8 @@ already works this way: a unit that is not named in `EXPECTED` must come back
 with nothing, so appending one of these `before` functions asserts that the rule
 does not fire on it.
 
-Sixteen were tried. **Fourteen are now fixtures** and the rules stay quiet on
-them; they are marked (fixture) below. The other two are the more useful half of
+Sixteen were tried. **Thirteen are now fixtures** and the rules stay quiet on
+them; they are marked (fixture) below. The rest are the more useful half of
 the result.
 
 `C2S2_lookalike` found a real gap. `method_ignores_self` fired on a method that a
@@ -36,6 +36,13 @@ bound to the object still sees every later write. What is unsafe is hoisting
 `context.limiter.threshold`, the value -- which is what the specimen's `after`
 does and what the rule never suggested. The caveat belongs on the card, and the
 distinction it has to draw is object against value.
+
+`C6S1_lookalike` outlived its rule. `construction_in_loop` reported every
+container, lambda or constructor call built inside a loop, and it could not
+tell the throwaway buffer from the object the caller keeps -- which is the
+whole of C6.S1's own first counter-example. Most of what it did catch that was
+real was a loop-invariant expression, which `loop_invariant_expression` already
+reports. The rule is withdrawn; the specimen stays as card text.
 
 `C8S4_lookalike` is card-only for a reason nothing can fix: whether another
 process appends to the file during the call is not in the syntax. `io_call_in_loop`
@@ -56,7 +63,6 @@ The specimens that land on a rule we ship:
 | `C4S4_lookalike` (fixture) | `independent_exclusive_ifs` | the conditions overlap, so `elif` drops arms |
 | `C4S5_lookalike` | `expensive_comparison` | `bool` is a subclass of `int`; identity checks lose it |
 | `C5S4_lookalike` (fixture) | `redundant_materialisation` | the sequence is consumed twice |
-| `C6S1_lookalike` (fixture) | `construction_in_loop` | the per-iteration object is retained by the caller |
 | `C6S2_lookalike` (fixture) | `copy_in_loop` | the caller reads the original order after the copy |
 | `C6S3_lookalike` (fixture) | `eager_comprehension` | the consumer needs a length as well as a sum |
 | `C6S6_lookalike` (fixture) | `unmanaged_resource` | the handle is the return value |
@@ -66,8 +72,8 @@ The specimens that land on a rule we ship:
 | `C10S5_lookalike` (fixture) | `global_lookup_in_loop` | the loop calls something that rebinds the global |
 
 The remaining fifteen -- `C1S2`, `C1S5`, `C3S6`, `C3S7`, `C4S2`, `C4S8`, `C5S3`,
-`C7S5`, `C8S1`, `C9S2`, `C9S4`, `C10S6`, `C12S3`, `C12S4` -- describe traps no
-rule we ship looks for. They are card material only.
+`C6S1`, `C7S5`, `C8S1`, `C9S2`, `C9S4`, `C10S6`, `C12S3`, `C12S4` -- describe
+traps no rule we ship looks for. They are card material only.
 
 ## What is not here
 

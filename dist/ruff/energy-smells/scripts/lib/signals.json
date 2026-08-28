@@ -15,9 +15,6 @@
   "constant_sequence_literal": [
    "C5.S3"
   ],
-  "construction_in_loop": [
-   "C3.S3"
-  ],
   "copy_in_loop": [
    "C6.S2"
   ],

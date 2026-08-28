@@ -464,6 +464,12 @@ def method_ignores_self(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         return
     if "self" in ctx.read_names(ctx.node):
         return
+    # A method that ignores `self` and is also overridden -- or is itself an
+    # override -- is the dispatch point. The decorator alone would be harmless,
+    # but the repair that pays for it changes the call site to `Class.method(...)`,
+    # and that skips every override.
+    if ctx.node.name in ctx.overridden_methods:
+        return
     yield _evidence(
         unit, "method_ignores_self", ctx.node, ("C2.S2",),
         f"`{ctx.node.name}` never uses `self`, so every call builds a bound "

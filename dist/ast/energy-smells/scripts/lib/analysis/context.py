@@ -59,6 +59,15 @@ class UnitContext:
     module_bindings: dict[str, ast.AST] = field(default_factory=dict)
     """Module-level constant -> its assigned value, for names the unit only reads."""
 
+    overridden_methods: frozenset[str] = frozenset()
+    """Method names that take part in an override relationship in this module.
+
+    A method that never touches `self` is a static-declaration candidate right
+    up until a subclass overrides it, at which point the call site is a dispatch
+    point and pinning it to a class silently skips the override. That fact lives
+    one level above the unit, so it has to be collected from the module and
+    handed down."""
+
     def __post_init__(self) -> None:
         self._parents: dict[ast.AST, ast.AST] = {}
         self._repeat_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
@@ -338,6 +347,39 @@ def collect_imports(tree: ast.Module) -> dict[str, str]:
             for alias in node.names:
                 imports[alias.asname or alias.name] = node.module
     return imports
+
+
+def collect_overridden_methods(tree: ast.Module) -> frozenset[str]:
+    """Method names defined by a class and also by another class that names it
+    as a base, in either direction.
+
+    Both ends are returned, because both ends matter: the base's method is the
+    one that must stay dispatchable, and the override is the one that proves it.
+    Only bases written as a bare name are followed -- `class B(mod.A)` is a
+    class this module cannot see, so nothing is claimed about it.
+
+    Deliberately shallow. It does not resolve imported bases, multiple
+    inheritance chains through other modules, or `setattr`, so it is a way to be
+    quiet about a visible override rather than a promise that no override
+    exists. A rule using it must already be reporting at CONTEXTUAL strength.
+    """
+    methods: dict[str, set[str]] = {}
+    bases: dict[str, list[str]] = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        methods[node.name] = {
+            child.name for child in node.body
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        bases[node.name] = [b.id for b in node.bases if isinstance(b, ast.Name)]
+
+    shared: set[str] = set()
+    for name, parents in bases.items():
+        for parent in parents:
+            if parent in methods:
+                shared |= methods[name] & methods[parent]
+    return frozenset(shared)
 
 
 def collect_module_bindings(tree: ast.Module) -> dict[str, ast.AST]:
