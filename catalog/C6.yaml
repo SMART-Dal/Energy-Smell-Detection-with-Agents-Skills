@@ -254,7 +254,7 @@
   # consumer is a conversion to delete or a producer to make lazy, and the
   # shape alone does not say which. The analyzer emits both, so the compiled
   # table has to as well or the two disagree about the same fact.
-  signals: [eager_comprehension, redundant_materialisation,
+  signals: [eager_comprehension, redundant_materialisation, whole_file_read,
             ruff_C400, ruff_C401, ruff_C402, ruff_C419, ruff_RUF015]
   in_one_line: >
     a whole sequence built in memory when the consumer wanted it one element at

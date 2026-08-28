@@ -9,6 +9,11 @@ from ..models import Evidence, Strength, UnitRef
 from ..context import COMPREHENSION_NODES, UnitContext
 
 MUTABLE_DEFAULTS = (ast.List, ast.Dict, ast.Set)
+MEMORY_BUFFERS = frozenset({"BytesIO", "StringIO"})
+"""Sources whose bytes are already resident, so there is nothing left to stream."""
+
+LINE_SPLITS = frozenset({"splitlines", "split"})
+
 MUTABLE_DEFAULT_CALLS = frozenset({"list", "dict", "set", "bytearray", "defaultdict",
                                    "Counter", "OrderedDict", "deque"})
 
@@ -338,7 +343,103 @@ def _suggests_for(consumer: str, base: tuple[str, ...]) -> tuple[str, ...]:
     return base + ("C3.S6",) if consumer in SHORT_CIRCUIT_CONSUMERS else base
 
 
+def whole_file_read(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
+    """A whole source loaded, then immediately walked one line at a time.
+
+        for line in handle.readlines():     the list exists for one pass
+        lines = handle.read().splitlines()
+
+    Both build the entire content in memory to consume it in pieces, and both
+    have a form that does not -- iterating the handle yields the same lines
+    without the list. Measured at 22.7% on a large file, and at 99.9% where the
+    consumer stops early, since the lines after the stopping point are never
+    read at all.
+
+    The narrowness is the rule. An earlier version reported every argument-less
+    `.read()`, which is the same shape without the precondition that makes the
+    repair legal: `return response.read()` *is* the whole body, and a config or
+    a JSON document has to be parsed whole. Those have no streaming form to
+    recommend, and reading a file whole is the normal way to read a file. So the
+    consumer has to be visible, and it has to be walking lines.
+    """
+    buffers = _memory_buffers(ctx.node)
+    consumers = _line_consumers(ctx.node)
+    for node in ast.walk(ctx.node):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        if node.func.attr not in {"read", "readlines"} or node.args or node.keywords:
+            continue
+        if _reads_a_buffer(node.func.value, buffers):
+            continue
+        consumer = consumers.get(id(node))
+        if consumer is None:
+            continue
+        yield _evidence(
+            unit, "whole_file_read", node, ("C6.S3",),
+            f"`.{node.func.attr}()` builds the whole content in memory and "
+            f"{consumer} walks it a line at a time; iterating the handle "
+            f"yields the same lines without the list",
+            method=node.func.attr,
+            strength=Strength.CONTEXTUAL,
+        )
+
+
+def _line_consumers(scope: ast.AST) -> dict[int, str]:
+    """Expressions whose value is walked line by line where it is produced.
+
+    Keyed by `id` rather than by the node, because two identical calls in one
+    unit compare equal to neither each other nor themselves under `==`.
+    """
+    consumed: dict[int, str] = {}
+    for node in ast.walk(scope):
+        if isinstance(node, (ast.For, ast.AsyncFor)):
+            consumed.setdefault(id(node.iter), "a loop")
+        elif isinstance(node, ast.comprehension):
+            consumed.setdefault(id(node.iter), "a comprehension")
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in LINE_SPLITS
+            and _splits_on_lines(node)
+        ):
+            consumed.setdefault(id(node.func.value), f"`.{node.func.attr}()`")
+    return consumed
+
+
+def _splits_on_lines(call: ast.Call) -> bool:
+    """`.splitlines()`, or a `.split()` that was given a newline to split on.
+
+    `.split()` with no argument splits on whitespace and `.split(",")` on a
+    field separator; neither is a line walk, and neither has a streaming form.
+    """
+    if call.func.attr == "splitlines":
+        return True
+    return bool(call.args) and isinstance(call.args[0], ast.Constant) and (
+        isinstance(call.args[0].value, (str, bytes))
+        and (b"\n" if isinstance(call.args[0].value, bytes) else "\n")
+        in call.args[0].value
+    )
+
+
+def _memory_buffers(scope: ast.AST) -> set[str]:
+    """Local names bound to a buffer whose contents are already in memory."""
+    names: set[str] = set()
+    for node in ast.walk(scope):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+            continue
+        if _called_name(node.value) in MEMORY_BUFFERS:
+            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
+    return names
+
+
+def _reads_a_buffer(receiver: ast.expr, buffers: set[str]) -> bool:
+    if isinstance(receiver, ast.Name):
+        return receiver.id in buffers
+    return isinstance(receiver, ast.Call) and _called_name(receiver) in MEMORY_BUFFERS
+
+
 RULES = [
+    whole_file_read,
     mutable_default_argument,
     unmanaged_resource,
     redundant_materialisation,
