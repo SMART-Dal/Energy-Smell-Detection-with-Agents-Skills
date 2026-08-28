@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 .venv/
 validation/results/*.log
+.energy-scan/

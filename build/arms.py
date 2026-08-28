@@ -121,21 +121,39 @@ _SCANNER_EVIDENCE = """\
 **2d. Now, and only now, run the rules.**
 
 ```bash
-python $SKILL/scripts/scan.py <path> --top 15
+python $SKILL/scripts/scan.py <path>              # index: which units, how much
+python $SKILL/scripts/scan.py <path> --unit NAME  # one unit's findings in full
 ```
+
+The first command prints an **index** and writes the detail to a file. That is
+deliberate: read the index, pick the units you already care about, and open
+those. Do not open every unit, and do not read the detail file end to end — the
+whole of it is longer than your account of the code should be, and a list read
+in full becomes the account instead of checking it.
 
 This is an assistant, not an authority. It applies a fixed set of deterministic
 rules and reports **facts** — "a string is grown with `+=` inside a loop at line
-45" — grouped under the root causes each fact could point at. One fact often
-appears under two or three root causes, because the shape alone does not say
-which; and one root cause often collects several facts, which is the useful
-case. Facts are graded by how far the fact alone gets you:
+45" — one entry per rule per unit, tagged with every root cause that fact could
+point at. Two labels on one fact means the shape alone does not say which; it is
+one thing to look at, not two. Facts are graded twice, and the two grades answer
+different questions:
 
-| Grade | Meaning |
+| `strength` | how sure the rule is that the fact is real |
 |---|---|
 | `definite` | a smell in essentially any context — confirm and move on |
 | `likely` | usually a smell; check the card's exceptions |
 | `contextual` | a fact and nothing more. **Justify it against this specific code, or drop it.** |
+
+| `worth` | what the repair measured, in code that also does other work |
+|---|---|
+| `high` | 40% or more of the energy on the path it sits on |
+| `medium` | roughly 10–40% |
+| `low` | under 10% — real, and rarely what you should spend the change on |
+| `unmeasured` | no shape of this root cause has a confirmed measurement, or the ones measured did not pay |
+
+`worth` orders the list. It does not decide anything: a `low` fact inside a loop
+that runs a billion times beats a `high` one that runs twice, and which is which
+is exactly the part you can see and the rule cannot.
 
 Two things follow from what a rule is, and they point in opposite directions.
 

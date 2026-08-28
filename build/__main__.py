@@ -35,6 +35,7 @@ from .cards import (
     render_root_cause_index,
 )
 from .catalog import Catalog, load_catalog
+from .impact import TIER_NONE, measured_impact
 from .taxonomy import Taxonomy, load_taxonomy
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -69,8 +70,9 @@ def main(argv: list[str] | None = None) -> int:
 
     taxonomy = load_taxonomy("python")
     catalog = load_catalog()
+    impact = measured_impact(root=PROJECT_ROOT)
 
-    per_arm = {arm: _render_arm(arm, taxonomy, catalog) for arm in ARMS}
+    per_arm = {arm: _render_arm(arm, taxonomy, catalog, impact) for arm in ARMS}
     outputs: dict[Path, str] = {}
     for files in per_arm.values():
         outputs.update(files)
@@ -102,7 +104,9 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _render_arm(arm: Arm, taxonomy: Taxonomy, catalog: Catalog) -> dict[Path, str]:
+def _render_arm(
+    arm: Arm, taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, int]
+) -> dict[Path, str]:
     """Every file of one arm's skill directory, as path -> contents.
 
     The cards and the verifier are identical in every arm that ships them: only
@@ -142,7 +146,7 @@ def _render_arm(arm: Arm, taxonomy: Taxonomy, catalog: Catalog) -> dict[Path, st
 
     if arm.ships_scanner:
         files[root / "scripts" / "lib" / "signals.json"] = _render_signals(
-            taxonomy, catalog
+            taxonomy, catalog, impact
         )
     return files
 
@@ -183,7 +187,7 @@ def _prune(root: Path, keep: set[Path]) -> None:
             path.rmdir()
 
 
-def _render_signals(taxonomy: Taxonomy, catalog: Catalog) -> str:
+def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, int]) -> str:
     """Compile the routing table `scan.py` needs, so it can stay YAML-free.
 
     Everything here is derived; editing `signals.json` by hand is pointless
@@ -202,6 +206,7 @@ def _render_signals(taxonomy: Taxonomy, catalog: Catalog) -> str:
                 "advisory_only": entry.is_advisory_only,
                 "repair": entry.refactoring.summary if entry.refactoring else "",
                 "card": f"reference/root-causes/{node.id}.md",
+                "impact": impact.get(node.id, TIER_NONE),
             }
             for node in taxonomy.root_causes
             if (entry := catalog.entries.get(node.id)) is not None
