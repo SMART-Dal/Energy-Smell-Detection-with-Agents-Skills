@@ -535,25 +535,81 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
     Each of these has a cheaper form -- `Counter`, a direct comparison, an
     early-exit scan -- and inside a loop the difference is paid per iteration.
+
+    Naming the operand first changes nothing:
+
+        left = sorted(a)
+        right = sorted(b)
+        return left == right
+
+    The same two sorts are paid for the same yes or no, so a name that is bound
+    once to one of these calls and read only by the comparison is followed
+    through. A name read anywhere else is not: then the object has a second
+    reader and was not built for the comparison alone.
     """
+    aliases = _comparison_aliases(ctx)
     for node in ast.walk(ctx.node):
         if not isinstance(node, ast.Compare):
             continue
         for side in (node.left, *node.comparators):
-            if (
-                isinstance(side, ast.Call)
-                and isinstance(side.func, ast.Name)
-                and side.func.id in EXPENSIVE_COMPARISON_CALLS
-                and side.args
+            call = None
+            if isinstance(side, ast.Name):
+                call = aliases.get(side.id)
+            elif isinstance(side, ast.Call):
+                call = side
+            if not (
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id in EXPENSIVE_COMPARISON_CALLS
+                and call.args
             ):
-                yield _evidence(
-                    unit, "expensive_comparison", node, ("C4.S5",),
-                    f"`{ast.unparse(node)}` builds a new object with "
-                    f"`{side.func.id}()` only to compare it and throw it away",
-                    call=side.func.id,
-                    strength=Strength.LIKELY if ctx.in_loop(node) else Strength.CONTEXTUAL,
-                )
-                break
+                continue
+            built = (
+                f"`{ast.unparse(node)}` builds a new object with "
+                f"`{call.func.id}()` only to compare it and throw it away"
+                if call is side else
+                f"`{ast.unparse(node)}` compares an object built with "
+                f"`{ast.unparse(call)}` and read nowhere else; naming it does "
+                f"not make it cheaper than comparing directly"
+            )
+            yield _evidence(
+                unit, "expensive_comparison", node, ("C4.S5",),
+                built,
+                call=call.func.id,
+                strength=Strength.LIKELY if ctx.in_loop(node) else Strength.CONTEXTUAL,
+            )
+            break
+
+
+def _comparison_aliases(ctx: UnitContext) -> dict[str, ast.Call]:
+    """Names bound once to a call and read once, so the name *is* the call.
+
+    Both halves matter. Bound twice and the name is a slot rather than an alias;
+    read twice and the object has a use beyond the comparison, which is the
+    honest reason to have built it.
+    """
+    bindings: dict[str, int] = {name: 1 for name in _parameter_names(ctx.node)}
+    reads: dict[str, int] = {}
+    assigned: dict[str, ast.Call] = {}
+
+    for node in ctx.own_nodes():
+        if isinstance(node, ast.Name):
+            if isinstance(node.ctx, ast.Load):
+                reads[node.id] = reads.get(node.id, 0) + 1
+            else:
+                bindings[node.id] = bindings.get(node.id, 0) + 1
+        elif (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and isinstance(node.value, ast.Call)
+        ):
+            assigned[node.targets[0].id] = node.value
+
+    return {
+        name: call for name, call in assigned.items()
+        if bindings.get(name) == 1 and reads.get(name) == 1
+    }
 
 
 # -- C1.S3 / C1.S6 / C1.S7  redundant work ---------------------------------

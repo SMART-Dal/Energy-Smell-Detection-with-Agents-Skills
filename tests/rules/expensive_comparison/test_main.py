@@ -9,9 +9,12 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
-    "same_members": 1,  # two sorts and two lists
-    "same_text": 1,     # two conversions, per element
-    "same_set": 1,      # two containers for one comparison
+    "same_members": 1,          # two sorts and two lists
+    "same_text": 1,             # two conversions, per element
+    "same_set": 1,              # two containers for one comparison
+    "sorted_then_compared": 1,  # the same two sorts, given names first
+    "sorted_and_returned": 1,   # the second operand is still a bare `sorted()`
+    "sorted_then_rebound": 1,   # likewise; the alias itself is not followed
 }
 
 

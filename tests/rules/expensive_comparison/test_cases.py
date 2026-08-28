@@ -36,7 +36,25 @@ def compare_lengths(first, second):
 
 
 def sorted_then_compared(first, second):
-    # Bound first: the comparison itself builds nothing.
+    # Naming the operands changes nothing: the same two sorts are paid for the
+    # same yes or no, and neither name is read anywhere else.
     left = sorted(first)
     right = sorted(second)
     return left == right
+
+
+def sorted_and_returned(first, second):
+    # `left` has a second reader, so the sort was not built for the comparison
+    # alone and there is nothing to take away.
+    left = sorted(first)
+    if left == sorted(second):
+        return []
+    return left
+
+
+def sorted_then_rebound(values, extra):
+    # `left` is a slot, not an alias -- the name does not stand for one call.
+    left = sorted(values)
+    if extra:
+        left = sorted(extra)
+    return left == sorted(extra)
