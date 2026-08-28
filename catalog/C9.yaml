@@ -167,7 +167,7 @@
   similar: [C3.S3, C6.S6, C8.S4, C9.S3]
 
 - id: C9.S2
-  signals: [whole_file_read]
+  signals: []
   in_one_line: >
     more data pulled across a process boundary than the program ever consults
   what_to_look_for: >

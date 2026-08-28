@@ -220,10 +220,6 @@
   ],
   "unmanaged_resource": [
    "C6.S6"
-  ],
-  "whole_file_read": [
-   "C6.S3",
-   "C9.S2"
   ]
  },
  "root_causes": {

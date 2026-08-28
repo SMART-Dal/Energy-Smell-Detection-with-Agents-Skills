@@ -44,7 +44,6 @@ OWNERSHIP_SINKS = frozenset({"append", "enter_context", "push", "callback", "reg
 
 # Constructors whose contents are already resident in memory, so "stream it
 # instead" is not advice that applies to reading them.
-MEMORY_BUFFERS = frozenset({"BytesIO", "StringIO"})
 
 
 def _own_nodes(scope: ast.AST) -> Iterator[ast.AST]:
@@ -339,59 +338,9 @@ def _suggests_for(consumer: str, base: tuple[str, ...]) -> tuple[str, ...]:
     return base + ("C3.S6",) if consumer in SHORT_CIRCUIT_CONSUMERS else base
 
 
-def whole_file_read(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """An unbounded `.read()` or `.readlines()` pulling a whole source into memory.
-
-    Only the argument-less form counts.  `handle.read(65536)` is the chunked
-    loop this rule would otherwise be recommending, and `parser.read(path)` is a
-    configparser-style call that never touches a handle at all.  Reporting the
-    bounded form was most of what this rule produced on real code: pandas' Stata
-    reader walks its header with several dozen `read(n)` calls, and every one of
-    them used to be reported as loading the entire file into memory.
-
-    A read from an in-memory buffer is skipped for the same reason: the bytes
-    are already resident, so there is no source left to stream from.
-    """
-    buffers = _memory_buffers(ctx.node)
-    for node in ast.walk(ctx.node):
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
-            continue
-        if node.func.attr not in {"read", "readlines"}:
-            continue
-        if node.args or node.keywords:
-            continue
-        if _reads_a_buffer(node.func.value, buffers):
-            continue
-        yield _evidence(
-            unit, "whole_file_read", node, ("C6.S3", "C9.S2"),
-            f"`.{node.func.attr}()` loads the entire source into memory; "
-            f"streaming processes it incrementally",
-            method=node.func.attr,
-            strength=Strength.CONTEXTUAL,
-        )
-
-
-def _memory_buffers(scope: ast.AST) -> set[str]:
-    """Local names bound to a buffer whose contents are already in memory."""
-    names: set[str] = set()
-    for node in ast.walk(scope):
-        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
-            continue
-        if _called_name(node.value) in MEMORY_BUFFERS:
-            names.update(t.id for t in node.targets if isinstance(t, ast.Name))
-    return names
-
-
-def _reads_a_buffer(receiver: ast.expr, buffers: set[str]) -> bool:
-    if isinstance(receiver, ast.Name):
-        return receiver.id in buffers
-    return isinstance(receiver, ast.Call) and _called_name(receiver) in MEMORY_BUFFERS
-
-
 RULES = [
     mutable_default_argument,
     unmanaged_resource,
     redundant_materialisation,
     eager_comprehension,
-    whole_file_read,
 ]
