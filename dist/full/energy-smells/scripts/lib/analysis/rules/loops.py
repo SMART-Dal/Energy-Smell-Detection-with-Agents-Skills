@@ -514,32 +514,6 @@ def _is_small_sequence(node: ast.AST, ctx: UnitContext) -> bool:
     return isinstance(node, (ast.List, ast.Tuple)) and len(node.elts) <= SMALL_SEQUENCE
 
 
-def nested_loops(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """Repetition nested two deep or more, which is quadratic in its inputs.
-
-    Comprehensions count as levels.  `[[a * b for b in right] for a in left]`
-    does exactly the work of the two statement loops it replaces, and counting
-    only `for` and `while` made the rule blind to the shorter spelling of the
-    same nest.
-
-    Reported at the innermost level only, so one nest is one finding.
-    """
-    scopes = ctx.repeat_scopes
-    encloses = {id(outer) for scope in scopes for outer in ctx.repeats_around(scope)}
-    for scope in scopes:
-        depth = ctx.repeat_depth(scope) + 1
-        if depth < 2 or id(scope) in encloses:
-            continue
-        yield _evidence(
-            unit, "nested_loops", scope, ("C3.S4", "C7.S1"),
-            f"repetition nested {depth} levels deep; total work grows as the "
-            f"product of the iteration counts",
-            depth=depth,
-            outer_lines=[getattr(o, "lineno", 0) for o in ctx.repeats_around(scope)],
-            strength=Strength.CONTEXTUAL,
-        )
-
-
 def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """`for i in range(len(xs))` where the index is only used to read `xs[i]`.
 
@@ -787,7 +761,6 @@ RULES = [
     string_concat_in_loop,
     repeated_lookup_in_loop,
     membership_test_on_sequence,
-    nested_loops,
     index_based_iteration,
     append_only_loop,
     missing_early_exit,

@@ -205,8 +205,8 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
     """One unit as a worth-ordered list of facts, each tagged with what it could mean.
 
     The earlier shape nested evidence under each candidate root cause, which
-    printed a fact once per root cause it routed to: `nested_loops` reaches both
-    C3.S4 and C7.S1, so thirteen nested loops became twenty-six identical
+    printed a fact once per root cause it routed to: `repeated_lookup_in_loop`
+    reaches both C8.S3 and C10.S5, so seven lookups became fourteen identical
     paragraphs. The label is now an attribute of the fact rather than a heading
     above it, and the cards to read are listed once at the end of the unit.
     """
@@ -374,7 +374,7 @@ def _render_index(report: dict, detail: Path) -> str:
 
 
 def _headline(finding: dict) -> str:
-    """"nested_loops x13" -- the rule and how often, nothing about what it means."""
+    """"repeated_lookup_in_loop x7" -- the rule and how often, not what it means."""
     return finding["kind"] + ("" if finding["count"] == 1 else f" x{finding['count']}")
 
 

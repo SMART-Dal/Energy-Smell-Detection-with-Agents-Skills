@@ -159,11 +159,11 @@ class Finding:
 def impact_of(root_causes, table: SignalTable) -> int:
     """The weakest reading of an ambiguous fact.
 
-    `nested_loops` points at both C7.S1, where the repair measured 100%, and
-    C3.S4, where the least of its shapes measured 16%. Taking the lower one
-    means an ambiguous fact ranks as what it is worth if it turns out to be the
-    cheaper of the two -- the conservative direction, and the one that stops a
-    single high-impact label from floating every fact that can reach it.
+    `append_only_loop` points at both C3.S1, where the least of its measured
+    shapes saved 14%, and C10.S3, where the least saved 25%. Taking the lower
+    one means an ambiguous fact ranks as what it is worth if it turns out to be
+    the cheaper of the two -- the conservative direction, and the one that stops
+    a single high-impact label from floating every fact that can reach it.
     """
     tiers = [table.root_causes[rc].impact for rc in root_causes if rc in table]
     return min(tiers) if tiers else 1

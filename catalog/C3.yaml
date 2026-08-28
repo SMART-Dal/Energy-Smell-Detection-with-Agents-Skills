@@ -419,7 +419,7 @@
   similar: [C3.S2, C6.S1, C8.S2]
 
 - id: C3.S4
-  signals: [nested_loops, membership_test_on_sequence]
+  signals: [membership_test_on_sequence]
   in_one_line: >
     an inner loop that searches, where a lookup would turn n*m into n+m
   what_to_look_for: >

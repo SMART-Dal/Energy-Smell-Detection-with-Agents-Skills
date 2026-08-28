@@ -19,7 +19,7 @@
 #     S5  the operation itself, using an algebraic fact
 
 - id: C7.S1
-  signals: [nested_loops, ruff_RUF017]
+  signals: [ruff_RUF017]
   in_one_line: >
     an algorithm of worse complexity than the problem requires
   what_to_look_for: >

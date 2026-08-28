@@ -84,10 +84,6 @@
   "mutation_during_iteration": [
    "C3.S7"
   ],
-  "nested_loops": [
-   "C3.S4",
-   "C7.S1"
-  ],
   "recursion_without_memo": [
    "C7.S2",
    "C8.S1"
