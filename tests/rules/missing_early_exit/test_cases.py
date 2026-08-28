@@ -70,3 +70,13 @@ def collect_flags(rows):
         if row.enabled:
             out.append(re.escape(row.name))
     return out
+
+
+def collect_problems(records):
+    # Appends on a match rather than setting a flag: this is a fold, and a
+    # `break` would report the first bad row instead of all of them.
+    problems = []
+    for position, record in enumerate(records):
+        if record % 97 == 0:
+            problems.append(position)
+    return problems

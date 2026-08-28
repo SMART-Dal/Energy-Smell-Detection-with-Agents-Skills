@@ -40,3 +40,13 @@ def per_row(rows):
 def different_arguments(a, b, c):
     # The same function, three different calls.
     return score(a) + score(b) + score(c)
+
+
+def budget_after_append(jobs, ceiling):
+    # `len(pending)` twice, with an `append` to `pending` in between.
+    pending = []
+    for job in jobs:
+        if len(pending) < ceiling:
+            pending.append(job)
+        budget = ceiling - len(pending)
+        yield budget

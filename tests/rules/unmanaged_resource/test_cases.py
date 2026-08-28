@@ -90,3 +90,9 @@ def tail_with_cleanup(path, stack):
 def digest_of(path, hasher):
     # Used inline rather than bound: a different pattern, and out of scope here.
     return hasher(open(path, "rb").read()).hexdigest()
+
+
+def open_report(path):
+    # The handle is the return value; a `with` here closes it before the caller
+    # can read it.
+    return open(path, encoding="utf-8")

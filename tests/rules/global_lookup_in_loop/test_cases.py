@@ -108,3 +108,15 @@ class Throttle:
             elif request.size <= self.limits.hard_cap:
                 allowed.append(request.truncate())
         return allowed
+
+
+def above_threshold(values):
+    # `recalibrate` rebinds THRESHOLD, so a local bound above the loop freezes
+    # a number the loop is deliberately watching move.
+    above = 0
+    for index, value in enumerate(values):
+        if index and index % 1_000 == 0:
+            recalibrate(value)
+        if value > THRESHOLD:
+            above += 1
+    return above

@@ -53,3 +53,10 @@ def first_active(rows):
         if (row := load_row(candidate)) and row.active:
             return row
     return None
+
+
+def with_tier(rows, wanted):
+    # The first operand is the guard that makes the second safe to evaluate;
+    # reordering raises on every row whose profile is None.
+    return [r for r in rows if r["profile"] is not None
+            and tier_rank(r["profile"]) == wanted]

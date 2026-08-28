@@ -44,3 +44,17 @@ class Store:
 def parse(text):
     # A module-level pure forwarder.
     return json_loads(text)
+
+
+class Report:
+    def __init__(self, rows):
+        self._rows = rows
+        self._size = None
+
+    @property
+    def size(self):
+        # Computes and memoises on first access: `report._size` is None until
+        # something has read `report.size`.
+        if self._size is None:
+            self._size = len(self._rows)
+        return self._size

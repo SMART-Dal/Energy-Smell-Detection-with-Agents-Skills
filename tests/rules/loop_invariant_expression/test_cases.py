@@ -69,3 +69,14 @@ def bucket_lengths(rows):
     for row in rows:
         sizes.append(len(row.items))
     return sizes
+
+
+def take_until_full(rows, ceiling):
+    # `ceiling - len(out)` reads the container the loop is filling, so it is
+    # invariant in text only.
+    out = []
+    for row in rows:
+        capacity = ceiling - len(out)
+        if capacity > 0:
+            out.append(row)
+    return out

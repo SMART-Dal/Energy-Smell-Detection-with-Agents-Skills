@@ -44,3 +44,10 @@ def impure_first_value(path):
     handle = open(path)
     handle = None
     return handle
+
+
+def strip_header(record):
+    # The name is never read again, but `pop` also removes the element: the
+    # binding is dead and the call is not.
+    header = record.pop(0)
+    return sum(record)

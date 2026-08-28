@@ -44,3 +44,13 @@ def build_from_row(rows):
 def slice_a_window(values, width):
     # A partial slice is a window, not a duplicate of the whole container.
     return [values[i:i + width] for i in range(len(values) - width)]
+
+
+def ends_and_first(batches):
+    # The copy is what preserves the caller ordering that the third line reads.
+    total = 0
+    for batch in batches:
+        ordered = sorted(batch)
+        total += ordered[0] + ordered[-1]
+        total += batch[0]
+    return total

@@ -69,3 +69,15 @@ def compiled_once(lines, pattern):
     # Hoisted above the loop already.
     matcher = re.compile(pattern)
     return [matcher.search(line) for line in lines]
+
+
+def grouped(rows):
+    # The per-iteration list is appended to `groups`, so the caller holds every
+    # one of them: reusing a single buffer would make them all the same object.
+    groups = []
+    for row in rows:
+        batch = []
+        for i in range(row % 5):
+            batch.append(row + i)
+        groups.append(batch)
+    return groups

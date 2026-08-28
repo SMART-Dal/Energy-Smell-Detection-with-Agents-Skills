@@ -66,3 +66,9 @@ def join_path_parts(parts):
 def uniq_in_order(items):
     # Already lazy: there is no conversion left to delete.
     return list(dict.fromkeys(item for item in items if item))
+
+
+def total_and_count(rows):
+    # The sequence is consumed twice; a generator is empty by the second.
+    sizes = list(len(row) for row in rows)
+    return sum(sizes), len(sizes)

@@ -40,3 +40,9 @@ def total_already_lazy(values):
 def sized(rows):
     # `len` needs a sequence.
     return len([row for row in rows if row.valid])
+
+
+def weights_twice(rows):
+    # Materialised because the result is reduced and then counted.
+    weights = [row * 3 + 1 for row in rows]
+    return sum(weights), len(weights)

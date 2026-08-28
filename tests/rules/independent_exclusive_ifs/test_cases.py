@@ -100,3 +100,16 @@ def search_range(nums, target):
     if last_exist and not first_exist:
         return nums[0]
     return 0
+
+
+def surcharge(age, size):
+    # The conditions overlap: a row can be both stale and oversized, and an
+    # `elif` chain would apply only the first.
+    total = 0
+    if age > 30:
+        total += 5
+    if size > 100:
+        total += 7
+    if size > 1_000:
+        total += 11
+    return total
