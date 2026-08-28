@@ -1,7 +1,5 @@
-"""C6.S2 Unnecessary Copying -- a defensive copy nothing mutates.
+"""C6.S2 Unnecessary Copying -- a defensive copy nothing mutates."""
 
-Also the measured test of the `copy_in_loop` analyzer added this pass.
-"""
 
 def before(rows):
     total = 0

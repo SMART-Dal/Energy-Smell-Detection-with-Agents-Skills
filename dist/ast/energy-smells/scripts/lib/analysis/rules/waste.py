@@ -29,9 +29,6 @@ from ..models import Evidence, Strength, UnitRef
 from ..context import (COMPREHENSION_NODES, LOOP_NODES, OPAQUE_NODES,
                        PURE_BUILTINS, PURE_METHODS, UnitContext)
 
-# Calls whose whole purpose is to duplicate a container.
-COPY_CALLS = frozenset({"list", "dict", "set", "copy", "deepcopy", "tuple"})
-
 # Interpreter housekeeping: correct to call, ruinous to call repeatedly.
 RUNTIME_MANAGEMENT = {
     ("gc", "collect"), ("gc", "enable"), ("gc", "disable"),
@@ -318,33 +315,38 @@ def _parameter_names(node: ast.AST) -> set[str]:
 
 
 def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A container duplicated inside a loop.
+    """A container duplicated inside a loop by an explicit copy.
 
         for row in rows:
-            current = list(defaults)     a fresh copy every iteration
+            current = defaults.copy()    a fresh copy every iteration
             current.update(row)
 
-    Sometimes required -- the copy is mutated and must not be shared. Reported
-    as `contextual` for that reason: the fact is certain, the fault is not.
+    Only the spellings that say `copy` and mean nothing else: `.copy()`,
+    `copy.copy`, `copy.deepcopy`, and the `[:]` slice. A constructor call --
+    `dict(defaults)`, `list(values)` -- is deliberately *not* one of them: it is
+    the same expression a developer writes to convert a type or to build the
+    result, and nothing in the syntax separates `dict(defaults)` (a copy of
+    something shared) from `dict(row)` (a conversion of the element). Guessing
+    between them reported correct code, so the rule no longer tries.
+
+    Sometimes required even so -- the copy is mutated and must not be shared.
+    Reported as `contextual` for that reason: the fact is certain, the fault is
+    not.
     """
     for node in ctx.own_nodes():
         if not ctx.repeats(node):
             continue
         described = None
         if isinstance(node, ast.Call):
-            name = node.func.id if isinstance(node.func, ast.Name) else None
             dotted = _dotted(node.func)
             if dotted and dotted[1] in {"copy", "deepcopy"}:
                 described = f"{dotted[0]}.{dotted[1]}()"
-            elif name in COPY_CALLS and len(node.args) == 1:
-                if isinstance(node.args[0], (ast.Name, ast.Attribute)):
-                    described = f"{name}()"
         elif isinstance(node, ast.Subscript) and _is_full_slice(node.slice):
             described = "a `[:]` slice"
 
-        # `dict(row)` in a comprehension converts the element; it does not
-        # duplicate a container the iterations share, so there is nothing to
-        # hoist and nothing being copied twice.
+        # `row[:]` in a comprehension copies the element, and every copy is the
+        # result; it does not duplicate a container the iterations share, so
+        # there is nothing to hoist and nothing being copied twice.
         if described and not (ctx.read_names(node) & ctx.iteration_names(node)):
             yield _evidence(
                 unit, "copy_in_loop", node, ("C6.S2",),
