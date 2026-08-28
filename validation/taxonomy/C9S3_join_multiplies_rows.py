@@ -35,26 +35,29 @@ def _database():
 DB = _database()
 
 
-def before(connection):
+def before(connection, limit):
     """One query per relation, joined in Python -- `prefetch_related` style."""
     items, notes = {}, {}
-    for order_id, sku in connection.execute("SELECT order_id, sku FROM items"):
+    for order_id, sku in connection.execute(
+            "SELECT order_id, sku FROM items WHERE order_id < ?", (limit,)):
         items.setdefault(order_id, []).append(sku)
-    for order_id, body in connection.execute("SELECT order_id, body FROM notes"):
+    for order_id, body in connection.execute(
+            "SELECT order_id, body FROM notes WHERE order_id < ?", (limit,)):
         notes.setdefault(order_id, []).append(body)
     total = 0
-    for (order_id,) in connection.execute("SELECT id FROM orders"):
+    for (order_id,) in connection.execute(
+            "SELECT id FROM orders WHERE id < ?", (limit,)):
         total += len(items.get(order_id, ())) + len(notes.get(order_id, ()))
     return total
 
 
-def after(connection):
+def after(connection, limit):
     """One join, which multiplies the two relations against each other."""
     seen_items, seen_notes = set(), set()
     for order_id, sku, body in connection.execute(
         "SELECT o.id, i.sku, n.body FROM orders o "
         "JOIN items i ON i.order_id = o.id "
-        "JOIN notes n ON n.order_id = o.id"
+        "JOIN notes n ON n.order_id = o.id WHERE o.id < ?", (limit,)
     ):
         seen_items.add((order_id, sku))
         seen_notes.add((order_id, body))
@@ -62,6 +65,9 @@ def after(connection):
 
 
 def cases():
-    return [("two-relations", lambda: (DB,)),
-            ("repeat",        lambda: (DB,)),
-            ("edge",          lambda: (DB,))]
+    # All three cases used to pass `(DB,)`, so the file measured one thing three
+    # times. The fan-out is what decides this root cause, and the fan-out grows
+    # with the number of orders the join covers: items x notes rows per order.
+    return [("many-orders", lambda: (DB, ORDERS)),
+            ("few-orders",  lambda: (DB, 20)),
+            ("one-order",   lambda: (DB, 1))]

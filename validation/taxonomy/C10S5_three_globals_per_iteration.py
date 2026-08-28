@@ -21,10 +21,14 @@ def before(values):
 
 
 def after(values):
-    sqrt, scale, offset = math.sqrt, SCALE, OFFSET
+    # Only the two module globals are bound. `math.sqrt` stays where it is in
+    # both variants: hoisting it as well is an attribute lookup on an imported
+    # module, which is C8.S3, and folding the two together made the reading
+    # unattributable to either.
+    scale, offset = SCALE, OFFSET
     total = 0.0
     for value in values:
-        total += sqrt(value) * scale + offset
+        total += math.sqrt(value) * scale + offset
     return round(total, 3)
 
 

@@ -40,7 +40,14 @@ def after(pairs):
 
 def cases():
     # Symmetric pairs, so half of them are the mirror of one already seen.
-    pairs = [((i * 7) % 60, (i * 13) % 60) for i in range(200_000)]
+    #
+    # The first version drew from sixty distinct values: 3_600 ordered pairs
+    # over 200_000 calls, so the un-normalised memo was already warm after the
+    # first few thousand and normalising could only add work. Both cases read
+    # -14%, which measured the cost of `min`/`max` and said nothing about the
+    # hit rate. At four hundred values the ordered key space is 160_000 and the
+    # unordered one is 80_000, so halving the keys really does halve the misses.
+    pairs = [((i * 7) % 400, (i * 13) % 400) for i in range(200_000)]
     ordered = [(a, b) if a <= b else (b, a) for a, b in pairs]
     return [("mirrored-pairs", lambda: (list(pairs),)),
             ("already-sorted", lambda: (list(ordered),)),

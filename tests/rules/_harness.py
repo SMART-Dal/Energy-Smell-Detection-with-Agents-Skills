@@ -29,6 +29,7 @@ from lib.analysis.context import (  # noqa: E402
     UnitContext,
     collect_imports,
     collect_module_bindings,
+    collect_overridden_methods,
 )
 from lib.analysis.rules import ALL_RULES  # noqa: E402
 from lib.analysis.units import iter_units  # noqa: E402
@@ -58,6 +59,7 @@ def run(rule, path: Path) -> list:
     tree = ast.parse(source)
     imports = collect_imports(tree)
     module_bindings = collect_module_bindings(tree)
+    overridden = collect_overridden_methods(tree)
     found = []
     for unit, node in iter_units(path, tree):
         if unit.kind == "class":
@@ -65,6 +67,7 @@ def run(rule, path: Path) -> list:
         context = UnitContext(
             node=node, source=source, imports=imports,
             module_bindings=module_bindings,
+            overridden_methods=overridden,
         )
         found.extend(rule(unit, context))
     return sorted(found, key=lambda e: e.lineno)

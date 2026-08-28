@@ -50,3 +50,16 @@ class Base(abc.ABC):
 def module_level(value):
     # Not a method at all.
     return value * 2
+
+
+class Charge:
+    def fee(self, amount):
+        # Ignores `self`, but `PremiumCharge` overrides it, so this is the
+        # dispatch point: the call-site half of the repair, `Charge.fee(x, a)`,
+        # would skip every override.
+        return amount * 2
+
+
+class PremiumCharge(Charge):
+    def fee(self, amount):
+        return amount

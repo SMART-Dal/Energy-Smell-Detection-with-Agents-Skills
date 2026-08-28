@@ -14,9 +14,14 @@ exposes `collect()`, which is how the engine reaches it without naming it.
 
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 
-from ..context import UnitContext
+from ..context import (
+    UnitContext,
+    collect_module_bindings,
+    collect_overridden_methods,
+)
 from ..models import Evidence, UnitRef
 from . import loops, memory, structure, waste
 
@@ -35,12 +40,28 @@ def collect(
 
     Classes are skipped, because running the function analyzers over a class
     body would re-report each method's findings a second time under the class.
+
+    The module-level facts are collected here rather than passed in, because
+    they were previously not collected at all: this built the context with
+    `imports` only, so `module_bindings` was empty in every real scan while the
+    rule tests supplied it. Any rule reading a module constant -- or asking
+    whether a method is overridden -- was therefore tested under conditions the
+    scan never reproduced, which is the exact gap `_harness.run` warns about
+    from the other side. Re-parsing `source` is a few milliseconds per file and
+    keeps the two paths honest.
     """
+    tree = ast.parse(source)
+    module_bindings = collect_module_bindings(tree)
+    overridden = collect_overridden_methods(tree)
+
     found: list[Evidence] = []
     for unit, node in units:
         if unit.kind == "class":
             continue
-        context = UnitContext(node=node, source=source, imports=imports)
+        context = UnitContext(
+            node=node, source=source, imports=imports,
+            module_bindings=module_bindings, overridden_methods=overridden,
+        )
         for rule in ALL_RULES:
             try:
                 found.extend(rule(unit, context))

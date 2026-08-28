@@ -20,17 +20,26 @@ already works this way: a unit that is not named in `EXPECTED` must come back
 with nothing, so appending one of these `before` functions asserts that the rule
 does not fire on it.
 
-Sixteen were tried. **Thirteen passed** -- the rule already tells the difference
-and now has a test saying so. They are marked (fixture) below. Three did not,
-and that is the more useful half of the result: they are distinctions no rule
-can draw from the syntax, so the caveat belongs on the card rather than in the
-analyzer.
+Sixteen were tried. **Fourteen are now fixtures** and the rules stay quiet on
+them; they are marked (fixture) below. The other two are the more useful half of
+the result.
 
-| specimen | rule that fires | what it cannot see |
-|---|---|---|
-| `C8S4_lookalike` | `io_call_in_loop` | that another writer appends to the file during the call |
-| `C2S2_lookalike` | `method_ignores_self` | that a subclass overrides the method -- though this one *is* visible in the same module, so the rule could be taught it |
-| `C8S3_lookalike` | `repeated_lookup_in_loop` | that a method called in the loop writes the attribute the chain reads -- also arguably teachable, by treating a call on the chain's prefix as a write |
+`C2S2_lookalike` found a real gap. `method_ignores_self` fired on a method that a
+subclass in the same module overrides -- the decorator alone would be harmless,
+but the repair that pays for it pins the call site to a class and skips the
+override. The rule now consults `collect_overridden_methods`, and the specimen is
+a fixture.
+
+`C8S3_lookalike` did **not** find a gap, and it is worth writing down why. The
+rule reports the chain `context.limiter`, and hoisting *that* is safe: a local
+bound to the object still sees every later write. What is unsafe is hoisting
+`context.limiter.threshold`, the value -- which is what the specimen's `after`
+does and what the rule never suggested. The caveat belongs on the card, and the
+distinction it has to draw is object against value.
+
+`C8S4_lookalike` is card-only for a reason nothing can fix: whether another
+process appends to the file during the call is not in the syntax. `io_call_in_loop`
+is right to raise it and the agent is the one who has to answer it.
 
 The specimens that land on a rule we ship:
 
