@@ -828,39 +828,6 @@ def blocking_call_in_async(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
             )
 
 
-def unjoined_thread(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A thread started and never joined, in a unit that joins nothing.
-
-        t = threading.Thread(target=work)
-        t.start()                          # no t.join() anywhere
-
-    A worker nobody waits for keeps the interpreter alive at exit and can spin
-    long after its result stopped mattering.
-    """
-    started = [
-        node for node in ast.walk(ctx.node)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "start"
-    ]
-    if not started:
-        return
-    joins = any(
-        isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Attribute)
-        and node.func.attr == "join"
-        for node in ast.walk(ctx.node)
-    )
-    if joins:
-        return
-    for node in started:
-        yield _evidence(
-            unit, "unjoined_thread", node, ("C11.S3",),
-            f"`{ast.unparse(node)}` starts a worker that this unit never joins; "
-            f"nothing here bounds how long it runs",
-        )
-
-
 # -- C12.S1  large-stride traversal ----------------------------------------
 
 
@@ -941,7 +908,6 @@ RULES = [
     discarded_pure_result,
     runtime_management_in_loop,
     blocking_call_in_async,
-    unjoined_thread,
     column_major_traversal,
     self_delegation_chain,
 ]

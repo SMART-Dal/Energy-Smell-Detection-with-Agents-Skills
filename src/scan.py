@@ -179,6 +179,10 @@ def _write_detail(report: dict, out: Path, target: Path) -> Path:
         f"{report['units_with_evidence']} unit(s) with evidence.",
         "Sections are `== file:line qualname`, so one unit can be cut out with",
         "grep or sed without reading the rest.",
+        "",
+        "Each fact names the root causes it could be. Their cards are at",
+        "reference/root-causes/<ID>.md -- open one before accepting or rejecting",
+        "anything; the percentage is a ranking, not a reason.",
     ]
     body += [_render_unit(unit) for unit in report["units"]]
     body += ["", "-" * WIDTH, _CAVEATS]
@@ -205,7 +209,7 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
     printed a fact once per root cause it routed to: `repeated_lookup_in_loop`
     reaches both C8.S3 and C10.S5, so seven lookups became fourteen identical
     paragraphs. The label is now an attribute of the fact rather than a heading
-    above it, and the cards to read are listed once at the end of the unit.
+    above it, and each fact names the cards to settle it against.
     """
     grouped = group_findings(item.evidence, table)
     allowance = budget(item.unit.end_lineno - item.unit.lineno + 1)
@@ -216,7 +220,9 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
         findings.append({
             "kind": finding.kind,
             "source": finding.source,
-            "root_causes": list(finding.root_causes),
+            "root_causes": [
+                _label(rc, table) for rc in finding.root_causes
+            ],
             "corroborated_by": list(finding.corroborated_by),
             "count": finding.count,
             "lines": list(finding.lines),
@@ -226,7 +232,6 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
             ],
         })
 
-    named = sorted({rc for f in shown for rc in f.root_causes})
     return {
         "unit": f"{_relative(item.unit.path, root)}::{item.unit.qualname}",
         "file": _relative(item.unit.path, root),
@@ -242,7 +247,6 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
         "over_budget": [
             {"kind": f.kind, "count": f.count, "lines": list(f.lines)} for f in over
         ],
-        "cards": [_card(table.root_causes[rc]) for rc in named if rc in table],
         # The by-root-cause view, for anything asking what this unit could be an
         # instance of rather than what was seen in it.
         "candidates": [
@@ -252,17 +256,18 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
     }
 
 
-def _card(node) -> dict:
-    """What a reader needs to open one root cause and act on it."""
-    return {
-        "id": node.id,
-        "name": node.name,
-        "card": node.card,
-        "repair": node.repair,
-        "measurability": node.measurability,
-        "advisory_only": node.advisory_only,
-        "impact": node.impact,
-    }
+def _label(root_cause_id: str, table: SignalTable) -> dict:
+    """A root cause as it appears on a finding: enough to open its card.
+
+    Named beside the fact rather than in a block underneath it. The block held
+    the repair and a verification note too, which was the card's own opening
+    paragraph reprinted at the reader before they had opened it -- so they could
+    act on the summary and never read the thing that says when not to.
+    """
+    node = table.root_causes.get(root_cause_id)
+    if node is None:
+        return {"id": root_cause_id, "name": "", "card": ""}
+    return {"id": node.id, "name": node.name, "card": node.card}
 
 
 def _hotness_dict(item: UnitFindings) -> dict:
@@ -380,7 +385,13 @@ def _tally(unit: dict) -> str:
 
 
 def _render_unit(unit: dict) -> str:
-    """One unit in full: every fact once, worth-ordered, then the cards to read."""
+    """One unit in full: every fact once, worth-ordered, each naming its cards.
+
+    The root causes sit on the fact rather than in a block below it. The block
+    also carried each card's repair and a verification note, which is the card's
+    own opening reprinted before the reader had opened it -- enough to act on,
+    and no mention of when not to. The card path is here; the card is there.
+    """
     lines = [
         "",
         "=" * WIDTH,
@@ -389,38 +400,24 @@ def _render_unit(unit: dict) -> str:
     ]
 
     for finding in unit["findings"]:
-        labels = " / ".join(finding["root_causes"]) or "-"
         occurs = "" if finding["count"] == 1 else f"  x{finding['count']}"
         lines += [
             "",
-            f"  {finding['worth']:>5.0f}%  {finding['kind']:<30} {labels}{occurs}",
+            f"  {finding['worth']:>5.0f}%  {finding['kind']}{occurs}",
         ]
         if finding["corroborated_by"]:
             agree = ", ".join(finding["corroborated_by"])
-            lines.append(f"      also reported by {agree}")
+            lines.append(f"         also reported by {agree}")
+        for label in finding["root_causes"] or [{"id": "-", "name": "no card"}]:
+            lines.append(f"         {label['id']:<7} {label['name']}")
         for message in finding["messages"]:
-            lines.append(f"      {_wrap(message['text'], 6)}")
-            lines.append(f"      at {_lines(message['lines'])}")
+            lines.append(f"           {_wrap(message['text'], 11)}")
+            lines.append(f"           at {_lines(message['lines'])}")
 
     if unit["over_budget"]:
         lines += ["", "  over budget, named only:"]
         for held in unit["over_budget"]:
             lines.append(f"      {held['kind']} at {_lines(held['lines'])}")
-
-    if unit["cards"]:
-        lines += ["", "  cards to settle these against:"]
-        for card in unit["cards"]:
-            lines.append(
-                f"      {card['id']:<7} {card['name']}   "
-                f"measured elsewhere: {card['impact']:.0f}%"
-            )
-            for label, value in (
-                ("read", card["card"]),
-                ("repair", card["repair"]),
-                ("verify", _verify_note(card)),
-            ):
-                prefix = f"              {label:<8}"
-                lines.append(prefix + _wrap(value, len(prefix)))
     return "\n".join(lines)
 
 
@@ -474,22 +471,6 @@ def _hotness(hotness: dict) -> str:
     if hotness["fan_in"]:
         parts.append(f"called from {hotness['fan_in']} place(s) in this file")
     return " | ".join(parts)
-
-
-def _verify_note(candidate: dict) -> str:
-    """Whether a claim of this root cause can be settled by measurement."""
-    if candidate["advisory_only"]:
-        return (
-            "advisory only -- the repair is correct but too small to measure, "
-            "so report it without a verdict"
-        )
-    return f"{candidate['measurability']} -- measurable, so a claim here must be verified"
-
-
-def _field(label: str, value: str) -> str:
-    """One `label   value` line inside a candidate block, wrapped to width."""
-    prefix = f"       {label:<9}"
-    return prefix + _wrap(value, len(prefix))
 
 
 def _wrap(text: str, indent: int) -> str:

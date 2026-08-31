@@ -215,9 +215,6 @@
    "C3.S3",
    "C4.S6"
   ],
-  "unjoined_thread": [
-   "C11.S3"
-  ],
   "unmanaged_resource": [
    "C6.S6"
   ],
@@ -810,8 +807,8 @@
    "name": "Leaked Background Threads",
    "category": "C11",
    "category_name": "Inefficient Concurrency Management",
-   "measurability": "constant_small",
-   "advisory_only": true,
+   "measurability": "scales_with_calls",
+   "advisory_only": false,
    "repair": "give every worker a stopping condition, or reuse a bounded pool",
    "card": "reference/root-causes/C11.S3.md",
    "impact": 46.9
