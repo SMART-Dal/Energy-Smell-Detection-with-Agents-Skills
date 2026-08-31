@@ -10,7 +10,7 @@ from __future__ import annotations
 import ast
 from typing import Iterator
 
-from ..models import Evidence, Strength, UnitRef
+from ..models import Evidence, UnitRef
 from ..context import OPAQUE_NODES, UnitContext
 
 # Calls that reach outside the process. Cheap once, ruinous per iteration.
@@ -91,10 +91,10 @@ MIN_REPEATED_CALLS = 3
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
-              message: str, strength: Strength = Strength.LIKELY, **detail) -> Evidence:
+              message: str, **detail) -> Evidence:
     return Evidence(
         kind=kind, unit=unit, lineno=getattr(node, "lineno", unit.lineno),
-        suggests=suggests, message=message, strength=strength, detail=detail,
+        suggests=suggests, message=message, detail=detail,
     )
 
 
@@ -163,7 +163,6 @@ def _exclusive_ifs_evidence(unit: UnitRef, run: list[ast.If]) -> Evidence:
         f"{len(run)} separate `if` statements all test `{subject}`; every one is "
         f"evaluated even after an earlier branch has already matched",
         subject=subject, count=len(run),
-        strength=Strength.LIKELY,
     )
 
 
@@ -212,7 +211,6 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 f"test `{ast.unparse(cheaper[0])}`, so short-circuiting cannot "
                 f"skip the call",
                 expensive=ast.unparse(operand), cheap=ast.unparse(cheaper[0]),
-                strength=Strength.CONTEXTUAL,
             )
             break
 
@@ -249,7 +247,6 @@ def deep_conditional_nesting(unit: UnitRef, ctx: UnitContext) -> Iterator[Eviden
             f"conditionals nested {depth} levels deep; every level re-tests on "
             f"the way to the work at the bottom",
             depth=depth,
-            strength=Strength.CONTEXTUAL,
         )
 
 
@@ -318,7 +315,6 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
             f"`{name}` calls itself {len(self_calls)} times and is not cached, so "
             f"overlapping subproblems are recomputed",
             self_calls=len(self_calls),
-            strength=Strength.LIKELY,
         )
     else:
         yield _evidence(
@@ -326,7 +322,6 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
             f"`{name}` recurses once per call; CPython builds a frame per level "
             f"and does not optimise tail calls",
             self_calls=1,
-            strength=Strength.CONTEXTUAL,
         )
 
 
@@ -362,7 +357,6 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"`{expression}` is computed {len(calls)} times in the same scope "
             f"with nothing changing in between",
             expression=expression, occurrences=len(calls),
-            strength=Strength.CONTEXTUAL,
         )
 
 
@@ -373,8 +367,7 @@ def _repeatable(call: ast.Call, ctx: UnitContext) -> bool:
     alone made this rule almost unreachable: `parse_manifest(path)` three times
     in one function -- exactly what C1.S4 is about -- is a call to a plain
     function, which nothing can prove pure.  So a bare-name call with arguments
-    counts, and the evidence stays `contextual` with the reader asked to confirm
-    it has no side effect.
+    counts, and the message asks the reader to confirm it has no side effect.
 
     Method calls stay restricted to the recognised-pure set.  `session.get(k)`
     repeated three times is a real finding and it is C8.S4, not this one.
@@ -404,7 +397,6 @@ def manual_builtin_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 f"the loop maintains {BUILTIN_EQUIVALENTS[builtin]} by hand; "
                 f"`{builtin}()` does this in C",
                 builtin=builtin,
-                strength=Strength.LIKELY,
             )
             break
 
@@ -475,7 +467,6 @@ def method_ignores_self(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         f"`{ctx.node.name}` never uses `self`, so every call builds a bound "
         f"method object for nothing",
         method=ctx.node.name,
-        strength=Strength.CONTEXTUAL,
     )
 
 
@@ -485,7 +476,7 @@ def trivial_delegation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     Restricted to *pure* forwarding -- same arguments, in the same order, with
     nothing added.  Anything looser fires on most of a library's public API,
     where a thin named wrapper is deliberate design rather than waste.  Even
-    so this stays contextual: it only costs energy on a hot path.
+    so it only costs energy on a hot path, which the reader has to check.
     """
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
@@ -502,7 +493,6 @@ def trivial_delegation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         f"`{ctx.node.name}` only forwards to `{ast.unparse(value.func)}`, adding "
         f"a stack frame per call without adding behaviour",
         delegate=ast.unparse(value.func),
-        strength=Strength.CONTEXTUAL,
     )
 
 
@@ -571,11 +561,9 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         if _dispatched_concurrently(node, ctx):
             continue
         name = node.func.attr
-        if name in UNAMBIGUOUS_IO_CALLS:
-            confidence = Strength.LIKELY
-        elif name in AMBIGUOUS_IO_CALLS and _is_io_receiver(node.func.value, ctx):
-            confidence = Strength.CONTEXTUAL
-        else:
+        if name not in UNAMBIGUOUS_IO_CALLS and not (
+            name in AMBIGUOUS_IO_CALLS and _is_io_receiver(node.func.value, ctx)
+        ):
             continue
         yield _evidence(
             unit, "io_call_in_loop", node, ("C9.S1", "C9.S3"),
@@ -583,7 +571,6 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"it runs once per iteration; batching would amortise the round trip",
             call=name,
             loop_line=getattr(ctx.repeats_around(node)[-1], "lineno", unit.lineno),
-            strength=confidence,
         )
 
 
@@ -655,7 +642,6 @@ def lock_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             "a lock is acquired on every iteration, serialising work that "
             "may not need to be serialised",
             loop_line=enclosing[-1].lineno,
-            strength=Strength.CONTEXTUAL,
         )
 
 

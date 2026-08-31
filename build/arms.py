@@ -135,25 +135,22 @@ This is an assistant, not an authority. It applies a fixed set of deterministic
 rules and reports **facts** — "a string is grown with `+=` inside a loop at line
 45" — one entry per rule per unit, tagged with every root cause that fact could
 point at. Two labels on one fact means the shape alone does not say which; it is
-one thing to look at, not two. Facts are graded twice, and the two grades answer
-different questions:
+one thing to look at, not two.
 
-| `strength` | how sure the rule is that the fact is real |
-|---|---|
-| `definite` | a smell in essentially any context — confirm and move on |
-| `likely` | usually a smell; check the card's exceptions |
-| `contextual` | a fact and nothing more. **Justify it against this specific code, or drop it.** |
+Each fact carries one number: **what this repair measured elsewhere.** It is the
+mean energy saved across our own benchmark shapes for that root cause, with
+shapes where the repair did not pay counted as zero. So 0% does not mean
+unmeasured — it means measured and it did not reliably pay.
 
-| `worth` | what the repair measured, in code that also does other work |
-|---|---|
-| `high` | 40% or more of the energy on the path it sits on |
-| `medium` | roughly 10–40% |
-| `low` | under 10% — real, and rarely what you should spend the change on |
-| `unmeasured` | no shape of this root cause has a confirmed measurement, or the ones measured did not pay |
+That number orders the list and decides nothing else. It is a prior from other
+code, not a prediction for this code: a 5% repair inside a loop that runs a
+billion times beats a 90% one that runs twice, and which is which is exactly the
+part you can see and the rule cannot.
 
-`worth` orders the list. It does not decide anything: a `low` fact inside a loop
-that runs a billion times beats a `high` one that runs twice, and which is which
-is exactly the part you can see and the rule cannot.
+There is no confidence score, deliberately. Every one of these shapes is the
+right thing to write somewhere, so none of them is graded as more or less likely
+to be a real smell — that judgement is yours, made against this code, and a
+label claiming to have made it for you would only be in the way.
 
 Two things follow from what a rule is, and they point in opposite directions.
 

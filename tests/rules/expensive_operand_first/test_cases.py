@@ -23,7 +23,7 @@ def needs_rebuild(config, manifest):
 
 class SessionCache:
     def should_evict(self, entry, now):
-        # Fires, and graded contextual: `touch_stats` may be a side effect that
+        # Fires: `touch_stats` may be a side effect that
         # has to happen on every call, which only reading it can settle.
         return self.touch_stats(entry) and entry.expires_at < now
 

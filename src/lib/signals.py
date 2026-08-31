@@ -20,7 +20,7 @@ from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 
-from .analysis.models import Evidence, Strength
+from .analysis.models import Evidence
 
 SIGNALS_PATH = Path(__file__).resolve().parent / "signals.json"
 
@@ -30,12 +30,6 @@ MAX_CANDIDATE_ROOT_CAUSES = 12
 Past roughly a dozen the shortlist stops being a shortlist and becomes the
 whole taxonomy again, which reintroduces the label-prior problem that
 progressive disclosure exists to avoid."""
-
-_STRENGTH_WEIGHT = {
-    Strength.DEFINITE: 4,
-    Strength.LIKELY: 2,
-    Strength.CONTEXTUAL: 1,
-}
 
 
 @dataclass(frozen=True)
@@ -50,13 +44,13 @@ class RootCause:
     advisory_only: bool
     repair: str
     card: str
-    impact: int = 1
-    """Measured worth of the repair, 1..4, compiled from `validation/results/`.
+    impact: float = 0.0
+    """Mean measured saving of this repair, as a percentage.
 
-    The lowest confirmed saving across this root cause's measured shapes, not
-    the highest: every root cause has a shape whose loop body is nothing but the
-    thing under test, and those read high while the same repair in a function
-    that also does work reads a few percent. See `build/impact.py`."""
+    Averaged across every shape of this root cause we measured, with a shape
+    that did not confirm counting as zero -- so a repair that pays hugely on
+    some inputs and costs on others lands well below one that always pays. This
+    is the only thing that orders a scan. See `build/impact.py`."""
 
 
 class SignalTable:
@@ -117,8 +111,11 @@ def rank_candidates(
 
 
 def _support(evidence: list[Evidence]) -> int:
-    """How strongly a body of evidence backs one candidate."""
-    return sum(_STRENGTH_WEIGHT[item.strength] for item in evidence)
+    """How many different rules back one candidate.
+
+    Distinct rules rather than raw hits: one rule firing seven times is one
+    observation repeated, and two rules agreeing is two observations."""
+    return len({item.kind for item in evidence})
 
 
 # -- ranking facts rather than labels --------------------------------------
@@ -136,7 +133,6 @@ class Finding:
 
     kind: str
     source: str
-    strength: Strength
     root_causes: tuple[str, ...]
     messages: tuple[tuple[str, tuple[int, ...]], ...]
     """Each distinct wording, with the lines that produced it."""
@@ -156,29 +152,21 @@ class Finding:
         return len(self.lines)
 
 
-def impact_of(root_causes, table: SignalTable) -> int:
-    """The weakest reading of an ambiguous fact.
+def impact_of(root_causes, table: SignalTable) -> float:
+    """What a fact is worth: the weakest reading of an ambiguous one.
 
-    `append_only_loop` points at both C3.S1, where the least of its measured
-    shapes saved 14%, and C10.S3, where the least saved 25%. Taking the lower
-    one means an ambiguous fact ranks as what it is worth if it turns out to be
-    the cheaper of the two -- the conservative direction, and the one that stops
-    a single high-impact label from floating every fact that can reach it.
+    `append_only_loop` points at both C3.S1, which averaged 14% across its
+    measured shapes, and C10.S3, which averaged 69%. Taking the lower one means
+    an ambiguous fact ranks as what it is worth if it turns out to be the
+    cheaper of the two -- the conservative direction, and the one that stops a
+    single well-paying label from floating every fact that can reach it.
+
+    This is the whole of the ranking. There is no second axis: a fact is ordered
+    by what fixing it measured, and whether it is worth fixing *here* is left to
+    the reader, who can see the things a measurement cannot.
     """
-    tiers = [table.root_causes[rc].impact for rc in root_causes if rc in table]
-    return min(tiers) if tiers else 1
-
-
-def score(strength: Strength, impact: int) -> int:
-    """How far up the report one finding belongs.
-
-    The product of two independent things, because neither alone orders the
-    list correctly. Strength is how sure the rule is that the fact is real;
-    impact is what the repair is worth if it is. Summing strength across
-    occurrences -- the old ranking -- measured neither, and let thirteen
-    contextual notes outrank one definite defect.
-    """
-    return _STRENGTH_WEIGHT[strength] * impact
+    measured = [table.root_causes[rc].impact for rc in root_causes if rc in table]
+    return min(measured) if measured else 0.0
 
 
 def group_findings(evidence: list[Evidence], table: SignalTable) -> list[Finding]:
@@ -202,7 +190,6 @@ def group_findings(evidence: list[Evidence], table: SignalTable) -> list[Finding
         findings.append(Finding(
             kind=kind,
             source=items[0].source,
-            strength=min((item.strength for item in items), key=STRENGTH_RANK.get),
             root_causes=tuple(root_causes),
             messages=tuple(
                 (message, tuple(sorted(lines)))
@@ -211,8 +198,7 @@ def group_findings(evidence: list[Evidence], table: SignalTable) -> list[Finding
         ))
 
     return sorted(_merge_agreeing(findings), key=lambda f: (
-        -score(f.strength, impact_of(f.root_causes, table)),
-        -_STRENGTH_WEIGHT[f.strength],
+        -impact_of(f.root_causes, table),
         -f.count,
         f.kind,
     ))
@@ -227,11 +213,11 @@ def _merge_agreeing(findings: list[Finding]) -> list[Finding]:
     and then `ruff_B006` at 522 has to work out that they are one defect, and
     the second entry has displaced something they have not seen yet.
 
-    The surviving wording is the strongest rule's, because the taxonomy's own
-    rules explain the mechanism and a linter's message names its own check.
+    The surviving wording is the taxonomy rule's rather than the linter's,
+    because ours explains the mechanism and a linter's message names its check.
     """
     merged: dict[tuple, Finding] = {}
-    for finding in sorted(findings, key=lambda f: STRENGTH_RANK[f.strength]):
+    for finding in sorted(findings, key=lambda f: (f.source != "ast", f.kind)):
         key = (finding.root_causes, finding.lines)
         if key not in merged:
             merged[key] = finding
@@ -241,10 +227,6 @@ def _merge_agreeing(findings: list[Finding]) -> list[Finding]:
             kept, corroborated_by=kept.corroborated_by + (finding.kind,)
         )
     return list(merged.values())
-
-
-STRENGTH_RANK = {Strength.DEFINITE: 0, Strength.LIKELY: 1, Strength.CONTEXTUAL: 2}
-"""Strongest first. `min` over this picks the strongest claim a rule made."""
 
 
 def budget(line_count: int) -> int:

@@ -25,7 +25,7 @@ from __future__ import annotations
 import ast
 from typing import Iterator
 
-from ..models import Evidence, Strength, UnitRef
+from ..models import Evidence, UnitRef
 from ..context import (COMPREHENSION_NODES, LOOP_NODES, OPAQUE_NODES,
                        PURE_BUILTINS, PURE_METHODS, UnitContext)
 
@@ -60,14 +60,13 @@ FLOAT_FORCING_OPS = (ast.Mult, ast.Add, ast.Sub, ast.Pow, ast.Mod)
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
-              message: str, strength: Strength = Strength.LIKELY, **detail) -> Evidence:
+              message: str, **detail) -> Evidence:
     return Evidence(
         kind=kind,
         unit=unit,
         lineno=getattr(node, "lineno", unit.lineno),
         suggests=suggests,
         message=message,
-        strength=strength,
         detail=detail,
     )
 
@@ -116,7 +115,6 @@ def float_literal_on_int_data(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
             f"`{literal}`, which has no fractional part; every element pays for "
             f"a conversion and a float allocation the value does not need",
             literal=literal,
-            strength=Strength.CONTEXTUAL,
         )
 
 
@@ -186,7 +184,6 @@ def constant_sequence_literal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
             f"of being rebuilt element by element on every call",
             name=target.id,
             size=len(value.elts),
-            strength=Strength.LIKELY if ctx.in_loop(node) else Strength.CONTEXTUAL,
         )
 
 
@@ -261,7 +258,6 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                 name=name,
                 uses=uses,
                 loop_line=loop.lineno,
-                strength=Strength.CONTEXTUAL,
             )
 
 
@@ -330,8 +326,7 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     between them reported correct code, so the rule no longer tries.
 
     Sometimes required even so -- the copy is mutated and must not be shared.
-    Reported as `contextual` for that reason: the fact is certain, the fault is
-    not.
+    The fact is certain; whether it is a fault is the reader's call.
     """
     for node in ctx.own_nodes():
         if not ctx.repeats(node):
@@ -353,7 +348,6 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 f"`{ast.unparse(node)}` duplicates a container on every iteration "
                 f"using {described}; the copy is only needed if something mutates "
                 f"it and the original must not change",
-                strength=Strength.CONTEXTUAL,
             )
 
 
@@ -397,7 +391,6 @@ def sort_then_slice(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             unit, "sort_then_slice", node, ("C7.S4",),
             f"`{ast.unparse(node)}` sorts the whole sequence and then discards "
             f"most of it; {advice}",
-            strength=Strength.LIKELY,
         )
 
 
@@ -437,7 +430,7 @@ def filter_after_transform(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
       test, which runs the call on everything and twice on each survivor.
 
     Whether the reorder is *legal* still needs a human: a predicate that reads
-    what the transform produced cannot move in front of it.  Hence contextual.
+    what the transform produced cannot move in front of it.
     """
     for node in ast.walk(ctx.node):
         if isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
@@ -447,7 +440,6 @@ def filter_after_transform(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
                     f"`{ast.unparse(node.elt)}` is computed once for the test and "
                     f"again for the element, so it runs on every input and twice on "
                     f"each one that survives",
-                    strength=Strength.LIKELY,
                 )
             continue
 
@@ -483,7 +475,6 @@ def filter_after_transform(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
             f"filtering first means the call runs only on what survives",
             name=target.id,
             transform=transform,
-            strength=Strength.CONTEXTUAL,
         )
 
 
@@ -576,7 +567,6 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 unit, "expensive_comparison", node, ("C4.S5",),
                 built,
                 call=call.func.id,
-                strength=Strength.LIKELY if ctx.in_loop(node) else Strength.CONTEXTUAL,
             )
             break
 
@@ -637,7 +627,6 @@ def redundant_bool_branch(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                 unit, "redundant_bool_branch", node, ("C1.S3",),
                 f"this branch returns True/False for a test that already produces "
                 f"a boolean; `return {direct}` is the same answer without the jump",
-                strength=Strength.DEFINITE,
             )
 
 
@@ -676,7 +665,6 @@ def dead_initialization(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                     f"then reassigned at line {later.lineno} without being read; the "
                     f"first value is built and discarded",
                     name=target.id,
-                    strength=Strength.LIKELY,
                 )
                 break
 
@@ -717,7 +705,6 @@ def single_use_temporary(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 unit, "single_use_temporary", statement, ("C1.S7",),
                 f"`{target.id}` exists only to be returned on the next line",
                 name=target.id,
-                strength=Strength.DEFINITE,
             )
 
 
@@ -733,9 +720,9 @@ def discarded_pure_result(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     A method call needs more than a pure-looking name.  `is_pure` matches the
     attribute alone, because it cannot know a receiver's type, and the pure
     method names collide with effectful APIs on other objects: `Thread.join`,
-    `Queue.get`, `shutil.copy`.  Claiming a statement is dead is a definite
-    finding, so here the receiver has to be something whose type is visible in
-    the source -- a literal, or a display -- and `t.join()` is left alone.
+    `Queue.get`, `shutil.copy`.  Claiming a statement is dead is a strong claim,
+    so here the receiver has to be something whose type is visible in the source
+    -- a literal, or a display -- and `t.join()` is left alone.
 
     A discarded call guarded by `except` is not dead either.  `int(port)` alone
     in a `try` is how the stdlib asks "is this numeric", and the answer arrives
@@ -754,7 +741,6 @@ def discarded_pure_result(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             unit, "discarded_pure_result", node, ("C1.S5",),
             f"`{ast.unparse(node.value)}` has no side effects and its result is "
             f"not used, so the work it does cannot affect anything",
-            strength=Strength.DEFINITE,
         )
 
 
@@ -809,7 +795,6 @@ def runtime_management_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evid
                 f"called on every iteration; its cost scales with the whole process, "
                 f"not with this loop's work",
                 call=f"{dotted[0]}.{dotted[1]}",
-                strength=Strength.DEFINITE,
             )
 
 
@@ -840,7 +825,6 @@ def blocking_call_in_async(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
                 f"{ctx.node.name}`; while it waits, the event loop runs nothing else "
                 f"and the core stays awake for no progress",
                 call=f"{dotted[0]}.{dotted[1]}",
-                strength=Strength.DEFINITE,
             )
 
 
@@ -874,7 +858,6 @@ def unjoined_thread(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             unit, "unjoined_thread", node, ("C11.S3",),
             f"`{ast.unparse(node)}` starts a worker that this unit never joins; "
             f"nothing here bounds how long it runs",
-            strength=Strength.CONTEXTUAL,
         )
 
 
@@ -904,7 +887,6 @@ def column_major_traversal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
                 unit, "column_major_traversal", node, ("C12.S1",),
                 f"`{ast.unparse(node)}` walks a column of a row-major array inside a "
                 f"loop, so each cache line loaded yields one useful element",
-                strength=Strength.CONTEXTUAL,
             )
 
 
@@ -922,7 +904,7 @@ def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
 
     Every layer costs a frame push and pop. Harmless as API surface, expensive
     when the chain sits under a loop -- which is why the scan reports how deep
-    the unit is reached from, and why this is `contextual` on its own.
+    the unit is reached from, and leaves the call to the reader.
     """
     body = getattr(ctx.node, "body", [])
     statements = [s for s in body if not isinstance(s, ast.Expr) or
@@ -942,7 +924,6 @@ def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         f"`{unit.qualname}` does nothing but call `self.{call.func.attr}()`; the "
         f"extra frame is paid on every call and buys no work",
         delegate=call.func.attr,
-        strength=Strength.CONTEXTUAL,
     )
 
 

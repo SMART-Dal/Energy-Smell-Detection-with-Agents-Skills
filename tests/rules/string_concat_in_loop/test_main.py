@@ -11,7 +11,7 @@ CASES = Path(__file__).with_name("test_cases.py")
 EXPECTED = {
     "Report.render": 1,             # attribute target, callee returns text
     "Report.rebuild": 1,            # `s = s + x` form
-    "grow_plain_local": 1,          # reported, graded contextual: already linear
+    "grow_plain_local": 1,          # reported: the shape is there, though already linear
     "grow_local_and_read_it": 1,    # the read aliases it
     "group_by_key": 1,              # subscript target
     "render_grid": 1,               # nested loops, one statement, one report

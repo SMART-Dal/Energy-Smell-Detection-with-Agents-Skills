@@ -320,8 +320,8 @@
   notes: >
     Classified as advisory until it was measured at **+6.1% +-0.6** on a 0.9%
     floor, collapsing `if c: return True else: return False` into `return c` in
-    a per-element helper.  The analyzer had graded this shape `definite` while
-    the card called it unmeasurable; the analyzer was closer to right.
+    a per-element helper.  The card had called it unmeasurable; the measurement
+    says otherwise, and the card was wrong.
   similar: [C1.S5, C4.S2, C4.S4]
 
 - id: C1.S4

@@ -5,7 +5,7 @@ from __future__ import annotations
 import ast
 from typing import Iterator
 
-from ..models import Evidence, Strength, UnitRef
+from ..models import Evidence, UnitRef
 from ..context import COMPREHENSION_NODES, UnitContext
 
 MUTABLE_DEFAULTS = (ast.List, ast.Dict, ast.Set)
@@ -68,10 +68,10 @@ def _own_nodes(scope: ast.AST) -> Iterator[ast.AST]:
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
-              message: str, strength: Strength = Strength.LIKELY, **detail) -> Evidence:
+              message: str, **detail) -> Evidence:
     return Evidence(
         kind=kind, unit=unit, lineno=getattr(node, "lineno", unit.lineno),
-        suggests=suggests, message=message, strength=strength, detail=detail,
+        suggests=suggests, message=message, detail=detail,
     )
 
 
@@ -99,7 +99,6 @@ def mutable_default_argument(unit: UnitRef, ctx: UnitContext) -> Iterator[Eviden
             f"`{ast.unparse(default)}` is a mutable default, created once at "
             f"definition time and shared by every call",
             default=ast.unparse(default),
-            strength=Strength.DEFINITE,
         )
 
 
@@ -150,7 +149,6 @@ def unmanaged_resource(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"`{name}()` result is not managed by a `with` block, so the handle "
             f"is released only when the collector gets to it",
             opener=name,
-            strength=Strength.LIKELY,
         )
 
 
@@ -276,7 +274,6 @@ def redundant_materialisation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 f"`list(...)` builds a full sequence only for `{consumer}()` to "
                 f"walk it once; the conversion allocates the whole result up front",
                 consumer=consumer,
-                strength=Strength.LIKELY,
             )
 
 
@@ -313,7 +310,6 @@ def eager_comprehension(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"a list comprehension is materialised only to be consumed once by "
             f"`{consumer}()`; a generator expression avoids the allocation",
             consumer=consumer,
-            strength=Strength.CONTEXTUAL,
         )
 
 
@@ -380,7 +376,6 @@ def whole_file_read(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"{consumer} walks it a line at a time; iterating the handle "
             f"yields the same lines without the list",
             method=node.func.attr,
-            strength=Strength.CONTEXTUAL,
         )
 
 

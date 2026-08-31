@@ -361,7 +361,7 @@ def collect_overridden_methods(tree: ast.Module) -> frozenset[str]:
     Deliberately shallow. It does not resolve imported bases, multiple
     inheritance chains through other modules, or `setattr`, so it is a way to be
     quiet about a visible override rather than a promise that no override
-    exists. A rule using it must already be reporting at CONTEXTUAL strength.
+    exists, so a rule using it is guessing and should say so in its message.
     """
     methods: dict[str, set[str]] = {}
     bases: dict[str, list[str]] = {}

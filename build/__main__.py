@@ -35,7 +35,7 @@ from .cards import (
     render_root_cause_index,
 )
 from .catalog import Catalog, load_catalog
-from .impact import TIER_NONE, measured_impact
+from .impact import measured_impact
 from .taxonomy import Taxonomy, load_taxonomy
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -100,12 +100,12 @@ def main(argv: list[str] | None = None) -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
 
-    _report(taxonomy, catalog, written=len(outputs), changed=len(stale))
+    _report(taxonomy, catalog, impact, written=len(outputs), changed=len(stale))
     return 0
 
 
 def _render_arm(
-    arm: Arm, taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, int]
+    arm: Arm, taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float]
 ) -> dict[Path, str]:
     """Every file of one arm's skill directory, as path -> contents.
 
@@ -187,7 +187,7 @@ def _prune(root: Path, keep: set[Path]) -> None:
             path.rmdir()
 
 
-def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, int]) -> str:
+def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float]) -> str:
     """Compile the routing table `scan.py` needs, so it can stay YAML-free.
 
     Everything here is derived; editing `signals.json` by hand is pointless
@@ -206,7 +206,7 @@ def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, int]
                 "advisory_only": entry.is_advisory_only,
                 "repair": entry.refactoring.summary if entry.refactoring else "",
                 "card": f"reference/root-causes/{node.id}.md",
-                "impact": impact.get(node.id, TIER_NONE),
+                "impact": impact.get(node.id, 0.0),
             }
             for node in taxonomy.root_causes
             if (entry := catalog.entries.get(node.id)) is not None
@@ -236,7 +236,8 @@ def _differs(path: Path, text: str) -> bool:
     return not path.exists() or path.read_text() != text
 
 
-def _report(taxonomy: Taxonomy, catalog: Catalog, *, written: int, changed: int) -> None:
+def _report(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
+            *, written: int, changed: int) -> None:
     entries = catalog.entries.values()
     # `similar` is symmetric, so every edge is counted from both ends.
     edges = sum(len(e.similar) for e in entries) // 2
@@ -254,6 +255,16 @@ def _report(taxonomy: Taxonomy, catalog: Catalog, *, written: int, changed: int)
     print(f"  {advisory} advisory-only root causes (repair too small to measure)")
     print(f"  {len(signals)} static signals routing to {len(routed)} root causes "
           f"({len(taxonomy.root_causes) - len(routed)} have none)")
+    # The shipped protocol tells the reader that 0% means "measured and it did
+    # not pay". That is only true while every root cause has been measured; an
+    # unmeasured one renders as 0% too and would make the instruction a lie.
+    unmeasured = [n.id for n in taxonomy.root_causes if n.id not in impact]
+    if unmeasured:
+        print(f"  WARNING: {len(unmeasured)} root cause(s) have no measurement "
+              f"and will ship as 0%: {', '.join(unmeasured)}")
+    else:
+        print(f"  all {len(taxonomy.root_causes)} root causes measured "
+              f"(mean saving {sum(impact.values()) / len(impact):.0f}%)")
     print("  arms:")
     for arm in ARMS:
         withheld = ", ".join(arm.excluded) if arm.excluded else "nothing"

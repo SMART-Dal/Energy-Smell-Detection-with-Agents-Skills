@@ -295,8 +295,8 @@ between two different agents on the same repo.
 
 - 65 catalog entries, 40 discriminators, 179 `not_a_smell_when` clauses
 - 27 AST analyzers + a Ruff adapter, validated on 179 files of pandas source
-- Evidence strength grading (`definite` / `likely` / `contextual`) — without it,
-  two chatty rules produced 40% of all evidence on real code
+- Findings ranked by the measured saving of their repair, averaged over our own
+  benchmark shapes — the one axis, replacing the hand-assigned strength grades
 - Paired interleaved measurement, null canary, RAPL and CodeGreen meters
 - Phase-0 gate: null canary −1.1% ±4.9% (insignificant), real C10.S4 repair
   +25.9% ±3.0% (significant)

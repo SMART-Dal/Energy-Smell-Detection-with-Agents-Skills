@@ -24,8 +24,8 @@ Two different questions, deliberately kept apart:
   default  answers "what did the rules notice?".  It reports *facts* -- "a
            string is grown with += inside a loop at line 45" -- one entry per
            rule per unit, tagged with every root cause that fact could
-           indicate, ordered by what the repair is worth rather than by how
-           many times the rule fired.
+           indicate, ordered by what that repair measured in our own
+           benchmarks rather than by how many times the rule fired.
 
 Nothing here ever says a smell is present.  Whether a fact is a smell depends
 on what the code is for, how hot it is, and what the author was required to do,
@@ -48,7 +48,6 @@ from lib.analysis.engine import (  # noqa: E402
     available_analyzers,
     python_files,
 )
-from lib.analysis.models import Strength  # noqa: E402
 from lib.signals import (  # noqa: E402
     SignalTable,
     budget,
@@ -56,23 +55,21 @@ from lib.signals import (  # noqa: E402
     impact_of,
     load_signals,
     rank_candidates,
-    score,
 )
-
-STRENGTH_ORDER = [Strength.DEFINITE, Strength.LIKELY, Strength.CONTEXTUAL]
 
 DETAIL_DIR = Path(".energy-scan")
 """Where the full report is written. Beside the caller's working directory
 rather than beside the target, because the target is often somebody else's
 repository and a scan should not leave anything in it."""
 
-DEPTH_WEIGHT = 4
-"""How much one level of loop nesting is worth when ordering units.
+DEPTH_WEIGHT = 25
+"""How much one level of loop nesting adds when ordering units, in saving-points.
 
-Deliberately the same as one definite finding: a fact that is certainly true is
-worth about as much as the difference between code that runs once and code that
-runs inside a loop. Both are guesses, and the ordering only has to be roughly
-right for the reader to start in a sensible place."""
+A unit's rank is the measured worth of its findings plus this per level of loop
+nesting, so one level counts for about as much as a finding whose repair
+measured 25%. Both are guesses -- the nesting is syntax, the percentage is a
+mean over benchmark shapes -- and the ordering only has to be roughly right for
+the reader to start in a sensible place."""
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -219,12 +216,11 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
         findings.append({
             "kind": finding.kind,
             "source": finding.source,
-            "strength": finding.strength.value,
             "root_causes": list(finding.root_causes),
             "corroborated_by": list(finding.corroborated_by),
             "count": finding.count,
             "lines": list(finding.lines),
-            "score": score(finding.strength, impact_of(finding.root_causes, table)),
+            "worth": impact_of(finding.root_causes, table),
             "messages": [
                 {"text": text, "lines": list(lines)} for text, lines in finding.messages
             ],
@@ -239,7 +235,7 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
         "end_line": item.unit.end_lineno,
         "hotness": _hotness_dict(item),
         "score": (
-            sum(f["score"] for f in findings)
+            sum(f["worth"] for f in findings)
             + DEPTH_WEIGHT * item.reached_at_depth
         ),
         "findings": findings,
@@ -284,13 +280,8 @@ def _hotness_dict(item: UnitFindings) -> dict:
 
 
 def _support_summary(supporting: list) -> str:
-    """"1 definite, 2 likely" -- how strongly this candidate is backed."""
-    counts = {s: 0 for s in STRENGTH_ORDER}
-    for item in supporting:
-        counts[item.strength] += 1
-    return ", ".join(
-        f"{count} {strength.value}" for strength, count in counts.items() if count
-    )
+    """"append_only_loop, index_based_iteration" -- which rules back this candidate."""
+    return ", ".join(sorted({item.kind for item in supporting}))
 
 
 def _relative(path: Path, root: Path) -> str:
@@ -312,19 +303,17 @@ _CAVEATS = """What this output is and is not:
   - Every line is a fact about syntax. None of them is a verdict. Each of
     these shapes is the right thing to write somewhere, so the question is
     always whether it is right *here* -- which depends on what the code is
-    for and how often it runs. `contextual` marks the ones where that
-    judgement does most of the work.
-  - `worth` is the measured saving of this repair in code that also does
-    other work, bucketed. It orders the list; it does not decide anything.
-    A `low` fact in a loop that runs a billion times still beats a `high`
-    one that runs twice, and only you can see which is which.
+    for and how often it runs, neither of which a rule can see.
+  - The percentage is what this repair saved *elsewhere*: the mean across
+    our own benchmark shapes for that root cause, with shapes where it did
+    not pay counted as zero. It is a prior, not a prediction for this code.
+    It orders the list and decides nothing. A 5% repair in a loop that runs
+    a billion times beats a 90% one that runs twice, and only you can see
+    which is which.
   - The rules only recognise shapes somebody thought to describe in
     advance. Waste with no fixed shape leaves no trace here at all. What
     this output does not mention is not thereby absent, and no part of the
     taxonomy is ruled out by not appearing."""
-
-
-IMPACT_WORD = {4: "high", 3: "medium", 2: "low", 1: "unmeasured"}
 
 
 def _render_index(report: dict, detail: Path) -> str:
@@ -379,17 +368,14 @@ def _headline(finding: dict) -> str:
 
 
 def _tally(unit: dict) -> str:
-    """"8 findings across 31 lines -- 1 definite, 3 likely"."""
-    counts = {s.value: 0 for s in STRENGTH_ORDER}
-    for finding in unit["findings"]:
-        counts[finding["strength"]] += 1
-    breakdown = ", ".join(f"{n} {name}" for name, n in counts.items() if n)
+    """"8 finding(s) at 31 place(s), best measured 73%; 2 more not shown"."""
     places = sum(f["count"] for f in unit["findings"])
+    best = max((f["worth"] for f in unit["findings"]), default=0.0)
     held = len(unit["over_budget"])
     tail = f"; {held} more not shown" if held else ""
     return (
-        f"{len(unit['findings'])} finding(s) at {places} place(s) "
-        f"-- {breakdown}{tail}"
+        f"{len(unit['findings'])} finding(s) at {places} place(s), "
+        f"best measured {best:.0f}%{tail}"
     )
 
 
@@ -407,7 +393,7 @@ def _render_unit(unit: dict) -> str:
         occurs = "" if finding["count"] == 1 else f"  x{finding['count']}"
         lines += [
             "",
-            f"  {finding['strength']:<10} {finding['kind']:<28} {labels}{occurs}",
+            f"  {finding['worth']:>5.0f}%  {finding['kind']:<30} {labels}{occurs}",
         ]
         if finding["corroborated_by"]:
             agree = ", ".join(finding["corroborated_by"])
@@ -424,8 +410,10 @@ def _render_unit(unit: dict) -> str:
     if unit["cards"]:
         lines += ["", "  cards to settle these against:"]
         for card in unit["cards"]:
-            worth = IMPACT_WORD.get(card["impact"], "unmeasured")
-            lines.append(f"      {card['id']:<7} {card['name']}   worth: {worth}")
+            lines.append(
+                f"      {card['id']:<7} {card['name']}   "
+                f"measured elsewhere: {card['impact']:.0f}%"
+            )
             for label, value in (
                 ("read", card["card"]),
                 ("repair", card["repair"]),

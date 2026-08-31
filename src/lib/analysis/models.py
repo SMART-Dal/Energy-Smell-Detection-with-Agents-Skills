@@ -11,7 +11,6 @@ offers it no schema to hide behind.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 
 
@@ -40,28 +39,6 @@ class UnitRef:
         return f"{self.path}:{self.lineno} {self.qualname}"
 
 
-class Strength(str, Enum):
-    """How much a piece of evidence, on its own, implies an actual smell.
-
-    Every analyzer reports facts it is certain about -- the difference is how
-    far the fact goes toward being a *smell*.  A mutable default argument is
-    essentially always wrong.  A one-line delegating wrapper is only wrong on a
-    hot path, and is good design everywhere else; running over real code, that
-    single rule produced 657 hits in pandas, almost all of them legitimate API
-    surface.  Grading the evidence keeps those from drowning the real findings,
-    and tells the reader which facts still need a judgement call.
-    """
-
-    DEFINITE = "definite"
-    """Mechanically certain, and a smell in essentially any context."""
-
-    LIKELY = "likely"
-    """Certain as a fact; usually a smell, but a sensible exception exists."""
-
-    CONTEXTUAL = "contextual"
-    """Certain as a fact; whether it is a smell depends on intent or hotness."""
-
-
 @dataclass(frozen=True)
 class Evidence:
     """One deterministic observation about a unit.
@@ -83,7 +60,6 @@ class Evidence:
     message: str
     """One-line human-readable description, shown in the scan report."""
 
-    strength: Strength = Strength.LIKELY
     detail: dict = field(default_factory=dict)
     """Analyzer-specific facts (loop depth, estimated trip count, ...)."""
 
@@ -91,4 +67,4 @@ class Evidence:
     """Which analyzer family produced this, for the report to cite."""
 
     def __str__(self) -> str:
-        return f"[{self.kind}/{self.strength.value}] line {self.lineno}: {self.message}"
+        return f"[{self.kind}] line {self.lineno}: {self.message}"

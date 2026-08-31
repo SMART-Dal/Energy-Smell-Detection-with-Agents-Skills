@@ -27,7 +27,7 @@ from .context import (
     collect_module_bindings,
     collect_overridden_methods,
 )
-from .models import Evidence, Strength, UnitRef
+from .models import Evidence, UnitRef
 from .units import iter_units, parse_file, unit_source
 
 _INFRASTRUCTURE = {"engine", "callgraph", "context", "models", "units"}
@@ -77,27 +77,20 @@ class UnitFindings:
     def suggested_categories(self) -> set[str]:
         return {rc.split(".")[0] for rc in self.suggested_root_causes}
 
-    def evidence_of(self, *strengths: Strength) -> list[Evidence]:
-        return [item for item in self.evidence if item.strength in strengths]
-
     @property
-    def evidence_weight(self) -> int:
-        """Evidence weighted by strength rather than counted.
+    def distinct_signals(self) -> int:
+        """How many different rules fired, not how many times they fired.
 
         Counting raw hits ranks by whichever analyzers are chattiest: on real
         code the two most context-dependent rules produced 40% of all evidence,
-        so an unweighted count would put ordinary API wrappers above genuine
-        quadratic loops.
-        """
-        return (
-            4 * len(self.evidence_of(Strength.DEFINITE))
-            + 2 * len(self.evidence_of(Strength.LIKELY))
-            + len(self.evidence_of(Strength.CONTEXTUAL))
-        )
+        so one repeated attribute lookup would outrank a quadratic loop. This is
+        only a tiebreak -- what a finding is worth is measured, and lives in
+        `signals.json`, which the engine deliberately does not read."""
+        return len({item.kind for item in self.evidence})
 
     @property
     def priority(self) -> tuple[int, int, int, int]:
-        """Ranking key: how hot the unit is, then how strong the evidence is.
+        """Ranking key: how hot the unit is, then how varied the evidence is.
 
         Hotness leads because energy is spent per execution, so the same smell
         is worth 10 000 times more inside a doubly-nested loop than in
@@ -117,7 +110,7 @@ class UnitFindings:
         return (
             self.reached_at_depth,
             min(self.fan_in, 5),
-            self.evidence_weight,
+            self.distinct_signals,
             len(self.suggested_root_causes),
         )
 

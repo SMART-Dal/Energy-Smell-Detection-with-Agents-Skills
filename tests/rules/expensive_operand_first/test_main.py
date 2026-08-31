@@ -12,7 +12,7 @@ EXPECTED = {
     "visible_rows": 1,                  # call before an attribute read
     "should_retry": 1,                  # expensive operand is a sub-expression
     "needs_rebuild": 1,                 # `or` chain, cheap flag second
-    "SessionCache.should_evict": 1,     # reported, graded contextual: may be a side effect
+    "SessionCache.should_evict": 1,     # reported: the call may be a side effect
 }
 
 

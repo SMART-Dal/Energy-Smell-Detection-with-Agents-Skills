@@ -11,7 +11,7 @@ from __future__ import annotations
 import ast
 from typing import Iterator
 
-from ..models import Evidence, Strength, UnitRef
+from ..models import Evidence, UnitRef
 from ..context import COMPREHENSION_NODES, LOOP_NODES, PURE_METHODS, UnitContext
 
 # C5.S1 puts the break-even for a set at "roughly a dozen elements"; below it,
@@ -26,14 +26,13 @@ COMPILE_CALLS = {
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
-              message: str, strength: Strength = Strength.LIKELY, **detail) -> Evidence:
+              message: str, **detail) -> Evidence:
     return Evidence(
         kind=kind,
         unit=unit,
         lineno=getattr(node, "lineno", unit.lineno),
         suggests=suggests,
         message=message,
-        strength=strength,
         detail=detail,
     )
 
@@ -69,7 +68,6 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 expression=ast.unparse(node),
                 loop_line=loop.lineno,
                 depth=ctx.loop_depth(node),
-                strength=Strength.LIKELY,
             )
 
 
@@ -173,7 +171,6 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                 f"place and copies the whole value every iteration",
                 accumulator=name, accumulator_kind="aliased",
                 loop_line=loop.lineno,
-                strength=Strength.DEFINITE,
             )
         elif isinstance(target, ast.Name):
             if _name_is_read_in(loop, target.id, skip=node):
@@ -184,7 +181,6 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                     f"iteration copies the whole value",
                     accumulator=target.id, accumulator_kind="escaping",
                     loop_line=loop.lineno,
-                    strength=Strength.DEFINITE,
                 )
             else:
                 yield _evidence(
@@ -195,7 +191,6 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                     f"reject unless this runs on another runtime",
                     accumulator=target.id, accumulator_kind="local",
                     loop_line=loop.lineno,
-                    strength=Strength.CONTEXTUAL,
                 )
 
 
@@ -381,7 +376,6 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 chain=chain,
                 occurrences=len(nodes),
                 loop_line=loop.lineno,
-                strength=Strength.CONTEXTUAL,
             )
         reported_at[id(loop)] = covered | mine
 
@@ -452,7 +446,6 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
             f"on every iteration; a set or dict index would be constant-time",
             haystack=ast.unparse(haystack),
             loop_line=getattr(enclosing[-1], "lineno", unit.lineno),
-            strength=Strength.LIKELY,
         )
 
 
@@ -540,7 +533,6 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             f"iterating the sequence directly avoids an index lookup per item",
             sequence=sequence,
             index=index,
-            strength=Strength.LIKELY,
         )
 
 
@@ -582,7 +574,6 @@ def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             "loop body is a single `.append()`; a comprehension does the same "
             "work without a bound-method lookup and call per item",
             target=ast.unparse(call.func.value),
-            strength=Strength.LIKELY,
         )
 
 
@@ -653,7 +644,6 @@ def missing_early_exit(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"`break` or `return` leaves it, and nothing later can change it",
             settled=name,
             loop_line=loop.lineno,
-            strength=Strength.LIKELY,
         )
 
 
@@ -688,7 +678,6 @@ def try_except_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 "the common case, each raise allocates and unwinds",
                 loop_line=enclosing[-1].lineno,
                 handlers=[ast.unparse(h.type) if h.type else "bare" for h in node.handlers],
-                strength=Strength.CONTEXTUAL,
             )
 
 
@@ -726,7 +715,6 @@ def regex_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"pattern is re-resolved every time",
             call=f"{base.id}.{node.func.attr}",
             loop_line=getattr(scopes[-1], "lineno", unit.lineno),
-            strength=Strength.LIKELY,
         )
 
 
@@ -752,7 +740,6 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 f"iterated, which skips elements or grows the loop unboundedly",
                 collection=iterated,
                 operation=node.func.attr,
-                strength=Strength.DEFINITE,
             )
 
 
