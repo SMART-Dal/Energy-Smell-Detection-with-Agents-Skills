@@ -101,3 +101,20 @@ def report_failures(futures):
         except Exception as e:
             print(f"failed {label}: {str(e)}")
 
+
+def normalise(values):
+    # The total is recomputed once per element: quadratic on a long list, and
+    # a comprehension hides it exactly as a `for` statement would.
+    return [v / sum(values) for v in values]
+
+
+def row_products(a, b):
+    # `a[i]` does not depend on `j`, so the inner comprehension re-reads it
+    # once per column.
+    return [[a[i] * b[j] for j in range(len(b))] for i in range(len(a))]
+
+
+def sorted_once(rows):
+    # A comprehension's first iterable runs once, before iteration starts.
+    return [row.id for row in sorted(rows)]
+

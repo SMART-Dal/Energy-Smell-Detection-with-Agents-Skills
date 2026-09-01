@@ -14,6 +14,8 @@ EXPECTED = {
     "take_while_small": 1,   # `len()` in a while condition really does re-run
     "cross_check": 1,        # nested loops, one expression, one report
     "score_all": 1,          # constant subscript into a module-level table
+    "normalise": 1,          # `sum()` per element: a quadratic comprehension
+    "row_products": 1,       # `a[i]` does not vary with the inner generator
 }
 
 

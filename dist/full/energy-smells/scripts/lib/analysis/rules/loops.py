@@ -43,15 +43,21 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
     The highest-value analyzer in the suite.
     Only reports calls and subscripts -- hoisting a bare name or a literal buys
     nothing, and reporting those would bury the real findings in noise.
+
+    Comprehensions count as scopes, not just `for` and `while`.
+    `[[0] * len(SMELLS) for _ in range(n)]` recomputes `len(SMELLS)` once per
+    element exactly as the statement loop would, and the repair is the same --
+    bind it to a name on the line above.  Keying on statement loops alone made
+    the rule blind to the commonest way a loop is written in Python.
     """
-    for loop in ctx.loops:
-        rewritten = ctx.assigned_names(loop) | _mutated_names(loop)
+    for scope in ctx.repeat_scopes:
+        rewritten = ctx.assigned_names(scope) | _mutated_names(scope)
         reported: list[ast.AST] = []
-        for node in ctx.per_iteration_nodes(loop):
+        for node in ctx.per_iteration_nodes(scope):
             if not isinstance(node, (ast.Call, ast.Subscript)):
                 continue
-            if ctx.loops_around(node)[-1:] != (loop,):
-                continue  # belongs to a nested loop; that loop will report it
+            if ctx.repeats_around(node)[-1:] != (scope,):
+                continue  # belongs to a nested scope; that scope will report it
             if isinstance(node, ast.Call) and _is_trivial_call(node):
                 continue
             if not ctx.is_pure(node):
@@ -66,8 +72,8 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 f"`{ast.unparse(node)}` does not change across loop iterations "
                 f"but is re-evaluated every time",
                 expression=ast.unparse(node),
-                loop_line=loop.lineno,
-                depth=ctx.loop_depth(node),
+                loop_line=scope.lineno,
+                depth=ctx.repeat_depth(node),
             )
 
 

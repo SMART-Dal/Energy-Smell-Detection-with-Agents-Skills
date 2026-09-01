@@ -256,16 +256,29 @@ class UnitContext:
             (self.repeat_depth(n) + 1 for n in self.repeat_scopes), default=0
         )
 
-    def per_iteration_nodes(self, loop: ast.AST):
-        """Yield the nodes of `loop` that are re-evaluated on every iteration.
+    def per_iteration_nodes(self, scope: ast.AST):
+        """Yield the nodes of `scope` that are re-evaluated on every iteration.
 
         A `for` loop's iterable is evaluated exactly once, when the loop starts,
         so `for i in range(len(xs))` does *not* recompute `len(xs)` per
         iteration.  Treating it as loop-invariant work would be simply wrong.
         A `while` loop's test, by contrast, does run every time.
+
+        A comprehension works the same way and is accepted here for the same
+        reason: only its *first* generator's iterable is evaluated once, since
+        every later one is re-evaluated per element of the one before it.
+
+        The skip is per scope rather than unit-wide.  A nested loop's own
+        iterable runs once per iteration of the loop outside it, so it is
+        genuinely repeated work as far as that outer loop is concerned.
         """
-        skip = {id(loop.iter)} if isinstance(loop, (ast.For, ast.AsyncFor)) else set()
-        for node in ast.walk(loop):
+        if isinstance(scope, (ast.For, ast.AsyncFor)):
+            skip = {id(scope.iter)}
+        elif isinstance(scope, COMPREHENSION_NODES) and scope.generators:
+            skip = {id(scope.generators[0].iter)}
+        else:
+            skip = set()
+        for node in ast.walk(scope):
             if id(node) in skip:
                 continue
             if any(id(ancestor) in skip for ancestor in self._ancestors(node)):
