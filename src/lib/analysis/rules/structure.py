@@ -284,11 +284,30 @@ def _is_chained_arm(parent: ast.AST, child: ast.If) -> bool:
 
 
 def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A function that calls itself more than once with no caching decorator.
+    """A function that calls itself more than once with no caching of any kind.
 
-    Two self-calls on the same path means the recursion tree re-solves
-    overlapping subproblems, which is the shape memoization exists for.  A
-    single self-call is ordinary linear recursion and is reported separately.
+    Two self-calls is the *shape* memoization exists for, but the shape alone
+    does not make the repair legal, and the rule used to assert what it had not
+    checked.  Two conditions are now required.
+
+    First, the subproblems have to actually overlap.  `fib(n-1)` and `fib(n-2)`
+    reduce the same value by different amounts, so the same argument recurs all
+    over the tree.  These do not:
+
+        merge_sort(l[:half]), merge_sort(l[half:])    disjoint halves
+        tree_depth(node.left), tree_depth(node.right) disjoint subtrees
+
+    Every call there gets a slice or a child nothing else will ever be handed,
+    so a cache would hold entries it never reads -- and `merge_sort` takes a
+    list, which `lru_cache` cannot key on at all.  What separates them is
+    whether the calls partition their argument or offset it: a partition splits
+    the input, an offset revisits it.
+
+    Second, the caching may already be there.  Checking only for a decorator
+    reported eleven already-memoized functions in one sample repository, every
+    one of them carrying an explicit `memo` table, which is how memoization is
+    usually written when the argument is not hashable or the cache must be
+    shared.
     """
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
@@ -299,7 +318,7 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
         and isinstance(node.func, ast.Name)
         and node.func.id == name
     ]
-    if not self_calls or _has_cache_decorator(ctx.node):
+    if not self_calls or _has_cache_decorator(ctx.node) or _has_memo_table(ctx.node):
         return
 
     # One self-call *inside a loop* is a tree walk: each child is a distinct
@@ -309,20 +328,104 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     if len(self_calls) == 1 and ctx.in_loop(self_calls[0]):
         return
 
-    if len(self_calls) >= 2:
+    if len(self_calls) >= 2 and not _partitions_argument(self_calls):
         yield _evidence(
             unit, "recursion_without_memo", self_calls[0], ("C7.S2", "C8.S1"),
             f"`{name}` calls itself {len(self_calls)} times and is not cached, so "
             f"overlapping subproblems are recomputed",
             self_calls=len(self_calls),
         )
-    else:
+    elif len(self_calls) == 1:
         yield _evidence(
             unit, "linear_recursion", self_calls[0], ("C7.S3",),
             f"`{name}` recurses once per call; CPython builds a frame per level "
             f"and does not optimise tail calls",
             self_calls=1,
         )
+
+
+def _partitions_argument(calls: list[ast.Call]) -> bool:
+    """Whether the self-calls split their argument rather than revisiting it.
+
+    A partition hands each branch a different piece -- a slice, an attribute of
+    a node, an element -- and no piece is ever handed to two branches, so there
+    is nothing for a cache to hit.  An offset (`n - 1`, `i + 1`, `s[1:]`)
+    reduces the same value by different amounts and recurs.
+    """
+    firsts = [call.args[0] for call in calls if call.args]
+    if len(firsts) < 2:
+        return False
+    rendered = {ast.unparse(a) for a in firsts}
+    if len(rendered) < len(firsts):
+        return False  # the same argument twice: overlapping by definition
+    if all(isinstance(a, ast.Attribute) for a in firsts):
+        return True  # node.left / node.right: disjoint children
+    slices = [a for a in firsts if isinstance(a, ast.Subscript)
+              and isinstance(a.slice, ast.Slice)]
+    return len(slices) == len(firsts) and _disjoint_slices(slices)
+
+
+def _disjoint_slices(slices: list[ast.Subscript]) -> bool:
+    """Whether a set of slices cuts its sequence into non-overlapping pieces.
+
+    `l[:half]` and `l[half:]` meet at one bound and share nothing.  `s1[1:]`
+    twice is the same piece, and `nested[0]` beside `nested[1:]` still leaves
+    the tail shared with a later call, so only the clean split counts.
+    """
+    if len(slices) != 2:
+        return False
+    first, second = (ast.unparse(s.slice) for s in slices)
+    if not first.startswith(":") or not second.endswith(":"):
+        first, second = second, first
+    return (
+        first.startswith(":") and second.endswith(":")
+        and first[1:] == second[:-1] and first[1:] != ""
+    )
+
+
+MEMO_TABLE_NAMES = frozenset({"memo", "cache", "seen", "known", "table", "lookup",
+                              "memoized", "_cache", "_memo", "dp"})
+
+
+def _has_memo_table(node: ast.AST) -> bool:
+    """Whether the function already caches results in a table it manages itself.
+
+    The shape is a mapping that is both read as a membership test or `.get()`
+    and written by subscript assignment -- `if n in memo: return memo[n]` with
+    `memo[n] = ...` further down.  That is memoization; the decorator is just
+    the tidier spelling of it.
+    """
+    names = {
+        target.value.id
+        for target in ast.walk(node)
+        if isinstance(target, ast.Subscript)
+        and isinstance(target.value, ast.Name)
+        and isinstance(target.ctx, ast.Store)
+    }
+    if not names:
+        return False
+    for candidate in names:
+        if candidate not in MEMO_TABLE_NAMES and not any(
+            hint in candidate.lower() for hint in ("memo", "cache", "dp", "seen")
+        ):
+            continue
+        for probe in ast.walk(node):
+            if (
+                isinstance(probe, ast.Compare)
+                and any(isinstance(op, (ast.In, ast.NotIn)) for op in probe.ops)
+                and any(isinstance(c, ast.Name) and c.id == candidate
+                        for c in probe.comparators)
+            ):
+                return True
+            if (
+                isinstance(probe, ast.Call)
+                and isinstance(probe.func, ast.Attribute)
+                and probe.func.attr == "get"
+                and isinstance(probe.func.value, ast.Name)
+                and probe.func.value.id == candidate
+            ):
+                return True
+    return False
 
 
 def _has_cache_decorator(node: ast.AST) -> bool:
@@ -408,12 +511,32 @@ def _hand_rolled_builtin(node: ast.AST) -> str | None:
     writing `if best is None or x < best:` is at least as common as seeding it
     from the first element, and requiring a bare comparison missed all of it.
     The repair there needs `min(..., default=None)` to keep the empty case.
+
+    A *filtered* sum counts as well:
+
+        for n in lst:
+            if n % 2 == 0:
+                total += n          ->  sum(n for n in lst if n % 2 == 0)
+
+    The guarded extreme was already reported and the guarded sum was not, which
+    was an accident of shape rather than a judgement -- `if` around an
+    `AugAssign` reads as a comprehension filter exactly as `if` around an
+    `Assign` reads as a comparison.  A guarded *counter* (`found += 1`) is not
+    the same thing and stays out; see below.
     """
     if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
         return "sum"
     if not isinstance(node, ast.If) or len(node.body) != 1 or node.orelse:
         return None
-    if not isinstance(node.body[0], ast.Assign):
+    inner = node.body[0]
+    if isinstance(inner, ast.AugAssign) and isinstance(inner.op, ast.Add):
+        # `total += n` is a filtered sum and `sum()` does the adding in C.
+        # `found += 1` is a counter, and `sum(1 for ...)` hands the same work
+        # back to a generator frame per element with no C loop to win it back,
+        # so counting stays out -- the same reasoning that keeps
+        # `eager_comprehension` contextual.
+        return None if isinstance(inner.value, ast.Constant) else "sum"
+    if not isinstance(inner, ast.Assign):
         return None
     return _extreme_from(node.test)
 
@@ -477,6 +600,12 @@ def trivial_delegation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     nothing added.  Anything looser fires on most of a library's public API,
     where a thin named wrapper is deliberate design rather than waste.  Even
     so it only costs energy on a hot path, which the reader has to check.
+
+    The receiver of an attribute call is an argument too.  `self._backend.count()`
+    forwards, because `self` is the function's own first parameter and the call
+    adds nothing the caller did not already have.  `"".join(strings)` does not:
+    the separator is a choice the wrapper makes, so the wrapper has behaviour of
+    its own and deleting it changes what the caller must write.
     """
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
@@ -488,12 +617,43 @@ def trivial_delegation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     value = body[0].value
     if not isinstance(value, ast.Call) or not _forwards_arguments(ctx.node, value):
         return
+    if not _receiver_is_free(value.func, ctx.node):
+        return
     yield _evidence(
         unit, "trivial_delegation", ctx.node, ("C2.S1",),
         f"`{ctx.node.name}` only forwards to `{ast.unparse(value.func)}`, adding "
         f"a stack frame per call without adding behaviour",
         delegate=ast.unparse(value.func),
     )
+
+
+def _receiver_is_free(func: ast.AST, function: ast.AST) -> bool:
+    """Whether an attribute call's receiver is something the caller already holds.
+
+    A receiver built out of a literal or an expression is part of what the
+    wrapper does, not something it forwards.
+    """
+    if not isinstance(func, ast.Attribute):
+        return True
+    base = func.value
+    while isinstance(base, ast.Attribute):
+        base = base.value
+    return isinstance(base, ast.Name) and (
+        base.id == "self" or base.id in _parameter_names(function)
+    )
+
+
+def _parameter_names(function: ast.AST) -> set[str]:
+    arguments = getattr(function, "args", None)
+    if arguments is None:
+        return set()
+    return {
+        a.arg for a in (
+            *getattr(arguments, "posonlyargs", []),
+            *arguments.args,
+            *arguments.kwonlyargs,
+        )
+    }
 
 
 def _forwards_arguments(function: ast.AST, call: ast.Call) -> bool:

@@ -53,3 +53,29 @@ def collect(node, out):
     for child in node.children:
         out.append(child)
     return out
+
+
+def merge_sort(items):
+    # Divide and conquer: the halves are disjoint, so nothing is ever recomputed.
+    if len(items) <= 1:
+        return items
+    half = len(items) // 2
+    left = merge_sort(items[:half])
+    right = merge_sort(items[half:])
+    return merge(left, right)
+
+
+def tree_depth(node):
+    # Two children, each visited once: a cache would never be read.
+    if node is None:
+        return 0
+    return 1 + max(tree_depth(node.left), tree_depth(node.right))
+
+
+def fib_memo(n, memo={}):
+    # Already memoized, just not with a decorator.
+    if n <= 1:
+        return n
+    if n not in memo:
+        memo[n] = fib_memo(n - 1, memo) + fib_memo(n - 2, memo)
+    return memo[n]

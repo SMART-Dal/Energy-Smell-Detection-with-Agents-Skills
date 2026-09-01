@@ -9,6 +9,7 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+
     "fib": 1,          # two self-calls per level
     "count_paths": 1,  # the same tree written over two lines
     "factorial": 1,    # linear recursion; same analyzer, `linear_recursion` kind

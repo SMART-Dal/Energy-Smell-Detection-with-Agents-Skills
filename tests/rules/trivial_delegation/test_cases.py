@@ -58,3 +58,8 @@ class Report:
         if self._size is None:
             self._size = len(self._rows)
         return self._size
+
+
+def concatenate(strings):
+    # The separator is a choice this function makes, so it is not pure forwarding.
+    return "".join(strings)

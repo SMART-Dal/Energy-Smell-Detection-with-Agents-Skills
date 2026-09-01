@@ -58,3 +58,8 @@ def sorted_then_rebound(values, extra):
     if extra:
         left = sorted(extra)
     return left == sorted(extra)
+
+
+def same_lines(left, right):
+    # Two whole strings built to answer one yes or no.
+    return "".join(left) == "".join(right)

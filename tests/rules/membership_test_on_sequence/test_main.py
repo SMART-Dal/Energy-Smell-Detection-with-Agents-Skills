@@ -9,6 +9,9 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+
+    "count_unique": 1,    # accumulator seeded `[]`, grown to N by `.append`
+    "filter_allowed": 1,  # parameter annotated `list`
     "dedupe": 1,          # comprehension rebuilt per row, then scanned
     "grant_all": 1,       # literal plus a call: sequence-valued, size unknown
     "match_pairs": 1,     # nested loops, one comparison, one finding

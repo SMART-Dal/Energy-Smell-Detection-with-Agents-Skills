@@ -9,6 +9,7 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+
     "Store.fetch": 1,  # same argument, nothing added
     "Store.count": 1,  # a parameterless forward is still a forward
     "parse": 1,        # the module-level shape

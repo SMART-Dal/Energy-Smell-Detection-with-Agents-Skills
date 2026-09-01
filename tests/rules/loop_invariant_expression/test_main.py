@@ -9,6 +9,7 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+
     "filter_rows": 1,        # call wrapping a subscript: the outer one only
     "take_while_small": 1,   # `len()` in a while condition really does re-run
     "cross_check": 1,        # nested loops, one expression, one report

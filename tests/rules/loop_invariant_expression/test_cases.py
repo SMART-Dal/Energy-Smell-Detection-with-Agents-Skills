@@ -80,3 +80,11 @@ def take_until_full(rows, ceiling):
         if capacity > 0:
             out.append(row)
     return out
+
+
+def best_per_group(groups):
+    # `x` is the lambda's own parameter, rebound on every call.
+    picked = {}
+    for key, rows in groups.items():
+        picked[key] = max(rows, key=lambda x: x[1])
+    return picked

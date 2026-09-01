@@ -9,6 +9,8 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+
+    "same_lines": 1,      # `sep.join()` builds as much as `str()` does
     "same_members": 1,          # two sorts and two lists
     "same_text": 1,             # two conversions, per element
     "same_set": 1,              # two containers for one comparison

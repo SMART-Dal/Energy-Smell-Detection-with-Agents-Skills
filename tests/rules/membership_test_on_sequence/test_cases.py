@@ -95,3 +95,36 @@ def local_wins(requests):
 def check_one(agent):
     # Outside any repetition: one scan is not a smell.
     return agent in BLOCKED_AGENTS
+
+
+def count_unique(lst):
+    # The haystack is seeded empty and appended to, so it is N long by the end.
+    unique = []
+    for item in lst:
+        if item not in unique:
+            unique.append(item)
+    return len(unique)
+
+
+def filter_allowed(items, pool: list):
+    # An annotation is a statement about what the value is.
+    kept = []
+    for item in items:
+        if item in pool:
+            kept.append(item)
+    return kept
+
+
+def route(requests):
+    # A short literal that is never added to: scanning it beats hashing.
+    for request in requests:
+        if request.method in SAFE_METHODS:
+            handle(request)
+
+
+def dedupe_with_set(rows):
+    # Already the repair.
+    seen = set()
+    for row in rows:
+        if row not in seen:
+            seen.add(row)

@@ -47,6 +47,15 @@ BLOCKING_IN_ASYNC = {
 # Comparisons that build a whole new object just to answer a yes/no question.
 EXPENSIVE_COMPARISON_CALLS = frozenset({"sorted", "str", "repr", "list", "set", "tuple"})
 
+EXPENSIVE_COMPARISON_METHODS = frozenset({"join"})
+"""Method calls that build a whole object out of a sequence.
+
+`"".join(a) == "".join(b)` concatenates both sequences in full to answer a
+question `all(x == y for x, y in zip(a, b))` answers without allocating and
+without reading past the first difference.  It is `str(a) == str(b)` wearing a
+different spelling, and matching only bare-name calls walked past it.
+"""
+
 MIN_USES_TO_HOIST = 3
 """Reads of one global inside a loop before hoisting it is worth mentioning."""
 
@@ -523,6 +532,7 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
         if sorted(a) == sorted(b):      two sorts and two lists
         if str(a) == str(b):            two string conversions
+        if "".join(a) == "".join(b):    two whole strings built to compare
 
     Each of these has a cheaper form -- `Counter`, a direct comparison, an
     early-exit scan -- and inside a loop the difference is paid per iteration.
@@ -548,16 +558,14 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 call = aliases.get(side.id)
             elif isinstance(side, ast.Call):
                 call = side
-            if not (
-                isinstance(call, ast.Call)
-                and isinstance(call.func, ast.Name)
-                and call.func.id in EXPENSIVE_COMPARISON_CALLS
-                and call.args
-            ):
+            if not isinstance(call, ast.Call) or not call.args:
+                continue
+            builder = _expensive_builder(call.func)
+            if builder is None:
                 continue
             built = (
                 f"`{ast.unparse(node)}` builds a new object with "
-                f"`{call.func.id}()` only to compare it and throw it away"
+                f"`{builder}()` only to compare it and throw it away"
                 if call is side else
                 f"`{ast.unparse(node)}` compares an object built with "
                 f"`{ast.unparse(call)}` and read nowhere else; naming it does "
@@ -566,9 +574,27 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             yield _evidence(
                 unit, "expensive_comparison", node, ("C4.S5",),
                 built,
-                call=call.func.id,
+                call=builder,
             )
             break
+
+
+def _expensive_builder(func: ast.AST) -> str | None:
+    """The name of the object-building call at a comparison operand, if any.
+
+    An attribute call is trusted only for the `sep.join(...)` idiom, and only
+    when the separator is a literal or a plain name -- `os.path.join(...)`
+    builds nothing and must not be reported.
+    """
+    if isinstance(func, ast.Name):
+        return func.id if func.id in EXPENSIVE_COMPARISON_CALLS else None
+    if (
+        isinstance(func, ast.Attribute)
+        and func.attr in EXPENSIVE_COMPARISON_METHODS
+        and isinstance(func.value, (ast.Constant, ast.Name))
+    ):
+        return f"{ast.unparse(func.value)}.{func.attr}"
+    return None
 
 
 def _comparison_aliases(ctx: UnitContext) -> dict[str, ast.Call]:

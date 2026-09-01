@@ -9,6 +9,8 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+
+    "total_even": 1,      # `if` around `+= value` is a comprehension filter
     "largest": 1,         # a running maximum
     "total": 1,           # a running total
     "smallest_score": 1,  # a running minimum behind a `None` guard

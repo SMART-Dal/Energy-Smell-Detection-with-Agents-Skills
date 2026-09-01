@@ -61,3 +61,12 @@ def count_matching(rows, needle):
         if needle in row:
             found += 1
     return found
+
+
+def total_even(values):
+    # A filtered sum: `sum()` still does the adding in C.
+    running = 0
+    for value in values:
+        if value % 2 == 0:
+            running += value
+    return running
