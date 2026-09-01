@@ -632,12 +632,29 @@ def _range_len_argument(node: ast.AST) -> str | None:
 
 
 def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A loop whose whole body is one `.append()`: a comprehension in disguise."""
+    """A loop whose whole body is one `.append()`: a comprehension in disguise.
+
+    Only when the list being appended to is the *same* list every time.  These
+    are not comprehensions in disguise:
+
+        for threshold in thresholds:
+            predictions[threshold].append(round(probabilities, threshold))
+
+        for label in labels:
+            label_to_indices[label].append(i)
+
+    Each iteration appends to a different list, and a comprehension builds one
+    list -- so the repair does not exist and the rule was describing code it
+    could not fix.  The receiver has to be independent of everything the loop
+    rebinds.
+    """
     for loop in ctx.loops:
         if not isinstance(loop, ast.For) or loop.orelse or len(loop.body) != 1:
             continue
         call = _sole_append(loop.body[0])
         if call is None:
+            continue
+        if ctx.read_names(call.func.value) & ctx.assigned_names(loop):
             continue
         yield _evidence(
             unit, "append_only_loop", loop, ("C3.S1", "C10.S3"),

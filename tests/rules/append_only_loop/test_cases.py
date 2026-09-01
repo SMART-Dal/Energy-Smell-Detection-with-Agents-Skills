@@ -69,3 +69,11 @@ def build_in_closure(rows):
         return out
 
     return run
+
+
+def bucket_by_key(rows, buckets):
+    # Each iteration appends to a different list, so there is no one
+    # comprehension that replaces this.
+    for row in rows:
+        buckets[row.key].append(row)
+
