@@ -304,6 +304,12 @@ class UnitContext:
         enclosing function, where its parameters would otherwise look like free
         names.  `max(rows, key=lambda x: x[1])` was reported as recomputing a
         loop-invariant `x[1]` on exactly that mistake.
+
+        The binding forms that are *not* `ast.Name` nodes need naming one by
+        one, because the walk cannot see them: `except E as e` and `match`
+        captures both carry their name as a bare string on the node.  Missing
+        the first of those reported `str(e)` inside an `except` clause as
+        loop-invariant, when `e` is rebound by every iteration that raises.
         """
         names: set[str] = set()
         for node in ast.walk(scope):
@@ -311,6 +317,16 @@ class UnitContext:
                 names.add(node.id)
             elif isinstance(node, ast.Lambda):
                 names.update(_parameter_names(node))
+            elif isinstance(node, ast.ExceptHandler) and node.name:
+                names.add(node.name)
+            elif isinstance(node, (ast.Global, ast.Nonlocal)):
+                names.update(node.names)
+            elif isinstance(node, ast.MatchAs) and node.name:
+                names.add(node.name)
+            elif isinstance(node, ast.MatchStar) and node.name:
+                names.add(node.name)
+            elif isinstance(node, ast.MatchMapping) and node.rest:
+                names.add(node.rest)
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 names.add(node.name)
                 names.update(_parameter_names(node))

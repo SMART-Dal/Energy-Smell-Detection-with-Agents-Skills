@@ -88,3 +88,16 @@ def best_per_group(groups):
     for key, rows in groups.items():
         picked[key] = max(rows, key=lambda x: x[1])
     return picked
+
+
+def report_failures(futures):
+    # `e` is rebound by every iteration that raises, so `str(e)` is not
+    # invariant -- and `except ... as e` carries its name as a bare string,
+    # which no walk over Name nodes can see.
+    for future in futures:
+        label = futures[future]
+        try:
+            future.result(timeout=60)
+        except Exception as e:
+            print(f"failed {label}: {str(e)}")
+
