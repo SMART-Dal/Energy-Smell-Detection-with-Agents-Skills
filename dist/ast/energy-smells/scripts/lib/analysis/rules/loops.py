@@ -425,7 +425,9 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
     teach a reader to skip it.
 
     The haystack may be a name the module binds rather than the unit, since a
-    table of allowed values is usually a module constant.
+    table of allowed values is usually a module constant.  It may also be a
+    parameter the author annotated `list` -- an annotation is a statement about
+    what the value is, and ignoring it lost every `def f(pool: list)` case.
     """
     for node in ctx.own_nodes():
         if not isinstance(node, ast.Compare) or len(node.ops) != 1:
@@ -452,8 +454,41 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
 def _is_sequence_valued(node: ast.AST, ctx: UnitContext) -> bool:
     """Whether an expression plausibly holds a list/tuple rather than a set/dict."""
     if isinstance(node, ast.Name):
-        return _binds_sequence(node.id, ctx)
+        return _binds_sequence(node.id, ctx) or _annotated_sequence(node.id, ctx)
     return _is_literal_sequence(node)
+
+
+SEQUENCE_ANNOTATIONS = frozenset({"list", "tuple", "List", "Tuple", "Sequence"})
+
+
+def _annotated_sequence(name: str, ctx: UnitContext) -> bool:
+    """Whether a parameter of this unit is annotated as a list or tuple."""
+    arguments = getattr(ctx.node, "args", None)
+    if arguments is None:
+        return False
+    declared = [
+        *getattr(arguments, "posonlyargs", []),
+        *arguments.args,
+        *arguments.kwonlyargs,
+    ]
+    for argument in declared:
+        if argument.arg != name or argument.annotation is None:
+            continue
+        return _annotation_root(argument.annotation) in SEQUENCE_ANNOTATIONS
+    return False
+
+
+def _annotation_root(node: ast.AST) -> str | None:
+    """`list[int]` -> "list", `typing.List[str]` -> "List"."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, ast.Subscript):
+        return _annotation_root(node.value)
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value.split("[")[0].strip().rsplit(".", 1)[-1] or None
+    return None
 
 
 def _binds_sequence(name: str, ctx: UnitContext) -> bool:
@@ -497,14 +532,49 @@ def _is_small_sequence(node: ast.AST, ctx: UnitContext) -> bool:
     """Whether the haystack is a literal short enough to scan faster than hash.
 
     Only a literal we can count answers this; anything assembled at run time is
-    of unknown size and stays reportable.
+    of unknown size and stays reportable.  That includes the accumulator:
+
+        unique = []              # a literal, and it counts zero elements
+        for item in lst:
+            if item not in unique:
+                unique.append(item)
+
+    `unique` is empty *at the binding* and holds one entry per distinct item by
+    the end, so counting the literal answered a question nobody asked and
+    silenced the commonest quadratic loop there is.  A name that is appended to
+    is of unknown size however it was seeded.
     """
     if isinstance(node, ast.Name):
+        if _is_grown(node.id, ctx):
+            return False
         bindings = _bindings_of(node.id, ctx)
         if len(bindings) != 1:
             return False  # rebound elsewhere, so its size is not settled here
         node = bindings[0]
     return isinstance(node, (ast.List, ast.Tuple)) and len(node.elts) <= SMALL_SEQUENCE
+
+
+GROWING_METHODS = frozenset({"append", "extend", "insert", "add", "update"})
+
+
+def _is_grown(name: str, ctx: UnitContext) -> bool:
+    """Whether the unit ever adds to this name after binding it."""
+    for node in ast.walk(ctx.node):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in GROWING_METHODS
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == name
+        ):
+            return True
+        if (
+            isinstance(node, ast.AugAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == name
+        ):
+            return True
+    return False
 
 
 def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:

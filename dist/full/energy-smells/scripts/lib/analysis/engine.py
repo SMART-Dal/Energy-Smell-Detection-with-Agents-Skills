@@ -21,6 +21,7 @@ from pathlib import Path
 
 from . import __path__ as _ANALYSIS_PATH, __name__ as _ANALYSIS_PACKAGE
 from .callgraph import CallSite, calls_made_by, link
+from .repo import RepoIndex
 from .context import (
     UnitContext,
     collect_imports,
@@ -57,8 +58,8 @@ class UnitFindings:
     as the equivalent `for` would."""
     uses_arrays: bool = False
 
-    calls: list[tuple[str, int, int]] = field(default_factory=list)
-    """Raw (name, line, repeat depth) call sites, before resolution."""
+    calls: list[tuple] = field(default_factory=list)
+    """(name, line, repeat depth, resolved qualname or None) call sites."""
     called_from: list[CallSite] = field(default_factory=list)
     fan_in: int = 0
     """Distinct units in this file that call this one."""
@@ -163,8 +164,15 @@ def available_analyzers() -> dict[str, str | None]:
     }
 
 
-def analyse_file(path: Path) -> list[UnitFindings]:
-    """Run every available analyzer over one file, returning findings per unit."""
+def analyse_file(path: Path, index: RepoIndex | None = None,
+                 *, link_calls: bool = True) -> list[UnitFindings]:
+    """Run every available analyzer over one file, returning findings per unit.
+
+    `index` is the repo-wide symbol table; without one, calls resolve inside
+    this file only.  `link_calls` is False when a whole-tree scan will link
+    every file together afterwards, which is the only way a cross-file edge can
+    exist -- the callee's unit does not exist yet while its caller is analysed.
+    """
     tree = parse_file(path)
     if tree is None:
         return []
@@ -179,17 +187,21 @@ def analyse_file(path: Path) -> list[UnitFindings]:
     # waste lives inside one function: waste that lives in the arrangement of
     # several units reaches the reader as a set of linked units, via the call
     # graph below, and recognising it from there is a reading job.
+    binds = index.bindings(path) if index is not None and path in index.trees else {}
+
     findings: dict[str, UnitFindings] = {}
     for unit, node in units:
         if unit.kind == "class":
             continue
         contained = _measure_unit(node, source, imports, module_bindings, overridden)
+        owner = unit.qualname.rsplit(".", 1)[0] if "." in unit.qualname else None
         findings[unit.qualname] = UnitFindings(
             unit=unit,
             source=unit_source(source, unit),
             max_repeat_depth=contained.max_repeat_depth,
             uses_arrays=contained.uses_arrays,
-            calls=calls_made_by(node, contained),
+            calls=calls_made_by(node, contained, index=index, path=path,
+                                binds=binds, enclosing_class=owner),
             reached_at_depth=contained.max_repeat_depth,
         )
 
@@ -207,7 +219,8 @@ def analyse_file(path: Path) -> list[UnitFindings]:
     # when no analyzer produced a single piece of evidence: it is structure,
     # not a smell rule, and it is what ranks the reading list.
     resolved = list(findings.values())
-    link(resolved)
+    if link_calls:
+        link(resolved, index)
     return resolved
 
 
@@ -218,9 +231,17 @@ def analyse_path(root: Path, *, only_with_evidence: bool = True) -> list[UnitFin
     False to get the ranked reading list -- every unit, ordered by how hot it
     looks -- which is what you want before any analyzer has spoken.
     """
+    files = python_files(root)
+    base = root if root.is_dir() else root.parent
+    index = RepoIndex(base, files)
+
     results: list[UnitFindings] = []
-    for path in python_files(root):
-        results.extend(analyse_file(path))
+    for path in files:
+        results.extend(analyse_file(path, index, link_calls=False))
+
+    # Linked once, over every unit in the tree: a call from `a.py` into `b.py`
+    # can only become an edge after both files have produced their units.
+    link(results, index)
 
     if only_with_evidence:
         results = [f for f in results if f.evidence]

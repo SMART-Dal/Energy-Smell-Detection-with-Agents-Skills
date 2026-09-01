@@ -297,13 +297,23 @@ class UnitContext:
         Covers assignment, augmented assignment, `for` targets, `with ... as`,
         walrus, comprehension targets, imports and nested definitions -- any of
         which makes a name unsafe to treat as constant within that scope.
+
+        A `lambda`'s parameters count too.  They are bound afresh on every call,
+        so nothing that reads one is constant across a loop -- and because a
+        lambda is not a unit of its own, its body is walked as part of the
+        enclosing function, where its parameters would otherwise look like free
+        names.  `max(rows, key=lambda x: x[1])` was reported as recomputing a
+        loop-invariant `x[1]` on exactly that mistake.
         """
         names: set[str] = set()
         for node in ast.walk(scope):
             if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
                 names.add(node.id)
+            elif isinstance(node, ast.Lambda):
+                names.update(_parameter_names(node))
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 names.add(node.name)
+                names.update(_parameter_names(node))
             elif isinstance(node, (ast.Import, ast.ImportFrom)):
                 for alias in node.names:
                     names.add(alias.asname or alias.name.split(".")[0])
@@ -420,3 +430,19 @@ def collect_module_bindings(tree: ast.Module) -> dict[str, ast.AST]:
                 rebound.add(target.id)
             bindings[target.id] = node.value
     return {name: value for name, value in bindings.items() if name not in rebound}
+
+
+def _parameter_names(node: ast.AST) -> set[str]:
+    """Parameter names of a `def` or `lambda`, including `*args` and `**kwargs`."""
+    args = getattr(node, "args", None)
+    if args is None:
+        return set()
+    names = {
+        a.arg for a in (
+            *getattr(args, "posonlyargs", []), *args.args, *args.kwonlyargs
+        )
+    }
+    for extra in (args.vararg, args.kwarg):
+        if extra is not None:
+            names.add(extra.arg)
+    return names

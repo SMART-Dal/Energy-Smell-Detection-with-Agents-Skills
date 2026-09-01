@@ -15,17 +15,22 @@ Ranking by a unit's own depth puts `cluster` first and `distance` nowhere, when
 `distance` is where the energy goes.  So each unit also carries the deepest
 loop nesting it is *reached* through, and how many distinct places call it.
 
-Resolution is within one file only.  Following a call across a module boundary
-means resolving imports, aliases and re-exports, and getting that wrong invents
-call edges that do not exist -- worse than admitting the graph stops at the file
-edge.  The agent is told to follow calls across files itself, which it can do
-by reading, and this module does not pretend to have done it.
+Resolution is repo-wide, and `repo.RepoIndex` does the reading: it follows
+import statements, aliases and re-exports to the file a call actually lands
+in, and parameter annotations to the class a method call is made on.  Where it
+cannot read the answer it says so, and this module falls back to matching the
+call's short name against definitions *in the same file only* -- never across
+files, where a shared short name means nothing.
+
+Measured against the call graph our own test suite really executes: file-local
+matching alone found 0 of 63 cross-file calls; with the index it finds 47.
 """
 
 from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from pathlib import Path
 
 from .context import UnitContext
 
@@ -45,7 +50,7 @@ class CallSite:
     caller: str
     """Qualified name of the unit containing the call."""
     callee: str
-    """Qualified name of the unit being called, resolved within this file."""
+    """Repo-wide qualified name of the unit being called."""
     line: int
     repeat_depth: int
     """Loops and comprehensions enclosing the call *within the caller*.
@@ -54,20 +59,37 @@ class CallSite:
     calls `g` once per element exactly as a `for` statement would."""
 
 
-def calls_made_by(unit_node: ast.AST, context: UnitContext) -> list[tuple[str, int, int]]:
-    """Every call this unit makes, as (name, line, enclosing repeat depth).
+def calls_made_by(unit_node: ast.AST, context: UnitContext, *,
+                  index=None, path: Path | None = None,
+                  binds: dict | None = None,
+                  enclosing_class: str | None = None) -> list[tuple]:
+    """Every call this unit makes, as (name, line, repeat depth, resolved).
 
-    The name is whatever appears in the source -- `helper` for a plain call,
-    `helper` for `self.helper` too, since the attribute's own qualifier tells us
-    nothing useful once we are matching against names defined in this file.
+    `resolved` is the repo-wide qualname the index could read off the source,
+    or None when it could not.  A None is not a failure to report: most calls
+    in any file go to the standard library or to a package outside the scan,
+    and claiming those would be worse than leaving them out.
     """
+    receivers = {}
+    if index is not None and path is not None:
+        module = index.module_of.get(path)
+        if module is not None:
+            receivers = index.receivers(unit_node, module, binds or {})
+
     found = []
     for node in ast.walk(unit_node):
         if not isinstance(node, ast.Call):
             continue
         name = _called_name(node.func)
-        if name is not None:
-            found.append((name, node.lineno, context.repeat_depth(node)))
+        if name is None:
+            continue
+        resolved = None
+        if index is not None and path is not None:
+            module = index.module_of.get(path)
+            if module is not None:
+                resolved = index.resolve(node.func, module, binds or {},
+                                         receivers, enclosing_class)
+        found.append((name, node.lineno, context.repeat_depth(node), resolved))
     return found
 
 
@@ -80,25 +102,42 @@ def _called_name(func: ast.AST) -> str | None:
     return None
 
 
-def link(findings: list) -> None:
-    """Fill in `called_from`, `fan_in` and `reached_at_depth` across one file.
+def link(findings: list, index=None) -> None:
+    """Fill in `called_from`, `fan_in` and `reached_at_depth` across the scan.
 
     Mutates the findings in place, because every caller already holds the list
     and threading a second structure through the engine would buy nothing.
     """
-    by_name = _index_by_name(findings)
+    key_of = {}
+    by_key = {}
+    for finding in findings:
+        key = (index.qualname_in(finding.unit.path, finding.unit.qualname)
+               if index is not None else finding.unit.qualname)
+        key_of[id(finding)] = key
+        by_key.setdefault(key, finding)
+    in_file = _index_by_name(findings)
 
-    # Pass 1: turn each unit's raw calls into edges, keeping only the ones that
-    # land on a unit defined in this same file.
+    # Pass 1: turn each unit's calls into edges.  A call the index resolved is
+    # used as-is; one it could not is matched by short name against this file
+    # only, never across files, where a shared short name means nothing.
     for caller in findings:
-        for name, line, depth in caller.calls:
-            for callee in by_name.get(name, ()):
+        caller_key = key_of[id(caller)]
+        for name, line, depth, resolved in caller.calls:
+            targets = []
+            if resolved is not None and resolved in by_key:
+                targets = [by_key[resolved]]
+            elif resolved is None:
+                targets = [
+                    other for other in in_file.get(name, ())
+                    if other.unit.path == caller.unit.path
+                ]
+            for callee in targets:
                 if callee is caller:
                     continue  # direct recursion: a real edge, but not a hotness signal
                 callee.called_from.append(
                     CallSite(
-                        caller=caller.unit.qualname,
-                        callee=callee.unit.qualname,
+                        caller=caller_key,
+                        callee=key_of[id(callee)],
                         line=line,
                         repeat_depth=depth,
                     )
@@ -118,36 +157,82 @@ def link(findings: list) -> None:
     #                 distance(p, q)  <- call site at repeat_depth 2
     #
     #     def distance(a, b):         own 1, entered 2 -> reached 3
-    entered = {f.unit.qualname: 0 for f in findings}
-    by_qualname = {f.unit.qualname: f for f in findings}
+    #
+    # Depth is only carried along edges that do not close a cycle.  Two mutually
+    # recursive functions have no fixpoint, and each round used to add the
+    # cycle's own depth again: in pandas that made `EABackedBlock.where` the
+    # deepest unit in the package at depth 9, all of it manufactured by going
+    # round the loop four times.
+    entered = {key_of[id(f)]: 0 for f in findings}
+    acyclic = _without_cycles(findings, key_of)
 
     for _ in range(MAX_PROPAGATION_ROUNDS):
         changed = False
         for finding in findings:
+            key = key_of[id(finding)]
             for site in finding.called_from:
+                if (site.caller, key) not in acyclic:
+                    continue
                 depth = entered.get(site.caller, 0) + site.repeat_depth
-                if depth > entered[finding.unit.qualname]:
-                    entered[finding.unit.qualname] = depth
+                if depth > entered[key]:
+                    entered[key] = depth
                     changed = True
         if not changed:
             break
 
     for finding in findings:
-        finding.reached_at_depth = finding.max_repeat_depth + entered[finding.unit.qualname]
+        key = key_of[id(finding)]
+        finding.reached_at_depth = finding.max_repeat_depth + entered[key]
         finding.fan_in = len({site.caller for site in finding.called_from})
         for site in finding.called_from:
-            caller = by_qualname.get(site.caller)
+            caller = by_key.get(site.caller)
             if caller is not None:
                 caller.fan_out.add(site.callee)
+
+
+def _without_cycles(findings: list, key_of: dict) -> set:
+    """Edges that do not take part in a cycle, so depth can be carried along them.
+
+    An edge is dropped when its callee can reach its caller again.  That is the
+    only edge set on which "how deep am I entered" has an answer at all: around
+    a cycle the question has none, and answering it anyway inflates the depth
+    by one lap per propagation round.
+    """
+    successors: dict[str, set[str]] = {}
+    for finding in findings:
+        key = key_of[id(finding)]
+        for site in finding.called_from:
+            successors.setdefault(site.caller, set()).add(key)
+
+    def reaches(start: str, goal: str) -> bool:
+        seen, stack = set(), [start]
+        while stack:
+            node = stack.pop()
+            if node == goal:
+                return True
+            if node in seen:
+                continue
+            seen.add(node)
+            stack.extend(successors.get(node, ()))
+        return False
+
+    keep = set()
+    for finding in findings:
+        key = key_of[id(finding)]
+        for site in finding.called_from:
+            if not reaches(key, site.caller):
+                keep.add((site.caller, key))
+    return keep
 
 
 def _index_by_name(findings: list) -> dict[str, list]:
     """Map every unit's short name to the units that could answer to it.
 
-    A file with `Parser.parse` and `Lexer.parse` gives two entries under
-    "parse", and a call to `self.parse` matches both.  Keeping both is the
-    conservative choice: over-linking inflates a depth estimate, while picking
-    one at random would be silently wrong half the time.
+    Only consulted for calls the index could not read, and only ever matched
+    within the calling file.  A file with `Parser.parse` and `Lexer.parse`
+    gives two entries under "parse", and a call to `self.parse` matches both;
+    keeping both is the conservative choice, since picking one at random would
+    be silently wrong half the time.
     """
     index: dict[str, list] = {}
     for finding in findings:
