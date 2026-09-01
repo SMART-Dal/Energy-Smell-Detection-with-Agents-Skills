@@ -50,21 +50,24 @@ class UnitFindings:
     unit: UnitRef
     source: str
     evidence: list[Evidence] = field(default_factory=list)
-    max_loop_depth: int = 0
-    """Loop nesting written inside this unit itself."""
+    max_repeat_depth: int = 0
+    """Repeat nesting written inside this unit itself.
+
+    Comprehensions count: they repeat, so a line inside one runs as many times
+    as the equivalent `for` would."""
     uses_arrays: bool = False
 
     calls: list[tuple[str, int, int]] = field(default_factory=list)
-    """Raw (name, line, loop depth) call sites, before resolution."""
+    """Raw (name, line, repeat depth) call sites, before resolution."""
     called_from: list[CallSite] = field(default_factory=list)
     fan_in: int = 0
     """Distinct units in this file that call this one."""
     fan_out: set = field(default_factory=set)
     """Distinct units in this file that this one calls."""
     reached_at_depth: int = 0
-    """Deepest loop nesting this unit runs under, counting its callers.
+    """Deepest repeat nesting this unit runs under, counting its callers.
 
-    Equal to `max_loop_depth` for a unit nothing calls; larger for a helper
+    Equal to `max_repeat_depth` for a unit nothing calls; larger for a helper
     invoked from inside someone else's nested loop.  See callgraph.py.
     """
 
@@ -184,10 +187,10 @@ def analyse_file(path: Path) -> list[UnitFindings]:
         findings[unit.qualname] = UnitFindings(
             unit=unit,
             source=unit_source(source, unit),
-            max_loop_depth=contained.max_loop_depth,
+            max_repeat_depth=contained.max_repeat_depth,
             uses_arrays=contained.uses_arrays,
             calls=calls_made_by(node, contained),
-            reached_at_depth=contained.max_loop_depth,
+            reached_at_depth=contained.max_repeat_depth,
         )
 
     for family in _families():

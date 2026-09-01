@@ -235,8 +235,26 @@ class UnitContext:
 
     @cached_property
     def max_loop_depth(self) -> int:
-        """Deepest loop nesting in the unit: 0 if loop-free, 1 for a flat loop."""
+        """Deepest `for`/`while` nesting: 0 if loop-free, 1 for a flat loop.
+
+        Statement loops only.  Rules that hoist work out of a loop need a
+        statement to hoist it above, so this is the number they want; anything
+        ranking a unit by how often its lines run wants `max_repeat_depth`.
+        """
         return max((self.loop_depth(n) + 1 for n in self.loops), default=0)
+
+    @cached_property
+    def max_repeat_depth(self) -> int:
+        """Deepest nesting of anything that repeats, comprehensions included.
+
+        `[[f(x, y) for y in ys] for x in xs]` runs `f` len(xs)*len(ys) times
+        exactly as the two `for` statements would, so a unit written that way
+        is not cold and must not be ranked as though it were.  Counting only
+        statement loops made every comprehension-heavy unit report depth 0.
+        """
+        return max(
+            (self.repeat_depth(n) + 1 for n in self.repeat_scopes), default=0
+        )
 
     def per_iteration_nodes(self, loop: ast.AST):
         """Yield the nodes of `loop` that are re-evaluated on every iteration.

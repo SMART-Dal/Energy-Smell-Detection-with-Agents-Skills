@@ -11,7 +11,7 @@ exists because of exactly one counter-example:
             for q in points:     # depth 2
                 d = distance(p, q)   <- `distance` runs len(points)**2 times
 
-Ranking by `max_loop_depth` puts `cluster` first and `distance` nowhere, when
+Ranking by a unit's own depth puts `cluster` first and `distance` nowhere, when
 `distance` is where the energy goes.  So each unit also carries the deepest
 loop nesting it is *reached* through, and how many distinct places call it.
 
@@ -47,12 +47,15 @@ class CallSite:
     callee: str
     """Qualified name of the unit being called, resolved within this file."""
     line: int
-    loop_depth: int
-    """Loops enclosing the call *within the caller*: 0 if it is not in a loop."""
+    repeat_depth: int
+    """Loops and comprehensions enclosing the call *within the caller*.
+
+    0 if the call is not repeated.  Comprehensions count: `[g(x) for x in xs]`
+    calls `g` once per element exactly as a `for` statement would."""
 
 
 def calls_made_by(unit_node: ast.AST, context: UnitContext) -> list[tuple[str, int, int]]:
-    """Every call this unit makes, as (name, line, enclosing loop depth).
+    """Every call this unit makes, as (name, line, enclosing repeat depth).
 
     The name is whatever appears in the source -- `helper` for a plain call,
     `helper` for `self.helper` too, since the attribute's own qualifier tells us
@@ -64,7 +67,7 @@ def calls_made_by(unit_node: ast.AST, context: UnitContext) -> list[tuple[str, i
             continue
         name = _called_name(node.func)
         if name is not None:
-            found.append((name, node.lineno, context.loop_depth(node)))
+            found.append((name, node.lineno, context.repeat_depth(node)))
     return found
 
 
@@ -97,7 +100,7 @@ def link(findings: list) -> None:
                         caller=caller.unit.qualname,
                         callee=callee.unit.qualname,
                         line=line,
-                        loop_depth=depth,
+                        repeat_depth=depth,
                     )
                 )
 
@@ -112,7 +115,7 @@ def link(findings: list) -> None:
     #     def cluster(points):        own 2, entered 0
     #         for p in points:
     #             for q in points:
-    #                 distance(p, q)  <- call site at loop_depth 2
+    #                 distance(p, q)  <- call site at repeat_depth 2
     #
     #     def distance(a, b):         own 1, entered 2 -> reached 3
     entered = {f.unit.qualname: 0 for f in findings}
@@ -122,7 +125,7 @@ def link(findings: list) -> None:
         changed = False
         for finding in findings:
             for site in finding.called_from:
-                depth = entered.get(site.caller, 0) + site.loop_depth
+                depth = entered.get(site.caller, 0) + site.repeat_depth
                 if depth > entered[finding.unit.qualname]:
                     entered[finding.unit.qualname] = depth
                     changed = True
@@ -130,7 +133,7 @@ def link(findings: list) -> None:
             break
 
     for finding in findings:
-        finding.reached_at_depth = finding.max_loop_depth + entered[finding.unit.qualname]
+        finding.reached_at_depth = finding.max_repeat_depth + entered[finding.unit.qualname]
         finding.fan_in = len({site.caller for site in finding.called_from})
         for site in finding.called_from:
             caller = by_qualname.get(site.caller)

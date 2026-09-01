@@ -273,12 +273,12 @@ def _label(root_cause_id: str, table: SignalTable) -> dict:
 def _hotness_dict(item: UnitFindings) -> dict:
     """Static hotness proxies. A guess about frequency, never a measurement."""
     return {
-        "own_loop_depth": item.max_loop_depth,
+        "own_loop_depth": item.max_repeat_depth,
         "reached_at_depth": item.reached_at_depth,
         "fan_in": item.fan_in,
         "fan_out": len(item.fan_out),
         "called_from": [
-            {"caller": site.caller, "line": site.line, "loop_depth": site.loop_depth}
+            {"caller": site.caller, "line": site.line, "repeat_depth": site.repeat_depth}
             for site in item.called_from
         ],
     }
@@ -458,7 +458,7 @@ def _hotness(hotness: dict) -> str:
     """One line on why this unit ranked where it did."""
     parts = [f"loop depth {hotness['own_loop_depth']}"]
     if hotness["reached_at_depth"] > hotness["own_loop_depth"]:
-        sites = [s for s in hotness["called_from"] if s["loop_depth"] > 0]
+        sites = [s for s in hotness["called_from"] if s["repeat_depth"] > 0]
         # Naming every caller of a widely used helper turns one line into ten,
         # and the reader only needs somewhere to start following the chain.
         shown = ", ".join(f"{s['caller']}:{s['line']}" for s in sites[:3])
