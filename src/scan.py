@@ -273,12 +273,14 @@ def _label(root_cause_id: str, table: SignalTable) -> dict:
 def _hotness_dict(item: UnitFindings) -> dict:
     """Static hotness proxies. A guess about frequency, never a measurement."""
     return {
+        "unit_file": str(item.unit.path),
         "own_loop_depth": item.max_repeat_depth,
         "reached_at_depth": item.reached_at_depth,
         "fan_in": item.fan_in,
         "fan_out": len(item.fan_out),
         "called_from": [
-            {"caller": site.caller, "line": site.line, "repeat_depth": site.repeat_depth}
+            {"caller": site.caller, "line": site.line,
+             "repeat_depth": site.repeat_depth, "file": site.file}
             for site in item.called_from
         ],
     }
@@ -469,7 +471,12 @@ def _hotness(hotness: dict) -> str:
             f"via {shown or 'its callers'}"
         )
     if hotness["fan_in"]:
-        parts.append(f"called from {hotness['fan_in']} place(s) in this file")
+        elsewhere = {
+            site["caller"] for site in hotness["called_from"]
+            if site.get("file") and site["file"] != hotness.get("unit_file")
+        }
+        where = f" ({len(elsewhere)} in other file(s))" if elsewhere else ""
+        parts.append(f"called from {hotness['fan_in']} place(s){where}")
     return " | ".join(parts)
 
 

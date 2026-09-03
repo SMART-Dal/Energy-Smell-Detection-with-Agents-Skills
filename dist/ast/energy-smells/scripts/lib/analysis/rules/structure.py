@@ -188,9 +188,25 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
 
     Short-circuit evaluation can only skip work that comes *after* the operand
     that decides the result, so putting the expensive operand first forfeits it.
+
+    Not where the chain supplies a default.  Reordering `and`/`or` preserves
+    truthiness but not value, and `or` is how Python writes a fallback:
+
+        orders = instance.on_bar(bar) or []
+        run_id = manifest.get("run_id") or "baseline"
+
+    Swapping those returns the wrong thing -- `[] or f()` calls `f` every time
+    and yields its result, which is neither the intent nor a saving. Two thirds
+    of what this rule reported across four real repositories was that idiom,
+    recognisable by a literal in the fallback position and a value that escapes
+    rather than being tested. A chain that is only ever tested is still fair
+    game, literal or not.
     """
+    conditions = _condition_slots(ctx.node)
     for node in ast.walk(ctx.node):
         if not isinstance(node, ast.BoolOp) or len(node.values) < 2:
+            continue
+        if id(node) not in conditions and _supplies_a_default(node):
             continue
         for position, operand in enumerate(node.values[:-1]):
             if not _contains_expensive_call(operand):
@@ -213,6 +229,42 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 expensive=ast.unparse(operand), cheap=ast.unparse(cheaper[0]),
             )
             break
+
+
+def _supplies_a_default(node: ast.BoolOp) -> bool:
+    """Whether a later operand is a literal standing in as a fallback value.
+
+    `f(x) or []` and `d.get(k) or "baseline"` hand back the literal when the
+    call is falsy, so the operands are a value and its default rather than two
+    tests, and their order is the whole meaning.
+    """
+    return any(
+        isinstance(operand, (ast.Constant, ast.List, ast.Dict, ast.Set, ast.Tuple))
+        for operand in node.values[1:]
+    )
+
+
+def _condition_slots(scope: ast.AST) -> set[int]:
+    """Expressions evaluated only for their truth, where operand order is free.
+
+    A `BoolOp` nested directly inside another inherits the slot: in
+    `if a and (b or c)` the inner chain is still only ever tested.
+    """
+    found: set[int] = set()
+    pending: list[ast.AST] = []
+    for node in ast.walk(scope):
+        if isinstance(node, (ast.If, ast.While, ast.Assert, ast.IfExp)):
+            pending.append(node.test)
+        elif isinstance(node, ast.comprehension):
+            pending.extend(node.ifs)
+        elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+            pending.append(node.operand)
+    while pending:
+        current = pending.pop()
+        found.add(id(current))
+        if isinstance(current, ast.BoolOp):
+            pending.extend(current.values)
+    return found
 
 
 def _contains_call(node: ast.AST) -> bool:
@@ -307,7 +359,9 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     reported eleven already-memoized functions in one sample repository, every
     one of them carrying an explicit `memo` table, which is how memoization is
     usually written when the argument is not hashable or the cache must be
-    shared.
+    shared.  A memo table answers *this* advice only: `linear_recursion` is
+    about the frame CPython builds per level, which a cache does not remove,
+    so it is still reported for a memoized function that recurses once.
     """
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
@@ -318,8 +372,9 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
         and isinstance(node.func, ast.Name)
         and node.func.id == name
     ]
-    if not self_calls or _has_cache_decorator(ctx.node) or _has_memo_table(ctx.node):
+    if not self_calls or _has_cache_decorator(ctx.node):
         return
+    cached = _has_memo_table(ctx.node)
 
     # One self-call *inside a loop* is a tree walk: each child is a distinct
     # subproblem, so nothing overlaps and there is nothing to memoise -- and it
@@ -328,7 +383,7 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     if len(self_calls) == 1 and ctx.in_loop(self_calls[0]):
         return
 
-    if len(self_calls) >= 2 and not _partitions_argument(self_calls):
+    if len(self_calls) >= 2 and not cached and not _partitions_argument(self_calls):
         yield _evidence(
             unit, "recursion_without_memo", self_calls[0], ("C7.S2", "C8.S1"),
             f"`{name}` calls itself {len(self_calls)} times and is not cached, so "
@@ -441,6 +496,13 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
     Within a loop this is C3.S2 and the loop analyzer already reports it, so
     this rule deliberately looks only at straight-line code (C1.S4).
+
+    Two things disqualify a repeat.  A call that writes somewhere -- `print`,
+    a logger -- is not a value to compute once and reuse; the second call is
+    the point of it.  And occurrences in different `except` handlers or
+    different arms of an `if` never both run, so there is no repeated work to
+    remove: `print(e)` in three handlers was this rule's commonest report on
+    real code and none of it was a finding.
     """
     seen: dict[str, list[ast.Call]] = {}
     for node in ast.walk(ctx.node):
@@ -450,17 +512,61 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue
         if isinstance(node.func, ast.Name) and node.func.id in TRIVIAL_CALLS:
             continue  # recomputing len(x) twice is not worth a claim
+        if _writes_somewhere(node.func):
+            continue
         seen.setdefault(ast.unparse(node), []).append(node)
 
+    branches = _exclusive_branches(ctx.node)
     for expression, calls in seen.items():
         if len(calls) < MIN_REPEATED_CALLS:
             continue
+        reachable = {_branch_of(call, branches) for call in calls}
+        if len(reachable) == len(calls) and None not in reachable:
+            continue  # one arm each: they never both run
         yield _evidence(
             unit, "repeated_pure_call", calls[0], ("C1.S4",),
             f"`{expression}` is computed {len(calls)} times in the same scope "
             f"with nothing changing in between",
             expression=expression, occurrences=len(calls),
         )
+
+
+WRITING_CALLS = frozenset({"print", "write", "log", "debug", "info", "warning",
+                           "warn", "error", "exception", "critical"})
+
+
+def _writes_somewhere(func: ast.AST) -> bool:
+    """Whether the call's only purpose is the side effect it performs."""
+    name = func.id if isinstance(func, ast.Name) else (
+        func.attr if isinstance(func, ast.Attribute) else None)
+    return name in WRITING_CALLS
+
+
+def _exclusive_branches(scope: ast.AST) -> dict[int, int]:
+    """Map each node to the mutually exclusive arm it sits in, if any.
+
+    `except` handlers of one `try`, and the arms of an `if`, are alternatives:
+    at most one runs, so the same call appearing in several of them is written
+    once per case rather than computed repeatedly.
+    """
+    owner: dict[int, int] = {}
+    arm = 0
+    for node in ast.walk(scope):
+        arms: list[list[ast.stmt]] = []
+        if isinstance(node, ast.Try):
+            arms = [h.body for h in node.handlers]
+        elif isinstance(node, ast.If):
+            arms = [node.body, node.orelse]
+        for body in arms:
+            arm += 1
+            for statement in body:
+                for inner in ast.walk(statement):
+                    owner.setdefault(id(inner), arm)
+    return owner
+
+
+def _branch_of(node: ast.AST, branches: dict[int, int]):
+    return branches.get(id(node))
 
 
 def _repeatable(call: ast.Call, ctx: UnitContext) -> bool:

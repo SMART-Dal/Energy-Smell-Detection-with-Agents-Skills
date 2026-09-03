@@ -37,12 +37,29 @@ def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...]
     )
 
 
+REPORTABLE_INVARIANTS = (
+    ast.Call, ast.Subscript,
+    ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
+)
+"""What is worth naming as loop-invariant.
+
+Hoisting a bare name or a literal buys nothing. A comprehension is here
+because rebuilding a collection per iteration is the expensive case, and it is
+the comprehension -- not the `range()` inside it -- that gets hoisted."""
+
+
 def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """Non-trivial pure expressions whose value cannot change across iterations.
 
     The highest-value analyzer in the suite.
     Only reports calls and subscripts -- hoisting a bare name or a literal buys
     nothing, and reporting those would bury the real findings in noise.
+
+    A whole comprehension is reportable too, not only calls and subscripts.
+    `{i for i in range(1, k, 2)}` inside a loop rebuilds the same set on every
+    iteration, and the thing to hoist is the comprehension -- charging its
+    `range(...)` to the comprehension instead lands on the one clause a
+    comprehension evaluates once, so the finding disappeared entirely.
 
     Comprehensions count as scopes, not just `for` and `while`.
     `[[0] * len(SMELLS) for _ in range(n)]` recomputes `len(SMELLS)` once per
@@ -54,7 +71,7 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         rewritten = ctx.assigned_names(scope) | _mutated_names(scope)
         reported: list[ast.AST] = []
         for node in ctx.per_iteration_nodes(scope):
-            if not isinstance(node, (ast.Call, ast.Subscript)):
+            if not isinstance(node, REPORTABLE_INVARIANTS):
                 continue
             if ctx.repeats_around(node)[-1:] != (scope,):
                 continue  # belongs to a nested scope; that scope will report it
@@ -62,7 +79,12 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 continue
             if not ctx.is_pure(node):
                 continue
-            if ctx.read_names(node) & rewritten:
+            # Only the names the expression reads from *outside* itself matter.
+            # A comprehension binds its own targets, and counting those made
+            # `{i for i in range(1, k, 2)}` look like it varied with the loop
+            # because `i` is assigned somewhere inside it.
+            free = ctx.read_names(node) - ctx.assigned_names(node)
+            if free & rewritten:
                 continue
             if any(_contains(outer, node) for outer in reported):
                 continue  # already covered by a larger invariant expression
@@ -330,6 +352,15 @@ def _looks_numeric(node: ast.AST) -> bool:
     return False
 
 
+MIN_RESOLUTIONS_TO_CACHE = 3
+"""Times one attribute chain is walked in a loop before caching it is worth saying.
+
+Raised from two. Resolving `labels.iloc` twice costs two dict lookups against a
+local binding the next reader has to carry, which is not a finding -- it is the
+shape of ordinary code, and reporting it buried the chains that really are
+walked five or six times."""
+
+
 def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """Attribute chains or globals resolved repeatedly inside a loop body.
 
@@ -366,7 +397,7 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
 
         mine: set[str] = set()
         for chain, nodes in seen.items():
-            if len(nodes) < 2 or chain in covered:
+            if len(nodes) < MIN_RESOLUTIONS_TO_CACHE or chain in covered:
                 continue
             # A prefix is only its own finding when it is resolved more often
             # than any chain built on it -- otherwise it is the same lookup.

@@ -11,13 +11,13 @@ WEIGHTS = {}
 
 
 def count_exhausted(attempts):
-    # A module constant probed three times per attempt: one dict probe each.
+    # A module constant probed four times per attempt: one dict probe each.
     total = 0
     for attempt in attempts:
         if attempt.tries >= MAX_RETRIES:
             total += 1
         elif attempt.tries == MAX_RETRIES - 1:
-            log_warning(attempt, MAX_RETRIES)
+            log_warning(attempt, MAX_RETRIES, MAX_RETRIES)
     return total
 
 
@@ -25,7 +25,8 @@ def render_rows(rows):
     # The card's own repair example: a builtin resolved three times per row.
     out = []
     for row in rows:
-        out.append(str(row.key) + "=" + str(row.value) + "/" + str(row.unit))
+        out.append(str(row.key) + "=" + str(row.value) + "/" + str(row.unit)
+                   + ":" + str(row.scale))
     return out
 
 
@@ -35,7 +36,7 @@ def score_matrix(grid):
     for row in grid:
         for cell in row:
             if cell in WEIGHTS:
-                total += WEIGHTS[cell] * WEIGHTS.get(cell, 1)
+                total += WEIGHTS[cell] * WEIGHTS.get(cell, 1) + WEIGHTS["base"]
     return total
 
 
@@ -44,9 +45,9 @@ def summarise_batch(records):
     lines = []
     for record in records:
         label = FIELD_LABELS.get(record.field, FIELD_LABELS["default"])
-        width = FIELD_LABELS.get(record.field + "_width", 8)
+        width = FIELD_LABELS.get(record.field + "_width", FIELD_LABELS["pad"])
         lines.append(format_cell(label, width) + format_cell(record.value, width)
-                     + format_cell(record.unit, width))
+                     + format_cell(record.unit, width) + format_cell(width, width))
     return lines
 
 
@@ -63,7 +64,7 @@ def classify_tokens(tokens):
 
 
 def tally_flags(events):
-    # Two reads per iteration is one under the threshold: not worth a local.
+    # Three reads per iteration is one under the threshold: not worth a local.
     enabled = 0
     for event in events:
         if event.flag in FEATURE_FLAGS:
@@ -90,12 +91,12 @@ def accumulate_totals(rows, factor):
 
 def scale_readings(readings):
     # A comprehension pays the same lookup per element as the loop it replaces.
-    return [math.sqrt(math.fabs(math.floor(r))) for r in readings]
+    return [math.sqrt(math.fabs(math.floor(math.trunc(r)))) for r in readings]
 
 
 def total_readings(readings):
-    # Same three lookups, in a generator expression.
-    return sum(math.sqrt(math.fabs(math.floor(r))) for r in readings)
+    # Same four lookups, in a generator expression.
+    return sum(math.sqrt(math.fabs(math.floor(math.trunc(r)))) for r in readings)
 
 
 class Throttle:
@@ -120,3 +121,14 @@ def above_threshold(values):
         if value > THRESHOLD:
             above += 1
     return above
+
+
+def scale_all(readings):
+    # Three reads: right at the old threshold and deliberately below the new
+    # one. A module a loop reaches for three times is ordinary code, and the
+    # hoist trades a dict lookup for a name the next reader has to follow.
+    out = []
+    for reading in readings:
+        out.append(math.floor(reading) + math.ceil(reading) + math.trunc(reading))
+    return out
+

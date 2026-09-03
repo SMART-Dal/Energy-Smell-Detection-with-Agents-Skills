@@ -56,8 +56,13 @@ without reading past the first difference.  It is `str(a) == str(b)` wearing a
 different spelling, and matching only bare-name calls walked past it.
 """
 
-MIN_USES_TO_HOIST = 3
-"""Reads of one global inside a loop before hoisting it is worth mentioning."""
+MIN_USES_TO_HOIST = 4
+"""Reads of one global inside a loop before hoisting it is worth mentioning.
+
+Raised from three. A module a loop reaches for three times -- `plt`, `np`, `pd`
+-- is normal code, and the hoist trades one dict lookup per read against a name
+the next reader has to follow. At three the rule was one of the loudest in the
+suite and almost none of it was worth acting on."""
 
 MAX_HOISTS_PER_LOOP = 2
 """How many names one loop may be reported for, worst first."""
@@ -107,8 +112,9 @@ def float_literal_on_int_data(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
       * it keyed on `in_loop`, so it missed every comprehension -- including
         `[n * 3.0 for n in counts]`, which is the card's own measured example;
       * it ignored `x += 1.0`, which forces the same conversion;
-      * it fired on a literal whose sibling operand is already fractional, where
-        the result was going to be a float regardless and the `.0` costs
+      * it fired on a literal whose sibling operand is already float-valued --
+        a fractional literal, a true division, or an explicit `float(...)` --
+        where the result was going to be a float regardless and the `.0` costs
         nothing.
     """
     for node in ast.walk(ctx.node):
@@ -137,14 +143,31 @@ def _integral_float_operand(node: ast.AST):
     else:
         return None
 
-    # A sibling that is already fractional makes the result a float whatever the
-    # whole-number literal does, so there is nothing to save by changing it.
-    if any(_is_fractional_float(operand) for operand in operands):
+    # A sibling that is already float-valued makes the result a float whatever
+    # the whole-number literal does, so there is nothing to save by changing it.
+    # `x / y` is true division and `float(x)` says so outright -- both were
+    # being reported, and in both the `.0` forces nothing.
+    if any(_is_fractional_float(operand) or _already_float(operand)
+           for operand in operands):
         return None
     for operand in operands:
         if _is_integral_float(operand):
             return node, operand.value
     return None
+
+
+def _already_float(node: ast.AST) -> bool:
+    """Whether this operand is float-valued regardless of the literal beside it.
+
+    `a / b` is true division and `float(x)` says so outright, so a `* 100.0`
+    next to either forces nothing -- the result was going to be a float and the
+    literal costs nothing to leave alone.
+    """
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return True
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        return node.func.id == "float"
+    return False
 
 
 def _is_integral_float(node: ast.AST) -> bool:
@@ -229,8 +252,8 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     name read in a loop produced 45 hits across `requests` -- more than every
     other analyzer combined, and mostly imported helpers read once per
     iteration, where a hoist saves one dict lookup against the cost of a
-    clearer name. Only a name read at least MIN_USES times per iteration is
-    worth binding, and only the worst two per loop are reported.
+    clearer name. Only a name read at least MIN_USES_TO_HOIST times per
+    iteration is worth binding, and only the worst two per loop are reported.
 
     Each read is charged to the innermost loop that actually re-evaluates it.
     Walking every loop in turn instead used to report a name inside nested
@@ -336,6 +359,11 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
     Sometimes required even so -- the copy is mutated and must not be shared.
     The fact is certain; whether it is a fault is the reader's call.
+
+    But only when the same container is copied every pass.  A name the loop
+    rebinds holds a different object each iteration, so there is no shared
+    container and nothing to hoist; reporting it described code it could not
+    repair.
     """
     for node in ctx.own_nodes():
         if not ctx.repeats(node):
@@ -350,8 +378,13 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
         # `row[:]` in a comprehension copies the element, and every copy is the
         # result; it does not duplicate a container the iterations share, so
-        # there is nothing to hoist and nothing being copied twice.
-        if described and not (ctx.read_names(node) & ctx.iteration_names(node)):
+        # there is nothing to hoist and nothing being copied twice.  The same
+        # goes for a name the loop body rebinds each pass -- `df_sym` reassigned
+        # from a lookup per iteration is a different frame every time, and the
+        # copy cannot be lifted out of a loop it does not outlive.
+        scopes = ctx.repeats_around(node)
+        rebound = ctx.assigned_names(scopes[-1]) if scopes else set()
+        if described and not (ctx.read_names(node) & (ctx.iteration_names(node) | rebound)):
             yield _evidence(
                 unit, "copy_in_loop", node, ("C6.S2",),
                 f"`{ast.unparse(node)}` duplicates a container on every iteration "
@@ -886,6 +919,38 @@ def column_major_traversal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
 # -- C2.S3  excessive modularization ---------------------------------------
 
 
+def _forwards_own_parameters(function: ast.AST, call: ast.Call) -> bool:
+    """Whether every argument is something the object or the caller already has.
+
+    A parameter and an attribute of `self` are both forwarded: the wrapper
+    contributes nothing the caller could not have supplied. A literal, a lambda
+    or a computed expression is the opposite -- it is the choice the wrapper
+    exists to make, and `self.load(symbol, "1m")` stops being a pass-through
+    the moment `"1m"` appears.
+    """
+    if call.keywords:
+        return False
+    arguments = getattr(function, "args", None)
+    parameters = set() if arguments is None else {
+        a.arg for a in (
+            *getattr(arguments, "posonlyargs", []),
+            *arguments.args,
+            *arguments.kwonlyargs,
+        )
+    }
+    for argument in call.args:
+        if isinstance(argument, ast.Name) and argument.id in parameters:
+            continue
+        if isinstance(argument, ast.Attribute):
+            base = argument.value
+            while isinstance(base, ast.Attribute):
+                base = base.value
+            if isinstance(base, ast.Name) and base.id == "self":
+                continue
+        return False
+    return True
+
+
 def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """A method whose entire body is one call to another method of the same object.
 
@@ -898,6 +963,15 @@ def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     Every layer costs a frame push and pop. Harmless as API surface, expensive
     when the chain sits under a loop -- which is why the scan reports how deep
     the unit is reached from, and leaves the call to the reader.
+
+    Only when the wrapper adds nothing.  These are not delegation:
+
+        def load_m1(self, symbol):   return self.load(symbol, "1m")
+        def cancel_expired(self):    return self.cancel_where(lambda o: ...)
+
+    The extra argument is what the wrapper is *for* -- deleting it changes what
+    every caller has to write, so the frame is buying something. Half of what
+    this rule reported across four real repositories was that shape.
     """
     body = getattr(ctx.node, "body", [])
     statements = [s for s in body if not isinstance(s, ast.Expr) or
@@ -911,6 +985,8 @@ def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     if not (isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name)):
         return
     if call.func.value.id != "self":
+        return
+    if not _forwards_own_parameters(ctx.node, call):
         return
     yield _evidence(
         unit, "self_delegation_chain", only, ("C2.S3", "C2.S1"),

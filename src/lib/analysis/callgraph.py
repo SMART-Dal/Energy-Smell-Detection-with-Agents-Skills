@@ -57,6 +57,8 @@ class CallSite:
 
     0 if the call is not repeated.  Comprehensions count: `[g(x) for x in xs]`
     calls `g` once per element exactly as a `for` statement would."""
+    file: str = ""
+    """The caller's file, so a report can say when a caller is in another one."""
 
 
 def calls_made_by(unit_node: ast.AST, context: UnitContext, *,
@@ -140,6 +142,7 @@ def link(findings: list, index=None) -> None:
                         callee=key_of[id(callee)],
                         line=line,
                         repeat_depth=depth,
+                        file=str(caller.unit.path),
                     )
                 )
 

@@ -67,6 +67,8 @@ class RepoIndex:
         """module -> {"helper": "pkg.util.helper", "Engine.run": "pkg.util.Engine.run"}"""
         self.reexport: dict[str, dict[str, str]] = {}
         """module -> {name it exposes: fully-qualified name it came from}"""
+        self.by_suffix: dict[str, list[str]] = {}
+        """last components -> modules ending in them, for sys.path-relative imports"""
 
         for path in files:
             tree = _parse(path)
@@ -78,6 +80,9 @@ class RepoIndex:
             self.path_of[module] = path
             self.is_package[path] = path.name == "__init__.py"
             self.symbols[module] = _definitions(tree, module)
+            parts = module.split(".")
+            for start in range(1, len(parts)):
+                self.by_suffix.setdefault(".".join(parts[start:]), []).append(module)
 
         for path, tree in self.trees.items():
             module = self.module_of[path]
@@ -134,6 +139,7 @@ class RepoIndex:
             if "." not in qualified:
                 return None
             module, name = qualified.rsplit(".", 1)
+            module = self._resolve_alias(module)
             table = self.symbols.get(module)
             if table and name in table:
                 return table[name]
@@ -143,6 +149,25 @@ class RepoIndex:
                 continue
             return None
         return None
+
+    def _resolve_alias(self, module: str) -> str:
+        """The module a name refers to when the package root is a subdirectory.
+
+        A repository whose code lives in `src/` and imports itself as
+        `from evaluation_functions import ...` is importing with `src/` on the
+        path, so the module the scan indexed as `src.evaluation_functions` is
+        the one meant.  Scanning the repository root instead of `src` made every
+        such import unresolvable -- and that is the ordinary way to point a scan
+        at a project.
+
+        Only an unambiguous suffix resolves.  Two modules ending in the same
+        name mean the import cannot be settled by reading, and inventing an edge
+        there is exactly what this module refuses to do.
+        """
+        if module in self.symbols:
+            return module
+        candidates = self.by_suffix.get(module, ())
+        return candidates[0] if len(candidates) == 1 else module
 
     def bindings(self, path: Path) -> dict[str, str]:
         """What each imported name in one file refers to, fully qualified."""

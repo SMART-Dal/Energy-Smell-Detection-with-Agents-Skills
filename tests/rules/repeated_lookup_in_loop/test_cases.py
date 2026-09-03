@@ -3,12 +3,12 @@
 
 class Gauge:
     def clamp(self, values):
-        # A three-link chain read twice a pass: one finding, not one per link.
+        # A three-link chain read three times a pass: one finding, not one per link.
         clamped = []
         for value in values:
             if value < self.limits.window.low:
                 value = self.limits.window.low
-            clamped.append(value)
+            clamped.append(min(value, self.limits.window.high))
         return clamped
 
 
@@ -26,22 +26,26 @@ def render_matrix(rows, theme):
     painted = []
     for row in rows:
         for cell in row:
-            painted.append((theme.palette.fill, theme.palette.stroke, cell))
+            painted.append(
+                (theme.palette.fill, theme.palette.stroke, theme.palette.width, cell)
+            )
     return painted
 
 
 def flush_all(batches, sink):
-    # The chain is the receiver of a method: the same lookups, twice a pass.
+    # The chain is the receiver of a method: the same lookups, three a pass.
     for batch in batches:
         sink.writer.write(batch.header)
         sink.writer.write(batch.body)
+        sink.writer.write(batch.footer)
 
 
 def apply_theme(cells, style):
-    # Two links resolved twice: the plain shape the rule exists for.
+    # Two links resolved three times: the plain shape the rule exists for.
     for cell in cells:
         cell.background = style.fill
         cell.border = style.fill
+        cell.outline = style.fill
 
 
 def consume(queue, worker):
@@ -66,3 +70,12 @@ def notify_all(rows, session):
     # One resolution per pass: below the threshold the rule claims.
     for row in rows:
         deliver(row, session.config.timeout)
+
+
+def paint_pair(cells, style):
+    # Twice is not a finding: two dict lookups against a local the next reader
+    # has to carry is the shape of ordinary code.
+    for cell in cells:
+        cell.background = style.fill
+        cell.border = style.fill
+

@@ -42,6 +42,15 @@ SHORT_CIRCUIT_CONSUMERS = frozenset({"any", "all"})
 RESOURCE_OPENERS = frozenset({"open", "connect", "urlopen", "Session", "socket",
                               "cursor"})
 
+RESOURCE_MODULES = frozenset({
+    "socket", "sqlite3", "psycopg2", "pymysql", "urllib", "request", "requests",
+    "io", "os", "codecs", "gzip", "bz2", "lzma", "tarfile", "zipfile", "shelve",
+    "smtplib", "ftplib", "http", "client", "db", "engine", "pool",
+})
+"""Receivers whose `.open()`/`.connect()` really does hand back a handle.
+
+`Image.open(...)` shares the name and holds nothing, so the receiver decides."""
+
 # Calls that take over the closing of a handle they are given: registration
 # with an `ExitStack`, or appending to the list of handles that some caller
 # walks and closes later.
@@ -129,13 +138,18 @@ def unmanaged_resource(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     of those is normal code, and flagging them was most of what this rule said
     about real libraries -- numpy alone writes `ctx = open(path, "wb")`
     immediately followed by `with ctx as f:` in four separate modules.
+
+    The receiver is checked, not just the method name.  `Image.open(BytesIO(...))`
+    returns a PIL image and holds no operating-system handle, and matching the
+    bare word `open` reported it as a leaked file -- which was every single time
+    this rule fired across four real repositories.
     """
     for node in _own_nodes(ctx.node):
         if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
             continue
         call = node.value
         name = _called_name(call)
-        if name not in RESOURCE_OPENERS:
+        if name not in RESOURCE_OPENERS or not _is_resource_opener(call, ctx):
             continue
         bound = {t.id for t in node.targets if isinstance(t, ast.Name)}
         if len(bound) != len(node.targets):
@@ -158,6 +172,29 @@ def _called_name(call: ast.Call) -> str | None:
     if isinstance(call.func, ast.Attribute):
         return call.func.attr
     return None
+
+
+def _is_resource_opener(call: ast.Call, ctx: UnitContext) -> bool:
+    """Whether this really opens a handle, rather than sharing a method name.
+
+    A bare `open(...)` is the builtin unless the unit rebinds the name.  An
+    attribute call is trusted only for receivers that do open something --
+    `socket.socket()`, `sqlite3.connect()` -- never for a class or an object of
+    unknown type.
+    """
+    func = call.func
+    if isinstance(func, ast.Name):
+        return func.id not in ctx.assigned_names(ctx.node)
+    if not isinstance(func, ast.Attribute):
+        return False
+    # `connection.cursor()` and `pool.connect()` are named for what they do and
+    # nothing else spells them that way. `open` is the exception: half the
+    # ecosystem has an `X.open()` that returns something other than a handle,
+    # so for that one name the receiver has to be a module that really opens
+    # files.
+    if func.attr != "open":
+        return True
+    return isinstance(func.value, ast.Name) and func.value.id in RESOURCE_MODULES
 
 
 def _is_released(scope: ast.AST, names: set[str]) -> bool:

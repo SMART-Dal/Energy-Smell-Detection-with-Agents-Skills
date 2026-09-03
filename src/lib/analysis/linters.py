@@ -12,6 +12,7 @@ signal in noise.
 
 from __future__ import annotations
 
+import ast
 import json
 import shutil
 import subprocess
@@ -108,17 +109,26 @@ def unavailable_reason() -> str | None:
 
 def collect(path: Path, units, source: str, imports: dict) -> list[Evidence]:
     """The analyzer-family entry point. See `analysis/__init__.py`."""
-    return evidence_from_ruff(path, [unit for unit, _ in units])
+    return evidence_from_ruff(path, [unit for unit, _ in units], source)
 
 
-def evidence_from_ruff(path: Path, units: list[UnitRef]) -> list[Evidence]:
+def evidence_from_ruff(path: Path, units: list[UnitRef],
+                       source: str | None = None) -> list[Evidence]:
     """Turn Ruff findings into Evidence, attributed to the unit they fall in."""
+    caught = _exception_binding_lines(source)
     findings = []
     for violation in run_ruff(path):
         code = violation.get("code")
         if code not in RULE_MAP:
             continue
         line = violation.get("location", {}).get("row", 0)
+        # An unused `except ... as e` is dead *naming*, not dead work. C1.S1 is
+        # measured on dead code that computes something -- a loop over 300,000
+        # records -- so routing an unbound exception there ranked "delete `as e`"
+        # as the most valuable repair in the file. Nothing is computed to
+        # produce `e`, and deleting the binding saves nothing at all.
+        if code == "F841" and line in caught:
+            continue
         unit = _owning_unit(units, line)
         if unit is None:
             continue
@@ -135,6 +145,21 @@ def evidence_from_ruff(path: Path, units: list[UnitRef]) -> list[Evidence]:
             )
         )
     return findings
+
+
+def _exception_binding_lines(source: str | None) -> set[int]:
+    """Lines whose only binding is an `except ... as name` handler."""
+    if not source:
+        return set()
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return set()
+    return {
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ExceptHandler) and node.name
+    }
 
 
 def _owning_unit(units: list[UnitRef], line: int) -> UnitRef | None:
