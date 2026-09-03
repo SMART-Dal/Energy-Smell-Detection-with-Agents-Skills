@@ -116,18 +116,24 @@ def evidence_from_ruff(path: Path, units: list[UnitRef],
                        source: str | None = None) -> list[Evidence]:
     """Turn Ruff findings into Evidence, attributed to the unit they fall in."""
     caught = _exception_binding_lines(source)
+    impure = _impure_binding_lines(source)
     findings = []
     for violation in run_ruff(path):
         code = violation.get("code")
         if code not in RULE_MAP:
             continue
         line = violation.get("location", {}).get("row", 0)
-        # An unused `except ... as e` is dead *naming*, not dead work. C1.S1 is
-        # measured on dead code that computes something -- a loop over 300,000
-        # records -- so routing an unbound exception there ranked "delete `as e`"
-        # as the most valuable repair in the file. Nothing is computed to
-        # produce `e`, and deleting the binding saves nothing at all.
-        if code == "F841" and line in caught:
+        # A dead *name* is not dead *work*, and C1.S1 is measured on work: a
+        # loop over 300,000 records, at 96%. Two shapes bind a name nothing
+        # reads while the thing that produced it still has to run --
+        #
+        #     except Exception as e:          nothing is computed to make `e`
+        #     response = requests.post(url)   the request is sent regardless
+        #
+        # -- so the repair removes a store and nothing else. Reporting them
+        # made "delete `as e`" the most valuable repair in a file. The lint is
+        # real; the energy claim is not, so neither is reported here.
+        if code == "F841" and (line in caught or line in impure):
             continue
         unit = _owning_unit(units, line)
         if unit is None:
@@ -160,6 +166,40 @@ def _exception_binding_lines(source: str | None) -> set[int]:
         for node in ast.walk(tree)
         if isinstance(node, ast.ExceptHandler) and node.name
     }
+
+
+PURE_ENOUGH_TO_DELETE = frozenset({
+    "len", "str", "int", "float", "bool", "list", "dict", "set", "tuple",
+    "sorted", "sum", "min", "max", "abs", "round", "range", "repr", "zip",
+})
+"""Calls whose only effect is the value they return, so deleting removes work."""
+
+
+def _impure_binding_lines(source: str | None) -> set[int]:
+    """Lines binding a dead name to something that has to run anyway.
+
+    A call this cannot vouch for keeps happening once the name is gone, so the
+    repair removes a store and nothing else.
+    """
+    if not source:
+        return set()
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return set()
+
+    lines: set[int] = set()
+    for node in ast.walk(tree):
+        value = getattr(node, "value", None)
+        if not isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)) or value is None:
+            continue
+        for call in [n for n in ast.walk(value) if isinstance(n, ast.Call)]:
+            func = call.func
+            named = func.id if isinstance(func, ast.Name) else None
+            if named not in PURE_ENOUGH_TO_DELETE:
+                lines.add(node.lineno)
+                break
+    return lines
 
 
 def _owning_unit(units: list[UnitRef], line: int) -> UnitRef | None:
