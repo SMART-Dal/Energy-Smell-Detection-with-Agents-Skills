@@ -264,6 +264,42 @@ class UnitContext:
             (self.repeat_depth(n) + 1 for n in self.repeat_scopes), default=0
         )
 
+    @cached_property
+    def annotation_nodes(self) -> frozenset[int]:
+        """`id()` of every node standing in an annotation position.
+
+        `batch: List[Order] = []` inside a loop looks exactly like repeated
+        subscript work, and it is none: PEP 526 says a function-local
+        annotation is *never* evaluated, whatever its target, so `List[Order]`
+        there costs nothing at all.  Measured on the real thing rather than
+        read off the PEP -- a class whose `__class_getitem__` prints stays
+        silent through three passes of a loop in a function, and prints three
+        times when the same loop is at module level.
+
+        So annotations are not uniformly free, and this does not claim they
+        are.  It claims something weaker that covers both cases: where they are
+        free there is nothing to report, and where they are not, the repair a
+        rule would propose is "hoist your type annotation into a local", which
+        nobody is going to do.  Either way the honest output is silence.
+
+        Only the annotation is skipped.  `AnnAssign.value` is ordinary code and
+        stays visible -- the `[]` in that example is still a fresh list per
+        pass, and a rule that cares about allocation should say so.
+        """
+        found: set[int] = set()
+        for node in ast.walk(self.node):
+            if isinstance(node, ast.AnnAssign):
+                roots = [node.annotation]
+            elif isinstance(node, ast.arg):
+                roots = [node.annotation] if node.annotation is not None else []
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                roots = [node.returns] if node.returns is not None else []
+            else:
+                continue
+            for root in roots:
+                found.update(id(inner) for inner in ast.walk(root))
+        return frozenset(found)
+
     def per_iteration_nodes(self, scope: ast.AST):
         """Yield the nodes of `scope` that are re-evaluated on every iteration.
 
@@ -279,6 +315,9 @@ class UnitContext:
         The skip is per scope rather than unit-wide.  A nested loop's own
         iterable runs once per iteration of the loop outside it, so it is
         genuinely repeated work as far as that outer loop is concerned.
+
+        Annotations are dropped here too, for the stronger reason that they are
+        not re-evaluated per iteration at all.  See `annotation_nodes`.
         """
         if isinstance(scope, (ast.For, ast.AsyncFor)):
             skip = {id(scope.iter)}
@@ -286,8 +325,9 @@ class UnitContext:
             skip = {id(scope.generators[0].iter)}
         else:
             skip = set()
+        annotations = self.annotation_nodes
         for node in ast.walk(scope):
-            if id(node) in skip:
+            if id(node) in skip or id(node) in annotations:
                 continue
             if any(id(ancestor) in skip for ancestor in self._ancestors(node)):
                 continue

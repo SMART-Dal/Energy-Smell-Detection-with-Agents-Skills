@@ -410,6 +410,8 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 continue
             if chain.split(".")[0] in ctx.module_aliases:
                 continue
+            if id(node) in ctx.annotation_nodes:
+                continue
             if any(prefix in rebound for prefix in _prefixes(chain)):
                 continue
             seen.setdefault(chain, []).append(node)

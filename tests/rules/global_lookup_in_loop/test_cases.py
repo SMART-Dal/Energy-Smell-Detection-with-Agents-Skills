@@ -2,6 +2,7 @@
 
 import itertools
 import math
+from typing import Dict, List
 
 MAX_RETRIES = 5
 FEATURE_FLAGS = {}
@@ -151,3 +152,19 @@ def scale_with_module(readings):
                    + math.sqrt(reading) + math.fabs(reading) + math.log1p(reading))
     return out
 
+
+class Record:
+    pass
+
+
+def stage_records(groups):
+    # `Record` is read five times inside the loop, over the threshold, and
+    # every one of them is in an annotation, so none of the reads happens.
+    out = []
+    for group in groups:
+        first: List[Record] = []
+        second: Dict[str, Record] = {}
+        third: List[Record] = []
+        fourth: Dict[Record, Record] = {}
+        out.append((first, second, third, fourth, group))
+    return out

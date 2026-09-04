@@ -368,6 +368,23 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     chain walk.  Only chains of depth >= 2 that appear more than once and are
     never rewritten in the loop are reported.
 
+    Chains rooted at an imported module -- `np.searchsorted`, `pd.isna`,
+    `math.sqrt` -- are left alone.  `global_lookup_in_loop` already declines to
+    tell anyone to bind `np` itself to a local, and it would be incoherent to
+    refuse that and then ask for `searchsorted = np.searchsorted` one dot later.
+    They are also where the advice pays least: a module attribute is reached
+    through a plain dict, with no instance `__dict__`, no MRO walk and no
+    descriptor, and the calls behind those names are the ones doing real work.
+    `C8S3_body_dominates` measured 10% for a body that only formats a string;
+    a body calling into pandas leaves the saving far below any noise floor.
+
+    That exclusion is also why C10.S5 is no longer suggested here.  It reads
+    "a global or builtin re-resolved through the module namespace", and nothing
+    this rule reports now touches the module namespace -- what is left is an
+    instance `__dict__`, a type, its bases, and possibly a descriptor.  The tag
+    was holding the finding down to C10.S5's 19.8%, because an ambiguous fact
+    is worth its cheapest reading; unambiguous, it is worth C8.S3's 46.2%.
+
     One chain is one finding.  Three things used to multiply that:
     `self.limits.window.low` read twice was reported three times, once per
     prefix; a chain inside a loop nest was reported once per enclosing loop; and
@@ -391,6 +408,10 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 continue
             if chain.split(".")[0] in rewritten:
                 continue
+            if chain.split(".")[0] in ctx.module_aliases:
+                continue
+            if id(node) in ctx.annotation_nodes:
+                continue
             if any(prefix in rebound for prefix in _prefixes(chain)):
                 continue
             seen.setdefault(chain, []).append(node)
@@ -407,7 +428,7 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 continue
             mine.add(chain)
             yield _evidence(
-                unit, "repeated_lookup_in_loop", nodes[0], ("C8.S3", "C10.S5"),
+                unit, "repeated_lookup_in_loop", nodes[0], ("C8.S3",),
                 f"`{chain}` is resolved {len(nodes)} times inside the loop; each "
                 f"access walks the attribute chain again",
                 chain=chain,

@@ -91,3 +91,17 @@ def norms(points):
     for x, y, z, w in points:
         out.append(math.sqrt(x) + math.sqrt(y) + math.sqrt(z) + math.sqrt(w))
     return out
+
+
+def stage_typed(groups, models):
+    # An attribute chain, four times a pass, all of it annotation. `models`
+    # arrives as a parameter here rather than an `import`, so the module-alias
+    # exclusion does not cover it and the annotation check has to.
+    out = []
+    for group in groups:
+        a: models.Order = None
+        b: models.Order = None
+        c: models.Order = None
+        d: models.Order = None
+        out.append((a, b, c, d, group))
+    return out

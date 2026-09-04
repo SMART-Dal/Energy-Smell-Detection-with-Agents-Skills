@@ -1,5 +1,7 @@
 """Cases for loop_invariant_expression."""
 
+from typing import Dict, List
+
 WEIGHTS = {"default": 1.0, "boosted": 2.5}
 
 
@@ -118,3 +120,21 @@ def sorted_once(rows):
     # A comprehension's first iterable runs once, before iteration starts.
     return [row.id for row in sorted(rows)]
 
+
+class Order:
+    pass
+
+
+def collect_batches(groups):
+    # `List[Order]` is a subscript that does not vary, and it is not work:
+    # a function-local annotation is never evaluated, whatever its target.
+    # The `[]` beside it is still a fresh list per pass, which is somebody
+    # else's rule.
+    out = []
+    for group in groups:
+        batch: List[Order] = []
+        seen: Dict[str, List[Order]] = {}
+        batch.append(group)
+        seen[str(group)] = batch
+        out.append(seen)
+    return out

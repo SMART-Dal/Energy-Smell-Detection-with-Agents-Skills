@@ -272,7 +272,10 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     Each read is charged to the innermost loop that actually re-evaluates it.
     Walking every loop in turn instead used to report a name inside nested
     loops once per enclosing level, and counted the names in a `for` loop's
-    iterable, which is evaluated once before the first pass.
+    iterable, which is evaluated once before the first pass.  Annotations are
+    skipped for the same reason as the iterable: `batch: List[Order] = []` in a
+    loop reads `List` and `Order`, and a function-local annotation is never
+    evaluated, so neither read happens.
     """
     local = ctx.assigned_names(ctx.node) | _parameter_names(ctx.node)
     unbindable = _NOT_WORTH_BINDING | set(ctx.module_aliases) | _imported_modules(ctx.node)
@@ -283,6 +286,8 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         if not (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)):
             continue
         if node.id in local or node.id in unbindable:
+            continue
+        if id(node) in ctx.annotation_nodes:
             continue
         loop = _repeating_loop(ctx, node)
         if loop is None:
