@@ -1,5 +1,7 @@
 """Cases for repeated_lookup_in_loop."""
 
+import math
+
 
 class Gauge:
     def clamp(self, values):
@@ -79,3 +81,13 @@ def paint_pair(cells, style):
         cell.background = style.fill
         cell.border = style.fill
 
+
+def norms(points):
+    # A module attribute, four times a pass. Left alone: `global_lookup_in_loop`
+    # will not ask anyone to bind `math` to a local, so asking for
+    # `sqrt = math.sqrt` one dot later would be the same advice in a costume --
+    # and a module attribute is one plain dict probe, no MRO, no descriptor.
+    out = []
+    for x, y, z, w in points:
+        out.append(math.sqrt(x) + math.sqrt(y) + math.sqrt(z) + math.sqrt(w))
+    return out
