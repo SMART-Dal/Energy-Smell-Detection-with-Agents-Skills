@@ -471,12 +471,19 @@ def _hotness(hotness: dict) -> str:
             f"via {shown or 'its callers'}"
         )
     if hotness["fan_in"]:
+        # Callers and call sites are different numbers and the reader counts the
+        # second: two calls from one function is one caller, and printing only
+        # "3 place(s)" beside four visible calls reads as a lost edge.
+        sites = len(hotness["called_from"])
+        callers = hotness["fan_in"]
         elsewhere = {
             site["caller"] for site in hotness["called_from"]
             if site.get("file") and site["file"] != hotness.get("unit_file")
         }
-        where = f" ({len(elsewhere)} in other file(s))" if elsewhere else ""
-        parts.append(f"called from {hotness['fan_in']} place(s){where}")
+        where = f", {len(elsewhere)} in other file(s)" if elsewhere else ""
+        counted = (f"{callers} caller(s)" if sites == callers
+                   else f"{callers} caller(s), {sites} call site(s)")
+        parts.append(f"called from {counted}{where}")
     return " | ".join(parts)
 
 
