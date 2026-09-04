@@ -52,3 +52,20 @@ def both_true(flag):
 def direct(value, limit):
     # Already the repair.
     return value > limit
+
+
+def is_configured(settings):
+    # A truthiness test, not a boolean one: `return settings.get("api_key")`
+    # hands back the key. The advice has to say `bool(...)`, which it now does.
+    if settings.get("api_key"):
+        return True
+    else:
+        return False
+
+
+def validate_token(token):
+    # An early-return guard has no `else`, and requiring one skipped the
+    # commonest way this is written. The answer is `bool(token)`.
+    if not token:
+        return False
+    return True

@@ -69,3 +69,17 @@ def above_threshold(readings):
         if reading.value > 5.0:
             hot.append(reading)
     return hot
+
+
+def scale_durations(duration: float, out):
+    # The author said this is a float. `duration * 2.0` forces nothing, and
+    # assuming every untyped name is an integer is the whole finding.
+    for _ in range(100):
+        out.append(duration * 2.0)
+
+
+def fractional_parts(measurements, out):
+    # `m % 1.0` is how the fractional part of a float is written, and `% 1`
+    # is not the same thing for an int.
+    for m in measurements:
+        out.append(m % 1.0)

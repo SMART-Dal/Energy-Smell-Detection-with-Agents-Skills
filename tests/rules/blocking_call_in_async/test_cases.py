@@ -1,8 +1,11 @@
 """Cases for blocking_call_in_async."""
 
+import threading
 import time
 
 import requests
+from requests import get
+from time import sleep
 
 
 async def poll(url, interval):
@@ -34,3 +37,19 @@ async def handle(request):
     # Cheap synchronous CPU work is not blocking the loop in any real sense.
     payload = parse(request.body)
     return await store(payload)
+
+
+async def poll_status(url):
+    # `from time import sleep` binds the function itself, so the call is a
+    # bare name and a rule reading only `module.attr` never saw it.
+    sleep(1)
+    return get(url)
+
+
+async def run_pipeline():
+    # The blocking call is inside a nested `def` handed to a thread, so it
+    # never runs on the event loop. That is the repair, not the fault.
+    def worker():
+        time.sleep(10)
+
+    threading.Thread(target=worker).start()

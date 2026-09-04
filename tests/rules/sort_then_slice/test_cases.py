@@ -42,3 +42,19 @@ def sorted_then_bound(values, k):
     # what it can prove -- the name could be indexed anywhere.
     ordered = sorted(values)
     return ordered[:k]
+
+
+def every_other(data):
+    # `[::2]` keeps half the sort, in order. `heapq.nsmallest` is not that.
+    return sorted(data)[::2]
+
+
+def descending(data):
+    # `[::-1]` keeps all of it. Nothing is discarded, let alone most of it.
+    return sorted(data)[::-1]
+
+
+def drop_smallest_three(data):
+    # `[3:]` keeps everything but the smallest three -- the opposite of the
+    # case `heapq.nsmallest` answers.
+    return sorted(data)[3:]

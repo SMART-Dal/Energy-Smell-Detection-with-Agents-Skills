@@ -63,3 +63,18 @@ def sorted_then_rebound(values, extra):
 def same_lines(left, right):
     # Two whole strings built to answer one yes or no.
     return "".join(left) == "".join(right)
+
+
+def check_status(user_id, error_obj):
+    # A type conversion against a literal is the ordinary way to compare an
+    # int to text. There is nothing built and thrown away -- the conversion
+    # *is* the comparison.
+    if str(user_id) == "1001":
+        grant_admin()
+    if str(error_obj) == "Timeout":
+        retry()
+
+
+def names_match(results):
+    # The same with a set display on the other side.
+    return set(results) == {"baseline", "volatility", "slippage"}

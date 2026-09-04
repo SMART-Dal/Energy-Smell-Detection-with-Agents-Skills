@@ -72,3 +72,21 @@ def ends_and_first(batches):
         total += ordered[0] + ordered[-1]
         total += batch[0]
     return total
+
+
+def stage_configs(batches, manager, out):
+    # `manager.default_config.copy()` is the same copy as `defaults.copy()`,
+    # and a receiver test demanding a bare name missed every dotted one.
+    for b in batches:
+        out.append(manager.default_config.copy())
+
+
+def find_subsets(nums, path, results):
+    # `path` is mutated in place and never rebound, so it looked invariant.
+    # The copy is a snapshot of a value that differs every pass; without it
+    # `results` ends up a list of empty lists.
+    for n in nums:
+        path.append(n)
+        results.append(path[:])
+        find_subsets(nums, path, results)
+        path.pop()

@@ -49,3 +49,12 @@ def empty_accumulator(rows):
     for row in rows:
         out.append(row)
     return out
+
+
+def build_command(csv):
+    # `cmd += [...]` is `list.__iadd__`, an in-place extend. As a tuple it
+    # stops being in-place, and `tuple += list` raises outright.
+    cmd = ["perf", "stat"]
+    if csv:
+        cmd += ["-x", ","]
+    return cmd

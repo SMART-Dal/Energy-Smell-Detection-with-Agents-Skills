@@ -71,7 +71,13 @@ MAX_HOISTS_PER_LOOP = 2
 
 # Operators whose result type follows their operands, so one float literal
 # makes the whole expression floating point.
-FLOAT_FORCING_OPS = (ast.Mult, ast.Add, ast.Sub, ast.Pow, ast.Mod)
+FLOAT_FORCING_OPS = (ast.Mult, ast.Add, ast.Sub, ast.Pow)
+"""Arithmetic where a `.0` literal makes an otherwise integer result a float.
+
+`%` is deliberately absent. `m % 1.0` is how the fractional part of a float is
+written, and the measured claim (+39% over a million integers) is about
+multiplication and addition -- not about a modulo whose literal was chosen to
+say "this is a float"."""
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
@@ -84,6 +90,30 @@ def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...]
         message=message,
         detail=detail,
     )
+
+
+MUTATING_IN_PLACE = frozenset({
+    "append", "extend", "insert", "remove", "pop", "clear", "sort", "reverse",
+    "add", "discard", "update", "popitem", "setdefault",
+})
+
+
+def _mutated_in(scope: ast.AST) -> set[str]:
+    """Names whose contents the scope changes without rebinding them."""
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr in MUTATING_IN_PLACE
+                and isinstance(node.func.value, ast.Name)):
+            found.add(node.func.value.id)
+        elif isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+            if isinstance(node.ctx, (ast.Store, ast.Del)):
+                found.add(node.value.id)
+        elif isinstance(node, ast.Delete):
+            for target in node.targets:
+                if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
+                    found.add(target.value.id)
+    return found
 
 
 def _dotted(func: ast.AST) -> tuple[str, str] | None:
@@ -117,9 +147,15 @@ def float_literal_on_int_data(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         a fractional literal, a true division, or an explicit `float(...)` --
         where the result was going to be a float regardless and the `.0` costs
         nothing.
+
+    An annotation counts as float-valued too.  `def compute(duration: float)`
+    is the author saying what the value is, and `duration * 2.0` forces
+    nothing; without reading it the rule assumed every untyped name held an
+    integer, which is the assumption the whole finding rests on.
     """
+    float_names = frozenset(_float_valued_names(ctx.node))
     for node in ast.walk(ctx.node):
-        pair = _integral_float_operand(node)
+        pair = _integral_float_operand(node, float_names)
         if pair is None:
             continue
         expression, literal = pair
@@ -134,7 +170,7 @@ def float_literal_on_int_data(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         )
 
 
-def _integral_float_operand(node: ast.AST):
+def _integral_float_operand(node: ast.AST, float_names: frozenset):
     """`(expression, literal)` when arithmetic is made floating by a whole-number
     constant that is not already implied by another operand."""
     if isinstance(node, ast.BinOp) and isinstance(node.op, FLOAT_FORCING_OPS):
@@ -148,7 +184,7 @@ def _integral_float_operand(node: ast.AST):
     # the whole-number literal does, so there is nothing to save by changing it.
     # `x / y` is true division and `float(x)` says so outright -- both were
     # being reported, and in both the `.0` forces nothing.
-    if any(_is_fractional_float(operand) or _already_float(operand)
+    if any(_is_fractional_float(operand) or _already_float(operand, float_names)
            for operand in operands):
         return None
     for operand in operands:
@@ -157,7 +193,7 @@ def _integral_float_operand(node: ast.AST):
     return None
 
 
-def _already_float(node: ast.AST) -> bool:
+def _already_float(node: ast.AST, float_names: frozenset) -> bool:
     """Whether this operand is float-valued regardless of the literal beside it.
 
     `a / b` is true division and `float(x)` says so outright, so a `* 100.0`
@@ -168,6 +204,50 @@ def _already_float(node: ast.AST) -> bool:
         return True
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
         return node.func.id == "float"
+    if isinstance(node, ast.Name) and node.id in float_names:
+        return True
+    if isinstance(node, ast.BinOp):
+        return _already_float(node.left, float_names) or _already_float(node.right, float_names)
+    return False
+
+
+def _float_valued_names(scope: ast.AST) -> set[str]:
+    """Names this unit says are floats: an annotation, or a float-valued binding.
+
+    `def compute(duration: float)` is the author stating the type, and `* 2.0`
+    on it forces nothing -- the product was always going to be a float. Without
+    this the rule assumed every untyped name was an integer, which is how a
+    parameter annotated `float` came to be reported.
+    """
+    found: set[str] = set()
+    arguments = getattr(scope, "args", None)
+    if arguments is not None:
+        declared = [*getattr(arguments, "posonlyargs", []), *arguments.args,
+                    *arguments.kwonlyargs]
+        for argument in declared:
+            if argument.annotation is not None and _names_a_float(argument.annotation):
+                found.add(argument.arg)
+    for node in ast.walk(scope):
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            if _names_a_float(node.annotation):
+                found.add(node.target.id)
+        elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target = node.targets[0]
+            if isinstance(target, ast.Name) and _already_float(node.value, frozenset()):
+                found.add(target.id)
+    return found
+
+
+def _names_a_float(annotation: ast.AST) -> bool:
+    root = annotation
+    while isinstance(root, ast.Subscript):
+        root = root.value
+    if isinstance(root, ast.Attribute):
+        return root.attr in {"float", "float64", "float32", "Decimal"}
+    if isinstance(root, ast.Name):
+        return root.id in {"float", "Decimal"}
+    if isinstance(root, ast.Constant) and isinstance(root.value, str):
+        return "float" in root.value.lower()
     return False
 
 
@@ -221,8 +301,26 @@ def constant_sequence_literal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
 
 
 def _is_mutated(scope: ast.AST, name: str) -> bool:
-    """Whether `name` is ever appended to, assigned into, or reassigned."""
+    """Whether `name` is ever appended to, assigned into, or reassigned.
+
+    `colors += [...]` is `list.__iadd__`, an in-place extend, and read as never
+    mutated. As a tuple it stops being in-place, and `tuple += list` raises
+    outright -- so an augmented assignment disqualifies the rewrite, and a
+    `for` target rebinding the name does too.
+
+    Rebinding by plain assignment does not. `modes = ["r", "w"]` replaced by
+    `modes = ["rb", "wb"]` in a branch mutates no list; both literals convert
+    independently, which is why the count of bindings is deliberately not
+    consulted here.
+    """
     for node in ast.walk(scope):
+        if isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name):
+            if node.target.id == name:
+                return True
+        if isinstance(node, (ast.For, ast.AsyncFor)):
+            for inner in ast.walk(node.target):
+                if isinstance(inner, ast.Name) and inner.id == name:
+                    return True
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
             owner = node.func.value
             if isinstance(owner, ast.Name) and owner.id == name:
@@ -403,16 +501,28 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     But only when the same container is copied every pass.  A name the loop
     rebinds holds a different object each iteration, so there is no shared
     container and nothing to hoist; reporting it described code it could not
-    repair.
+    repair.  A name the loop *mutates* is the same case and was not covered:
+
+        for n in nums:
+            path.append(n)
+            results.append(path[:])
+            recurse(); path.pop()
+
+    `path` is never rebound, so it looked invariant, and the copy looked like a
+    duplicate of one unchanging container.  It is a snapshot of a value that is
+    different on every pass, and deleting it leaves a list of empty lists.
     """
     for node in ctx.own_nodes():
         if not ctx.repeats(node):
             continue
         described = None
         if isinstance(node, ast.Call):
-            dotted = _dotted(node.func)
-            if dotted and dotted[1] in {"copy", "deepcopy"}:
-                described = f"{dotted[0]}.{dotted[1]}()"
+            func = node.func
+            # `manager.default_config.copy()` and `self.config.copy()` are the
+            # same copy as `defaults.copy()`, and a receiver test that demanded
+            # a bare name missed every one of them.
+            if isinstance(func, ast.Attribute) and func.attr in {"copy", "deepcopy"}:
+                described = f"{ast.unparse(func.value)}.{func.attr}()"
         elif isinstance(node, ast.Subscript) and _is_full_slice(node.slice):
             described = "a `[:]` slice"
 
@@ -424,6 +534,7 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         # copy cannot be lifted out of a loop it does not outlive.
         scopes = ctx.repeats_around(node)
         rebound = ctx.assigned_names(scopes[-1]) if scopes else set()
+        rebound |= _mutated_in(scopes[-1]) if scopes else set()
         if described and not (ctx.read_names(node) & (ctx.iteration_names(node) | rebound)):
             yield _evidence(
                 unit, "copy_in_loop", node, ("C6.S2",),
@@ -462,6 +573,8 @@ def sort_then_slice(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         if inner.func.id != "sorted":
             continue
         if isinstance(node.slice, ast.Slice):
+            if not _keeps_a_prefix_or_suffix(node.slice):
+                continue
             advice = "`heapq.nsmallest`/`nlargest` keeps only the elements wanted"
         elif _end_index(node.slice) is not None:
             # `[-1]` is a UnaryOp, not a negative Constant, so matching on the
@@ -474,6 +587,25 @@ def sort_then_slice(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             f"`{ast.unparse(node)}` sorts the whole sequence and then discards "
             f"most of it; {advice}",
         )
+
+
+def _keeps_a_prefix_or_suffix(node: ast.Slice) -> bool:
+    """Whether a slice takes the k smallest or the k largest, and nothing else.
+
+    The rule is that most of the sort is thrown away, so the slice has to be
+    the throwing-away. `[::2]` keeps half of it in order, `[::-1]` keeps all of
+    it reversed, and `[3:]` keeps everything but the smallest three -- for none
+    of those is `heapq.nsmallest` the same answer, and the message claiming
+    they "discard most of it" was simply false.
+    """
+    if node.step is not None:
+        return False
+    if node.lower is None:
+        return node.upper is not None            # [:k]
+    if node.upper is None:                       # [-k:]
+        return (isinstance(node.lower, ast.UnaryOp)
+                and isinstance(node.lower.op, ast.USub))
+    return False
 
 
 def _end_index(node: ast.AST) -> int | None:
@@ -625,13 +757,16 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     for node in ast.walk(ctx.node):
         if not isinstance(node, ast.Compare):
             continue
-        for side in (node.left, *node.comparators):
-            call = None
-            if isinstance(side, ast.Name):
-                call = aliases.get(side.id)
-            elif isinstance(side, ast.Call):
-                call = side
-            if not isinstance(call, ast.Call) or not call.args:
+        sides = [(side, _built_by(side, aliases)) for side in (node.left, *node.comparators)]
+        for side, call in sides:
+            if call is None:
+                continue
+            # `str(user_id) == "1001"` is a type conversion against a literal --
+            # the ordinary way to compare an int to text -- and it was reported
+            # as an object built and thrown away. There is nothing to take
+            # away: the conversion *is* the comparison. A non-literal on the
+            # other side is a different matter, since both sides are then work.
+            if all(_is_literal(other) for other, _ in sides if other is not side):
                 continue
             builder = _expensive_builder(call.func)
             if builder is None:
@@ -650,6 +785,25 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 call=builder,
             )
             break
+
+
+def _is_literal(node: ast.AST) -> bool:
+    """A constant or a display of constants, i.e. nothing that costs anything."""
+    if isinstance(node, ast.Constant):
+        return True
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        return all(_is_literal(e) for e in node.elts)
+    if isinstance(node, ast.Dict):
+        return all(_is_literal(e) for e in [*node.keys, *node.values] if e is not None)
+    return False
+
+
+def _built_by(side: ast.AST, aliases: dict) -> ast.Call | None:
+    """The object-building call at one operand, directly or through a name."""
+    call = aliases.get(side.id) if isinstance(side, ast.Name) else side
+    if not isinstance(call, ast.Call) or not call.args:
+        return None
+    return call if _expensive_builder(call.func) else None
 
 
 def _expensive_builder(func: ast.AST) -> str | None:
@@ -714,19 +868,72 @@ def redundant_bool_branch(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     Two jumps and two constant loads for something the comparison already
     produced. Tiny per execution, which is why it is advisory.
     """
-    for node in ast.walk(ctx.node):
-        if not isinstance(node, ast.If) or not node.orelse:
+    for node, yes, no in _bool_branches(ctx.node):
+        if {yes, no} != {True, False}:
             continue
-        yes, no = _single_return(node.body), _single_return(node.orelse)
-        if yes is None or no is None:
+        test = ast.unparse(node.test)
+        if yes is not True and isinstance(node.test, ast.UnaryOp) and isinstance(
+                node.test.op, ast.Not):
+            # `if not token: return False` / `return True` answers `bool(token)`.
+            # Negating the negation reads as `not (not token)`, which is correct
+            # and is not advice anyone would take.
+            inner = node.test.operand
+            direct = (ast.unparse(inner) if _yields_a_bool(inner)
+                      else f"bool({ast.unparse(inner)})")
+        elif yes is not True:
+            direct = f"not ({test})"
+        elif _yields_a_bool(node.test):
+            direct = test
+        else:
+            # `if settings.get("api_key"): return True` is a *truthiness* test,
+            # and `return settings.get("api_key")` hands back the key. That
+            # breaks `-> bool`, breaks `is True`, and was what this rule
+            # advised for every test that is not itself a comparison.
+            direct = f"bool({test})"
+        yield _evidence(
+            unit, "redundant_bool_branch", node, ("C1.S3",),
+            f"this branch returns True/False for a test that already produces "
+            f"a boolean; `return {direct}` is the same answer without the jump",
+        )
+
+
+def _bool_branches(scope: ast.AST):
+    """Yield `(if_node, true_branch_value, false_branch_value)`.
+
+    Two spellings, because they compile to the same thing and the second is the
+    commoner one by far -- an early-return guard has no `else`, so requiring
+    `node.orelse` skipped every `if not token: return False` / `return True`.
+    """
+    for node in ast.walk(scope):
+        if isinstance(node, ast.If) and node.orelse:
+            yes, no = _single_return(node.body), _single_return(node.orelse)
+            if yes is not None and no is not None:
+                yield node, yes, no
             continue
-        if {yes, no} == {True, False}:
-            direct = ast.unparse(node.test) if yes is True else f"not ({ast.unparse(node.test)})"
-            yield _evidence(
-                unit, "redundant_bool_branch", node, ("C1.S3",),
-                f"this branch returns True/False for a test that already produces "
-                f"a boolean; `return {direct}` is the same answer without the jump",
-            )
+        body = getattr(node, "body", None)
+        if not isinstance(body, list):
+            continue
+        for first, second in zip(body, body[1:]):
+            if not isinstance(first, ast.If) or first.orelse:
+                continue
+            yes, no = _single_return(first.body), _single_return([second])
+            if yes is not None and no is not None:
+                yield first, yes, no
+
+
+def _yields_a_bool(node: ast.AST) -> bool:
+    """Whether an expression is already a `bool`, not merely truthy."""
+    if isinstance(node, ast.Compare):
+        return True
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return True
+    if isinstance(node, ast.BoolOp):
+        return all(_yields_a_bool(v) for v in node.values)
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, bool)
+    return (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id in {"bool", "isinstance", "issubclass", "callable",
+                                 "hasattr", "any", "all"})
 
 
 def _single_return(body: list[ast.stmt]):
@@ -913,18 +1120,41 @@ def blocking_call_in_async(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     """
     if not isinstance(ctx.node, ast.AsyncFunctionDef):
         return
-    for node in ast.walk(ctx.node):
+    # `own_nodes` rather than `ast.walk`: a nested `def` is a unit of its own,
+    # and a blocking call inside one runs wherever that function is called --
+    # `threading.Thread(target=worker).start()` puts it on another thread
+    # entirely, which is the repair rather than the fault.
+    for node in ctx.own_nodes():
         if not isinstance(node, ast.Call):
             continue
-        dotted = _dotted(node.func)
-        if dotted in BLOCKING_IN_ASYNC:
-            yield _evidence(
-                unit, "blocking_call_in_async", node, ("C11.S4",),
-                f"`{dotted[0]}.{dotted[1]}()` blocks, and it is inside `async def "
-                f"{ctx.node.name}`; while it waits, the event loop runs nothing else "
-                f"and the core stays awake for no progress",
-                call=f"{dotted[0]}.{dotted[1]}",
-            )
+        named = _blocking_name(node.func, ctx)
+        if named is None:
+            continue
+        yield _evidence(
+            unit, "blocking_call_in_async", node, ("C11.S4",),
+            f"`{named}()` blocks, and it is inside `async def "
+            f"{ctx.node.name}`; while it waits, the event loop runs nothing else "
+            f"and the core stays awake for no progress",
+            call=named,
+        )
+
+
+def _blocking_name(func: ast.AST, ctx: UnitContext) -> str | None:
+    """The blocking call this is, whether reached through its module or not.
+
+    `from time import sleep` binds the function directly, so the call is an
+    `ast.Name` and a rule reading only `module.attr` never saw it -- which is
+    the spelling anyone writes who calls it more than twice.
+    """
+    dotted = _dotted(func)
+    if dotted in BLOCKING_IN_ASYNC:
+        return f"{dotted[0]}.{dotted[1]}"
+    if not isinstance(func, ast.Name):
+        return None
+    origin = ctx.imports.get(func.id)
+    if origin and (origin.split(".")[0], func.id) in BLOCKING_IN_ASYNC:
+        return f"{origin.split('.')[0]}.{func.id}"
+    return None
 
 
 # -- C12.S1  large-stride traversal ----------------------------------------
@@ -1012,7 +1242,16 @@ def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     The extra argument is what the wrapper is *for* -- deleting it changes what
     every caller has to write, so the frame is buying something. Half of what
     this rule reported across four real repositories was that shape.
+
+    Nor is a decorated method, or one whose delegate a subclass overrides.
     """
+    # A decorator changes what the method *is*: `@property` makes it an
+    # attribute read, `@cached_property` a memoised one, a hook registration
+    # makes it something the framework calls. None of them is a frame the
+    # caller chose to pay, and `method_ignores_self` and `trivial_delegation`
+    # both check this while this rule did not.
+    if getattr(ctx.node, "decorator_list", []):
+        return
     body = getattr(ctx.node, "body", [])
     statements = [s for s in body if not isinstance(s, ast.Expr) or
                   not isinstance(s.value, ast.Constant)]  # drop the docstring
@@ -1027,6 +1266,12 @@ def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     if call.func.value.id != "self":
         return
     if not _forwards_own_parameters(ctx.node, call):
+        return
+    # `def process(self, data): return self._do_process(data)` with a subclass
+    # supplying `_do_process` is the template-method pattern: the frame is the
+    # extension point. Shallow, like `method_ignores_self`'s use of it -- only
+    # overrides visible in this module are known.
+    if call.func.attr in ctx.overridden_methods:
         return
     yield _evidence(
         unit, "self_delegation_chain", only, ("C2.S3", "C2.S1"),

@@ -9,6 +9,7 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+    "stage_configs": 1,       # a dotted receiver is still a copy
     "refresh_scratch": 1,  # `.copy()` per row
     "snapshot_each": 1,    # `deepcopy` inside a comprehension
     "slice_per_row": 1,    # `[:]` is a copy with different punctuation

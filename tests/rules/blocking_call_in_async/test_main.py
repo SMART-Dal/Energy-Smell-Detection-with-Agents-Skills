@@ -9,6 +9,7 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+    "poll_status": 2,        # `sleep` and `get` imported directly
     "poll": 1,       # `time.sleep` stalls the loop
     "fetch_all": 1,  # a synchronous HTTP client in a coroutine
 }
