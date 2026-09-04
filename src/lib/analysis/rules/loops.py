@@ -378,6 +378,13 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     `C8S3_body_dominates` measured 10% for a body that only formats a string;
     a body calling into pandas leaves the saving far below any noise floor.
 
+    That exclusion is also why C10.S5 is no longer suggested here.  It reads
+    "a global or builtin re-resolved through the module namespace", and nothing
+    this rule reports now touches the module namespace -- what is left is an
+    instance `__dict__`, a type, its bases, and possibly a descriptor.  The tag
+    was holding the finding down to C10.S5's 19.8%, because an ambiguous fact
+    is worth its cheapest reading; unambiguous, it is worth C8.S3's 46.2%.
+
     One chain is one finding.  Three things used to multiply that:
     `self.limits.window.low` read twice was reported three times, once per
     prefix; a chain inside a loop nest was reported once per enclosing loop; and
@@ -419,7 +426,7 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 continue
             mine.add(chain)
             yield _evidence(
-                unit, "repeated_lookup_in_loop", nodes[0], ("C8.S3", "C10.S5"),
+                unit, "repeated_lookup_in_loop", nodes[0], ("C8.S3",),
                 f"`{chain}` is resolved {len(nodes)} times inside the loop; each "
                 f"access walks the attribute chain again",
                 chain=chain,
