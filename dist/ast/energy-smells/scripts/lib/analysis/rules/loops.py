@@ -12,7 +12,10 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
-from ..context import COMPREHENSION_NODES, LOOP_NODES, PURE_METHODS, UnitContext
+from ..context import (
+    COMPREHENSION_NODES, LOOP_NODES, OPAQUE_NODES, PURE_BUILTINS, PURE_METHODS,
+    UnitContext,
+)
 
 # C5.S1 puts the break-even for a set at "roughly a dozen elements"; below it,
 # scanning a sequence costs less than hashing the thing you are looking for.
@@ -744,34 +747,81 @@ def missing_early_exit(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """A search loop that settles its answer but keeps iterating.
 
     The shape is an `if` whose body only assigns a constant, in a loop with no
-    `break` and no `return`.  That alone is not enough, and two shapes used to
-    be reported that are not findings:
+    `break` and no `return`.  That alone is nowhere near enough.  The repair is
+    to stop the loop early, so the precondition is that stopping early changes
+    nothing anyone can see, and five separate ways of failing it were being
+    reported:
 
         status = "OK"
         for server in servers:
-            if server.slow:  status = "DEGRADED"
+            if server.slow:   status = "DEGRADED"
             elif server.down: status = "DOWN"
 
-    A later iteration can overwrite the value with a *different* one, so
-    breaking early changes the answer.  And:
+    A later iteration can overwrite the value with a *different* one.  So the
+    loop has to settle exactly one name on exactly one value.
 
         for event in events:
             if event.kind == "start": seen_start = True
             if event.kind == "end":   seen_end = True
 
-    Two independent flags, so stopping at the first would miss the second.
+    Two independent flags: stopping at the first would miss the second.
 
-    So the loop has to settle exactly one name, on exactly one value: once it
-    is set, no remaining iteration can change what the loop returns.
+        for row in rows:
+            if row.ok: flag = True
+            else:      flag = False
+
+    The same name set to a different constant, in a branch the old code never
+    looked at -- it read the `if` body and nothing else, so `elif` chains were
+    caught and a plain `else` was not.  Now every write to the name anywhere in
+    the loop has to agree, whatever construct it sits in.
+
+        for item in items:
+            valid = False
+            if item.passes_check: valid = True
+            send_metric(item, valid)
+
+    The name is re-initialised every pass and consumed every pass, so it is not
+    settling anything.  Same check catches it: `valid = False` is another write.
+
+        for item in stream:
+            log_event(item)
+            stats.total += 1
+            if item.is_target: found = True
+
+    And the one that needs a different check.  Nothing writes `found` twice
+    here, but the loop is doing work for someone else -- a call out to an
+    unknown function, and a counter on an object the caller holds.  Break early
+    and both stop happening.  So everything in the loop outside the settling
+    `if` has to be invisible from outside: writes to plain local names, and
+    calls that are either pure builtins or methods on a name this unit itself
+    created.  That last clause is what keeps the true positives:
+
+        while head:
+            if head in visited: result = True
+            visited.add(head)
+            head = head.next
+
+    `visited.add(head)` mutates a set this function made and nobody else can
+    reach, and `head = head.next` only advances the search.  Both exist to keep
+    the loop going, which is precisely the thing being cut.
     """
+    created = _created_names(ctx.node)
     for loop in ctx.loops:
         if _contains_exit(loop):
             continue
+
+        # Only the innermost loop around a settling `if` is asked to stop.  A
+        # nested search reported once per level, and the outer loop cannot be
+        # left by a `break` written inside the inner one anyway.
+        settling = [
+            node for node in ast.walk(loop)
+            if isinstance(node, ast.If)
+            and _assigns_only_constants(node.body)
+            and ctx.loops_around(node)[-1:] == (loop,)
+        ]
         settled: dict[str, set[str]] = {}
         first: dict[str, ast.AST] = {}
-        for node in ast.walk(loop):
-            if not (isinstance(node, ast.If) and _assigns_only_constants(node.body)):
-                continue
+        for node in settling:
             for assignment in node.body:
                 for target in assignment.targets:
                     if not isinstance(target, ast.Name):
@@ -783,6 +833,23 @@ def missing_early_exit(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         name, values = next(iter(settled.items()))
         if len(values) != 1:
             continue
+
+        # Two exemptions, not one.  A settling `if`'s *body* is the write this
+        # rule is reporting, and its *test* is the search being short-circuited.
+        # Its `else` is neither: walking the whole `if` node hid `else: flag =
+        # False` from the very check written to catch it.
+        settling_writes = {
+            id(inner) for node in settling
+            for statement in node.body for inner in ast.walk(statement)
+        }
+        settling_exempt = settling_writes | {
+            id(inner) for node in settling for inner in ast.walk(node.test)
+        }
+        if _written_elsewhere(loop, name, settling_writes):
+            continue
+        if not _work_stays_local(loop, ctx, created, settling_exempt):
+            continue
+
         yield _evidence(
             unit, "missing_early_exit", first[name], ("C3.S5",),
             f"`{name}` is set to its final value and the loop keeps going; no "
@@ -793,13 +860,28 @@ def missing_early_exit(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
 
 def _contains_exit(loop: ast.AST) -> bool:
-    """Whether the loop can terminate early, ignoring nested loops' breaks."""
-    for node in ast.walk(loop):
-        if isinstance(node, ast.Return):
-            return True
-        if isinstance(node, ast.Break):
-            return True
-    return False
+    """Whether *this* loop can terminate early.
+
+    The docstring used to say it ignored nested loops' breaks and the code did
+    not: `ast.walk` reaches every descendant, so a `break` belonging to an
+    inner loop, or a `return` belonging to a `def` written inside the body,
+    made the enclosing loop drop out of the analysis entirely.  Neither ends
+    this loop.  A `return` in a nested *loop* does, and still counts.
+    """
+
+    def scan(node: ast.AST, in_nested_loop: bool) -> bool:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, OPAQUE_NODES + (ast.Lambda,)):
+                continue
+            if isinstance(child, ast.Return):
+                return True
+            if isinstance(child, ast.Break) and not in_nested_loop:
+                return True
+            if scan(child, in_nested_loop or isinstance(child, LOOP_NODES)):
+                return True
+        return False
+
+    return scan(loop, False)
 
 
 def _assigns_only_constants(body: list[ast.stmt]) -> bool:
@@ -807,6 +889,146 @@ def _assigns_only_constants(body: list[ast.stmt]) -> bool:
         isinstance(statement, ast.Assign) and isinstance(statement.value, ast.Constant)
         for statement in body
     )
+
+
+def _bound_names(target: ast.AST) -> Iterator[str]:
+    """The names one assignment target binds, flattening `a, (b, c) = ...`."""
+    if isinstance(target, ast.Name):
+        yield target.id
+    elif isinstance(target, (ast.Tuple, ast.List)):
+        for element in target.elts:
+            yield from _bound_names(element)
+    elif isinstance(target, ast.Starred):
+        yield from _bound_names(target.value)
+
+
+def _written_elsewhere(loop: ast.AST, name: str, settling: set[int]) -> bool:
+    """Whether the loop writes `name` anywhere but in a settling `if` body.
+
+    Any second write is disqualifying whatever its value: a different constant
+    means the loop has not settled, and the same constant reached by another
+    route means the shape is not the one this rule can reason about.  The old
+    code only read the bodies of `if` statements, which is why `else: flag =
+    False` and a plain `valid = False` at the top of the body both slipped
+    through.
+    """
+    for node in ast.walk(loop):
+        if id(node) in settling:
+            continue
+        targets: list[ast.AST] = []
+        if isinstance(node, ast.Assign):
+            targets = list(node.targets)
+        elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+            targets = [node.target]
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            targets = [node.target]
+        elif isinstance(node, ast.NamedExpr):
+            targets = [node.target]
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            if name in node.names:
+                return True
+            continue
+        elif isinstance(node, ast.withitem):
+            targets = [node.optional_vars] if node.optional_vars else []
+        elif isinstance(node, ast.ExceptHandler):
+            if node.name == name:
+                return True
+            continue
+        for target in targets:
+            if name in set(_bound_names(target)):
+                return True
+    return False
+
+
+# Statements whose effect a `break` would skip, or whose control flow this rule
+# is not equipped to reason about.  A whitelist would be nicer, but `ast.walk`
+# hands back expressions too, so the check is framed as what disqualifies.
+_ESCAPING_STATEMENTS = (
+    ast.Yield, ast.YieldFrom, ast.Await, ast.Raise, ast.Try,
+    ast.With, ast.AsyncWith, ast.Delete, ast.Global, ast.Nonlocal,
+)
+
+
+def _created_names(scope: ast.AST) -> set[str]:
+    """Names this unit binds by assignment, so an object it alone can reach.
+
+    Deliberately not `ctx.assigned_names`, which also returns parameters -- and
+    a parameter is the one thing that must not count here.  `audit.record(row)`
+    and `visited.add(head)` are the same syntax; what separates them is that
+    `visited = set()` appears in the function and `audit` arrived from the
+    caller, who can still see what the loop did to it.
+    """
+    names: set[str] = set()
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                names.update(_bound_names(target))
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign, ast.NamedExpr)):
+            names.update(_bound_names(node.target))
+        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+            names.update(_bound_names(node.optional_vars))
+    return names
+
+
+def _work_stays_local(loop: ast.AST, ctx: UnitContext, created: set[str],
+                      settling: set[int]) -> bool:
+    """Whether everything the loop does besides settling the flag is invisible
+    outside it.
+
+    Three ways work escapes, and the loop keeps its finding only if it does
+    none of them:
+
+    A store into anything but a bare name -- `stats.total += 1`, `cache[k] = v`
+    -- reaches an object somebody else is holding.
+
+    A call to a bare name is a function this unit did not define and cannot see
+    into, so `log_event(item)` has to be assumed to do something.  Pure
+    builtins are the exception, since `len` and `max` are the arithmetic of the
+    loop rather than its output.
+
+    A method call is allowed only on a name this unit *created* -- `visited` in
+    `visited = set()`.  A method on a parameter, on a loop variable, or on an
+    attribute reaches an object from outside, and `audit.record(row)` is the
+    same escape as the counter.
+
+    The settling `if` itself is exempt, tests included.  `if not record.check()`
+    calls out to something unknown on every pass, and that call *is* the search
+    being short-circuited -- charging the rule for it would leave it able to
+    report only loops that search nothing.
+    """
+    iterated = ctx.iteration_names(loop) | {
+        n for node in ast.walk(loop)
+        if isinstance(node, (ast.For, ast.AsyncFor))
+        for n in _bound_names(node.target)
+    }
+    reachable_only_here = created - iterated
+
+    skip = set(settling)
+    if isinstance(loop, (ast.For, ast.AsyncFor)):
+        skip.update(id(node) for node in ast.walk(loop.iter))
+
+    for node in ast.walk(loop):
+        if id(node) in skip:
+            continue
+        if isinstance(node, _ESCAPING_STATEMENTS):
+            return False
+        if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(not isinstance(target, (ast.Name, ast.Tuple, ast.List))
+                   for target in targets):
+                return False
+        if isinstance(node, ast.Call):
+            func = node.func
+            if isinstance(func, ast.Name):
+                if func.id not in PURE_BUILTINS:
+                    return False
+            elif isinstance(func, ast.Attribute):
+                base = func.value
+                if not (isinstance(base, ast.Name) and base.id in reachable_only_here):
+                    return False
+            else:
+                return False
+    return True
 
 
 def try_except_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
