@@ -22,11 +22,20 @@ def count_exhausted(attempts):
 
 
 def render_rows(rows):
-    # The card's own repair example: a builtin resolved three times per row.
+    # A module-level helper resolved four times per row.
     out = []
     for row in rows:
-        out.append(str(row.key) + "=" + str(row.value) + "/" + str(row.unit)
-                   + ":" + str(row.scale))
+        out.append(format_cell(row.key) + format_cell(row.value)
+                   + format_cell(row.unit) + format_cell(row.scale))
+    return out
+
+
+def render_rows_builtin(rows):
+    # The same shape with a builtin. Nobody writes `_str = str` above a loop,
+    # so this is a lookup the reader cannot act on.
+    out = []
+    for row in rows:
+        out.append(str(row.key) + str(row.value) + str(row.unit) + str(row.scale))
     return out
 
 
@@ -91,12 +100,12 @@ def accumulate_totals(rows, factor):
 
 def scale_readings(readings):
     # A comprehension pays the same lookup per element as the loop it replaces.
-    return [math.sqrt(math.fabs(math.floor(math.trunc(r)))) for r in readings]
+    return [normalise(normalise(normalise(normalise(r)))) for r in readings]
 
 
 def total_readings(readings):
     # Same four lookups, in a generator expression.
-    return sum(math.sqrt(math.fabs(math.floor(math.trunc(r)))) for r in readings)
+    return sum(normalise(normalise(normalise(normalise(r)))) for r in readings)
 
 
 class Throttle:
@@ -125,10 +134,20 @@ def above_threshold(values):
 
 def scale_all(readings):
     # Three reads: right at the old threshold and deliberately below the new
-    # one. A module a loop reaches for three times is ordinary code, and the
+    # one. A name a loop reaches for three times is ordinary code, and the
     # hoist trades a dict lookup for a name the next reader has to follow.
     out = []
     for reading in readings:
-        out.append(math.floor(reading) + math.ceil(reading) + math.trunc(reading))
+        out.append(normalise(reading) + normalise(reading) + normalise(reading))
+    return out
+
+
+def scale_with_module(readings):
+    # An imported module read six times. `_math = math` above the loop is a
+    # real saving and advice no one would take.
+    out = []
+    for reading in readings:
+        out.append(math.floor(reading) + math.ceil(reading) + math.trunc(reading)
+                   + math.sqrt(reading) + math.fabs(reading) + math.log1p(reading))
     return out
 

@@ -19,6 +19,7 @@ from pathlib import Path
 
 from ..context import (
     UnitContext,
+    collect_module_aliases,
     collect_module_bindings,
     collect_overridden_methods,
 )
@@ -53,6 +54,7 @@ def collect(
     tree = ast.parse(source)
     module_bindings = collect_module_bindings(tree)
     overridden = collect_overridden_methods(tree)
+    aliases = collect_module_aliases(tree)
 
     found: list[Evidence] = []
     for unit, node in units:
@@ -61,6 +63,7 @@ def collect(
         context = UnitContext(
             node=node, source=source, imports=imports,
             module_bindings=module_bindings, overridden_methods=overridden,
+            module_aliases=aliases,
         )
         for rule in ALL_RULES:
             try:

@@ -25,6 +25,7 @@ from .repo import RepoIndex
 from .context import (
     UnitContext,
     collect_imports,
+    collect_module_aliases,
     collect_module_bindings,
     collect_overridden_methods,
 )
@@ -120,7 +121,8 @@ class UnitFindings:
 
 
 def _measure_unit(node, source: str, imports: dict, module_bindings: dict | None = None,
-                  overridden_methods: frozenset[str] = frozenset()):
+                  overridden_methods: frozenset[str] = frozenset(),
+                  module_aliases: frozenset[str] = frozenset()):
     """Structural facts about one unit: loop depth, array use, call sites.
 
     Computed here rather than by an analyzer, because they are what ranks the
@@ -130,6 +132,7 @@ def _measure_unit(node, source: str, imports: dict, module_bindings: dict | None
         node=node, source=source, imports=imports,
         module_bindings=module_bindings or {},
         overridden_methods=overridden_methods,
+        module_aliases=module_aliases,
     )
 
 
@@ -181,6 +184,7 @@ def analyse_file(path: Path, index: RepoIndex | None = None,
     imports = collect_imports(tree)
     module_bindings = collect_module_bindings(tree)
     overridden = collect_overridden_methods(tree)
+    aliases = collect_module_aliases(tree)
     units = iter_units(path, tree)
 
     # A unit is where a repair gets scoped and measured. It is not a claim that
@@ -193,7 +197,8 @@ def analyse_file(path: Path, index: RepoIndex | None = None,
     for unit, node in units:
         if unit.kind == "class":
             continue
-        contained = _measure_unit(node, source, imports, module_bindings, overridden)
+        contained = _measure_unit(node, source, imports, module_bindings, overridden,
+                                  aliases)
         owner = unit.qualname.rsplit(".", 1)[0] if "." in unit.qualname else None
         findings[unit.qualname] = UnitFindings(
             unit=unit,

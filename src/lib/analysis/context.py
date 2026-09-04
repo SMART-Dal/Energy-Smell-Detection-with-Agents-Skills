@@ -56,6 +56,14 @@ class UnitContext:
     imports: dict[str, str] = field(default_factory=dict)
     """Bound name -> module it came from, e.g. {"np": "numpy"}."""
 
+    module_aliases: frozenset[str] = frozenset()
+    """Names bound to a module itself, e.g. `np` from `import numpy as np`.
+
+    Distinct from `imports`, which cannot tell them apart: `import numpy as np`
+    and `from numpy import array` both record "numpy" as the source. The
+    difference matters where the advice is to bind a name to a local -- nobody
+    writes `_np = np`, while binding an imported function is ordinary code."""
+
     module_bindings: dict[str, ast.AST] = field(default_factory=dict)
     """Module-level constant -> its assigned value, for names the unit only reads."""
 
@@ -404,6 +412,16 @@ def collect_imports(tree: ast.Module) -> dict[str, str]:
             for alias in node.names:
                 imports[alias.asname or alias.name] = node.module
     return imports
+
+
+def collect_module_aliases(tree: ast.Module) -> frozenset[str]:
+    """Names a plain `import` binds, which stand for modules rather than values."""
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                names.add(alias.asname or alias.name.split(".")[0])
+    return frozenset(names)
 
 
 def collect_overridden_methods(tree: ast.Module) -> frozenset[str]:

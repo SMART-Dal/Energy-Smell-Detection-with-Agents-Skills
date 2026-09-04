@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from lib.analysis.context import (  # noqa: E402
     UnitContext,
     collect_imports,
+    collect_module_aliases,
     collect_module_bindings,
     collect_overridden_methods,
 )
@@ -60,6 +61,7 @@ def run(rule, path: Path) -> list:
     imports = collect_imports(tree)
     module_bindings = collect_module_bindings(tree)
     overridden = collect_overridden_methods(tree)
+    aliases = collect_module_aliases(tree)
     found = []
     for unit, node in iter_units(path, tree):
         if unit.kind == "class":
@@ -68,6 +70,7 @@ def run(rule, path: Path) -> list:
             node=node, source=source, imports=imports,
             module_bindings=module_bindings,
             overridden_methods=overridden,
+            module_aliases=aliases,
         )
         found.extend(rule(unit, context))
     return sorted(found, key=lambda e: e.lineno)

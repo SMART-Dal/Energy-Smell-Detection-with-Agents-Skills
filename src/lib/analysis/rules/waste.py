@@ -23,6 +23,7 @@ C6.S4 need to know what the data is for.  Those are read by hand, and
 from __future__ import annotations
 
 import ast
+import builtins
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
@@ -248,6 +249,19 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     Only names the unit never assigns are reported, since an assigned name is
     already local.
 
+    And only names a person would actually bind.  Two kinds are excluded
+    because the repair is not something anyone writes:
+
+        _float = float          rebinding a builtin
+        _np = np                rebinding an imported module
+
+    Both are real dict lookups and both are technically hoistable, and neither
+    is advice: `float` read thirteen times in a loop is what arithmetic on
+    mixed types looks like, and aliasing `np` makes the next reader work out
+    what `_np` is. What is left is the case the card is about -- a module-level
+    table or helper the loop reaches for, where `labels = FIELD_LABELS` above
+    the loop reads as well as it runs.
+
     The threshold below matters more than the rule. Reporting every non-local
     name read in a loop produced 45 hits across `requests` -- more than every
     other analyzer combined, and mostly imported helpers read once per
@@ -261,13 +275,14 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     iterable, which is evaluated once before the first pass.
     """
     local = ctx.assigned_names(ctx.node) | _parameter_names(ctx.node)
+    unbindable = _NOT_WORTH_BINDING | set(ctx.module_aliases) | _imported_modules(ctx.node)
     counts: dict[int, dict[str, int]] = {}
     first: dict[int, dict[str, ast.AST]] = {}
 
     for node in ast.walk(ctx.node):
         if not (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)):
             continue
-        if node.id in local:
+        if node.id in local or node.id in unbindable:
             continue
         loop = _repeating_loop(ctx, node)
         if loop is None:
@@ -291,6 +306,26 @@ def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                 uses=uses,
                 loop_line=loop.lineno,
             )
+
+
+_NOT_WORTH_BINDING = frozenset(dir(builtins))
+"""Builtins. Real lookups, but `_len = len` above a loop is not advice."""
+
+
+def _imported_modules(scope: ast.AST) -> set[str]:
+    """Names bound to a *module* by an import, which nobody rebinds.
+
+    `import numpy as np` makes `np` a global read on every use, and aliasing it
+    to a local is a lookup saved against a name the next reader has to chase.
+    `from numpy import array` is different -- `array` is a function, and binding
+    a function above a loop is ordinary code -- so only plain `import` counts.
+    """
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                found.add(alias.asname or alias.name.split(".")[0])
+    return found
 
 
 def _repeating_loop(ctx: UnitContext, node: ast.AST) -> ast.AST | None:
