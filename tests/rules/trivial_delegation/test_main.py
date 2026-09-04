@@ -13,6 +13,7 @@ EXPECTED = {
     "Store.fetch": 1,  # same argument, nothing added
     "Store.count": 1,  # a parameterless forward is still a forward
     "parse": 1,        # the module-level shape
+    "Proxy.route_event": 1,  # a `*args, **kwargs` proxy
 }
 
 

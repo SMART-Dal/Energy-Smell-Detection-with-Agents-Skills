@@ -8,6 +8,7 @@ allocation: branch shape (C4), missing reuse across calls (C8), call overhead
 from __future__ import annotations
 
 import ast
+import re
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
@@ -22,10 +23,18 @@ from ..context import OPAQUE_NODES, UnitContext
 # performs no I/O at all, which is the kind of noise that teaches a reader to
 # skip the rule -- and a rule nobody reads is worse than no rule.
 UNAMBIGUOUS_IO_CALLS = frozenset({
-    "urlopen", "recv", "recvfrom", "sendall", "executemany",
-    "fetchone", "fetchall", "fetchmany", "commit", "rollback", "writelines",
+    "urlopen", "recv", "recvfrom", "sendall", "writelines",
 })
 """Names that essentially never mean anything but I/O."""
+
+DATABASE_CALLS = frozenset({
+    "executemany", "fetchone", "fetchall", "fetchmany", "commit", "rollback",
+})
+"""Database verbs, which need a receiver like the ambiguous ones do.
+
+They were trusted on the name alone, so an in-memory undo buffer's
+`buffer.rollback()` and a ring buffer's `fetchone()` were reported as leaving
+the process. On a cursor or a connection they still are."""
 
 AMBIGUOUS_IO_CALLS = frozenset({
     "get", "post", "put", "delete", "patch", "head", "request", "fetch",
@@ -83,9 +92,30 @@ CHEAP_CALLS = frozenset({
     "callable", "getattr", "int", "str", "float", "abs", "ord", "chr",
 })
 
+SAFE_TO_PROMOTE = frozenset({
+    "len", "isinstance", "issubclass", "type", "id", "bool", "hasattr", "callable",
+})
+"""Cheap calls that also cannot raise on whatever a guard was protecting.
+
+`int`, `float` and `ord` are cheap and are the classic thing an earlier
+operand exists to guard, so promoting one past its guard trades a saving for
+a `ValueError`."""
+
 # Repeating one of these costs almost nothing, so seeing it twice in a scope is
 # not worth reporting as redundant computation.
 TRIVIAL_CALLS = CHEAP_CALLS | {"list", "dict", "set", "tuple", "repr"}
+
+NONDETERMINISTIC_CALLS = frozenset({
+    "random", "randint", "randrange", "choice", "choices", "shuffle", "sample",
+    "uniform", "gauss", "randbytes", "getrandbits",
+    "next", "input", "time", "monotonic", "perf_counter", "time_ns",
+    "now", "today", "utcnow", "uuid1", "uuid4", "token_bytes", "token_hex",
+    "token_urlsafe", "urandom", "getpid", "tempfile", "mktemp",
+})
+"""Bare-name calls that return something different every time.
+
+Caching one is not a saving, it is a behaviour change -- three `randint(1, 6)`
+calls are three dice."""
 
 MIN_REPEATED_CALLS = 3
 
@@ -141,10 +171,46 @@ def _is_chainable(run: list[ast.If], ctx: UnitContext) -> bool:
         return False
     if len({_compared_constant(arm.test) for arm in run}) != len(run):
         return False
+    # `if val == 1:` and `if val == True:` render as different source and are
+    # the same test -- `1 == True` in Python, and so do `0`/`False` and
+    # `1.0`/`1`. Compared by value, `{1, True}` collapses to one element and
+    # the run stops being exclusive.
+    literals = [arm.test.comparators[0] for arm in run
+                if isinstance(arm.test, ast.Compare) and len(arm.test.comparators) == 1]
+    if len(literals) == len(run) and all(isinstance(c, ast.Constant) for c in literals):
+        try:
+            if len({c.value for c in literals}) != len(run):
+                return False
+        except TypeError:                       # an unhashable literal
+            pass
     root = _compared_subject(run[0].test).split(".")[0]
     if any(root in ctx.assigned_names(arm) for arm in run):
         return False
+    # `task.state = "RUNNING"` rebinds what the next arm tests, and
+    # `assigned_names` sees only bare-name targets, so a state machine written
+    # over an attribute was being chained into an `elif` that cannot fire.
+    if any(root in _attribute_roots_written(arm) for arm in run):
+        return False
     return not all(_exits(arm.body) for arm in run[:-1])
+
+
+def _attribute_roots_written(scope: ast.AST) -> set[str]:
+    """Root names of attribute and subscript stores: `a.b.c = x` -> "a"."""
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        targets: list[ast.AST] = []
+        if isinstance(node, ast.Assign):
+            targets = list(node.targets)
+        elif isinstance(node, (ast.AugAssign, ast.AnnAssign)):
+            targets = [node.target]
+        elif isinstance(node, ast.Delete):
+            targets = list(node.targets)
+        for target in targets:
+            while isinstance(target, (ast.Attribute, ast.Subscript)):
+                target = target.value
+            if isinstance(target, ast.Name):
+                found.add(target.id)
+    return found
 
 
 def _exits(body: list[ast.stmt]) -> bool:
@@ -206,7 +272,7 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     for node in ast.walk(ctx.node):
         if not isinstance(node, ast.BoolOp) or len(node.values) < 2:
             continue
-        if id(node) not in conditions and _supplies_a_default(node):
+        if id(node) not in conditions and _supplies_a_default(node, ctx.node):
             continue
         for position, operand in enumerate(node.values[:-1]):
             if not _contains_expensive_call(operand):
@@ -217,7 +283,8 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
             bound = _walrus_targets(node.values[: position + 1])
             cheaper = [
                 v for v in node.values[position + 1 :]
-                if not _contains_call(v) and not (ctx.read_names(v) & bound)
+                if _is_cheap_operand(v, id(node) in conditions)
+                and not (ctx.read_names(v) & bound)
             ]
             if not cheaper:
                 continue
@@ -231,16 +298,51 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
             break
 
 
-def _supplies_a_default(node: ast.BoolOp) -> bool:
+def _supplies_a_default(node: ast.BoolOp, scope: ast.AST) -> bool:
     """Whether a later operand is a literal standing in as a fallback value.
 
     `f(x) or []` and `d.get(k) or "baseline"` hand back the literal when the
     call is falsy, so the operands are a value and its default rather than two
     tests, and their order is the whole meaning.
     """
-    return any(
-        isinstance(operand, (ast.Constant, ast.List, ast.Dict, ast.Set, ast.Tuple))
-        for operand in node.values[1:]
+    if any(isinstance(operand, (ast.Constant, ast.List, ast.Dict, ast.Set, ast.Tuple))
+           for operand in node.values[1:]):
+        return True
+    # `fetch_username(post_id) or fallback_user` is the same idiom with the
+    # default passed in, and accepting only literals had the rule advising
+    # `fallback_user or fetch_username(post_id)`, which never queries at all
+    # when the fallback is truthy. A bare *parameter* is the narrow case worth
+    # taking: it was handed to this function to be handed back. An attribute --
+    # `checksum_changed(m) or config.force` -- reads as a flag and stays a
+    # finding, which is as far as syntax can separate the two.
+    parameters = {a.arg for a in _all_parameters(scope)}
+    return any(isinstance(operand, ast.Name) and operand.id in parameters
+               for operand in node.values[1:])
+
+
+def _is_cheap_operand(node: ast.AST, in_condition: bool) -> bool:
+    """Whether promoting this operand ahead of a call is free.
+
+    Anything with no call at all qualifies.  In a condition, so does one built
+    only from calls known to cost nothing: `len(data) > 0` and
+    `isinstance(x, list)` are the guards this rule exists to promote, and
+    banning every call in the second position hid them.
+
+    Predicates only, not conversions.  `sum(int(c) for c in s if c.isdigit()
+    and int(c) % 2 == 0)` has `int` on both sides of an `and`, and the call in
+    front is what keeps the one behind from raising `ValueError` on a letter --
+    the first version of this promoted it and broke the comprehension.
+
+    Only in a condition, though.  Outside one the chain is producing a value,
+    and `os.cpu_count() or int(settings.batch_max_workers)` is a fallback whose
+    order is its meaning -- letting the conversion call count as "cheap" there
+    turned a default into a finding.
+    """
+    calls = [n for n in ast.walk(node) if isinstance(n, ast.Call)]
+    if not calls:
+        return True
+    return in_condition and all(
+        isinstance(c.func, ast.Name) and c.func.id in SAFE_TO_PROMOTE for c in calls
     )
 
 
@@ -366,11 +468,12 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
     name = ctx.node.name
+    # `self.fib(n - 1)` is the same recursion as `fib(n - 1)`, and matching only
+    # `ast.Name` made the rule blind to every algorithm written as a method --
+    # which is most of them in any class-shaped codebase.
     self_calls = [
         node for node in ast.walk(ctx.node)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == name
+        if isinstance(node, ast.Call) and _calls_itself(node.func, name)
     ]
     if not self_calls or _has_cache_decorator(ctx.node):
         return
@@ -383,7 +486,7 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     if len(self_calls) == 1 and ctx.in_loop(self_calls[0]):
         return
 
-    if len(self_calls) >= 2 and not cached and not _partitions_argument(self_calls):
+    if len(self_calls) >= 2 and not cached and not _partitions_argument(self_calls, ctx.node):
         yield _evidence(
             unit, "recursion_without_memo", self_calls[0], ("C7.S2", "C8.S1"),
             f"`{name}` calls itself {len(self_calls)} times and is not cached, so "
@@ -399,7 +502,15 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
         )
 
 
-def _partitions_argument(calls: list[ast.Call]) -> bool:
+def _calls_itself(func: ast.AST, name: str) -> bool:
+    """`name(...)` or `self.name(...)`, which are the same call."""
+    if isinstance(func, ast.Name):
+        return func.id == name
+    return (isinstance(func, ast.Attribute) and func.attr == name
+            and isinstance(func.value, ast.Name) and func.value.id in {"self", "cls"})
+
+
+def _partitions_argument(calls: list[ast.Call], scope: ast.AST) -> bool:
     """Whether the self-calls split their argument rather than revisiting it.
 
     A partition hands each branch a different piece -- a slice, an attribute of
@@ -412,12 +523,60 @@ def _partitions_argument(calls: list[ast.Call]) -> bool:
         return False
     rendered = {ast.unparse(a) for a in firsts}
     if len(rendered) < len(firsts):
-        return False  # the same argument twice: overlapping by definition
+        # The same first argument to every call, with the subproblem carried
+        # beside it. Reading only the first argument called that "overlapping
+        # by definition" and reported every divide-and-conquer written on
+        # indices, but the two cases are distinguishable:
+        #
+        #   quicksort(arr, low, p - 1) / quicksort(arr, p + 1, high)
+        #   count_paths(grid, row - 1, column) / count_paths(grid, row, column - 1)
+        #
+        # `p` is computed in the body and splits the range at a point neither
+        # branch crosses. `row` and `column` are the function's own arguments
+        # reduced by a constant, and reducing two of them by turns revisits the
+        # same pair from both sides -- which is the whole of dynamic
+        # programming. So a pivot partitions and an offset overlaps.
+        return _splits_on_a_computed_pivot(calls, scope)
+    
     if all(isinstance(a, ast.Attribute) for a in firsts):
         return True  # node.left / node.right: disjoint children
     slices = [a for a in firsts if isinstance(a, ast.Subscript)
               and isinstance(a.slice, ast.Slice)]
     return len(slices) == len(firsts) and _disjoint_slices(slices)
+
+
+def _splits_on_a_computed_pivot(calls: list[ast.Call], scope: ast.AST) -> bool:
+    """Whether the recursive arguments are cut at a value the body computed.
+
+    A pivot -- `p = partition(arr, low, high)` -- exists only inside one frame,
+    so the ranges either side of it are handed to one branch each and never
+    meet.  An argument built only from the function's own parameters and
+    constants is an offset of what this frame was given, and the branches
+    converge.
+    """
+    parameters = {a.arg for a in _all_parameters(scope)}
+    locals_ = {
+        target.id
+        for node in ast.walk(scope) if isinstance(node, ast.Assign)
+        for t in node.targets for target in ast.walk(t)
+        if isinstance(target, ast.Name) and isinstance(target.ctx, ast.Store)
+    } - parameters
+    return any(
+        name in locals_
+        for call in calls for argument in call.args
+        for node in ast.walk(argument)
+        if isinstance(node, ast.Name) for name in (node.id,)
+    )
+
+
+def _all_parameters(scope: ast.AST) -> list[ast.arg]:
+    arguments = getattr(scope, "args", None)
+    if arguments is None:
+        return []
+    return [*getattr(arguments, "posonlyargs", []), *arguments.args,
+            *arguments.kwonlyargs,
+            *([arguments.vararg] if arguments.vararg else []),
+            *([arguments.kwarg] if arguments.kwarg else [])]
 
 
 def _disjoint_slices(slices: list[ast.Subscript]) -> bool:
@@ -520,9 +679,11 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     for expression, calls in seen.items():
         if len(calls) < MIN_REPEATED_CALLS:
             continue
-        reachable = {_branch_of(call, branches) for call in calls}
-        if len(reachable) == len(calls) and None not in reachable:
-            continue  # one arm each: they never both run
+        reachable = [_branch_of(call, branches) for call in calls]
+        owners = {slot[0] for slot in reachable if slot is not None}
+        if (None not in reachable and len(owners) == 1
+                and len(set(reachable)) == len(calls)):
+            continue  # one arm each of the same statement: never both run
         yield _evidence(
             unit, "repeated_pure_call", calls[0], ("C1.S4",),
             f"`{expression}` is computed {len(calls)} times in the same scope "
@@ -548,20 +709,25 @@ def _exclusive_branches(scope: ast.AST) -> dict[int, int]:
     `except` handlers of one `try`, and the arms of an `if`, are alternatives:
     at most one runs, so the same call appearing in several of them is written
     once per case rather than computed repeatedly.
+
+    Which `if` they belong to is half the answer, and used to be discarded. A
+    running counter gave three consecutive `if` statements three different arm
+    numbers, so `parse(data)` in each of them looked like three alternatives
+    when all three can run in sequence -- the exact shape the rule exists for.
+    The owner is recorded beside the arm now, and only arms of the *same*
+    statement exclude each other.
     """
-    owner: dict[int, int] = {}
-    arm = 0
+    owner: dict[int, tuple[int, int]] = {}
     for node in ast.walk(scope):
         arms: list[list[ast.stmt]] = []
         if isinstance(node, ast.Try):
             arms = [h.body for h in node.handlers]
         elif isinstance(node, ast.If):
             arms = [node.body, node.orelse]
-        for body in arms:
-            arm += 1
+        for index, body in enumerate(arms):
             for statement in body:
                 for inner in ast.walk(statement):
-                    owner.setdefault(id(inner), arm)
+                    owner.setdefault(id(inner), (id(node), index))
     return owner
 
 
@@ -580,9 +746,19 @@ def _repeatable(call: ast.Call, ctx: UnitContext) -> bool:
 
     Method calls stay restricted to the recognised-pure set.  `session.get(k)`
     repeated three times is a real finding and it is C8.S4, not this one.
+
+    Bare names that are famously *not* pure are excluded by name, because the
+    advice for them is destructive rather than merely unhelpful: told that
+    `randint(1, 6)` is "computed 3 times with nothing changing in between", a
+    reader who caches it turns three dice into one.  The same goes for
+    `next(stream)`, `time()` and `input()`.  A blocklist is not a proof of
+    purity for everything else -- the message still asks the reader to confirm
+    -- but it keeps the rule from recommending a bug.
     """
     if ctx.is_pure(call):
         return True
+    if isinstance(call.func, ast.Name) and call.func.id in NONDETERMINISTIC_CALLS:
+        return False
     return isinstance(call.func, ast.Name) and all(
         isinstance(argument, (ast.Name, ast.Constant, ast.Attribute))
         for argument in call.args
@@ -591,6 +767,7 @@ def _repeatable(call: ast.Call, ctx: UnitContext) -> bool:
 
 def manual_builtin_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """A loop hand-rolling `max`, `min` or `sum` over its iterable."""
+    non_numeric = _non_numeric_accumulators(ctx.node)
     for loop in ctx.loops:
         # The tracking has to be the whole body. A loop that also records every
         # prefix maximum computes a running series, and no single `max()` call
@@ -598,7 +775,7 @@ def manual_builtin_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         if not isinstance(loop, ast.For) or len(loop.body) != 1:
             continue
         for node in loop.body:
-            builtin = _hand_rolled_builtin(node)
+            builtin = _hand_rolled_builtin(node, non_numeric)
             if builtin is None:
                 continue
             yield _evidence(
@@ -610,7 +787,7 @@ def manual_builtin_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             break
 
 
-def _hand_rolled_builtin(node: ast.AST) -> str | None:
+def _hand_rolled_builtin(node: ast.AST, non_numeric: set[str]) -> str | None:
     """Detect `if x > best: best = x` and `total += x` loop bodies.
 
     The `None`-guarded form counts too.  Starting an extreme at `None` and
@@ -631,11 +808,13 @@ def _hand_rolled_builtin(node: ast.AST) -> str | None:
     the same thing and stays out; see below.
     """
     if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
-        return "sum"
+        return None if _target_name_of(node.target) in non_numeric else "sum"
     if not isinstance(node, ast.If) or len(node.body) != 1 or node.orelse:
         return None
     inner = node.body[0]
     if isinstance(inner, ast.AugAssign) and isinstance(inner.op, ast.Add):
+        if _target_name_of(inner.target) in non_numeric:
+            return None
         # `total += n` is a filtered sum and `sum()` does the adding in C.
         # `found += 1` is a counter, and `sum(1 for ...)` hands the same work
         # back to a generator frame per element with no C loop to win it back,
@@ -644,7 +823,69 @@ def _hand_rolled_builtin(node: ast.AST) -> str | None:
         return None if isinstance(inner.value, ast.Constant) else "sum"
     if not isinstance(inner, ast.Assign):
         return None
+    # The assignment has to be the one the comparison licenses. Reading the
+    # operator and nothing else made `if s > limit: alert = True` a running
+    # maximum, and every flag, counter and log trigger written inside an
+    # `if x > y:` with it. `max` keeps the larger operand; it does not set a
+    # flag.
+    if not _updates_the_compared_value(node.test, inner):
+        return None
     return _extreme_from(node.test)
+
+
+def _target_name_of(node: ast.AST) -> str | None:
+    return node.id if isinstance(node, ast.Name) else None
+
+
+def _non_numeric_accumulators(scope: ast.AST) -> set[str]:
+    """Names seeded with something `sum()` cannot add.
+
+    `out = ""` then `out += msg` is not a hand-rolled `sum`: `sum` of strings
+    raises `TypeError: sum() can't sum strings [use ''.join(seq) instead]`, and
+    `sum(batches, [])` is the quadratic concatenation C10.S4 exists to warn
+    about. As with `string_concat_in_loop`, what the accumulator *is* is
+    decided by where it starts, not by what gets added to it.
+    """
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        target, value = node.targets[0], node.value
+        if not isinstance(target, ast.Name):
+            continue
+        textual = isinstance(value, ast.Constant) and isinstance(value.value, (str, bytes))
+        sequence = isinstance(value, (ast.List, ast.Dict, ast.Set, ast.Tuple,
+                                      ast.ListComp, ast.DictComp, ast.SetComp))
+        if textual or sequence:
+            found.add(target.id)
+    return found
+
+
+def _updates_the_compared_value(test: ast.AST, assign: ast.Assign) -> bool:
+    """Whether `assign` stores one side of `test` into the other.
+
+    `if x > best: best = x` keeps the larger of the two, which is `max`.
+    `if s > limit: alert = True` shares the shape and means nothing like it.
+    """
+    if isinstance(test, ast.BoolOp):
+        return any(_updates_the_compared_value(v, assign) for v in test.values)
+    if not isinstance(test, ast.Compare) or len(test.ops) != 1 or len(assign.targets) != 1:
+        return False
+    operands = {ast.unparse(test.left), ast.unparse(test.comparators[0])}
+    # `best, best_score = record, record.score` tracks the element beside the
+    # value, so the pair that matters is one of several. Any pair storing one
+    # compared operand into the other is the extreme being kept.
+    return any(ast.unparse(target) in operands and ast.unparse(value) in operands
+               for target, value in _assigned_pairs(assign))
+
+
+def _assigned_pairs(assign: ast.Assign):
+    """`(target, value)` pairs, unpacking `a, b = x, y` into two of them."""
+    target, value = assign.targets[0], assign.value
+    if (isinstance(target, ast.Tuple) and isinstance(value, ast.Tuple)
+            and len(target.elts) == len(value.elts)):
+        return list(zip(target.elts, value.elts))
+    return [(target, value)]
 
 
 def _extreme_from(test: ast.AST) -> str | None:
@@ -768,12 +1009,42 @@ def _forwards_arguments(function: ast.AST, call: ast.Call) -> bool:
     A parameterless wrapper counts.  `def count(self): return
     self._backend.count()` is as pure a forward as one that passes arguments,
     and requiring at least one parameter dropped the whole family.
+
+    So does the `*args, **kwargs` proxy, which is how forwarding is written
+    whenever the signature is not being restated -- and which the strict
+    positional match could never see, since `*args` unparses to a `Starred`
+    and `**kwargs` lands in `call.keywords` with no name at all.
     """
+    if _forwards_star_args(function, call):
+        return True
     if call.keywords:
         return False
     parameters = [a.arg for a in function.args.args if a.arg != "self"]
     passed = [a.id for a in call.args if isinstance(a, ast.Name)]
     return len(passed) == len(call.args) and passed == parameters
+
+
+def _forwards_star_args(function: ast.AST, call: ast.Call) -> bool:
+    """`f(*args, **kwargs)` where `args`/`kwargs` are this function's own."""
+    arguments = function.args
+    vararg = arguments.vararg.arg if arguments.vararg else None
+    kwarg = arguments.kwarg.arg if arguments.kwarg else None
+    if vararg is None and kwarg is None:
+        return False
+    starred = [a for a in call.args if isinstance(a, ast.Starred)]
+    if len(starred) != len(call.args) or len(starred) > 1:
+        return False
+    if starred and not (isinstance(starred[0].value, ast.Name)
+                        and starred[0].value.id == vararg):
+        return False
+    doubled = [k for k in call.keywords if k.arg is None]
+    if len(doubled) != len(call.keywords) or len(doubled) > 1:
+        return False
+    if doubled and not (isinstance(doubled[0].value, ast.Name)
+                        and doubled[0].value.id == kwarg):
+        return False
+    named = [a.arg for a in arguments.args if a.arg != "self"]
+    return not named and bool(starred or doubled)
 
 
 def _is_abstract_body(body: list[ast.stmt]) -> bool:
@@ -822,14 +1093,24 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     for node in ctx.own_nodes():
         if not ctx.repeats(node):
             continue
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        if not isinstance(node, ast.Call):
             continue
         if _dispatched_concurrently(node, ctx):
             continue
-        name = node.func.attr
-        if name not in UNAMBIGUOUS_IO_CALLS and not (
-            name in AMBIGUOUS_IO_CALLS and _is_io_receiver(node.func.value, ctx)
-        ):
+        if isinstance(node.func, ast.Name):
+            # `from urllib.request import urlopen` binds the function itself,
+            # and a rule matching only `ast.Attribute` never saw it.
+            if node.func.id not in UNAMBIGUOUS_IO_CALLS:
+                continue
+            name = node.func.id
+        elif isinstance(node.func, ast.Attribute):
+            name = node.func.attr
+            if name not in UNAMBIGUOUS_IO_CALLS and not (
+                name in AMBIGUOUS_IO_CALLS | DATABASE_CALLS
+                and _is_io_receiver(node.func.value, ctx)
+            ):
+                continue
+        else:
             continue
         yield _evidence(
             unit, "io_call_in_loop", node, ("C9.S1", "C9.S3"),
@@ -842,8 +1123,13 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
 CONCURRENT_DISPATCH = frozenset({
     "gather", "wait", "as_completed", "create_task", "ensure_future",
-    "map", "starmap", "imap", "imap_unordered", "submit", "wait_for",
+    "map", "starmap", "imap", "imap_unordered", "submit",
 })
+"""Runners that start work before waiting for it.
+
+`asyncio.wait_for` is deliberately absent: it awaits *one* awaitable with a
+deadline, so `wait_for(session.get(item), timeout=1)` in a loop is as
+sequential as the bare call, and listing it let a timeout silence the rule."""
 
 
 def _dispatched_concurrently(call: ast.Call, ctx: UnitContext) -> bool:
@@ -911,9 +1197,19 @@ def lock_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         )
 
 
+LOCK_WORDS = frozenset({"lock", "rlock", "semaphore", "mutex", "monitor", "latch"})
+
+
 def _looks_like_lock(node: ast.AST) -> bool:
-    text = ast.unparse(node).lower()
-    return "lock" in text or "semaphore" in text or "mutex" in text
+    """Whether an expression names a synchronisation primitive.
+
+    Matched on whole words rather than as a substring. `"lock" in text` is true
+    of `memory_block`, `system_clock`, `unlocked_view` and `interlock`, so
+    `with memory_block:` in a loop was reported as lock contention.
+    """
+    words = re.findall(r"[A-Z]+(?![a-z])|[A-Z][a-z]+|[a-z]+|[0-9]+",
+                       ast.unparse(node))
+    return any(word.lower() in LOCK_WORDS for word in words)
 
 
 RULES = [

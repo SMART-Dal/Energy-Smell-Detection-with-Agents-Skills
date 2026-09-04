@@ -50,3 +50,22 @@ def budget_after_append(jobs, ceiling):
             pending.append(job)
         budget = ceiling - len(pending)
         yield budget
+
+
+def roll_three_dice():
+    # Caching this is not a saving, it is three identical dice.
+    d1 = randint(1, 6)
+    d2 = randint(1, 6)
+    d3 = randint(1, 6)
+    return d1, d2, d3
+
+
+def audit_data(data):
+    # Three separate `if` statements, all of which can run. A running counter
+    # gave them three arm numbers, so they read as three alternatives.
+    if check_a():
+        log(parse(data))
+    if check_b():
+        notify(parse(data))
+    if check_c():
+        save(parse(data))

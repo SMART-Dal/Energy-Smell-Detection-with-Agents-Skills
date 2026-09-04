@@ -13,6 +13,8 @@ EXPECTED = {
     "save_each": 1,             # ambiguous name on an unambiguous receiver
     "fetch_all": 1,             # the same inside a comprehension
     "fetch_one_at_a_time": 1,   # awaited in place, so still one round trip each
+    "scrape": 1,                # `urlopen` imported directly
+    "poll_each": 1,             # a timeout is not concurrency
 }
 
 

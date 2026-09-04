@@ -64,3 +64,24 @@ async def fetch_together(session, urls):
 async def fetch_one_at_a_time(session, urls):
     # Same calls, awaited in place, so they are still serial.
     return [await session.get(url) for url in urls]
+
+
+def scrape(urls, out):
+    # `from urllib.request import urlopen` binds the function itself, so the
+    # call is an `ast.Name` and an attribute-only rule never saw it.
+    for u in urls:
+        out.append(urlopen(u))
+
+
+def rewind_frames(frames, buffer):
+    # An in-memory undo buffer. `rollback` was trusted on its name alone.
+    for f in frames:
+        if f.is_corrupt:
+            buffer.rollback()
+
+
+async def poll_each(worklist, session):
+    # `wait_for` awaits one awaitable with a deadline; it dispatches nothing,
+    # so a timeout should not silence the rule.
+    for item in worklist:
+        await asyncio.wait_for(session.get(item), timeout=1.0)

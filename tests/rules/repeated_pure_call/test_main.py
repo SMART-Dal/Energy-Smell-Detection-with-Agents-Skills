@@ -9,7 +9,8 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
-    "summarise": 1,  # `parse_manifest(path)` three times, nothing changing
+    "summarise": 1,   # `parse_manifest(path)` three times, nothing changing
+    "audit_data": 1,  # three independent `if`s all run; not alternatives
 }
 
 

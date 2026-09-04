@@ -60,3 +60,18 @@ def with_tier(rows, wanted):
     # reordering raises on every row whose profile is None.
     return [r for r in rows if r["profile"] is not None
             and tier_rank(r["profile"]) == wanted]
+
+
+def get_author(post_id, fallback_user):
+    # A default passed in rather than written as a literal. Reordering gives
+    # `fallback_user or fetch_username(post_id)`, which never queries at all
+    # when the fallback is truthy.
+    return fetch_username(post_id) or fallback_user
+
+
+def worth_processing(data):
+    # `len` is in CHEAP_CALLS, and banning every call in the second position
+    # hid exactly the guards this rule exists to promote.
+    if query_external_service(data) and len(data) > 0:
+        return True
+    return False

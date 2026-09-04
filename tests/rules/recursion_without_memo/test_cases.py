@@ -79,3 +79,23 @@ def fib_memo(n, memo={}):
     if n not in memo:
         memo[n] = fib_memo(n - 1, memo) + fib_memo(n - 2, memo)
     return memo[n]
+
+
+class Solver:
+    def fib(self, n):
+        # `self.fib(...)` is the same recursion as `fib(...)`, and matching only
+        # bare names left the rule blind to anything written as a method.
+        if n < 2:
+            return n
+        return self.fib(n - 1) + self.fib(n - 2)
+
+
+def quicksort(arr, low, high):
+    # The same container to both calls, split at a pivot computed in the body.
+    # Neither branch crosses `p`, so nothing is recomputed -- and `lru_cache`
+    # could not key on the list anyway. `count_paths` beside it offsets its own
+    # parameters instead, and those branches do converge.
+    if low < high:
+        p = partition(arr, low, high)
+        quicksort(arr, low, p - 1)
+        quicksort(arr, p + 1, high)

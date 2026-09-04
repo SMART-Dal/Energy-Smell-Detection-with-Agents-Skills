@@ -13,6 +13,7 @@ EXPECTED = {
     "fib": 1,          # two self-calls per level
     "count_paths": 1,  # the same tree written over two lines
     "factorial": 1,    # linear recursion; same analyzer, `linear_recursion` kind
+    "Solver.fib": 1,   # recursion through `self`
 }
 
 

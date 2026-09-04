@@ -70,3 +70,30 @@ def total_even(values):
         if value % 2 == 0:
             running += value
     return running
+
+
+def join_messages(messages):
+    # `sum()` of strings raises TypeError and says so in its message. What an
+    # accumulator is comes from where it starts, not from what is added to it.
+    out = ""
+    for msg in messages:
+        out += msg
+    return out
+
+
+def flatten(batches):
+    # `sum(batches, [])` is the quadratic concatenation C10.S4 warns about.
+    out = []
+    for b in batches:
+        out += b
+    return out
+
+
+def any_over_limit(scores, limit):
+    # The shape of a running maximum and none of the meaning: `max` keeps the
+    # larger operand, it does not set a flag.
+    alert = False
+    for s in scores:
+        if s > limit:
+            alert = True
+    return alert

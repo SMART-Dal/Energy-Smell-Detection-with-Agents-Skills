@@ -13,6 +13,7 @@ EXPECTED = {
     "should_retry": 1,                  # expensive operand is a sub-expression
     "needs_rebuild": 1,                 # `or` chain, cheap flag second
     "SessionCache.should_evict": 1,     # reported: the call may be a side effect
+    "worth_processing": 1,              # `len(data) > 0` is a cheap guard
 }
 
 

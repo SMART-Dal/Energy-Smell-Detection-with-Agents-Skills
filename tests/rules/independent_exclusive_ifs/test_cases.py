@@ -113,3 +113,21 @@ def surcharge(age, size):
     if size > 1_000:
         total += 11
     return total
+
+
+def advance_pipeline(task):
+    # The first arm rebinds what the second tests, through an attribute --
+    # which `assigned_names` cannot see. Chained, `task.execute()` never runs.
+    if task.state == "QUEUED":
+        task.state = "RUNNING"
+    if task.state == "RUNNING":
+        task.execute()
+
+
+def parse_flag(val):
+    # `1 == True` in Python, so these are one test written two ways and the run
+    # is not exclusive. Compared as source they looked distinct.
+    if val == 1:
+        handle_numeric_one()
+    if val == True:
+        handle_boolean_true()

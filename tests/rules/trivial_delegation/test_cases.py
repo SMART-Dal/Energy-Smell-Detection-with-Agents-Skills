@@ -63,3 +63,11 @@ class Report:
 def concatenate(strings):
     # The separator is a choice this function makes, so it is not pure forwarding.
     return "".join(strings)
+
+
+class Proxy:
+    def route_event(self, *args, **kwargs):
+        # How forwarding is written when the signature is not being restated.
+        # `*args` unparses to a `Starred` and `**kwargs` lands in
+        # `call.keywords` with no name, so a positional match could not see it.
+        return self._dispatcher.route_event(*args, **kwargs)
