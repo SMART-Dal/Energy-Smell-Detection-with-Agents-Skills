@@ -86,3 +86,14 @@ def header_then_body(rows):
     for row in rows:
         emit(text, row)
     return text
+
+
+def build_row(cells):
+    # `res = res + "[" + c + "]"` is left-associative, so the accumulator sits
+    # at the bottom of the left spine rather than at `value.left`. Comparing
+    # only the immediate operand missed every concatenation of three or more
+    # parts, which is how anyone actually builds a line.
+    res = ""
+    for c in cells:
+        res = res + "[" + c + "]"
+    return res

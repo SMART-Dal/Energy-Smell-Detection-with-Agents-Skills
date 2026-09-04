@@ -12,6 +12,10 @@ EXPECTED = {
     "extract_ids": 1,        # `re.search` per line
     "strip_tags": 1,         # the same inside a comprehension
     "compile_each_time": 1,  # `re.compile` on a fixed pattern in the body
+    "scan_with_direct_import": 1,   # `from re import search`
+    "scan_with_keyword_args": 1,    # `pattern=` instead of positional
+    "scan_with_finditer": 1,        # `finditer` was not in the list
+    "scan_with_renamed_module": 1,  # `import re as regex`
 }
 
 

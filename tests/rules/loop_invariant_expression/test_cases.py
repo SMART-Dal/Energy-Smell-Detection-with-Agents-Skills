@@ -138,3 +138,19 @@ def collect_batches(groups):
         seen[str(group)] = batch
         out.append(seen)
     return out
+
+
+def score_batches(batches, static_weights):
+    # A generator is a single-use iterator. Hoisting `gen = (w * 2 for w in
+    # static_weights)` above the loop leaves it exhausted after the first
+    # pass, so this "invariant" must not be reported -- unlike the list
+    # comprehension beside it, which rebuilds nothing and hoists cleanly.
+    for batch in batches:
+        gen = (w * 2 for w in static_weights)
+        consume(batch, gen)
+
+
+def score_batches_inline(batches, static_weights):
+    # The same generator passed straight to a call, with no name to hoist to.
+    for batch in batches:
+        consume(batch, (w * 2 for w in static_weights))

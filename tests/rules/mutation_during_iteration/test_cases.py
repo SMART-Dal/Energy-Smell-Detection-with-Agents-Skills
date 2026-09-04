@@ -51,3 +51,22 @@ def work_list(pending):
 def count_duplicates(values):
     # `.count()` reads the collection; it does not mutate it.
     return sum(1 for value in values if values.count(value) > 1)
+
+
+def register_handlers(buttons, items):
+    # The lambda runs on a click, not on this pass. Nothing is mutated while
+    # the loop is walking.
+    for item in items:
+        buttons[item.id].on_delete(lambda: items.remove(item))
+
+
+def drain_queue(queue):
+    # `del` is an `ast.Delete`, not a method call, and reads exactly as badly.
+    for _ in queue:
+        del queue[0]
+
+
+def shuffle_while_walking(elements):
+    # Reordering skips and repeats elements as surely as removing one.
+    for _ in elements:
+        elements.reverse()

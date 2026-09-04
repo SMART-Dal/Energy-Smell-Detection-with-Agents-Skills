@@ -1,6 +1,8 @@
 """Cases for regex_in_loop."""
 
 import re
+import re as regex
+from re import search
 
 _ID = re.compile(r"id=(\d+)")
 
@@ -51,3 +53,28 @@ def compile_then_loop(lines, pattern):
 def split_once(text):
     # Outside any loop.
     return re.split(r"\s+", text)
+
+
+def scan_with_direct_import(lines):
+    # `from re import search` binds the function itself, so the call is a
+    # bare name and the rule only ever looked at `re.<attr>`.
+    for line in lines:
+        search(r"\\d+", line)
+
+
+def scan_with_keyword_args(lines):
+    # The pattern is in a keyword, where `node.args[0]` finds nothing.
+    for line in lines:
+        re.search(pattern=r"\\d+", string=line)
+
+
+def scan_with_finditer(lines):
+    # `finditer` compiles exactly like `findall` and was simply not listed.
+    for line in lines:
+        list(re.finditer(r"\\d+", line))
+
+
+def scan_with_renamed_module(lines):
+    # `import re as regex` renames the module; the pattern still hoists.
+    for line in lines:
+        regex.search(r"\\d+", line)

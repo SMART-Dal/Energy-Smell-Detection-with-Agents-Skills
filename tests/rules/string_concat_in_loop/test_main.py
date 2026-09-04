@@ -16,6 +16,7 @@ EXPECTED = {
     "group_by_key": 1,              # subscript target
     "render_grid": 1,               # nested loops, one statement, one report
     "build_bytes": 1,               # bytes concatenate the same way
+    "build_row": 1,                 # `a = a + b + c`, three parts deep
 }
 
 

@@ -21,11 +21,11 @@ from ..context import (
 # scanning a sequence costs less than hashing the thing you are looking for.
 SMALL_SEQUENCE = 12
 
-# Functions that compile or parse something reusable.
-COMPILE_CALLS = {
-    ("re", "compile"), ("re", "search"), ("re", "match"), ("re", "findall"),
-    ("re", "sub"), ("re", "fullmatch"), ("re", "split"),
-}
+# Module-level `re` functions that compile or parse something reusable.
+RE_FUNCTIONS = frozenset({
+    "compile", "search", "match", "findall", "sub", "subn",
+    "fullmatch", "split", "finditer",
+})
 
 
 def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...],
@@ -42,7 +42,7 @@ def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...]
 
 REPORTABLE_INVARIANTS = (
     ast.Call, ast.Subscript,
-    ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp,
+    ast.ListComp, ast.SetComp, ast.DictComp, 
 )
 """What is worth naming as loop-invariant.
 
@@ -243,11 +243,23 @@ def _concatenation(node: ast.AST):
     ):
         target = node.targets[0]
         rendered = _target_name(target)
-        if _target_name(node.value.left) == rendered:
+        # `res = res + "[" + r + "]"` parses left-associatively, so the
+        # accumulator is at the bottom of the left spine, not at `value.left`.
+        # Comparing only the immediate operand meant every concatenation of
+        # more than two parts -- the commonest way anyone builds a line --
+        # silently failed to match its own target.
+        if _target_name(_leftmost_operand(node.value)) == rendered:
             return target, node.value.right
         if _target_name(node.value.right) == rendered:
             return target, node.value.left
     return None
+
+
+def _leftmost_operand(node: ast.AST) -> ast.AST:
+    """The bottom of a chain of `+`: `((a + b) + c)` -> `a`."""
+    while isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        node = node.left
+    return node
 
 
 def _text_accumulators(scope: ast.AST) -> set[str]:
@@ -539,16 +551,58 @@ def _annotated_sequence(name: str, ctx: UnitContext) -> bool:
     return False
 
 
+NULLABLE_WRAPPERS = frozenset({"Optional", "Union"})
+
+
 def _annotation_root(node: ast.AST) -> str | None:
-    """`list[int]` -> "list", `typing.List[str]` -> "List"."""
+    """`list[int]` -> "list", `typing.List[str]` -> "List".
+
+    `Optional[list[str]]` and `list[str] | None` both mean a list that may be
+    absent, and both used to answer "Optional" or nothing at all -- so the one
+    habit of admitting a value can be missing hid the sequence underneath it.
+    """
     if isinstance(node, ast.Name):
         return node.id
     if isinstance(node, ast.Attribute):
         return node.attr
     if isinstance(node, ast.Subscript):
+        if _annotation_root(node.value) in NULLABLE_WRAPPERS:
+            return _first_sequence_arg(node.slice)
         return _annotation_root(node.value)
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+        return _first_sequence_arg(node)
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value.split("[")[0].strip().rsplit(".", 1)[-1] or None
+        return _annotation_root(_parse_annotation(node.value))
+    return None
+
+
+def _parse_annotation(text: str) -> ast.AST | None:
+    """A quoted annotation as a tree, so `"Optional[list[str]]"` reads like the
+    unquoted form.
+
+    Forward references and `if TYPE_CHECKING` imports make quoted annotations
+    ordinary in typed code, and splitting the string on "[" only ever saw the
+    outermost name -- which for a nullable list is the wrapper, never the list.
+    """
+    try:
+        parsed = ast.parse(text.strip(), mode="eval").body
+    except (SyntaxError, ValueError):
+        return None
+    return None if isinstance(parsed, ast.Constant) else parsed
+
+
+def _first_sequence_arg(node: ast.AST) -> str | None:
+    """The first branch of a union or `Optional[...]` that names a sequence."""
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
+        branches = [node.left, node.right]
+    elif isinstance(node, ast.Tuple):
+        branches = list(node.elts)
+    else:
+        branches = [node]
+    for branch in branches:
+        root = _annotation_root(branch)
+        if root in SEQUENCE_ANNOTATIONS:
+            return root
     return None
 
 
@@ -568,6 +622,15 @@ def _bindings_of(name: str, ctx: UnitContext) -> list[ast.AST]:
         for node in ast.walk(ctx.node)
         if isinstance(node, ast.Assign)
         and any(isinstance(t, ast.Name) and t.id == name for t in node.targets)
+    ]
+    # `roles: list[str] = [...]` is an `ast.AnnAssign`, and looking only for
+    # `ast.Assign` meant annotating the very thing this rule reasons about was
+    # enough to hide it.
+    local += [
+        node.value
+        for node in ast.walk(ctx.node)
+        if isinstance(node, ast.AnnAssign) and node.value is not None
+        and isinstance(node.target, ast.Name) and node.target.id == name
     ]
     if local:
         return local
@@ -641,6 +704,26 @@ def _is_grown(name: str, ctx: UnitContext) -> bool:
 def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """`for i in range(len(xs))` where the index is only used to read `xs[i]`.
 
+    "Only" is the whole rule, and it was not being checked.  Any subscript
+    anywhere in the loop whose slice happened to be the index counted, without
+    asking what was being done with it, so all of these were reported and the
+    repair does not reach any of them:
+
+        for i in range(len(items)):  items[i] = items[i].strip()
+        for i in range(len(items)):
+            if items[i] == target: return i
+        for i in range(len(points)): d = points[i] - points[i - 1]
+
+    A write-back cannot become `for item in items` -- rebinding the loop
+    variable does not touch the list.  An index that escapes needs `enumerate`.
+    A neighbour lookup needs the offset.  So every *read* of the index has to
+    be the entire slice of a Load subscript; anything else and the index is
+    doing work direct iteration cannot do.
+
+    Indexing a second sequence is not disqualifying, only differently
+    repairable: `total += abs(first[i] - second[i])` is `zip(first, second)`,
+    and the message says so rather than claiming direct iteration would do.
+
     Comprehension generators count as well as `for` statements: the index-driven
     form is just as common written as `[grid[i][i] for i in range(len(grid))]`.
     """
@@ -651,19 +734,36 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         if sequence is None:
             continue
         index = target.id
-        if not any(
-            isinstance(node, ast.Subscript)
-            and isinstance(node.slice, ast.Name)
-            and node.slice.id == index
-            for node in ast.walk(scope)
-        ):
+
+        indexed: set[str] = set()
+        spent_elsewhere = False
+        for node in ast.walk(scope):
+            if not (isinstance(node, ast.Name) and node.id == index
+                    and isinstance(node.ctx, ast.Load)):
+                continue
+            parent = ctx.parent_of(node)
+            if (isinstance(parent, ast.Subscript)
+                    and parent.slice is node
+                    and isinstance(parent.ctx, ast.Load)):
+                indexed.add(ast.unparse(parent.value))
+                continue
+            spent_elsewhere = True
+            break
+        if spent_elsewhere or not indexed:
             continue
+
+        others = sorted(indexed - {sequence})
+        if others:
+            repair = (f"`zip({sequence}, {', '.join(others)})` walks them "
+                      f"together without an index")
+        else:
+            repair = "iterating the sequence directly avoids an index lookup per item"
         yield _evidence(
             unit, "index_based_iteration", scope, ("C3.S1",),
-            f"iterating `range(len({sequence}))` and indexing back into it; "
-            f"iterating the sequence directly avoids an index lookup per item",
+            f"iterating `range(len({sequence}))` and indexing back into it; {repair}",
             sequence=sequence,
             index=index,
+            also_indexed=others,
         )
 
 
@@ -717,6 +817,13 @@ def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue
         if ctx.read_names(call.func.value) & ctx.assigned_names(loop):
             continue
+        # The repair rebinds the receiver, so the unit has to own it.
+        # `for item in new_items: shared_queue.append(item.data)` becomes
+        # `shared_queue = [...]`, which builds a fresh local and leaves the
+        # caller holding the list it passed in, still empty.
+        root = _root_name(call.func.value)
+        if root is None or root not in _created_names(ctx.node):
+            continue
         yield _evidence(
             unit, "append_only_loop", loop, ("C3.S1", "C10.S3"),
             "loop body is a single `.append()`; a comprehension does the same "
@@ -725,15 +832,26 @@ def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         )
 
 
+def _root_name(node: ast.AST) -> str | None:
+    """`holder.names` -> "holder", `records` -> "records", `buckets[k]` -> None."""
+    while isinstance(node, ast.Attribute):
+        node = node.value
+    return node.id if isinstance(node, ast.Name) else None
+
+
 def _sole_append(statement: ast.stmt) -> ast.Call | None:
     """The `.append()` call a loop body consists of, if that is all it does.
 
     An `if` around the append counts: `for x in xs: if p(x): out.append(x)` is
     `[x for x in xs if p(x)]`, and skipping it lost the filtered form, which is
-    at least as common as the unfiltered one.  An `else` branch does not count,
-    because a comprehension has no way to express one.
+    at least as common as the unfiltered one.  Nested `if`s count too, because
+    a comprehension takes as many filters as you like -- `if x.valid: if
+    x.score > 10:` is `[x for x in xs if x.valid if x.score > 10]`, and
+    stripping only one level stopped at the outer one.  An `else` branch does
+    not count, because a comprehension has no way to express one.
     """
-    if isinstance(statement, ast.If) and not statement.orelse and len(statement.body) == 1:
+    while (isinstance(statement, ast.If) and not statement.orelse
+           and len(statement.body) == 1):
         statement = statement.body[0]
     if not isinstance(statement, ast.Expr) or not isinstance(statement.value, ast.Call):
         return None
@@ -1062,27 +1180,66 @@ def regex_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     for node in ctx.own_nodes():
         if not ctx.repeats(node):
             continue
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        found = _regex_call(node, ctx)
+        if found is None:
             continue
-        base = node.func.value
-        if not isinstance(base, ast.Name):
-            continue
-        if (base.id, node.func.attr) not in COMPILE_CALLS:
-            continue
-        scopes = ctx.repeats_around(node)
+        label, pattern = found
         # Only the *pattern* has to be invariant. The subject is the element
         # being iterated in every one of these calls, so testing the whole call
         # for a dependency rejected every true positive.
-        pattern = node.args[0] if node.args else None
-        if pattern is None or ctx.read_names(pattern) & ctx.iteration_names(node):
+        if ctx.read_names(pattern) & ctx.iteration_names(node):
             continue
+        scopes = ctx.repeats_around(node)
         yield _evidence(
             unit, "regex_in_loop", node, ("C3.S3", "C8.S2"),
-            f"`{base.id}.{node.func.attr}()` is called once per element; the "
-            f"pattern is re-resolved every time",
-            call=f"{base.id}.{node.func.attr}",
+            f"`{label}()` is called once per element; the pattern is "
+            f"re-resolved every time",
+            call=label,
             loop_line=getattr(scopes[-1], "lineno", unit.lineno),
         )
+
+
+def _regex_call(node: ast.AST, ctx: UnitContext):
+    """`(label, pattern)` if this call is a module-level `re` function.
+
+    Three spellings were being missed, all of them ordinary.  `from re import
+    search` binds the function directly, so the call is an `ast.Name` and the
+    rule only looked at `ast.Attribute`.  `import re as regex` renames the
+    module.  And `re.search(pattern=p, string=line)` puts the pattern in a
+    keyword, where reading `node.args[0]` finds nothing and the call was
+    skipped as if it had no pattern at all.
+    """
+    if not isinstance(node, ast.Call):
+        return None
+    func = node.func
+    if isinstance(func, ast.Attribute):
+        base = func.value
+        if not isinstance(base, ast.Name) or func.attr not in RE_FUNCTIONS:
+            return None
+        if base.id != "re" and ctx.imports.get(base.id) != "re":
+            return None
+        label = f"{base.id}.{func.attr}"
+    elif isinstance(func, ast.Name):
+        if func.id not in RE_FUNCTIONS or ctx.imports.get(func.id) != "re":
+            return None
+        label = func.id
+    else:
+        return None
+
+    if node.args:
+        return label, node.args[0]
+    for keyword in node.keywords:
+        if keyword.arg == "pattern":
+            return label, keyword.value
+    return None
+
+
+MUTATING_METHODS = frozenset({
+    "append", "remove", "insert", "pop", "extend", "clear",
+    # Reordering skips and repeats elements just as surely as removing one, and
+    # a set or dict mutated mid-iteration raises RuntimeError outright.
+    "reverse", "sort", "add", "discard", "update", "popitem", "setdefault",
+})
 
 
 def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
@@ -1094,20 +1251,47 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         if not isinstance(loop, ast.For) or not isinstance(loop.iter, (ast.Name, ast.Attribute)):
             continue
         iterated = ast.unparse(loop.iter)
+        deferred = _deferred_nodes(loop)
         for node in ast.walk(loop):
-            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            if id(node) in deferred:
                 continue
-            if node.func.attr not in {"append", "remove", "insert", "pop", "extend", "clear"}:
-                continue
-            if ast.unparse(node.func.value) != iterated:
+            operation = None
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in MUTATING_METHODS
+                    and ast.unparse(node.func.value) == iterated):
+                operation = f".{node.func.attr}()"
+            elif isinstance(node, ast.Delete):
+                # `del queue[0]` is an `ast.Delete`, not a call, so a rule
+                # looking only for method names walked straight past it.
+                for victim in node.targets:
+                    if (isinstance(victim, ast.Subscript)
+                            and ast.unparse(victim.value) == iterated):
+                        operation = "`del`"
+                        break
+            if operation is None:
                 continue
             yield _evidence(
                 unit, "mutation_during_iteration", node, ("C3.S7",),
-                f"`{iterated}` is mutated with `.{node.func.attr}()` while being "
+                f"`{iterated}` is mutated with {operation} while being "
                 f"iterated, which skips elements or grows the loop unboundedly",
                 collection=iterated,
-                operation=node.func.attr,
+                operation=operation.strip("`.()"),
             )
+
+
+def _deferred_nodes(loop: ast.AST) -> set[int]:
+    """Nodes inside a lambda or a nested `def`, which do not run in this loop.
+
+    `btn.on_delete(lambda: items.remove(item))` registers a callback for some
+    later event.  Nothing is mutated during the iteration, and `ast.walk` sees
+    no difference between that and a bare `items.remove(item)`.
+    """
+    found: set[int] = set()
+    for node in ast.walk(loop):
+        if isinstance(node, (ast.Lambda,) + OPAQUE_NODES):
+            found.update(id(inner) for inner in ast.walk(node))
+            found.discard(id(node))
+    return found
 
 
 RULES = [

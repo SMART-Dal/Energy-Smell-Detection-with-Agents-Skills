@@ -18,11 +18,29 @@ def absolute_gaps(first, second):
 
 
 def running_totals(values):
-    # The index is used to read and to write; still an index-driven loop.
+    # An indexed *write*, and a neighbour read beside it. `for value in values`
+    # gives neither: rebinding the loop variable does not touch `out`, and
+    # `out[i - 1]` needs the offset. A prefix sum is not this repair.
     out = [0] * len(values)
     for i in range(len(values)):
         out[i] = values[i] + (out[i - 1] if i else 0)
     return out
+
+
+def strip_in_place(items):
+    # The write-back again, in its plainest form. `for item in items:
+    # item = item.strip()` rebinds a local and leaves the list untouched.
+    for i in range(len(items)):
+        items[i] = items[i].strip()
+
+
+def find_position(items, target):
+    # The index is the answer, so it cannot be dropped. `enumerate` is the
+    # repair here, not direct iteration.
+    for i in range(len(items)):
+        if items[i] == target:
+            return i
+    return -1
 
 
 def positions_only(values):

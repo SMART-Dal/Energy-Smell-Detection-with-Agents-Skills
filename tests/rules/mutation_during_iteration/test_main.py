@@ -12,6 +12,8 @@ EXPECTED = {
     "drop_inactive": 1,   # `remove` skips the next element
     "expand_queue": 1,    # `append` can extend the loop unboundedly
     "prune_pending": 1,   # the collection is an attribute
+    "drain_queue": 1,     # `del queue[0]` is a mutation too
+    "shuffle_while_walking": 1,  # so is reordering in place
 }
 
 

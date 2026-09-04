@@ -77,3 +77,21 @@ def bucket_by_key(rows, buckets):
     for row in rows:
         buckets[row.key].append(row)
 
+
+def populate_queue(shared_queue, new_items):
+    # The repair rebinds the receiver. `shared_queue = [i.data for i in
+    # new_items]` builds a fresh local and leaves the caller holding the list
+    # it passed in, still empty.
+    for item in new_items:
+        shared_queue.append(item.data)
+
+
+def keep_valid_and_scored(rows):
+    # A comprehension takes as many filters as you like, so nested `if`s are
+    # still one: `[r for r in rows if r.valid if r.score > 10]`.
+    kept = []
+    for row in rows:
+        if row.valid:
+            if row.score > 10:
+                kept.append(row)
+    return kept

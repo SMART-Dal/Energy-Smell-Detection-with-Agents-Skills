@@ -13,6 +13,7 @@ EXPECTED = {
     "collect_names": 1,         # appending through an attribute
     "keep_valid": 1,            # an `if` around it is a comprehension filter
     "build_in_closure.run": 1,  # attributed to the closure that owns the loop
+    "keep_valid_and_scored": 1, # nested `if`s are still one comprehension
 }
 
 

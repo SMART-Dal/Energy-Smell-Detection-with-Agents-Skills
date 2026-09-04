@@ -1,5 +1,7 @@
 """Cases for membership_test_on_sequence."""
 
+from typing import List, Optional
+
 # Where a table of allowed values usually lives: above the function, not in it.
 BLOCKED_AGENTS = [
     "curl", "wget", "python-requests", "scrapy", "httpie", "libwww",
@@ -128,3 +130,38 @@ def dedupe_with_set(rows):
     for row in rows:
         if row not in seen:
             seen.add(row)
+
+
+def check_roles(users):
+    # An annotated assignment is still an assignment. Looking only for
+    # `ast.Assign` meant annotating the table was enough to hide it.
+    valid_roles: list[str] = ["admin", "root", "dev", "analyst", "guest",
+                              "test", "audit", "lead", "staff", "intern",
+                              "sec", "ops", "hr"]
+    for user in users:
+        if user.role in valid_roles:
+            grant(user)
+
+
+def check_optional_pool(items, pool: "Optional[list[str]]"):
+    # `Optional[list[str]]` is a list that may be absent; admitting it can be
+    # missing should not hide the sequence underneath.
+    for item in items:
+        if item in pool:
+            grant(item)
+
+
+def check_union_pool(items, pool: "list[str] | None"):
+    # The same annotation written the other way, and quoted -- a forward
+    # reference or a `TYPE_CHECKING` import makes that ordinary, and splitting
+    # the string on "[" only ever saw the wrapper.
+    for item in items:
+        if item in pool:
+            grant(item)
+
+
+def check_unquoted_optional(items, pool: Optional[List[str]]):
+    # The unquoted spelling of the same thing.
+    for item in items:
+        if item in pool:
+            grant(item)

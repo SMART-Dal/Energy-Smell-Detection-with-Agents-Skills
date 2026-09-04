@@ -17,6 +17,10 @@ EXPECTED = {
     "match_pairs": 1,     # nested loops, one comparison, one finding
     "missing_ids": 1,     # `not in` against a materialised list
     "reject_agents": 1,   # module constant, scanned inside a comprehension
+    "check_roles": 1,          # `roles: list[str] = [...]` is an AnnAssign
+    "check_optional_pool": 1,  # `Optional[list[str]]` is still a list
+    "check_union_pool": 1,     # and so is `list[str] | None`
+    "check_unquoted_optional": 1,  # the unquoted spelling
 }
 
 
