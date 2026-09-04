@@ -9,6 +9,7 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+    "batch_process": 2,       # two comprehension defaults, both shared
     "collect_samples": 1,           # list literal, appended to
     "Registry.register": 2,         # two defaults on one signature, two findings
     "tally_words": 1,               # keyword-only default

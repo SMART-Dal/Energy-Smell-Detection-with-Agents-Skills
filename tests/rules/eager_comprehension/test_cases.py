@@ -46,3 +46,23 @@ def weights_twice(rows):
     # Materialised because the result is reduced and then counted.
     weights = [row * 3 + 1 for row in rows]
     return sum(weights), len(weights)
+
+
+def shorter_boundary(polygon_a, polygon_b):
+    # `min(a, b)` compares; turning the first into a generator raises
+    # TypeError against the list beside it.
+    return min([p.x for p in polygon_a], [p.x for p in polygon_b])
+
+
+def align_data(timestamps, raw_readings):
+    # `zip` iterates every argument it is given, so a comprehension in the
+    # second position counts exactly as much as one in the first.
+    return zip(timestamps, [r.strip() for r in raw_readings])
+
+
+def outer_pipeline(batches):
+    # The inner comprehension belongs to `aggregate`. Walking `ast.walk`
+    # reported it here as well, against a unit that cannot act on it.
+    def aggregate(batch):
+        return sum([item.val for item in batch])
+    return [aggregate(b) for b in batches]

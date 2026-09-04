@@ -71,3 +71,18 @@ def stamp_event(event, at=datetime.now(), tags=frozenset()):
     event.recorded_at = at
     event.tags = tags | {"stamped"}
     return event
+
+
+def build_widget(title, state=config_builder.set("initialized", True)):
+    # `.set()` is a builder method, not the `set` constructor. Matching on the
+    # final attribute alone read every fluent API in a signature as a shared
+    # mutable default.
+    return title, state
+
+
+def batch_process(factors=[2 ** i for i in range(8)],
+                  mapping={k: [] for k in ("a", "b")}):
+    # A comprehension in a default runs once at definition time and hands
+    # every call the same object, exactly as `[]` does.
+    factors.append(99)
+    return mapping

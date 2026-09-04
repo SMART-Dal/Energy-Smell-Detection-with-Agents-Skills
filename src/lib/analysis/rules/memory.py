@@ -8,19 +8,51 @@ from typing import Iterator
 from ..models import Evidence, UnitRef
 from ..context import COMPREHENSION_NODES, UnitContext
 
-MUTABLE_DEFAULTS = (ast.List, ast.Dict, ast.Set)
+MUTABLE_DEFAULTS = (ast.List, ast.Dict, ast.Set,
+                    # A comprehension in a default runs once at definition time
+                    # and hands every call the same object, exactly as a
+                    # literal does -- and was passing through untouched.
+                    ast.ListComp, ast.DictComp, ast.SetComp)
 MEMORY_BUFFERS = frozenset({"BytesIO", "StringIO"})
 """Sources whose bytes are already resident, so there is nothing left to stream."""
 
 LINE_SPLITS = frozenset({"splitlines", "split"})
 
+MUTATING_CALLS = frozenset({"append", "remove", "insert", "pop", "extend",
+                            "clear", "add", "discard", "update", "popitem"})
+
+LINE_SEPARATORS = frozenset({"\n", "\r\n", "\r", b"\n", b"\r\n", b"\r"})
+"""Exactly a line ending, and nothing that merely contains one.
+
+`doc.read().split("\n\n")` splits into paragraphs, and a substring test for
+"\n" said that was a line walk -- but iterating the handle yields single
+lines, so the repair silently changes what the code produces."""
+
 MUTABLE_DEFAULT_CALLS = frozenset({"list", "dict", "set", "bytearray", "defaultdict",
                                    "Counter", "OrderedDict", "deque"})
+
+MUTABLE_DEFAULT_MODULES = frozenset({"collections", "typing"})
+"""Receivers whose `.list()`/`.deque()` really do build a container.
+
+`.set()` and `.list()` are builder and fluent-API methods all over Python --
+`config_builder.set("initialized", True)` is not a mutable default -- so an
+attribute call is trusted only where the receiver says it builds one."""
 
 # Functions that consume an iterable lazily, so wrapping their argument in a
 # list only forces an allocation that is thrown away immediately.
 LAZY_CONSUMERS = frozenset({"sum", "any", "all", "min", "max", "sorted", "set",
                             "tuple", "frozenset", "dict", "join", "enumerate", "zip"})
+
+VARIADIC_ITERABLES = frozenset({"zip"})
+"""Consumers that iterate *every* positional argument, so any of them counts."""
+
+COMPARES_ITS_ARGUMENTS = frozenset({"min", "max"})
+"""`min(a, b)` compares two values and iterates neither.
+
+Dropping the conversion there does not save an allocation, it changes what
+the call means -- `min(gen_a, gen_b)` raises `TypeError: '<' not supported
+between instances of 'generator' and 'generator'`. The advice has to be
+withheld, not merely re-worded."""
 
 # The consumers above that never build a sequence of their own.  `sorted`,
 # `set`, `tuple`, `frozenset` and `dict` allocate a container out of whatever
@@ -50,6 +82,22 @@ RESOURCE_MODULES = frozenset({
 """Receivers whose `.open()`/`.connect()` really does hand back a handle.
 
 `Image.open(...)` shares the name and holds nothing, so the receiver decides."""
+
+HANDLE_RECEIVERS = frozenset({
+    "connection", "conn", "cnx", "session", "database", "db", "pool", "engine",
+    "client", "sock", "socket", "cursor", "channel", "transport",
+})
+"""Receiver names that conventionally hold an open handle.
+
+A convention, not a proof, and it is the only thing separating
+`connection.cursor()` from `editor.cursor()` -- both are `<name>.cursor()` on
+something this rule cannot type.  Guessing by name is what the module already
+does with `RESOURCE_MODULES`; naming the guess is better than trusting every
+receiver, which reported Qt signals and graph edges as leaked file handles."""
+
+PATH_FACTORIES = frozenset({"Path", "PurePath", "PosixPath", "WindowsPath"})
+"""`Path(...).open()` is how modern Python opens a file, and the receiver is a
+call rather than a module name, so the module check could never see it."""
 
 # Calls that take over the closing of a handle they are given: registration
 # with an `ExitStack`, or appending to the list of handles that some caller
@@ -116,11 +164,20 @@ def _is_mutable_default(node: ast.AST) -> bool:
         return True
     if not isinstance(node, ast.Call):
         return False
+    if _called_name(node) not in MUTABLE_DEFAULT_CALLS:
+        return False
     # Used to require a bare `Name`, so `collections.defaultdict(list)` and
     # `collections.OrderedDict()` as defaults went unreported while the
     # `from collections import ...` spelling of the same constructor was
-    # caught.  The final attribute is enough: nothing else is named `deque`.
-    return _called_name(node) in MUTABLE_DEFAULT_CALLS
+    # caught.  But "the final attribute is enough" was wrong the other way:
+    # `.set()` and `.list()` are builder-API methods everywhere in Python, and
+    # `config_builder.set("initialized", True)` in a signature was read as a
+    # shared mutable set.  A bare name is the constructor; an attribute has to
+    # name a receiver that builds containers.
+    if isinstance(node.func, ast.Name):
+        return True
+    return (isinstance(node.func.value, ast.Name)
+            and node.func.value.id in MUTABLE_DEFAULT_MODULES)
 
 
 def unmanaged_resource(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
@@ -143,16 +200,31 @@ def unmanaged_resource(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     returns a PIL image and holds no operating-system handle, and matching the
     bare word `open` reported it as a leaked file -- which was every single time
     this rule fired across four real repositories.
+
+    That check used to apply to `open` alone, and every other opener was
+    trusted on its name.  `.connect()` and `.cursor()` are not rare words:
+
+        conn = view.clicked.connect(view.refresh)   a Qt signal
+        edge = graph.connect(node_a, node_b)        a graph edge
+        csr = view.document.cursor()                a text cursor
+
+    All three were reported as leaked operating-system handles.  So every
+    opener now has to name a receiver that opens something: a module that does
+    (`sqlite3.connect`), a `Path(...)` call, or a local already holding a
+    handle -- which is what makes `conn.cursor()` still read after
+    `conn = sqlite3.connect(path)`.
     """
+    handles = _handle_names(ctx.node)
     for node in _own_nodes(ctx.node):
-        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+        binding = _resource_binding(node)
+        if binding is None:
             continue
-        call = node.value
+        targets, call = binding
         name = _called_name(call)
-        if name not in RESOURCE_OPENERS or not _is_resource_opener(call, ctx):
+        if name not in RESOURCE_OPENERS or not _is_resource_opener(call, ctx, handles):
             continue
-        bound = {t.id for t in node.targets if isinstance(t, ast.Name)}
-        if len(bound) != len(node.targets):
+        bound = {t.id for t in targets if isinstance(t, ast.Name)}
+        if len(bound) != len(targets):
             # `self._handle = open(...)` or `cache[key] = open(...)`: the handle
             # is deliberately outliving the call, so its owner closes it.
             continue
@@ -174,7 +246,40 @@ def _called_name(call: ast.Call) -> str | None:
     return None
 
 
-def _is_resource_opener(call: ast.Call, ctx: UnitContext) -> bool:
+def _resource_binding(node: ast.AST):
+    """`(targets, call)` for the statement forms that bind a handle to a name.
+
+    `handle: TextIO = open(path)` and `if (stream := open(path)):` open exactly
+    the same file as the plain assignment beside them; matching only
+    `ast.Assign` walked past both.
+    """
+    if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+        return node.targets, node.value
+    if isinstance(node, (ast.AnnAssign, ast.NamedExpr)) and isinstance(node.value, ast.Call):
+        return [node.target], node.value
+    return None
+
+
+def _handle_names(scope: ast.AST) -> set[str]:
+    """Locals already holding an open handle, so `conn.cursor()` is trusted."""
+    found: set[str] = set()
+    for node in ast.walk(scope):
+        binding = _resource_binding(node)
+        if binding is None:
+            continue
+        targets, call = binding
+        func = call.func
+        opens = (
+            (isinstance(func, ast.Name) and func.id in PATH_FACTORIES | {"open"})
+            or (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)
+                and func.value.id in RESOURCE_MODULES)
+        )
+        if opens:
+            found.update(t.id for t in targets if isinstance(t, ast.Name))
+    return found
+
+
+def _is_resource_opener(call: ast.Call, ctx: UnitContext, handles: set[str]) -> bool:
     """Whether this really opens a handle, rather than sharing a method name.
 
     A bare `open(...)` is the builtin unless the unit rebinds the name.  An
@@ -187,14 +292,22 @@ def _is_resource_opener(call: ast.Call, ctx: UnitContext) -> bool:
         return func.id not in ctx.assigned_names(ctx.node)
     if not isinstance(func, ast.Attribute):
         return False
-    # `connection.cursor()` and `pool.connect()` are named for what they do and
-    # nothing else spells them that way. `open` is the exception: half the
-    # ecosystem has an `X.open()` that returns something other than a handle,
-    # so for that one name the receiver has to be a module that really opens
-    # files.
-    if func.attr != "open":
+    receiver = func.value
+    # `Path("/var/log/audit.log").open("a")`: the receiver is a call, which is
+    # the idiomatic way to open a file and the one shape a module-name check
+    # can never match.
+    if (isinstance(receiver, ast.Call) and isinstance(receiver.func, ast.Name)
+            and receiver.func.id in PATH_FACTORIES):
         return True
-    return isinstance(func.value, ast.Name) and func.value.id in RESOURCE_MODULES
+    # `self._conn.cursor()` is the same handle as `conn.cursor()`, so an
+    # attribute receiver is judged on its last component -- which still leaves
+    # `view.clicked.connect(...)` and `view.document.cursor()` out.
+    if isinstance(receiver, ast.Attribute):
+        return receiver.attr.lstrip("_") in HANDLE_RECEIVERS
+    if not isinstance(receiver, ast.Name):
+        return False
+    trusted = RESOURCE_MODULES | PATH_FACTORIES | HANDLE_RECEIVERS
+    return receiver.id in trusted or receiver.id in handles
 
 
 def _is_released(scope: ast.AST, names: set[str]) -> bool:
@@ -292,9 +405,10 @@ def redundant_materialisation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
     be indexed, re-iterated or sliced, and deleting the conversion would then
     change what the code means rather than only what it allocates.
 
-    Every argument is checked, not only the first.  `zip`, `min`, `max` and
-    `dict` all take more than one iterable, so `zip(names, list(scores))` was
-    going unreported for no better reason than the position of the conversion.
+    `zip(names, list(scores))` counts too, since `zip` iterates every argument
+    it is given.  `min(list(a), list(b))` does not: two arguments to `min` are
+    two values being compared, not one sequence being walked, and deleting the
+    conversions there raises `TypeError` rather than saving anything.
     """
     for node in _own_nodes(ctx.node):
         if not isinstance(node, ast.Call):
@@ -302,8 +416,13 @@ def redundant_materialisation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         consumer = _consumer_name(node)
         if consumer not in LAZY_CONSUMERS:
             continue
-        for argument in node.args:
+        if consumer in COMPARES_ITS_ARGUMENTS and len(node.args) != 1:
+            continue
+        candidates = node.args if consumer in VARIADIC_ITERABLES else node.args[:1]
+        for argument in candidates:
             if not (isinstance(argument, ast.Call) and _called_name(argument) == "list"):
+                continue
+            if _snapshots_a_mutated_collection(argument, ctx):
                 continue
             yield _evidence(
                 unit, "redundant_materialisation", argument,
@@ -332,22 +451,66 @@ def eager_comprehension(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     or returned is out of scope by construction: this rule only sees
     comprehensions written inline at a call site, where none of those are
     possible.
+
+    `min([...], [...])` is excluded for the same reason as in
+    `redundant_materialisation`: those are two values being compared, and
+    turning the first into a generator raises `TypeError`.  A comprehension in
+    a later argument of `zip` is included, having previously been missed for no
+    reason but its position.
+
+    Walks `_own_nodes` rather than `ast.walk`, so a comprehension inside a
+    nested `def` is reported once -- against the function that contains it --
+    instead of twice.
     """
-    for node in ast.walk(ctx.node):
+    for node in _own_nodes(ctx.node):
         if not isinstance(node, ast.Call):
             continue
         consumer = _consumer_name(node)
         if consumer not in STREAMING_CONSUMERS or not node.args:
             continue
-        argument = node.args[0]
-        if not isinstance(argument, ast.ListComp):
+        if consumer in COMPARES_ITS_ARGUMENTS and len(node.args) != 1:
             continue
-        yield _evidence(
-            unit, "eager_comprehension", argument, _suggests_for(consumer, ("C6.S3",)),
-            f"a list comprehension is materialised only to be consumed once by "
-            f"`{consumer}()`; a generator expression avoids the allocation",
-            consumer=consumer,
-        )
+        candidates = node.args if consumer in VARIADIC_ITERABLES else node.args[:1]
+        for argument in candidates:
+            if not isinstance(argument, ast.ListComp):
+                continue
+            yield _evidence(
+                unit, "eager_comprehension", argument,
+                _suggests_for(consumer, ("C6.S3",)),
+                f"a list comprehension is materialised only to be consumed "
+                f"once by `{consumer}()`; a generator expression avoids the "
+                f"allocation",
+                consumer=consumer,
+            )
+
+
+def _snapshots_a_mutated_collection(conversion: ast.Call, ctx: UnitContext) -> bool:
+    """Whether this `list(...)` exists to be iterated while the original changes.
+
+        for idx, task in enumerate(list(queue)):
+            if task.expired: queue.remove(task)
+
+    The conversion is the only reason that loop is correct -- delete it and the
+    iteration walks a collection that is shrinking underneath it, skipping
+    elements or raising `RuntimeError`.  Not an allocation to save: a copy
+    doing exactly the job a copy is for.
+    """
+    if len(conversion.args) != 1 or not isinstance(conversion.args[0], ast.Name):
+        return False
+    original = conversion.args[0].id
+    for loop in ctx.loops_around(conversion):
+        for node in ast.walk(loop):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in MUTATING_CALLS
+                    and isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == original):
+                return True
+            if isinstance(node, ast.Delete) and any(
+                isinstance(t, ast.Subscript) and isinstance(t.value, ast.Name)
+                and t.value.id == original for t in node.targets
+            ):
+                return True
+    return False
 
 
 def _consumer_name(call: ast.Call) -> str | None:
@@ -388,6 +551,11 @@ def whole_file_read(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     consumer stops early, since the lines after the stopping point are never
     read at all.
 
+    One caveat travels with the repair, so the message carries it: iterating a
+    handle keeps the trailing newline, and `.splitlines()` strips it. Swapping
+    one for the other turns `"KEY"` into `"KEY\n"`, which a set lookup or an
+    equality test will not forgive. `.readlines()` keeps it either way.
+
     The narrowness is the rule. An earlier version reported every argument-less
     `.read()`, which is the same shape without the precondition that makes the
     repair legal: `return response.read()` *is* the whole body, and a config or
@@ -411,7 +579,8 @@ def whole_file_read(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             unit, "whole_file_read", node, ("C6.S3",),
             f"`.{node.func.attr}()` builds the whole content in memory and "
             f"{consumer} walks it a line at a time; iterating the handle "
-            f"yields the same lines without the list",
+            f"yields the same lines without the list, though it keeps the "
+            f"trailing newline that `.readlines()` and `.splitlines()` differ on",
             method=node.func.attr,
         )
 
@@ -422,20 +591,47 @@ def _line_consumers(scope: ast.AST) -> dict[int, str]:
     Keyed by `id` rather than by the node, because two identical calls in one
     unit compare equal to neither each other nor themselves under `==`.
     """
+    produced = _single_assignments(scope)
+
+    def record(source: ast.AST, how: str) -> None:
+        consumed.setdefault(id(source), how)
+        # `lines = handle.readlines()` then `for line in lines:` is the same
+        # pattern one name apart, and keying on `id()` alone could never join
+        # them -- the loop iterates an `ast.Name`, the producer is an
+        # `ast.Call`, and the two ids have nothing to do with each other.
+        if isinstance(source, ast.Name) and source.id in produced:
+            consumed.setdefault(id(produced[source.id]), how)
+
     consumed: dict[int, str] = {}
     for node in ast.walk(scope):
         if isinstance(node, (ast.For, ast.AsyncFor)):
-            consumed.setdefault(id(node.iter), "a loop")
+            record(node.iter, "a loop")
         elif isinstance(node, ast.comprehension):
-            consumed.setdefault(id(node.iter), "a comprehension")
+            record(node.iter, "a comprehension")
         elif (
             isinstance(node, ast.Call)
             and isinstance(node.func, ast.Attribute)
             and node.func.attr in LINE_SPLITS
             and _splits_on_lines(node)
         ):
-            consumed.setdefault(id(node.func.value), f"`.{node.func.attr}()`")
+            record(node.func.value, f"`.{node.func.attr}()`")
     return consumed
+
+
+def _single_assignments(scope: ast.AST) -> dict[str, ast.AST]:
+    """Names assigned exactly once in this scope, mapped to what produced them.
+
+    Exactly once, because a name rebound later is not reliably the thing the
+    loop below it walks, and this rule would rather miss than mislink.
+    """
+    values: dict[str, list[ast.AST]] = {}
+    for node in ast.walk(scope):
+        if not (isinstance(node, ast.Assign) and len(node.targets) == 1):
+            continue
+        target = node.targets[0]
+        if isinstance(target, ast.Name):
+            values.setdefault(target.id, []).append(node.value)
+    return {name: found[0] for name, found in values.items() if len(found) == 1}
 
 
 def _splits_on_lines(call: ast.Call) -> bool:
@@ -446,11 +642,8 @@ def _splits_on_lines(call: ast.Call) -> bool:
     """
     if call.func.attr == "splitlines":
         return True
-    return bool(call.args) and isinstance(call.args[0], ast.Constant) and (
-        isinstance(call.args[0].value, (str, bytes))
-        and (b"\n" if isinstance(call.args[0].value, bytes) else "\n")
-        in call.args[0].value
-    )
+    return (bool(call.args) and isinstance(call.args[0], ast.Constant)
+            and call.args[0].value in LINE_SEPARATORS)
 
 
 def _memory_buffers(scope: ast.AST) -> set[str]:

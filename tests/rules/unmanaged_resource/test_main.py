@@ -9,6 +9,9 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+    "write_audit_log": 1,     # `Path(...).open()` is still an open file
+    "read_payload": 1,        # annotated assignment
+    "read_fallback": 1,       # walrus
     "load_config": 1,                   # opened, read, dropped
     "merge_parts": 2,                   # two acquisitions, one report each
     "fetch_rows": 1,                    # a cursor the card names as an acquisition

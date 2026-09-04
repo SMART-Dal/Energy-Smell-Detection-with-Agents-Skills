@@ -9,6 +9,8 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+    "align_data": 1,               # a comprehension in `zip`'s second argument
+    "outer_pipeline.aggregate": 1,  # reported once, against the nested def
     "total_doubled": 1,  # `sum` walks it once
     "any_failed": 1,     # `any` also stops before reading it all
     "joined": 1,         # `str.join` streams too

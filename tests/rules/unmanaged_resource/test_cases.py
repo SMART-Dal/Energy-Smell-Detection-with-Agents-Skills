@@ -96,3 +96,33 @@ def open_report(path):
     # The handle is the return value; a `with` here closes it before the caller
     # can read it.
     return open(path, encoding="utf-8")
+
+
+def bind_events(view, graph, node_a, node_b):
+    # A Qt signal, a graph edge and a text cursor. None is an OS handle, and
+    # trusting every receiver named `.connect()` or `.cursor()` reported all
+    # three as leaked files.
+    conn = view.clicked.connect(view.refresh)
+    edge = graph.connect(node_a, node_b)
+    csr = view.document.cursor()
+    log(conn, edge, csr)
+
+
+def write_audit_log(entry):
+    # `Path(...).open()` is how modern Python opens a file, and the receiver
+    # is a call, which a module-name check can never match.
+    log_file = Path("/var/log/audit.log").open("a")
+    log_file.write(entry)
+
+
+def read_payload():
+    # An annotated assignment opens exactly the same file.
+    handle: object = open("payload.bin", "r")
+    return handle.read()
+
+
+def read_fallback():
+    # And so does a walrus.
+    if (stream := open("fallback.bin", "r")):
+        return stream.read()
+    return None

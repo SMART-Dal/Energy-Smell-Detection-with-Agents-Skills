@@ -72,3 +72,18 @@ def total_and_count(rows):
     # The sequence is consumed twice; a generator is empty by the second.
     sizes = list(len(row) for row in rows)
     return sum(sizes), len(sizes)
+
+
+def pick_optimal(candidate_a, candidate_b):
+    # Two arguments to `min` are two values being compared, not one sequence
+    # being walked. Dropping the conversions raises TypeError rather than
+    # saving an allocation.
+    return min(list(candidate_a), list(candidate_b))
+
+
+def flush_pending(active_queue):
+    # The conversion is the only reason this loop is correct: it snapshots a
+    # collection the body then shrinks.
+    for idx, task in enumerate(list(active_queue)):
+        if task.is_expired():
+            active_queue.remove(task)

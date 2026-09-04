@@ -77,3 +77,18 @@ def stream_lines(path):
     # Already streaming.
     with open(path) as handle:
         return sum(1 for line in handle if line.strip())
+
+
+def parse_paragraphs(doc_handle):
+    # `split("\n\n")` cuts paragraphs, not lines. Iterating the handle yields
+    # single lines, so the repair would change what this produces -- and a
+    # substring test for "\n" said it was a line walk.
+    return doc_handle.read().split("\n\n")
+
+
+def dispatch_all(handle):
+    # The same pattern one name apart. Keying producer to consumer on `id()`
+    # alone could never join an `ast.Call` to the `ast.Name` that reads it.
+    lines = handle.readlines()
+    for line in lines:
+        dispatch(line)

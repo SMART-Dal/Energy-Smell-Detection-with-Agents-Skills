@@ -9,6 +9,7 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
+    "dispatch_all": 1,        # producer and consumer joined through a local
     "count_errors": 1,       # read then splitlines
     "all_lines": 1,          # readlines consumed by a comprehension
     "each_record": 1,        # readlines consumed by a statement loop
