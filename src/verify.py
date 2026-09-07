@@ -9,8 +9,8 @@ A case file supplies `before`, `after` and `cases()`; see reference/verifying.md
 for the contract. This script then does four things, in order:
 
     1. equivalence   `after` must behave exactly like `before` on every case
-    2. sizing        each case is repeated until its window lasts ~2 seconds
-    3. measurement   the two variants alternate inside one process, 7 paired reps
+    2. sizing        each case is repeated until its window lasts ~3 seconds
+    3. measurement   the two variants alternate inside one process, 9 paired reps
     4. the canary    `before` against itself, to bound what this host can resolve
 
 The verdict is the point. `confirmed` means a real, measured, behaviour-
@@ -47,11 +47,11 @@ REGRESSION_TOLERANCE_PCT = 1.0
 """When a loss on one case is big enough to sink an otherwise good repair.
 
 Measured as a percentage of the *deciding* case's per-call cost, not of the
-case's own. That distinction is the whole rule. Joining an empty list costs
-1.3 microseconds where returning `""` costs 0.4, so on an empty case the repair
-measures as three times worse -- a true statement about a quantity nobody
-cares about. Weighted against a deciding case that takes 8.7 milliseconds, the
-same loss is 0.01% and correctly ignored.
+case's own. That distinction is the whole rule. Joining an empty list costs a
+microsecond or so where returning `""` costs a fraction of one, so on an empty
+case the repair measures as several times worse -- a true statement about a
+quantity nobody cares about. Weighted against a deciding case running in
+milliseconds, the same loss rounds to nothing and is correctly ignored.
 
 A repair that costs 20% on a case a tenth the size of the deciding one is a
 different matter: that is 2% of real work, it clears this bar, and the verdict
@@ -67,11 +67,17 @@ TIMING_CALLS = 3
 USABLE_FLOOR_PCT = 3.0
 """Above this canary reading, a null result means nothing and says so.
 
-An idle host measures about 0.6%. Three percent leaves headroom for ordinary
-background activity while still catching a machine that has become unusable --
-which is not hypothetical: a single concurrent user moved the median canary to
-8.2% and one reading to 51%, and every "the repair saves nothing" verdict in
-that band was an artefact of the host rather than a fact about the code.
+This is a policy bar, not a property of any particular machine: it is the point
+past which "the repair saves nothing" stops being a claim the data supports,
+because effects smaller than the host's own noise cannot be distinguished from
+zero. A quiet host sits far below it; a host with another user on it can sit an
+order of magnitude above, and every null verdict measured in that band is an
+artefact of the machine rather than a fact about the code.
+
+The floor itself is never assumed -- `verify()` measures it per run with the
+canary, and `--calibrate` reports it on its own. When moving to a new machine,
+calibrate first: if its quiet floor is not comfortably under this bar, the
+problem is the host, not the threshold, and raising the threshold only hides it.
 """
 
 
@@ -322,9 +328,9 @@ def _decide(result: Verification) -> None:
     #   inconclusive  this host could not resolve an effect of this size
     #
     # Collapsing them into `refuted` is how a busy machine gets recorded as
-    # evidence against the repair. On an idle host the canary reads about
-    # 0.6%; sharing the machine with one other user pushed the median to 8.2%
-    # and one run to 51%, at which point nothing under half is measurable and
+    # evidence against the repair. A quiet host resolves a fraction of a
+    # percent; sharing the machine with one other user can push the canary into
+    # the tens of percent, at which point nothing smaller is measurable and
     # "saves nothing" is not a claim the data supports.
     if result.noise_floor_pct > USABLE_FLOOR_PCT:
         result.status = "inconclusive"
@@ -479,7 +485,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--reps", type=int, default=DEFAULT_REPS)
     parser.add_argument("--window", type=float, default=TARGET_WINDOW_S,
-                        help="target seconds per measured window (default 2)")
+                        help="target seconds per measured window (default 3)")
     parser.add_argument("--meter", default="auto")
     parser.add_argument("--no-canary", action="store_true",
                         help="skip the null canary (faster, and less trustworthy)")

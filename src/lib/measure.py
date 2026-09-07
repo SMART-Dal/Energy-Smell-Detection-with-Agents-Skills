@@ -1,47 +1,56 @@
 """Paired A/B energy measurement: does this repair actually save energy?
 
-The design follows rules established by experiment on the development host, not
-by taste. Three of them matter enough to state up front.
+Four rules shape the design. None of them carries a constant tuned to one
+machine -- everything host-specific is measured at run time on whatever host
+the batch is running on, because these numbers do not travel.
 
 **Interleave, and keep the pair close together in time.** The dominant noise
 source is drift in the machine's idle power, so paired samples must sit next to
-each other. Measuring each variant in a separate process widened confidence
-intervals about 3.5x compared with alternating both inside one process.
+each other. Measuring each variant in its own process puts more wall-clock time
+between the pair and widens the confidence interval substantially; alternating
+both inside one process is worth more than isolating them.
 
-**Scale the workload, not the repetition count.** A window too short to
-average over its surroundings cannot be rescued by measuring it more often: at
-a quarter-second window the canary interval was +-8.1%, and at one second it
-was +-0.6%. This is why `verify.py` sizes every case to a full window before
-measuring it, however small the case itself is.
+**Scale the workload, not the repetition count.** A window too short to average
+over its surroundings cannot be rescued by measuring it more often -- shrinking
+the window widens the null interval sharply. This is why `verify.py` sizes
+every case to a full window before measuring it, however small the case is.
+
+**Warm the machine before believing it.** An idle core runs at a low clock and
+a low temperature, and the first seconds of any workload are spent climbing to
+a steady state. The runner burns `WARMUP_SECONDS` of unrelated arithmetic on
+the pinned core before the first window opens, so that climb is not charged to
+whichever variant happens to be measured first.
 
 **Calibrate against a null canary rather than trusting a fixed threshold.**
 Comparing a variant against an identical copy must come back insignificant. How
 wide that null interval is depends entirely on the host, so `noise_floor()`
-measures it and callers set their decision threshold from the result.
+measures it and callers set their decision threshold from the result. This is
+the mechanism that makes the rig portable: move it to another machine and the
+canary re-measures the floor there. Run `verify.py --calibrate` on a new host
+before trusting a batch from it.
 
 A note on what is being measured
 --------------------------------
-The meter reports CPU package + DRAM energy over the workload window. On a
-many-core host most of that is idle power from cores doing nothing: the
-development machine idles at 47.3 W and one busy Python thread takes it to
-55.4 W, so only about an eighth of any reading is work we caused.
+The meter reports whole-machine CPU package + DRAM energy over the workload
+window, and nothing is subtracted from it. On a many-core host much of that is
+idle power from cores doing nothing, so only a fraction of any reading is work
+we caused, and what that fraction is depends on the host.
 
 That sounds fatal and is not, because the window is not a fixed length. A
 variant that finishes sooner accrues less idle power too, so *system energy
 over the window* scales with how long the work took, and a repair that cuts a
-third of the work shows up as roughly a third less energy rather than an eighth
-of that. What the figure will not do is separate a change in power draw from a
-change in duration.
+third of the work shows up as roughly a third less energy. What the figure will
+not do is separate a change in power draw from a change in duration.
 
 Subtracting a calibrated idle baseline to recover "attributable" energy was
-tried and rejected: it amplifies relative noise so badly that a real 24% effect
-stopped being significant (+-16.6% intervals).
+tried and rejected: it amplifies relative noise badly enough to make real
+effects stop being significant. The reported number is the raw package + DRAM
+total over the window, deliberately.
 
 Time is recorded separately, so the cases where energy and duration diverge --
 the ones that distinguish an energy effect from a performance one -- stay
 visible.
 """
-
 from __future__ import annotations
 
 import json
@@ -54,23 +63,41 @@ from pathlib import Path
 from .models import Comparison
 
 DEFAULT_REPS = 9
-DEFAULT_WARMUP_CALLS = 1
 
-TARGET_WINDOW_S = 1.0
+DEFAULT_WARMUP_CALLS = 1
+"""Calls of each variant before the first sample, to warm the *code*.
+
+Imports resolved lazily, bytecode caches and the first allocation of a new size
+class are all one-off costs that would otherwise land on whichever variant ran
+first. This is not the same thing as `WARMUP_SECONDS`, which warms the
+*machine*; both run.
+"""
+
+WARMUP_SECONDS = 10.0
+"""Wall-clock seconds of unrelated arithmetic before the first sample.
+
+A core that has been idle sits at a low clock and a low temperature, and a
+frequency governor takes seconds to settle once work arrives. Measuring across
+that ramp charges it to whichever variant went first, which is exactly the kind
+of systematic error alternating the pair cannot cancel. The runner busies the
+pinned core for this long, after pinning and before any window, so every sample
+is taken from a machine already at a steady state.
+
+Ten seconds is a floor that comfortably outlasts a governor ramp on ordinary
+hardware. It is deliberately not derived from any one host.
+"""
+
+TARGET_WINDOW_S = 3.0
 """How long one measured window should last.
 
-Chosen by sweeping the null canary on the development host, not by taste. At
-nine paired repetitions the canary interval came out:
+A paired sample taken over too short a window is dominated by whatever the
+machine did in the surrounding milliseconds, and no amount of repetition
+recovers that -- the null interval widens sharply as the window shrinks. Three
+seconds buys a comfortable margin over that regime on any host.
 
-    0.25 s window   +-8.13%
-    0.50 s          +-1.70%
-    1.00 s          +-0.63%
-    2.00 s          +-0.84%
-
-Short windows lose because a paired sample is dominated by whatever the machine
-did in the surrounding milliseconds. Past a second there is nothing left to
-gain, and doubling the window only doubles the run time and the chance that
-some other process wanders through the measurement.
+Raising it further costs run time linearly and increases the chance some other
+process wanders through the measurement, so this is the knob to lower if a
+batch will not fit in `run.py`'s timeout, not one to raise.
 """
 
 MAX_REPEATS = 20_000_000
@@ -124,6 +151,7 @@ def compare_case(
         "mutates": mutates,
         "reps": reps,
         "warmup_calls": DEFAULT_WARMUP_CALLS,
+        "warmup_seconds": WARMUP_SECONDS,
         "meter": meter,
         "cpu": cpu,
     })

@@ -33,12 +33,25 @@ testing, and works before `python -m build` has been run at all.
 """
 RESULTS = ROOT / "validation" / "results"
 
-TIMEOUT_S = 600
+TIMEOUT_S = 480
 """Wall-clock ceiling for one case file.
 
-Nine paired reps over a one-second window is about a minute.  Anything past ten
-minutes is a sample whose inputs were sized for a different kind of experiment,
-and it is more useful reported as `timeout` than left to block the queue.
+Derived from the measurement parameters rather than picked. One measured
+subprocess costs `WARMUP_SECONDS + reps x 2 x TARGET_WINDOW_S`, which at the
+current settings is 10 + 9 x 2 x 3 = 64 s. A case file spends that once per
+case and once more for the canary on the deciding case, so an n-case file
+costs about `(n + 1) x 64` s: 192 s for two cases, 256 s for three, 384 s for
+five. This ceiling clears the largest of those with room for the equivalence
+and sizing stages on top.
+
+Change any of those three constants and recompute this one. Set it below the
+budget and the suite reports `timeout` for case files that are working
+perfectly -- at 240 s, every three-case file in the taxonomy suite would fail,
+which is most of it.
+
+What it is still for: a sample whose inputs were sized for a different kind of
+experiment, which is more useful reported as `timeout` than left to block the
+queue.
 """
 
 

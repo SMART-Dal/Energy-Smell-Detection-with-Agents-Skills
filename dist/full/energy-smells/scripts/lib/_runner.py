@@ -5,29 +5,62 @@ Run as `python -m lib._runner <spec.json>` from the `scripts/` directory. See
 
 Both variants are measured *inside this one process*, alternating which goes
 first. That is deliberate. Measuring each variant in its own process was tried
-and gave roughly 3.5x wider confidence intervals on the development host,
-because the dominant noise source is drift in the machine's idle power between
-measurements -- and the further apart in time two paired samples sit, the more
-drift accumulates between them. Keeping the pair adjacent is worth more than
-keeping it isolated.
+and gave substantially wider confidence intervals, because the dominant noise
+source is drift in the machine's idle power between measurements -- and the
+further apart in time two paired samples sit, the more drift accumulates
+between them. Keeping the pair adjacent is worth more than keeping it isolated.
 
 Interpreter startup stays outside every measured region, which is the other
-thing that matters: on a 24-core host, startup costs about as much energy as a
+thing that matters: on a many-core host, startup can cost as much energy as a
 short workload.
+
+Two warmups run before the first sample, and they warm different things. The
+machine warmup (`burn_cpu`) spends `warmup_seconds` on arithmetic unrelated to
+the case, so the pinned core is at a steady clock and temperature rather than
+ramping through the first windows. The code warmup then calls each variant a
+few times so neither pays a one-off interpreter cost. Neither is measured.
 """
 
 from __future__ import annotations
 
 import gc
 import json
+import math
 import os
+import random
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from lib.casefile import load_case_file  # noqa: E402
 from lib.meters import get_meter  # noqa: E402
+
+
+def burn_cpu(seconds: float) -> float:
+    """Busy the current core for `seconds` with work unrelated to any case.
+
+    Unrelated is the point. Warming with the workload under test would populate
+    caches, memo tables and branch predictors that one variant benefits from
+    and the other does not, which is a bias dressed up as a warmup. Plain
+    floating-point arithmetic on a seeded PRNG touches none of that, stays
+    reproducible run to run, and is not something the interpreter can fold away.
+
+    The running total is returned so nothing here can be mistaken for dead code
+    and removed by a future reader.
+    """
+    if seconds <= 0:
+        return 0.0
+    rng = random.Random(0)
+    deadline = time.perf_counter() + seconds
+    total = 0.0
+    while time.perf_counter() < deadline:
+        # A chunk of work between clock reads, so the timer is not most of the
+        # loop. Sized to a few milliseconds, well under the warmup budget.
+        for _ in range(2000):
+            total += math.sqrt(rng.random() * 1e6) % 7.0
+    return total
 
 
 def build_pool(case, size: int) -> list[tuple]:
@@ -72,8 +105,14 @@ def main(argv: list[str]) -> int:
     variants = [(label, case_file.variant(attr)) for label, attr in spec["variants"]]
     pool = build_pool(case, repeats if spec.get("mutates") else 1)
 
-    # Warm up both variants so neither pays the one-off cost of import-time
-    # laziness, bytecode caching or the first allocation of a new size class.
+    # Warm the machine first: bring the pinned core to a steady clock and
+    # temperature before anything is measured. This has to happen after the
+    # affinity call above, or it warms a core we then migrate away from.
+    burn_cpu(spec.get("warmup_seconds", 0.0))
+
+    # Then warm the code, so neither variant pays the one-off cost of
+    # import-time laziness, bytecode caching or the first allocation of a new
+    # size class.
     for _, function in variants:
         run_window(function, pool, min(repeats, spec.get("warmup_calls", 1)))
 

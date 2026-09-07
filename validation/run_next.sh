@@ -33,4 +33,6 @@ tmux new-session -d -s measure \
      2>&1 | tee -a validation/results/taxonomy.log"
 
 echo "started in tmux session 'measure'. Follow it with: tmux attach -t measure"
-echo "It survives a closed laptop. Roughly one to two minutes per case file."
+echo "It survives a closed laptop. Several minutes per case file: every case pays"
+echo "a 10s machine warmup and 9 paired reps over 3s windows, and the canary"
+echo "repeats all of that once more for the deciding case."

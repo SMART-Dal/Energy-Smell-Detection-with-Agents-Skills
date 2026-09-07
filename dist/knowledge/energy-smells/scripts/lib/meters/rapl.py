@@ -1,8 +1,9 @@
 """Direct Intel RAPL meter, reading the powercap sysfs interface.
 
 This is the fallback for machines where CodeGreen is unavailable, and it doubles
-as a cross-check: on the development host both meters agree to within a few
-percent on the same workload.
+as a cross-check -- the two meters should agree closely on the same workload,
+and a host where they do not is a host worth investigating before trusting a
+batch from it.
 
 RAPL counters are free-running microjoule registers that wrap around, so every
 read is a delta against the previous one with explicit wrap handling.

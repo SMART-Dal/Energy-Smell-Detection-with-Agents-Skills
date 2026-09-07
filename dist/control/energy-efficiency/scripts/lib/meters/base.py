@@ -19,6 +19,10 @@ from ..models import Sample
 # Energy domains we count by default.  The CPU package and its DRAM are what
 # Python workloads actually move; an idle GPU still reports several watts, and
 # including it only dilutes the effect we are trying to resolve.
+#
+# What a meter reports is the raw total over these domains for the whole
+# machine.  Nothing is subtracted -- no idle baseline, no attribution to this
+# process.  See measure.py for why.
 DEFAULT_DOMAINS = ("package", "dram")
 
 
