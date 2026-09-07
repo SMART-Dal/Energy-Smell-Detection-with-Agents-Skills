@@ -10,7 +10,6 @@ CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
     "total_size": 1,           # `sum(list(genexp))`
-    "render_row": 1,           # `sep.join(list(...))` with a literal separator
     "ranked_names": 1,         # `sorted` builds its own list anyway
     "summarise": 2,            # two conversions in one unit
     "pair_scores": 1,          # `zip`'s second argument counts too

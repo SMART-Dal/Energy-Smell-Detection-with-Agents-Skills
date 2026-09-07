@@ -13,7 +13,6 @@ EXPECTED = {
     "outer_pipeline.aggregate": 1,  # reported once, against the nested def
     "total_doubled": 1,  # `sum` walks it once
     "any_failed": 1,     # `any` also stops before reading it all
-    "joined": 1,         # `str.join` streams too
 }
 
 

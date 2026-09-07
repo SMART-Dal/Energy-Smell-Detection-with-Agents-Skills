@@ -12,7 +12,10 @@ def any_failed(results):
 
 
 def joined(rows):
-    # `str.join` streams its argument too.
+    # `str.join` does not stream: `PySequence_Fast` builds the same list
+    # internally, so the generator allocates exactly as much and pays a frame
+    # resume per element on top. Measured at 2000 elements, the comprehension
+    # took 0.1695 ms against 0.1947 ms -- the repair was the slower form.
     return ", ".join([row.name for row in rows])
 
 

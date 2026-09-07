@@ -41,7 +41,14 @@ attribute call is trusted only where the receiver says it builds one."""
 # Functions that consume an iterable lazily, so wrapping their argument in a
 # list only forces an allocation that is thrown away immediately.
 LAZY_CONSUMERS = frozenset({"sum", "any", "all", "min", "max", "sorted", "set",
-                            "tuple", "frozenset", "dict", "join", "enumerate", "zip"})
+                            "tuple", "frozenset", "dict", "enumerate", "zip"})
+"""Consumers that walk their argument once, so building a list for them is waste.
+
+`join` is not one of them, on measurement rather than on reading.  `str.join`
+calls `PySequence_Fast`, which hands back a list unchanged and materialises
+anything else, so `"".join(list(gen))` and `"".join(gen)` build exactly one list
+either way: 0.1928 ms against 0.1927 ms over 2000 elements. There is no
+allocation to remove, and the rule was claiming one."""
 
 VARIADIC_ITERABLES = frozenset({"zip"})
 """Consumers that iterate *every* positional argument, so any of them counts."""
@@ -55,15 +62,20 @@ between instances of 'generator' and 'generator'`. The advice has to be
 withheld, not merely re-worded."""
 
 # The consumers above that never build a sequence of their own.  `sorted`,
-# `set`, `tuple`, `frozenset` and `dict` allocate a container out of whatever
-# they are handed, so replacing a list comprehension with a generator in front
-# of them removes no allocation at all and adds a frame resume per element; the
-# repair those shapes want is a set or dict comprehension, which is a different
-# signal from this one.  Deleting a `list()` *call* in front of them is still a
-# real saving, which is why only
+# `set`, `tuple`, `frozenset`, `dict` -- and `join` -- allocate a container out
+# of whatever they are handed, so replacing a list comprehension with a
+# generator in front of them removes no allocation at all and adds a frame
+# resume per element; the repair those shapes want is a set or dict
+# comprehension, which is a different signal from this one.  Deleting a `list()`
+# *call* in front of them is still a saving for the ones that copy, which is why
 # `eager_comprehension` narrows to this set and `redundant_materialisation`
-# keeps the wider one.
-STREAMING_CONSUMERS = frozenset({"sum", "any", "all", "min", "max", "join",
+# keeps a wider one.
+#
+# `join` was in this set and measured the wrong way round: `"".join([str(x) for
+# x in xs])` took 0.1695 ms against 0.1947 ms for the generator, because
+# `PySequence_Fast` builds the same list internally and the generator pays a
+# frame resume per element on top.  The advice was to write the slower form.
+STREAMING_CONSUMERS = frozenset({"sum", "any", "all", "min", "max",
                                  "enumerate", "zip"})
 
 # Consumers that stop at the first decisive element.  Building their argument
@@ -289,7 +301,18 @@ def _is_resource_opener(call: ast.Call, ctx: UnitContext, handles: set[str]) -> 
     """
     func = call.func
     if isinstance(func, ast.Name):
-        return func.id not in ctx.assigned_names(ctx.node)
+        if func.id in ctx.assigned_names(ctx.node):
+            return False
+        if func.id == "open":
+            return True  # the builtin, unless the unit rebound it above
+        # `Session()`, `connect()`, `socket()`, `cursor()` are ordinary words.
+        # Imported from something that opens things they are the opener; bound
+        # to a class of the same name from anywhere else they are not, and this
+        # rule was reporting `session = Session()` as a leaked handle on the
+        # strength of the word. The dotted spellings below already demand a
+        # receiver that opens something; this is the same demand.
+        origin = ctx.imports.get(func.id, "").split(".")[0]
+        return origin in RESOURCE_MODULES
     if not isinstance(func, ast.Attribute):
         return False
     receiver = func.value
@@ -495,25 +518,33 @@ def _snapshots_a_mutated_collection(conversion: ast.Call, ctx: UnitContext) -> b
     elements or raising `RuntimeError`.  Not an allocation to save: a copy
     doing exactly the job a copy is for.
 
+    The collection is matched by what the author wrote, not by a bare name.
+    `list(self.queue)` guarding `self.queue.remove(task)` is the same loop as
+    the one above and the commoner spelling of it, and requiring an `ast.Name`
+    on both sides recognised neither -- so the rule offered to delete the one
+    line keeping the iteration correct.
+
     The loop this asks about is the one the conversion is *written in*, which is
     not the same question `loops_around` answers.  A `for` loop's iterable runs
     once, before the loop starts, so the snapshot above is not repeated by the
     loop it protects -- and reading the repeat stack here found no loop at all
     and let the finding through.
     """
-    if len(conversion.args) != 1 or not isinstance(conversion.args[0], ast.Name):
+    if len(conversion.args) != 1:
         return False
-    original = conversion.args[0].id
+    subject = conversion.args[0]
+    if not isinstance(subject, (ast.Name, ast.Attribute)):
+        return False
+    original = ast.unparse(subject)
     for loop in _loops_written_around(conversion, ctx):
         for node in ast.walk(loop):
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                     and node.func.attr in MUTATING_CALLS
-                    and isinstance(node.func.value, ast.Name)
-                    and node.func.value.id == original):
+                    and ast.unparse(node.func.value) == original):
                 return True
             if isinstance(node, ast.Delete) and any(
-                isinstance(t, ast.Subscript) and isinstance(t.value, ast.Name)
-                and t.value.id == original for t in node.targets
+                isinstance(t, ast.Subscript) and ast.unparse(t.value) == original
+                for t in node.targets
             ):
                 return True
     return False
