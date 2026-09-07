@@ -1,0 +1,53 @@
+# Energy Smell Detection -- Python dependencies
+#
+# Developed and measured on CPython 3.10.12. The 3.10 floor is a hard one:
+# src/lib/analysis/context.py names ast.MatchAs, ast.MatchStar and
+# ast.MatchMapping, which the ast module did not gain until 3.10, so an older
+# interpreter fails at import rather than at the first match statement it sees.
+#
+#     python3 -m venv .venv
+#     .venv/bin/pip install -r requirements.txt
+#
+# The analyser itself (src/lib/analysis/) is pure standard library -- ast,
+# pathlib, json, subprocess and friends. Nothing below is needed to import it.
+# Every pin here belongs to something around it: the linter arm, the catalog
+# build, or the programs whose energy gets measured.
+#
+# Versions are pinned exactly rather than floored. This is measurement
+# software: a dependency that changes behaviour between runs invalidates the
+# comparison, not just the build.
+
+
+# --- Linter arm -----------------------------------------------------------
+# Invoked as a subprocess by src/lib/analysis/linters.py, which maps 32 of its
+# diagnostic codes onto root causes in the taxonomy. Pin this one hardest:
+# RULE_MAP names specific codes, and Ruff renames, restabilises and removes
+# codes between minor releases -- a bare `ruff` install will silently stop
+# emitting some of them, and the run just reports fewer findings.
+ruff==0.16.1
+
+
+# --- Catalog build (python -m build) --------------------------------------
+PyYAML==6.0.3         # reads catalog/C*.yaml into the 5 dist/ arms
+pandas==2.3.3         # build/taxonomy.py, via pd.read_excel
+openpyxl==3.1.5       # the .xlsx engine pandas needs for the two spreadsheets
+                      # in taxonomy/ -- pandas does not bundle it
+
+
+# --- Measurement corpus ---------------------------------------------------
+# The sample programs under validation/taxonomy/ are the things being measured,
+# not part of the tool. Several (C12S1_cache_resident, C12S1_transpose_costs_a
+# _copy, the array-heavy cases) import numpy and will not run without it.
+# Not needed to run a scan or the rule tests.
+numpy==2.2.6
+
+
+# --- Energy meter ---------------------------------------------------------
+# First choice for `--meter auto`, ahead of raw RAPL. src/lib/meters/
+# codegreen_meter.py guards the import and reports itself unavailable when it
+# is missing, so the tool still runs without it -- it falls back to
+# src/lib/meters/rapl.py, which reads the powercap sysfs files directly and
+# needs no package at all (but does need root, or readable RAPL counters).
+# Drop this line if it will not install on the target machine; you lose the
+# preferred meter, nothing else.
+codegreen==0.4.8
