@@ -613,7 +613,7 @@
   similar: [C3.S2, C10.S2]
 
 - id: C4.S6
-  signals: [try_except_in_loop, ruff_PERF203]
+  signals: [try_except_in_loop]
   in_one_line: >
     an exception used as ordinary control flow, on a path where it is raised
     often

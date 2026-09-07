@@ -288,7 +288,7 @@
   similar: [C1.S4, C3.S3, C8.S2]
 
 - id: C3.S3
-  signals: [regex_in_loop, try_except_in_loop]
+  signals: [regex_in_loop]
   in_one_line: >
     an object or resource created once per iteration that the whole loop could
     share

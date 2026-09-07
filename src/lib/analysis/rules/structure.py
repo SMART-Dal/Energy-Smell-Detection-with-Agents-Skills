@@ -518,7 +518,8 @@ def _partitions_argument(calls: list[ast.Call], scope: ast.AST) -> bool:
     is nothing for a cache to hit.  An offset (`n - 1`, `i + 1`, `s[1:]`)
     reduces the same value by different amounts and recurs.
     """
-    firsts = [call.args[0] for call in calls if call.args]
+    firsts = [first for first in (_first_argument(call, scope) for call in calls)
+              if first is not None]
     if len(firsts) < 2:
         return False
     rendered = {ast.unparse(a) for a in firsts}
@@ -543,6 +544,24 @@ def _partitions_argument(calls: list[ast.Call], scope: ast.AST) -> bool:
     slices = [a for a in firsts if isinstance(a, ast.Subscript)
               and isinstance(a.slice, ast.Slice)]
     return len(slices) == len(firsts) and _disjoint_slices(slices)
+
+
+def _first_argument(call: ast.Call, scope: ast.AST) -> ast.AST | None:
+    """The value a self-call passes for the function's first parameter.
+
+    `walk(node.left, depth + 1)` and `walk(node=node.left, depth=depth + 1)` are
+    the same recursion, and reading `call.args[0]` saw only the first. With no
+    positional arguments to read, every keyword-written tree walk looked like it
+    revisited its argument, and the rule offered a cache for a traversal with no
+    overlapping subproblems.
+    """
+    if call.args:
+        return call.args[0]
+    parameters = [a.arg for a in _all_parameters(scope)]
+    first = next((p for p in parameters if p != "self"), None)
+    if first is None:
+        return None
+    return next((k.value for k in call.keywords if k.arg == first), None)
 
 
 def _splits_on_a_computed_pivot(calls: list[ast.Call], scope: ast.AST) -> bool:
@@ -808,19 +827,15 @@ def _hand_rolled_builtin(node: ast.AST, non_numeric: set[str]) -> str | None:
     the same thing and stays out; see below.
     """
     if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
-        return None if _target_name_of(node.target) in non_numeric else "sum"
+        return _running_sum(node, non_numeric)
     if not isinstance(node, ast.If) or len(node.body) != 1 or node.orelse:
         return None
     inner = node.body[0]
     if isinstance(inner, ast.AugAssign) and isinstance(inner.op, ast.Add):
-        if _target_name_of(inner.target) in non_numeric:
+        if _running_sum(inner, non_numeric) is None:
             return None
         # `total += n` is a filtered sum and `sum()` does the adding in C.
-        # `found += 1` is a counter, and `sum(1 for ...)` hands the same work
-        # back to a generator frame per element with no C loop to win it back,
-        # so counting stays out -- the same reasoning that keeps
-        # `eager_comprehension` contextual.
-        return None if isinstance(inner.value, ast.Constant) else "sum"
+        return "sum"
     if not isinstance(inner, ast.Assign):
         return None
     # The assignment has to be the one the comparison licenses. Reading the
@@ -831,6 +846,28 @@ def _hand_rolled_builtin(node: ast.AST, non_numeric: set[str]) -> str | None:
     if not _updates_the_compared_value(node.test, inner):
         return None
     return _extreme_from(node.test)
+
+
+def _running_sum(node: ast.AugAssign, non_numeric: set[str]) -> str | None:
+    """Whether `x += v` accumulates one total that `sum()` could produce.
+
+    Two things disqualify it, and the unguarded path used to check neither.
+
+    The target has to be a single name.  `freqs[word] += 1` writes a different
+    slot every pass -- a histogram, whose repair is `Counter`, not `sum` -- and
+    reading the target as an accumulator reported three of them on the
+    evaluation corpus plus `H[i % len(H)] += 1`, where `sum()` cannot express
+    the result at all.
+
+    And the value cannot be a constant.  `count += 1` is a counter: `sum(1 for
+    ...)` hands the work back to a generator frame per element with no C loop to
+    win it back, which is exactly why the guarded path below already refused
+    it. The repair a counter wants is `len()`, and this rule does not name it.
+    """
+    name = _target_name_of(node.target)
+    if name is None or name in non_numeric:
+        return None
+    return None if isinstance(node.value, ast.Constant) else "sum"
 
 
 def _target_name_of(node: ast.AST) -> str | None:
@@ -953,6 +990,13 @@ def trivial_delegation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     adds nothing the caller did not already have.  `"".join(strings)` does not:
     the separator is a choice the wrapper makes, so the wrapper has behaviour of
     its own and deleting it changes what the caller must write.
+
+    A call made directly on `self` is left alone, because `self_delegation_chain`
+    reports exactly that shape and names C2.S3 as well as C2.S1.  Both rules
+    fired on it, so one fact arrived as two findings with two signals and two
+    root causes -- and both of those are terms in a unit's ranking.  Eight of
+    the twenty-one delegation findings on the evaluation corpus were one fact
+    counted twice.
     """
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
@@ -966,6 +1010,9 @@ def trivial_delegation(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         return
     if not _receiver_is_free(value.func, ctx.node):
         return
+    if (isinstance(value.func, ast.Attribute) and isinstance(value.func.value, ast.Name)
+            and value.func.value.id == "self"):
+        return  # `self_delegation_chain` owns this shape; see the docstring
     yield _evidence(
         unit, "trivial_delegation", ctx.node, ("C2.S1",),
         f"`{ctx.node.name}` only forwards to `{ast.unparse(value.func)}`, adding "

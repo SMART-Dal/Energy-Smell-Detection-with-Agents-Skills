@@ -824,12 +824,46 @@ def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         root = _root_name(call.func.value)
         if root is None or root not in _created_names(ctx.node):
             continue
+        # And nothing this unit can see may already be in it. `out = [header]`
+        # followed by an append loop is not a comprehension in disguise:
+        # `out = [x for x in xs]` silently drops the header, so the repair the
+        # message names deletes data. Four of the seventy-seven hits on the
+        # evaluation corpus were that shape.
+        if _starts_non_empty(ast.unparse(call.func.value), ctx):
+            continue
         yield _evidence(
             unit, "append_only_loop", loop, ("C3.S1", "C10.S3"),
             "loop body is a single `.append()`; a comprehension does the same "
             "work without a bound-method lookup and call per item",
             target=ast.unparse(call.func.value),
         )
+
+
+def _starts_non_empty(receiver: str, ctx: UnitContext) -> bool:
+    """Whether the unit is seen binding this receiver to something already in it.
+
+    Only a contradiction counts. `out = []`, `out: list[str] = []` and `list()`
+    are all empty starts, and a receiver the unit never binds -- `holder.names`
+    on an object it was handed -- says nothing either way, so the rule keeps its
+    finding and the reader checks the class. What it must not do is call a list
+    that visibly starts with something in it a comprehension in disguise.
+    """
+    for node in ast.walk(ctx.node):
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets, value = [node.target], node.value
+        else:
+            continue
+        if not any(ast.unparse(t) == receiver for t in targets):
+            continue
+        empty = (isinstance(value, ast.List) and not value.elts) or (
+            isinstance(value, ast.Call) and isinstance(value.func, ast.Name)
+            and value.func.id == "list" and not value.args and not value.keywords
+        )
+        if not empty:
+            return True
+    return False
 
 
 def _root_name(node: ast.AST) -> str | None:
@@ -1154,11 +1188,17 @@ def try_except_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
     Cheap when exceptions are rare, expensive when they are the common case --
     which of the two applies is exactly what the reader has to decide.
+
+    C4.S6 only.  It used to name C3.S3 as well, which is "an object or resource
+    created once per iteration that the whole loop could share" -- and a `try`
+    creates nothing at all. Entering one is a table lookup at compile time; the
+    cost this rule points at is the raise, and the raise is a property of the
+    data.
     """
     for node, enclosing in ctx.inside_loops():
         if isinstance(node, ast.Try):
             yield _evidence(
-                unit, "try_except_in_loop", node, ("C4.S6", "C3.S3"),
+                unit, "try_except_in_loop", node, ("C4.S6",),
                 "try/except sits on the per-iteration path; if the exception is "
                 "the common case, each raise allocates and unwinds",
                 loop_line=enclosing[-1].lineno,

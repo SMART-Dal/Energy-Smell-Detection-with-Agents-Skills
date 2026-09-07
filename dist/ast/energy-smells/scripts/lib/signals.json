@@ -147,9 +147,6 @@
   "ruff_PERF102": [
    "C3.S1"
   ],
-  "ruff_PERF203": [
-   "C4.S6"
-  ],
   "ruff_PERF401": [
    "C10.S3",
    "C3.S1"
@@ -209,7 +206,6 @@
    "C2.S1"
   ],
   "try_except_in_loop": [
-   "C3.S3",
    "C4.S6"
   ],
   "unmanaged_resource": [
