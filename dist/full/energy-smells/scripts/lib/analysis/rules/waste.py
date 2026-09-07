@@ -521,7 +521,12 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             # `manager.default_config.copy()` and `self.config.copy()` are the
             # same copy as `defaults.copy()`, and a receiver test that demanded
             # a bare name missed every one of them.
-            if isinstance(func, ast.Attribute) and func.attr in {"copy", "deepcopy"}:
+            # A second argument means it is not a container copy at all:
+            # `shutil.copy(src, dst)` copies a *file*, and the only thing it has
+            # in common with `defaults.copy()` is the word. Every real spelling
+            # here takes at most the object being copied.
+            if (isinstance(func, ast.Attribute) and func.attr in {"copy", "deepcopy"}
+                    and len(node.args) <= 1 and not node.keywords):
                 described = f"{ast.unparse(func.value)}.{func.attr}()"
         elif isinstance(node, ast.Subscript) and _is_full_slice(node.slice):
             described = "a `[:]` slice"

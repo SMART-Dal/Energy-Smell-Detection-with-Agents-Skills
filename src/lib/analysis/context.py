@@ -34,11 +34,25 @@ PURE_BUILTINS = frozenset({
     "zip", "range", "enumerate", "reversed", "map", "filter",
 })
 
+# Builtins that are pure but hand back a one-shot iterator.  Safe to call,
+# never safe to *reuse*: hoisting one out of a loop or binding it to a name and
+# reading it twice leaves every pass after the first with an exhausted object.
+LAZY_BUILTINS = frozenset({"zip", "map", "filter", "enumerate", "reversed", "iter"})
+
 # String/collection methods that only read their receiver.
+#
+# `get` is deliberately absent.  These names are matched on the attribute alone,
+# because the receiver's type is not knowable here, and `.get` is the one that
+# collides with something destructive: `queue.get()` and `channel.get()` remove
+# an item, and a rule told they were pure offered to hoist a channel receive out
+# of the loop that drains it.  The others collide too, which is what
+# `module_aliases` below is for -- `shutil.copy` and `requests.get` are the
+# module-level spellings of the same mistake.  Losing `dict.get` costs one
+# recognised shape; keeping it recommended a deadlock.
 PURE_METHODS = frozenset({
     "count", "index", "find", "rfind", "startswith", "endswith", "lower",
     "upper", "strip", "lstrip", "rstrip", "split", "rsplit", "join",
-    "replace", "format", "encode", "decode", "get", "keys", "values",
+    "replace", "format", "encode", "decode", "keys", "values",
     "items", "copy", "isdigit", "isalpha", "isspace", "title", "capitalize",
 })
 
@@ -97,25 +111,44 @@ class UnitContext:
         function as a unit of its own with its own context, so descending into
         one here made every enclosing function report the inner function's
         findings a second time -- against a unit where the reader cannot act on
-        them.
+        them.  The definition *statement* still belongs to this unit and keeps
+        its place in the stack -- a `def` written inside a loop builds a new
+        function object on every pass -- only its body is handed over.
+
+        The stack a node gets is relative to the scope it runs in, which is why
+        a loop's iterable is not counted as being inside that loop.  Reading it
+        straight off the nesting made `for q in neighbors(p)` inside another
+        loop report depth 2, when `neighbors` runs once per `p`, and that number
+        is the first term of every unit's ranking.
         """
 
-        def walk(node: ast.AST, repeats: tuple[ast.AST, ...]) -> None:
+        def walk(node: ast.AST, repeats: tuple[ast.AST, ...], once: ast.AST | None) -> None:
+            if isinstance(node, (ast.For, ast.AsyncFor)):
+                once = node.iter
+            elif isinstance(node, COMPREHENSION_NODES) and node.generators:
+                once = node.generators[0].iter
             for child in ast.iter_child_nodes(node):
                 if isinstance(child, OPAQUE_NODES):
                     self._parents[child] = node
+                    self._repeat_stack[child] = repeats
                     continue
                 self._parents[child] = node
-                self._repeat_stack[child] = repeats
+                # The clause a loop draws from runs before the loop starts, so
+                # it repeats as often as whatever encloses *that loop*, not as
+                # often as the loop's own body.  `repeats[-1]` is the loop we
+                # are inside, and dropping it is what makes the count relative
+                # to the enclosing scope.
+                stack = repeats[:-1] if child is once else repeats
+                self._repeat_stack[child] = stack
                 inner = (
-                    repeats + (child,)
+                    stack + (child,)
                     if isinstance(child, LOOP_NODES + COMPREHENSION_NODES)
-                    else repeats
+                    else stack
                 )
-                walk(child, inner)
+                walk(child, inner, once)
 
         self._repeat_stack[self.node] = ()
-        walk(self.node, ())
+        walk(self.node, (), None)
 
     def owns(self, node: ast.AST) -> bool:
         """Whether this node belongs to this unit rather than to a nested one."""
@@ -200,25 +233,13 @@ class UnitContext:
         The clause a loop draws from is excluded, because it runs exactly once:
         `for i in range(len(xs))` does not recompute `len(xs)` per iteration,
         and neither does the outermost `for ... in expensive()` of a
-        comprehension.
+        comprehension.  `_index` has already taken that loop out of the clause's
+        stack, so the exclusion is per scope: a *nested* loop's iterable still
+        repeats, once for every pass of the loop outside it, and saying
+        otherwise made `for q in neighbors(p)` inside another loop answer "no"
+        to a question whose true answer is "len(points) times".
         """
-        if id(node) in self._evaluated_once:
-            return False
         return self.in_loop(node) or self.in_comprehension(node)
-
-    @cached_property
-    def _evaluated_once(self) -> set[int]:
-        """Nodes in an iterable clause, which is evaluated before iteration starts."""
-        once: set[int] = set()
-        for node in self.own_nodes():
-            sources = []
-            if isinstance(node, (ast.For, ast.AsyncFor)):
-                sources.append(node.iter)
-            elif isinstance(node, COMPREHENSION_NODES) and node.generators:
-                sources.append(node.generators[0].iter)
-            for source in sources:
-                once.update(id(inner) for inner in ast.walk(source))
-        return once
 
     @cached_property
     def loops(self) -> list[ast.AST]:
@@ -341,11 +362,18 @@ class UnitContext:
 
     @cached_property
     def uses_arrays(self) -> bool:
-        """Whether the unit touches NumPy-like libraries.
+        """Whether the unit's *file* imports a NumPy-like library.
 
         Gates the hardware-locality analyzers: in pure CPython those effects are
         buried under interpreter dispatch, so probing for them elsewhere would
         only produce noise.
+
+        File-level on purpose, and the name overstates it.  A unit that never
+        names an import can still be handed an array -- `def rows(frame)` is the
+        ordinary way a helper receives one -- so asking which names *this* unit
+        reads would answer no for most of the code that actually touches them.
+        The file's imports are the weaker claim that survives that, and the gate
+        only decides whether a probe is worth running.
         """
         roots = {module.split(".")[0] for module in self.imports.values()}
         return bool(roots & ARRAY_MODULES) or bool(set(self.imports) & ARRAY_MODULES)
@@ -413,7 +441,16 @@ class UnitContext:
         pure are allowed, everything else disqualifies the expression.  This
         gates hoisting (C3.S2), deduplication (C1.S4) and memoization (C8.S1),
         all of which are unsafe on an impure expression.
+
+        Purity in the mathematical sense is not the question those three ask.
+        `zip(keys, values)` has no side effect at all and is still ruinous to
+        hoist, because the object it returns is consumed by the first iteration
+        and empty for every one after it.  So an expression that *is* a one-shot
+        iterator is refused, while one that merely contains it is not:
+        `list(zip(a, b))` materialises, and moving it is safe.
         """
+        if self.yields_one_shot_iterator(node):
+            return False
         for sub in ast.walk(node):
             if isinstance(sub, ast.Call) and not self._is_pure_call(sub):
                 return False
@@ -421,24 +458,32 @@ class UnitContext:
                 return False
         return True
 
+    def yields_one_shot_iterator(self, node: ast.AST) -> bool:
+        """Whether evaluating this hands back an iterator that empties as it is read."""
+        if isinstance(node, ast.GeneratorExp):
+            return True
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in LAZY_BUILTINS
+        )
+
     def _is_pure_call(self, call: ast.Call) -> bool:
         func = call.func
         if isinstance(func, ast.Name):
             return func.id in PURE_BUILTINS
         if isinstance(func, ast.Attribute):
+            # A method is recognised by its name alone, so a module-level
+            # function that happens to share one is not recognised at all:
+            # `shutil.copy` writes a file and `requests.get` makes a request,
+            # and both were being called pure on the strength of `copy` and
+            # `get` appearing in the set above.  A module alias is the one
+            # receiver whose type *is* readable here, so it is the one case
+            # that can be ruled out rather than guessed at.
+            if isinstance(func.value, ast.Name) and func.value.id in self.module_aliases:
+                return False
             return func.attr in PURE_METHODS
         return False
-
-    def is_invariant_in(self, expression: ast.AST, loop: ast.AST) -> bool:
-        """Whether `expression` evaluates to the same value on every iteration.
-
-        True when it reads no name the loop rewrites and has no side effects.
-        Constant literals are excluded by the caller, since hoisting them buys
-        nothing.
-        """
-        if not self.is_pure(expression):
-            return False
-        return not (self.read_names(expression) & self.assigned_names(loop))
 
 
 def collect_imports(tree: ast.Module) -> dict[str, str]:
@@ -473,9 +518,15 @@ def collect_overridden_methods(tree: ast.Module) -> frozenset[str]:
     Only bases written as a bare name are followed -- `class B(mod.A)` is a
     class this module cannot see, so nothing is claimed about it.
 
-    Deliberately shallow. It does not resolve imported bases, multiple
-    inheritance chains through other modules, or `setattr`, so it is a way to be
-    quiet about a visible override rather than a promise that no override
+    The whole chain is followed, not just the class's own bases.  `class C(B)`
+    where `B` is empty and `A` declares `run` is still an override of `A.run`,
+    and pairing only direct bases missed it -- which matters in the direction
+    that costs precision, since this set exists to *silence* a rule.  A missed
+    override means proposing `@staticmethod` on the base and breaking dispatch.
+
+    Deliberately shallow in the other direction. It does not resolve imported
+    bases, inheritance chains through other modules, or `setattr`, so it is a way
+    to be quiet about a visible override rather than a promise that no override
     exists, so a rule using it is guessing and should say so in its message.
     """
     methods: dict[str, set[str]] = {}
@@ -489,11 +540,21 @@ def collect_overridden_methods(tree: ast.Module) -> frozenset[str]:
         }
         bases[node.name] = [b.id for b in node.bases if isinstance(b, ast.Name)]
 
+    def ancestors(name: str) -> set[str]:
+        seen: set[str] = set()
+        pending = list(bases.get(name, ()))
+        while pending:
+            parent = pending.pop()
+            if parent in seen or parent not in methods:
+                continue
+            seen.add(parent)
+            pending.extend(bases.get(parent, ()))
+        return seen
+
     shared: set[str] = set()
-    for name, parents in bases.items():
-        for parent in parents:
-            if parent in methods:
-                shared |= methods[name] & methods[parent]
+    for name in bases:
+        for parent in ancestors(name):
+            shared |= methods[name] & methods[parent]
     return frozenset(shared)
 
 
@@ -504,18 +565,34 @@ def collect_module_bindings(tree: ast.Module) -> dict[str, ast.AST]:
     `if name in ALLOWED` when `ALLOWED` is the module constant above it, which
     is where such tables usually live.  Only names assigned exactly once are
     kept: a name the module rebinds has no settled value to reason from.
+
+    An annotated constant counts.  `ALLOWED: list[str] = [...]` is an `AnnAssign`
+    and reading only plain assignments made every module constant in a typed
+    file invisible, which is most of them in code written this decade.
+
+    `COUNTER += 1` counts as a rebinding but not as a binding: it proves the
+    name does not stay put, and its value is not readable from the statement.
+    Ignoring it left the first assignment in the table looking settled, so a
+    rule would have reasoned from a value the module had already changed.
     """
     bindings: dict[str, ast.AST] = {}
     rebound: set[str] = set()
     for node in tree.body:
-        if not isinstance(node, ast.Assign):
+        if isinstance(node, ast.Assign):
+            targets, value = node.targets, node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            targets, value = [node.target], node.value
+        elif isinstance(node, ast.AugAssign):
+            targets, value = [node.target], None
+        else:
             continue
-        for target in node.targets:
+        for target in targets:
             if not isinstance(target, ast.Name):
                 continue
-            if target.id in bindings:
+            if value is None or target.id in bindings:
                 rebound.add(target.id)
-            bindings[target.id] = node.value
+            if value is not None:
+                bindings[target.id] = value
     return {name: value for name, value in bindings.items() if name not in rebound}
 
 

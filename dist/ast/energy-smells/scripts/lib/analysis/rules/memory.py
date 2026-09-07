@@ -6,7 +6,7 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
-from ..context import COMPREHENSION_NODES, UnitContext
+from ..context import COMPREHENSION_NODES, LOOP_NODES, UnitContext
 
 MUTABLE_DEFAULTS = (ast.List, ast.Dict, ast.Set,
                     # A comprehension in a default runs once at definition time
@@ -494,11 +494,17 @@ def _snapshots_a_mutated_collection(conversion: ast.Call, ctx: UnitContext) -> b
     iteration walks a collection that is shrinking underneath it, skipping
     elements or raising `RuntimeError`.  Not an allocation to save: a copy
     doing exactly the job a copy is for.
+
+    The loop this asks about is the one the conversion is *written in*, which is
+    not the same question `loops_around` answers.  A `for` loop's iterable runs
+    once, before the loop starts, so the snapshot above is not repeated by the
+    loop it protects -- and reading the repeat stack here found no loop at all
+    and let the finding through.
     """
     if len(conversion.args) != 1 or not isinstance(conversion.args[0], ast.Name):
         return False
     original = conversion.args[0].id
-    for loop in ctx.loops_around(conversion):
+    for loop in _loops_written_around(conversion, ctx):
         for node in ast.walk(loop):
             if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                     and node.func.attr in MUTATING_CALLS
@@ -511,6 +517,22 @@ def _snapshots_a_mutated_collection(conversion: ast.Call, ctx: UnitContext) -> b
             ):
                 return True
     return False
+
+
+def _loops_written_around(node: ast.AST, ctx: UnitContext) -> list[ast.AST]:
+    """Every `for`/`while` this node is lexically inside, innermost first.
+
+    Includes the loop whose own header the node sits in, which is what separates
+    it from `loops_around` -- that one counts what repeats, and a loop's iterable
+    does not repeat with its body.
+    """
+    found: list[ast.AST] = []
+    current = ctx.parent_of(node)
+    while current is not None:
+        if isinstance(current, LOOP_NODES):
+            found.append(current)
+        current = ctx.parent_of(current)
+    return found
 
 
 def _consumer_name(call: ast.Call) -> str | None:

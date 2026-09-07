@@ -15,7 +15,7 @@ EXPECTED = {
     "cross_check": 1,        # nested loops, one expression, one report
     "score_all": 1,          # constant subscript into a module-level table
     "normalise": 1,          # `sum()` per element: a quadratic comprehension
-    "row_products": 1,       # `a[i]` does not vary with the inner generator
+    "row_products": 2,       # `a[i]`, and the inner comprehension's own `range(len(b))`
 }
 
 

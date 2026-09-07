@@ -112,7 +112,9 @@ def normalise(values):
 
 def row_products(a, b):
     # `a[i]` does not depend on `j`, so the inner comprehension re-reads it
-    # once per column.
+    # once per column.  `range(len(b))` is the inner comprehension's own
+    # iterable: it runs once per *row* rather than once per column, which is
+    # still once per pass of the loop outside it, and it never changes.
     return [[a[i] * b[j] for j in range(len(b))] for i in range(len(a))]
 
 
