@@ -4,3 +4,4 @@ __pycache__/
 validation/results/*.log
 .energy-scan/
 .vscode
+eval/
