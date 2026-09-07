@@ -13,6 +13,7 @@ signal in noise.
 from __future__ import annotations
 
 import ast
+import functools
 import json
 import shutil
 import subprocess
@@ -24,10 +25,22 @@ from .models import Evidence, UnitRef
 # Ruff rule code -> (root cause IDs it indicates, short explanation).
 # Every entry here was checked against the rule's actual semantics; a rule that
 # only *sometimes* implies its root cause is left out rather than guessed at.
+#
+# Three were removed on that test rather than added to it:
+#
+#   B020    `for x in x:` shadows a name. C3.S7 is a collection edited while it
+#           is walked, which B020 neither checks nor implies.
+#   PLW2901 a loop variable reassigned in the body. The repair is a rename, and
+#           C1.S2 is measured on a *removable* store, of which there is none.
+#   PERF203 any try/except inside a loop. C4.S6's own card says the cost is the
+#           raise rate and not the syntax, and ruff stops emitting this above
+#           target-version py310 because 3.11 made entering a `try` free -- so
+#           it was firing on the strength of a default we never set. The same
+#           shape still reaches the report through `try_except_in_loop`, which
+#           says what it has seen rather than asserting the premise.
 RULE_MAP: dict[str, tuple[tuple[str, ...], str]] = {
     "B006": (("C6.S7",), "mutable default argument"),
     "B019": (("C8.S1",), "cache decorator on a method leaks instances"),
-    "B020": (("C3.S7",), "loop variable overwrites the iterable"),
     "B909": (("C3.S7",), "collection mutated while being iterated"),
     "C400": (("C6.S3",), "generator passed to list() unnecessarily"),
     "C401": (("C6.S3",), "generator passed to set() unnecessarily"),
@@ -48,12 +61,10 @@ RULE_MAP: dict[str, tuple[tuple[str, ...], str]] = {
     "F841": (("C1.S1",), "local assigned but never read"),
     "PERF101": (("C5.S4",), "unnecessary list() cast before iteration"),
     "PERF102": (("C3.S1",), "iterating dict items when only keys or values are used"),
-    "PERF203": (("C4.S6",), "try/except inside a loop body"),
     "PERF401": (("C3.S1", "C10.S3"), "append loop that could be a comprehension"),
     "PERF402": (("C10.S3",), "manual copy loop where list() or slicing would do"),
     "PERF403": (("C3.S1",), "manual dict build that could be a comprehension"),
     "PLR1730": (("C10.S1",), "if/assign that reimplements min() or max()"),
-    "PLW2901": (("C1.S2",), "loop variable overwritten before it is read"),
     "RUF005": (("C6.S1",), "list concatenation allocating a new list"),
     "RUF015": (("C6.S3",), "whole iterable materialised to take the first element"),
     "RUF017": (("C7.S1",), "quadratic list summation"),
@@ -83,28 +94,65 @@ def ruff_available() -> bool:
     return ruff_executable() is not None
 
 
+def _ruff_command(executable: str) -> list[str]:
+    return [executable, "check", "--isolated", "--no-cache",
+            "--output-format", "json", "--select", ",".join(sorted(RULE_MAP))]
+
+
 def run_ruff(path: Path) -> list[dict]:
-    """Run Ruff over one file with only our mapped rules enabled."""
+    """Run Ruff over one file with only our mapped rules enabled.
+
+    Ruff exits 0 with no findings, 1 with findings, and 2 on an error -- an
+    unknown rule selector, a config it cannot read -- where everything goes to
+    stderr and stdout is empty.  Parsing stdout alone read that as a clean file,
+    so a selection one ruff version does not recognise turned this whole
+    evidence family off across an entire corpus while the report went on saying
+    it had run.  Raising is the point: the caller may drop the family, but it
+    cannot mistake it for silence.
+    """
     executable = ruff_executable()
     if executable is None:
         return []
     completed = subprocess.run(
-        [executable, "check", "--isolated", "--no-cache", "--output-format", "json",
-         "--select", ",".join(sorted(RULE_MAP)), str(path)],
+        [*_ruff_command(executable), str(path)],
         capture_output=True,
         text=True,
+        timeout=120,
     )
+    if completed.returncode not in (0, 1):
+        raise RuntimeError(
+            f"ruff exited {completed.returncode}: {completed.stderr.strip()[:400]}"
+        )
     try:
         return json.loads(completed.stdout or "[]")
     except ValueError:
         return []
 
 
+@functools.lru_cache(maxsize=1)
 def unavailable_reason() -> str | None:
-    """Why this family cannot run, or None when it can. See analysis/__init__."""
-    if ruff_available():
-        return None
-    return "ruff is not on PATH or beside this interpreter (`pip install ruff`)"
+    """Why this family cannot run, or None when it can. See analysis/__init__.
+
+    Being on PATH is not enough to be usable: the rule selection has to be one
+    this ruff understands, and a selector it does not is a hard error that stops
+    every file rather than one.  So the selection is tried once, on nothing, and
+    the failure is reported here -- where a reader sees it -- instead of per file
+    inside a handler that drops the family without a word.
+    """
+    executable = ruff_executable()
+    if executable is None:
+        return "ruff is not on PATH or beside this interpreter (`pip install ruff`)"
+    try:
+        completed = subprocess.run(
+            [*_ruff_command(executable), "--stdin-filename", "check.py", "-"],
+            input="", capture_output=True, text=True, timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        return f"ruff could not be run: {error}"
+    if completed.returncode not in (0, 1):
+        return (f"ruff rejects this rule selection "
+                f"(exit {completed.returncode}): {completed.stderr.strip()[:200]}")
+    return None
 
 
 def collect(path: Path, units, source: str, imports: dict) -> list[Evidence]:
@@ -154,18 +202,24 @@ def evidence_from_ruff(path: Path, units: list[UnitRef],
 
 
 def _exception_binding_lines(source: str | None) -> set[int]:
-    """Lines whose only binding is an `except ... as name` handler."""
+    """Lines whose only binding is an `except ... as name` handler.
+
+    The whole header, not just the `except` keyword's line.  Ruff reports the
+    unused binding where the name is written, and a handler whose exception
+    tuple wraps puts that a line or two lower than `node.lineno`.
+    """
     if not source:
         return set()
     try:
         tree = ast.parse(source)
     except (SyntaxError, ValueError):
         return set()
-    return {
-        node.lineno
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ExceptHandler) and node.name
-    }
+    lines: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler) and node.name:
+            last = node.body[0].lineno if node.body else node.lineno + 1
+            lines.update(range(node.lineno, last))
+    return lines
 
 
 PURE_ENOUGH_TO_DELETE = frozenset({
@@ -203,6 +257,14 @@ def _impure_binding_lines(source: str | None) -> set[int]:
 
 
 def _owning_unit(units: list[UnitRef], line: int) -> UnitRef | None:
-    """The innermost unit containing a line, or None if it is module-level."""
-    containing = [u for u in units if u.lineno <= line <= u.end_lineno]
-    return min(containing, key=lambda u: u.end_lineno - u.lineno) if containing else None
+    """The innermost unit containing a line, or None if it is module-level.
+
+    Measured from `first_lineno`, so a finding reported on a decorator belongs
+    to the thing decorated.  Ruff puts B019 on the `@lru_cache` line, which sits
+    above the `def` and inside the class body: attributed to the class, and
+    class-attributed evidence is dropped, so the rule reached no report at all.
+    """
+    containing = [u for u in units if u.first_lineno <= line <= u.end_lineno]
+    if not containing:
+        return None
+    return min(containing, key=lambda u: u.end_lineno - u.first_lineno)

@@ -7,7 +7,10 @@ methods at once (C2.S3 excessive modularization in a hot path, C9.S3 N+1 query
 patterns, C11.* concurrency smells).
 
 Nested functions are emitted too: a closure defined inside a loop is exactly the
-kind of thing C3.S3 is about, and it needs to be addressable on its own.
+kind of thing C3.S3 is about, and it needs to be addressable on its own.  A
+nested function is a *function*, not a method: `kind` is read off whether the
+enclosing body is a class, and inferring it from the qualified name instead
+labelled every closure in every scanned repository a method.
 """
 
 from __future__ import annotations
@@ -27,8 +30,15 @@ def parse_file(path: Path) -> ast.Module | None:
     with a .py extension), and one bad file must not stop a repository scan.
     """
     try:
-        return ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
+        source = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    # `errors="replace"` matches `RepoIndex` and the engine, which read the same
+    # files. Reading strictly here meant one stray byte made a module exist as a
+    # call target with no units of its own to attribute anything to.
+    try:
+        return ast.parse(source, filename=str(path))
+    except (SyntaxError, ValueError):
         return None
 
 
@@ -41,37 +51,36 @@ def iter_units(path: Path, tree: ast.Module) -> list[tuple[UnitRef, ast.AST]]:
     """
     units: list[tuple[UnitRef, ast.AST]] = []
 
-    def visit(node: ast.AST, prefix: str) -> None:
+    def visit(node: ast.AST, prefix: str, in_class: bool) -> None:
         for child in ast.iter_child_nodes(node):
             if isinstance(child, FUNCTION_NODES):
                 qualname = f"{prefix}{child.name}"
-                units.append((_make_ref(path, child, qualname, _function_kind(prefix)), child))
-                visit(child, f"{qualname}.")
+                kind = "method" if in_class else "function"
+                units.append((_make_ref(path, child, qualname, kind), child))
+                visit(child, f"{qualname}.", False)
             elif isinstance(child, ast.ClassDef):
                 qualname = f"{prefix}{child.name}"
                 units.append((_make_ref(path, child, qualname, "class"), child))
-                visit(child, f"{qualname}.")
+                visit(child, f"{qualname}.", True)
             else:
                 # Keep descending: functions can hide inside `if`, `try`, `with`.
-                visit(child, prefix)
+                # A statement does not change whether we are in a class body.
+                visit(child, prefix, in_class)
 
-    visit(tree, "")
+    visit(tree, "", False)
     units.sort(key=lambda pair: pair[0].lineno)
     return units
 
 
-def _function_kind(prefix: str) -> str:
-    """A function directly inside a class body is a method; otherwise plain."""
-    return "method" if prefix and not prefix.endswith(".<locals>.") else "function"
-
-
 def _make_ref(path: Path, node: ast.AST, qualname: str, kind: str) -> UnitRef:
+    decorators = getattr(node, "decorator_list", []) or []
     return UnitRef(
         path=path,
         qualname=qualname,
         lineno=node.lineno,
         end_lineno=getattr(node, "end_lineno", node.lineno) or node.lineno,
         kind=kind,
+        attach_lineno=min([node.lineno, *(d.lineno for d in decorators)]),
     )
 
 

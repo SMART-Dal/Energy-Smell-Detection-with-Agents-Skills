@@ -29,6 +29,18 @@ class UnitRef:
     lineno: int
     end_lineno: int
     kind: str = "function"  # "function" | "method" | "class" | "module"
+    attach_lineno: int = 0
+    """First line that belongs to this unit, decorators included; 0 means `lineno`.
+
+    `lineno` is the `def` line, which is what a reader wants to be sent to and
+    where a unit's source starts.  It is not where a decorated unit *begins*:
+    a linter reporting on the decorator lands above the `def`, inside the class
+    body, and gets attributed to the class instead -- which is how B019, a rule
+    this project maps and wires, produced nothing on any file ever scanned."""
+
+    @property
+    def first_lineno(self) -> int:
+        return self.attach_lineno or self.lineno
 
     @property
     def slug(self) -> str:
@@ -60,8 +72,14 @@ class Evidence:
     message: str
     """One-line human-readable description, shown in the scan report."""
 
-    detail: dict = field(default_factory=dict)
-    """Analyzer-specific facts (loop depth, estimated trip count, ...)."""
+    detail: dict = field(default_factory=dict, compare=False)
+    """Analyzer-specific facts (loop depth, estimated trip count, ...).
+
+    Left out of equality, and so out of the hash a frozen dataclass generates:
+    a dict is unhashable, so putting two pieces of evidence in a set raised
+    `TypeError` on a class that advertises itself as frozen.  Two observations
+    of the same kind, at the same line, of the same unit are the same
+    observation whatever an analyzer attached to them."""
 
     source: str = "ast"
     """Which analyzer family produced this, for the report to cite."""
