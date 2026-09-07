@@ -748,7 +748,7 @@
   similar: [C3.S5, C7.S4, C9.S2]
 
 - id: C3.S7
-  signals: [mutation_during_iteration, ruff_B909]
+  signals: [mutation_during_iteration]
   in_one_line: >
     a collection edited while it is being walked, which costs correctness first
     and energy second

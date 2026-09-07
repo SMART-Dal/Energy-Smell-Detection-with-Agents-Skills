@@ -38,10 +38,16 @@ from .models import Evidence, UnitRef
 #           it was firing on the strength of a default we never set. The same
 #           shape still reaches the report through `try_except_in_loop`, which
 #           says what it has seen rather than asserting the premise.
+#   B909    collection mutated while iterated -- the right check for C3.S7, and
+#           preview-gated in ruff 0.16, where selecting it without `--preview`
+#           warns on stderr and exits 0. So it had never fired. `--preview` is
+#           not the fix: it also broadens stable rules (11 more C419 hits on the
+#           evaluation corpus) and makes the output move with ruff's unreleased
+#           behaviour, which a reported rule count cannot rest on.
+#           `mutation_during_iteration` carries C3.S7 on its own.
 RULE_MAP: dict[str, tuple[tuple[str, ...], str]] = {
     "B006": (("C6.S7",), "mutable default argument"),
     "B019": (("C8.S1",), "cache decorator on a method leaks instances"),
-    "B909": (("C3.S7",), "collection mutated while being iterated"),
     "C400": (("C6.S3",), "generator passed to list() unnecessarily"),
     "C401": (("C6.S3",), "generator passed to set() unnecessarily"),
     "C402": (("C6.S3",), "generator passed to dict() unnecessarily"),
