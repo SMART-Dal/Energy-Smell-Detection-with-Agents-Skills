@@ -23,12 +23,27 @@ def collect_defaults(extra):
     return names
 
 
-def rebind_later(flag):
+def rebind_later(flag, requested):
     # Rebinding is not mutation: both literals can become tuples.
     modes = ["r", "w"]
     if flag:
         modes = ["rb", "wb"]
-    return modes
+    return requested in modes
+
+
+def handed_to_a_callee(rows):
+    # The list leaves the unit, so what happens to it next is not visible here.
+    # A tuple has no `append`, and the repair would move the failure into a
+    # function this rule never looked at.
+    fields = ["id", "name", "score"]
+    register(fields)
+    return len(fields)
+
+
+def returned_to_the_caller():
+    # Same reason: the caller receives a list and may treat it as one.
+    labels = ["low", "medium", "high"]
+    return labels
 
 
 def from_expressions(width):

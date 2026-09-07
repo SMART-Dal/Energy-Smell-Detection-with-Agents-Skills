@@ -99,21 +99,51 @@ MUTATING_IN_PLACE = frozenset({
 
 
 def _mutated_in(scope: ast.AST) -> set[str]:
-    """Names whose contents the scope changes without rebinding them."""
+    """Names at the root of anything the scope changes without rebinding it.
+
+    The *root*, so `self.path.append(n)` reports "self".  Callers compare this
+    against the names an expression reads, and `self.path[:]` reads only "self";
+    matching the receiver exactly would have missed it.  That is the shape this
+    rule's own docstring uses as its counter-example -- a backtracking snapshot
+    -- written the way it is usually written, on an attribute.
+
+    Coarse in the safe direction: a loop that mutates any attribute of `self`
+    silences a copy of any other, which loses a finding rather than proposing
+    one whose repair leaves a list of aliases to a single list.
+    """
     found: set[str] = set()
+
+    def root(node: ast.AST) -> str | None:
+        while isinstance(node, (ast.Attribute, ast.Subscript)):
+            node = node.value
+        return node.id if isinstance(node, ast.Name) else None
+
     for node in ast.walk(scope):
         if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-                and node.func.attr in MUTATING_IN_PLACE
-                and isinstance(node.func.value, ast.Name)):
-            found.add(node.func.value.id)
-        elif isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
-            if isinstance(node.ctx, (ast.Store, ast.Del)):
-                found.add(node.value.id)
+                and node.func.attr in MUTATING_IN_PLACE):
+            found.add(root(node.func.value))
+        elif isinstance(node, ast.Subscript) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            found.add(root(node.value))
         elif isinstance(node, ast.Delete):
             for target in node.targets:
-                if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
-                    found.add(target.value.id)
+                if isinstance(target, ast.Subscript):
+                    found.add(root(target.value))
+    found.discard(None)
     return found
+
+
+def _escapes(scope: ast.AST, name: str) -> bool:
+    """Whether the unit hands this name to anything outside itself."""
+    for node in ast.walk(scope):
+        if isinstance(node, (ast.Return, ast.Yield)) and isinstance(node.value, ast.Name):
+            if node.value.id == name:
+                return True
+        elif isinstance(node, ast.Call):
+            for argument in (*node.args, *(k.value for k in node.keywords)):
+                inner = argument.value if isinstance(argument, ast.Starred) else argument
+                if isinstance(inner, ast.Name) and inner.id == name:
+                    return True
+    return False
 
 
 def _dotted(func: ast.AST) -> tuple[str, str] | None:
@@ -187,10 +217,33 @@ def _integral_float_operand(node: ast.AST, float_names: frozenset):
     if any(_is_fractional_float(operand) or _already_float(operand, float_names)
            for operand in operands):
         return None
+    # And a call's result is not an integer either. The finding rests entirely
+    # on the claim that the other operand is integral; for a name that claim is
+    # checkable -- an annotation, a binding in this unit -- and for a call it is
+    # a guess with nothing behind it. It guessed wrong on
+    # `returns.rolling(...).std() * np.sqrt(252.0) * 100.0`, a pandas Series of
+    # floats reported as paying for a conversion and an allocation per element.
+    if any(_is_opaque_operand(operand) for operand in operands):
+        return None
     for operand in operands:
         if _is_integral_float(operand):
             return node, operand.value
     return None
+
+
+def _is_opaque_operand(node: ast.AST) -> bool:
+    """Whether this operand's type is beyond anything the rule could read.
+
+    A call and an `await` only, not every non-name.  An attribute is a stored
+    value the reader can look up in a second, and dropping those would take most
+    of the rule with them; a call result is a type this rule has no route to at
+    all, and it is where the one measured false positive lived.
+    """
+    if isinstance(node, (ast.Call, ast.Await)):
+        return True
+    if isinstance(node, ast.BinOp):
+        return _is_opaque_operand(node.left) or _is_opaque_operand(node.right)
+    return False
 
 
 def _already_float(node: ast.AST, float_names: frozenset) -> bool:
@@ -289,6 +342,12 @@ def constant_sequence_literal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         if not value.elts or not all(isinstance(e, ast.Constant) for e in value.elts):
             continue
         if _is_mutated(ctx.node, target.id):
+            continue
+        # A tuple has no `append`. If the name leaves this unit -- returned,
+        # yielded, or handed to something that could mutate it -- the rule
+        # cannot see what happens to it next, and the repair turns a working
+        # program into an `AttributeError` somewhere it never looked.
+        if _escapes(ctx.node, target.id):
             continue
         yield _evidence(
             unit, "constant_sequence_literal", node, ("C5.S3", "C6.S1"),
@@ -759,7 +818,10 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     reader and was not built for the comparison alone.
     """
     aliases = _comparison_aliases(ctx)
-    for node in ast.walk(ctx.node):
+    # `own_nodes`, not `ast.walk`: a comparison inside a nested `def` belongs to
+    # that def, which `iter_units` emits as a unit of its own, and walking into
+    # it reported the same line against both.
+    for node in ctx.own_nodes():
         if not isinstance(node, ast.Compare):
             continue
         sides = [(side, _built_by(side, aliases)) for side in (node.left, *node.comparators)]
@@ -872,6 +934,17 @@ def redundant_bool_branch(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
 
     Two jumps and two constant loads for something the comparison already
     produced. Tiny per execution, which is why it is advisory.
+
+    The message names the `return` that goes with the branch, because the
+    early-return spelling reads as though only the `if` were being replaced:
+
+        if a(x): return True
+        if b(x): return True      <- reported here
+        return False
+
+    The repair is to replace *this* `if` and the `return` under it, which leaves
+    the guard above untouched.  Read as a whole-body rewrite it looks like it
+    drops that guard, and a careful reader read it that way.
     """
     for node, yes, no in _bool_branches(ctx.node):
         if {yes, no} != {True, False}:
@@ -897,6 +970,10 @@ def redundant_bool_branch(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             direct = f"bool({test})"
         yield _evidence(
             unit, "redundant_bool_branch", node, ("C1.S3",),
+            f"this branch and the `return` that follows it hand back True/False "
+            f"for a test that already produces a boolean; replacing both with "
+            f"`return {direct}` is the same answer without the jump"
+            if not node.orelse else
             f"this branch returns True/False for a test that already produces "
             f"a boolean; `return {direct}` is the same answer without the jump",
         )
@@ -1039,7 +1116,7 @@ def discarded_pure_result(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     in a `try` is how the stdlib asks "is this numeric", and the answer arrives
     as an exception rather than as a value; deleting it deletes the check.
     """
-    for node in ast.walk(ctx.node):
+    for node in ctx.own_nodes():
         if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
             continue
         if not ctx.is_pure(node.value):
@@ -1094,19 +1171,36 @@ def runtime_management_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evid
 
     Correct once, ruinous per iteration: a forced collection walks every live
     object, so the loop's cost grows with the heap rather than with the batch.
+
+    Both spellings, like `blocking_call_in_async` beside it: `from gc import
+    collect` binds the function itself, so the call is an `ast.Name` and reading
+    only `module.attr` saw half of them.
     """
     for node in ctx.own_nodes():
         if not (isinstance(node, ast.Call) and ctx.repeats(node)):
             continue
-        dotted = _dotted(node.func)
-        if dotted in RUNTIME_MANAGEMENT:
+        managed = _runtime_management_name(node.func, ctx)
+        if managed:
             yield _evidence(
                 unit, "runtime_management_in_loop", node, ("C1.S8",),
-                f"`{dotted[0]}.{dotted[1]}()` manages the interpreter itself and is "
+                f"`{managed}()` manages the interpreter itself and is "
                 f"called on every iteration; its cost scales with the whole process, "
                 f"not with this loop's work",
-                call=f"{dotted[0]}.{dotted[1]}",
+                call=managed,
             )
+
+
+def _runtime_management_name(func: ast.AST, ctx: UnitContext) -> str | None:
+    """The housekeeping call this is, reached through its module or imported."""
+    dotted = _dotted(func)
+    if dotted in RUNTIME_MANAGEMENT:
+        return f"{dotted[0]}.{dotted[1]}"
+    if not isinstance(func, ast.Name):
+        return None
+    origin = (ctx.imports.get(func.id) or "").split(".")[0]
+    if (origin, func.id) in RUNTIME_MANAGEMENT:
+        return f"{origin}.{func.id}"
+    return None
 
 
 # -- C11.S3 / C11.S4  concurrency ------------------------------------------
