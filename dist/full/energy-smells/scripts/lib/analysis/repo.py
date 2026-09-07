@@ -134,7 +134,16 @@ class RepoIndex:
     # -- lookup ------------------------------------------------------------
 
     def lookup(self, qualified: str) -> str | None:
-        """Follow a fully-qualified name to a definition this tree holds."""
+        """Follow a fully-qualified name to a definition this tree holds.
+
+        Split at the last dot first, then one dot earlier.  `Evidence.from_row()`
+        after `from .models import Evidence` asks for `pkg.models.Evidence.from_row`,
+        whose module is `pkg.models` and whose *name* is `Evidence.from_row` --
+        exactly the key `_definitions` writes for a method.  Splitting only at
+        the last dot looked for a module called `pkg.models.Evidence`, found
+        nothing, and lost every classmethod and staticmethod call made on an
+        imported class: 56 of them across the evaluation corpus.
+        """
         for _ in range(MAX_REEXPORT_HOPS):
             if "." not in qualified:
                 return None
@@ -143,6 +152,12 @@ class RepoIndex:
             table = self.symbols.get(module)
             if table and name in table:
                 return table[name]
+            if "." in module:
+                outer, owner = module.rsplit(".", 1)
+                member = self.symbols.get(self._resolve_alias(outer), {}).get(
+                    f"{owner}.{name}")
+                if member:
+                    return member
             exposed = self.reexport.get(module)
             if exposed and name in exposed:
                 qualified = exposed[name]
@@ -163,11 +178,22 @@ class RepoIndex:
         Only an unambiguous suffix resolves.  Two modules ending in the same
         name mean the import cannot be settled by reading, and inventing an edge
         there is exactly what this module refuses to do.
+
+        And the dropped prefix has to be a plain directory rather than a package.
+        `tools/json.py` inside a package `tools` is importable as `tools.json`
+        and by no other name, so an `import json` in that repository means the
+        standard library -- and resolving it to the local file is this module's
+        one way of manufacturing a wrong answer instead of no answer.  A source
+        root such as `src/` has no `__init__.py`, which is what tells the two
+        apart.
         """
         if module in self.symbols:
             return module
         candidates = self.by_suffix.get(module, ())
-        return candidates[0] if len(candidates) == 1 else module
+        if len(candidates) != 1:
+            return module
+        prefix = candidates[0][: -(len(module) + 1)]
+        return module if prefix in self.path_of else candidates[0]
 
     def bindings(self, path: Path) -> dict[str, str]:
         """What each imported name in one file refers to, fully qualified."""
@@ -295,8 +321,21 @@ def _class_target(name: str | None, local: dict[str, str],
     return None
 
 
+NULLABLE_WRAPPERS = frozenset({"Optional", "Union"})
+"""Typing forms that wrap the annotation that actually names the class."""
+
+
 def _annotation_name(node: ast.AST) -> str | None:
-    """The bare class name of an annotation, seeing through `X | None` and `list[X]`."""
+    """The bare class name of an annotation.
+
+    Sees through `X | None` and its older spellings, `Optional[X]` and
+    `Union[X, None]` -- which is not cosmetic, since the new syntax needs 3.10
+    and most annotated code in the wild predates it.
+
+    A container is *not* seen through: `list[Engine]` reports "list", because a
+    list of engines is a list, and `rows.append(...)` is a list method.  The
+    subscript is unwrapped only to reach the name written in front of it.
+    """
     if isinstance(node, ast.Name):
         return node.id
     if isinstance(node, ast.Attribute):
@@ -304,6 +343,13 @@ def _annotation_name(node: ast.AST) -> str | None:
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value.split("[")[0].strip().rsplit(".", 1)[-1] or None
     if isinstance(node, ast.Subscript):
+        if _annotation_name(node.value) in NULLABLE_WRAPPERS:
+            inner = node.slice
+            if isinstance(inner, ast.Tuple):
+                inner = next((e for e in inner.elts
+                              if not (isinstance(e, ast.Constant) and e.value is None)),
+                             None)
+            return _annotation_name(inner) if inner is not None else None
         return _annotation_name(node.value)
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.BitOr):
         for side in (node.left, node.right):

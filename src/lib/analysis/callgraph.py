@@ -71,6 +71,13 @@ def calls_made_by(unit_node: ast.AST, context: UnitContext, *,
     or None when it could not.  A None is not a failure to report: most calls
     in any file go to the standard library or to a package outside the scan,
     and claiming those would be worse than leaving them out.
+
+    Nested definitions are not walked into.  `iter_units` emits an inner
+    function as a unit of its own, so a call written inside a closure was
+    recorded twice -- once for the closure and once for the function around it
+    -- and the callee's `fan_in`, which is the second term of every unit's
+    ranking, counted one call site as two.  A `lambda` is walked, because a
+    lambda is not a unit and nothing else would record its calls.
     """
     receivers = {}
     if index is not None and path is not None:
@@ -79,7 +86,7 @@ def calls_made_by(unit_node: ast.AST, context: UnitContext, *,
             receivers = index.receivers(unit_node, module, binds or {})
 
     found = []
-    for node in ast.walk(unit_node):
+    for node in context.own_nodes():
         if not isinstance(node, ast.Call):
             continue
         name = _called_name(node.func)
@@ -91,8 +98,23 @@ def calls_made_by(unit_node: ast.AST, context: UnitContext, *,
             if module is not None:
                 resolved = index.resolve(node.func, module, binds or {},
                                          receivers, enclosing_class)
+        if resolved is None and _names_an_imported_module(node.func, binds or {}):
+            # `ast.walk(...)` says where it goes. The index could not follow it
+            # because `ast` is outside the scan, and that is an answer, not a
+            # gap: handing "walk" to the short-name fallback matched a local
+            # helper of that name and gave it eleven callers it does not have.
+            continue
         found.append((name, node.lineno, context.repeat_depth(node), resolved))
     return found
+
+
+def _names_an_imported_module(func: ast.AST, binds: dict) -> bool:
+    """Whether the call was written as `something_imported.name(...)`."""
+    return (
+        isinstance(func, ast.Attribute)
+        and isinstance(func.value, ast.Name)
+        and func.value.id in binds
+    )
 
 
 def _called_name(func: ast.AST) -> str | None:
@@ -108,8 +130,15 @@ def link(findings: list, index=None) -> None:
     """Fill in `called_from`, `fan_in` and `reached_at_depth` across the scan.
 
     Mutates the findings in place, because every caller already holds the list
-    and threading a second structure through the engine would buy nothing.
+    and threading a second structure through the engine would buy nothing --
+    which is why it starts by clearing what a previous call left behind.  A
+    whole-tree scan links once, but `analyse_file` links by default, and linking
+    an already-linked set doubled every call site.
     """
+    for finding in findings:
+        finding.called_from.clear()
+        finding.fan_out.clear()
+
     key_of = {}
     by_key = {}
     for finding in findings:
@@ -126,13 +155,23 @@ def link(findings: list, index=None) -> None:
         caller_key = key_of[id(caller)]
         for name, line, depth, resolved in caller.calls:
             targets = []
-            if resolved is not None and resolved in by_key:
-                targets = [by_key[resolved]]
-            elif resolved is None:
-                targets = [
+            if resolved is not None:
+                # `Engine()` resolves to the class, which is not a unit the
+                # engine analyses, so a constructor produced no edge at all and
+                # every `__init__` in the repo looked as though nothing called
+                # it -- including one built inside a triple-nested loop.
+                target = by_key.get(resolved) or by_key.get(f"{resolved}.__init__")
+                if target is not None:
+                    targets = [target]
+            else:
+                same_file = [
                     other for other in in_file.get(name, ())
                     if other.unit.path == caller.unit.path
                 ]
+                # One name, two definitions: at most one of them is the callee,
+                # so linking both guarantees a wrong edge, and depth propagation
+                # takes a maximum -- a wrong edge can only inflate a rank.
+                targets = same_file if len(same_file) == 1 else []
             for callee in targets:
                 if callee is caller:
                     continue  # direct recursion: a real edge, but not a hotness signal
@@ -234,8 +273,9 @@ def _index_by_name(findings: list) -> dict[str, list]:
     Only consulted for calls the index could not read, and only ever matched
     within the calling file.  A file with `Parser.parse` and `Lexer.parse`
     gives two entries under "parse", and a call to `self.parse` matches both;
-    keeping both is the conservative choice, since picking one at random would
-    be silently wrong half the time.
+    `link` then drops the call rather than guessing, on the same reasoning
+    `repo.py` states for itself -- an invented edge is worse than an absent one,
+    and here one of the two is invented by construction.
     """
     index: dict[str, list] = {}
     for finding in findings:

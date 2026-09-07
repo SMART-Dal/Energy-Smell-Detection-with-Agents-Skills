@@ -14,6 +14,7 @@ says what that was.
 
 from __future__ import annotations
 
+import functools
 import importlib
 import pkgutil
 from dataclasses import dataclass, field
@@ -32,7 +33,7 @@ from .context import (
 from .models import Evidence, UnitRef
 from .units import iter_units, parse_file, unit_source
 
-_INFRASTRUCTURE = {"engine", "callgraph", "context", "models", "units"}
+_INFRASTRUCTURE = {"engine", "callgraph", "context", "models", "repo", "units"}
 """Modules in this package that are plumbing rather than analyzer families.
 
 Named rather than probed, because a module that happens to grow a function
@@ -63,9 +64,9 @@ class UnitFindings:
     """(name, line, repeat depth, resolved qualname or None) call sites."""
     called_from: list[CallSite] = field(default_factory=list)
     fan_in: int = 0
-    """Distinct units in this file that call this one."""
+    """Distinct units that call this one, anywhere in the scan."""
     fan_out: set = field(default_factory=set)
-    """Distinct units in this file that this one calls."""
+    """Distinct units this one calls, anywhere in the scan."""
     reached_at_depth: int = 0
     """Deepest repeat nesting this unit runs under, counting its callers.
 
@@ -108,9 +109,9 @@ class UnitFindings:
                               utility that sits in no loop at all
 
         This is still a static guess.  It cannot see how many times a loop
-        actually trips, or that a branch is never taken in practice, and it
-        knows nothing about calls from other files.  It orders a reading list;
-        it does not decide anything.
+        actually trips, or that a branch is never taken in practice, and about
+        four call sites in five it cannot name the callee at all.  It orders a
+        reading list; it does not decide anything.
         """
         return (
             self.reached_at_depth,
@@ -136,8 +137,14 @@ def _measure_unit(node, source: str, imports: dict, module_bindings: dict | None
     )
 
 
+@functools.lru_cache(maxsize=1)
 def _families() -> list:
-    """Every analyzer family present in this package, in a stable order."""
+    """Every analyzer family present in this package, in a stable order.
+
+    Cached: `analyse_file` asks once per file, and `pkgutil.iter_modules` re-stats
+    the package directory every time it is asked.  What is installed does not
+    change while a scan runs.
+    """
     found = []
     for info in sorted(pkgutil.iter_modules(_ANALYSIS_PATH), key=lambda i: i.name):
         if info.name in _INFRASTRUCTURE or info.name.startswith("_"):
@@ -176,7 +183,10 @@ def analyse_file(path: Path, index: RepoIndex | None = None,
     every file together afterwards, which is the only way a cross-file edge can
     exist -- the callee's unit does not exist yet while its caller is analysed.
     """
-    tree = parse_file(path)
+    # The index parsed every file to build the symbol table and kept the tree,
+    # which is the reason it keeps it.  Parsing again is the single most
+    # expensive thing a scan does per file.
+    tree = (index.trees.get(path) if index is not None else None) or parse_file(path)
     if tree is None:
         return []
 
@@ -199,7 +209,10 @@ def analyse_file(path: Path, index: RepoIndex | None = None,
             continue
         contained = _measure_unit(node, source, imports, module_bindings, overridden,
                                   aliases)
-        owner = unit.qualname.rsplit(".", 1)[0] if "." in unit.qualname else None
+        # Only a method has an enclosing class. For a nested function this used
+        # to hand `resolve` the *function* around it and ask it to look up
+        # `outer.helper` in a table of classes, which cannot match anything.
+        owner = unit.qualname.rsplit(".", 1)[0] if unit.kind == "method" else None
         findings[unit.qualname] = UnitFindings(
             unit=unit,
             source=unit_source(source, unit),
@@ -260,7 +273,13 @@ def python_files(root: Path) -> list[Path]:
 
 
 def _walk(root: Path):
-    """Yield every .py file under `root`, skipping vendored and build output."""
+    """Yield every .py file under `root`, skipping vendored and build output.
+
+    Matched against the path *below* the scan root, never the absolute path.
+    A checkout that lives in `~/build/myproject` or under any directory sharing
+    a name with this list matched on its own location and yielded nothing at
+    all -- an empty scan, reported as a clean one.
+    """
     for path in root.rglob("*.py"):
-        if not any(part in SKIP_DIRECTORIES for part in path.parts):
+        if not any(part in SKIP_DIRECTORIES for part in path.relative_to(root).parts):
             yield path
