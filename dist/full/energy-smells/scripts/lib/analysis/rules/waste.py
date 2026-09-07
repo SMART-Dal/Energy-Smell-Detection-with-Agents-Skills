@@ -806,6 +806,13 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     Each of these has a cheaper form -- `Counter`, a direct comparison, an
     early-exit scan -- and inside a loop the difference is paid per iteration.
 
+    C6.S1, "objects created and thrown away that never needed to exist", which
+    is what the sorted lists and the built strings above are.  It used to name
+    C4.S5, whose card is about a *type or identity check* asked once per element
+    -- `isinstance`, `type(x) ==`, `hasattr` -- and no comparison this rule
+    reports is one of those.  Nothing detects C4.S5 now, which is the honest
+    state of it and how fifteen other root causes already stand.
+
     Naming the operand first changes nothing:
 
         left = sorted(a)
@@ -847,7 +854,7 @@ def expensive_comparison(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 f"not make it cheaper than comparing directly"
             )
             yield _evidence(
-                unit, "expensive_comparison", node, ("C4.S5",),
+                unit, "expensive_comparison", node, ("C6.S1",),
                 built,
                 call=builder,
             )

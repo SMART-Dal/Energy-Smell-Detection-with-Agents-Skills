@@ -505,7 +505,7 @@
   similar: [C1.S3, C4.S3]
 
 - id: C4.S5
-  signals: [expensive_comparison]
+  signals: []
   in_one_line: >
     a type or identity check asked once per element when the answer never varies
   what_to_look_for: >

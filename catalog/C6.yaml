@@ -20,7 +20,7 @@
 #     S7  not shared between calls by accident
 
 - id: C6.S1
-  signals: [ruff_C408, ruff_RUF005]
+  signals: [expensive_comparison, ruff_C408, ruff_RUF005]
   in_one_line: >
     objects created and thrown away that never needed to exist
   what_to_look_for: >
