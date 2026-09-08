@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The next measurement pass: 69 case files of 226, not the whole suite.
+# Run the taxonomy validation suite in tmux.
 #
 #   bash validation/run_next.sh
 #
@@ -7,32 +7,39 @@
 #
 #   1. ONE MEASUREMENT AT A TIME. Every process on this host reads the same
 #      package energy counter. Two runs at once do not halve each other's
-#      accuracy, they corrupt both, and nothing in the output says so. Check
-#      `pgrep -af verify.py` before starting and make sure the machine is not
-#      being used for anything else heavy.
+#      accuracy, they corrupt both, and nothing in the output says so. This
+#      script refuses to start if it finds one already running.
 #
 #   2. DO NOT EDIT src/ WHILE THIS IS LIVE. Each case runs in a fresh
 #      subprocess that re-imports the verifier, so a half-finished edit is
 #      picked up mid-batch. Thirty-two rows were once written by a verifier
 #      that had `sys.modules` but not `import sys`.
 #
-# What runs: every case file with no stored row (35 new ones), plus 34 stored
-# rows dropped by --redo because their case file changed or their reading was
-# unusable -- a timeout, a failed equivalence check, or a noise floor above 3%.
-# Everything else keeps the number it already has.
+# The batch is resumable: a case file already in results/taxonomy.jsonl is
+# skipped, so an interrupted run costs only the case it was on. Re-running
+# this script after an interruption picks up where it stopped.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-python3 validation/preflight.py || {
-  echo "preflight failed: the host is too busy to resolve anything. Nothing run."
+if pgrep -af "validation/run\.py|src/verify\.py" > /dev/null; then
+  echo "a measurement is already running; refusing to start a second one:"
+  pgrep -af "validation/run\.py|src/verify\.py"
   exit 1
-}
+fi
 
-tmux new-session -d -s measure \
-  "python3 validation/run.py taxonomy --prune --redo '$(cat validation/redo.txt)' \
-     2>&1 | tee -a validation/results/taxonomy.log"
+if tmux has-session -t measure 2>/dev/null; then
+  echo "tmux session 'measure' already exists. Attach with: tmux attach -t measure"
+  exit 1
+fi
 
-echo "started in tmux session 'measure'. Follow it with: tmux attach -t measure"
-echo "It survives a closed laptop. Several minutes per case file: every case pays"
-echo "a 10s machine warmup and 9 paired reps over 3s windows, and the canary"
-echo "repeats all of that once more for the deciding case."
+tmux new-session -d -s measure "bash validation/_taxonomy_batch.sh"
+
+echo "started in tmux session 'measure'."
+echo "  follow it:  tmux attach -t measure        (detach again with ctrl-b d)"
+echo "  or the log: tail -f validation/results/taxonomy.log"
+echo "  progress:   wc -l validation/results/taxonomy.jsonl"
+echo
+echo "It survives a closed terminal. Preflight runs first; the suite only"
+echo "starts if it passes. Several minutes per case file: each case pays a 10s"
+echo "machine warmup and 9 paired reps over 3s windows, and the canary repeats"
+echo "all of that once more for the deciding case."
