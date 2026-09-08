@@ -33,23 +33,30 @@ testing, and works before `python -m build` has been run at all.
 """
 RESULTS = ROOT / "validation" / "results"
 
-TIMEOUT_S = 480
+TIMEOUT_S = 900
 """Wall-clock ceiling for one case file.
 
-Derived from the measurement parameters rather than picked. One measured
-subprocess costs `WARMUP_SECONDS + reps x 2 x TARGET_WINDOW_S`, which at the
-current settings is 10 + 9 x 2 x 3 = 64 s. A case file spends that once per
-case and once more for the canary on the deciding case, so an n-case file
-costs about `(n + 1) x 64` s: 192 s for two cases, 256 s for three, 384 s for
-five. This ceiling clears the largest of those with room for the equivalence
-and sizing stages on top.
+The nominal cost is small: one measured subprocess costs `WARMUP_SECONDS +
+reps x 2 x TARGET_WINDOW_S`, which at the current settings is 10 + 9 x 2 x 3 =
+64 s, and a case file pays that once per case and once more for the canary --
+about 192 s for two cases, 256 s for three. This ceiling is not set by that
+figure. It is set by the tail.
 
-Change any of those three constants and recompute this one. Set it below the
-budget and the suite reports `timeout` for case files that are working
-perfectly -- at 240 s, every three-case file in the taxonomy suite would fail,
-which is most of it.
+`choose_repeats` sizes the loop from how long `before` takes, and then runs
+`after` the same number of times. When the repair is a large saving that is
+free -- `after` finishes early and the window is short. When `after` is
+*slower* than `before`, the window stretches by the same ratio, and a case
+where the patched version costs ten times as much spends ten times as long
+being measured. Sizing on the slower of the two would fix that and would also
+mean a fast variant is measured over a window too short to resolve, which is
+worse.
 
-What it is still for: a sample whose inputs were sized for a different kind of
+So the ceiling has to clear the slow tail rather than the median. Projected
+from a previous batch's timings onto the current window, 480 s would have cut
+off 33% of the suite and spent 8.4 hours producing nothing, because a timeout
+costs the full ceiling and yields no row. 900 s cuts that to about 10%.
+
+What it is still for: a case whose inputs were sized for a different kind of
 experiment, which is more useful reported as `timeout` than left to block the
 queue.
 """
