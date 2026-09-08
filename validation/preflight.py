@@ -99,9 +99,7 @@ def _report_coverage(result) -> None:
     if coverage["missing_domains"]:
         print(f"   WARNING: no counter for "
               f"{', '.join(coverage['missing_domains'])} on this host.\n"
-              f"   Readings cover CPU package only, not whole-machine "
-              f"CPU + RAM.\n"
-              f"   Fix the powercap permissions if that matters, then re-run.")
+              f"   Fix the powercap permissions before trusting the batch.")
 
 
 def _saving(result) -> float:

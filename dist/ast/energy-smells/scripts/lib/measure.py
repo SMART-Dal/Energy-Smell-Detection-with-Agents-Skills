@@ -31,9 +31,9 @@ before trusting a batch from it.
 
 A note on what is being measured
 --------------------------------
-The meter reports whole-machine CPU package + DRAM energy over the workload
-window, and nothing is subtracted from it. The number is CodeGreen's own
-`TaskResult.energy_j`, taken as it comes: we do not re-derive it from the
+The meter reports whole-machine CPU package energy over the workload window,
+and nothing is subtracted from it. The number is CodeGreen's own
+`totals.energy_j`, taken as it comes: we do not re-derive it from the
 per-domain breakdown, because those domains are not disjoint and summing them
 double-counts. Which domains a host actually exposed is recorded next to every
 verdict, since a counter the user cannot read is skipped without complaint. On a many-core host much of that is

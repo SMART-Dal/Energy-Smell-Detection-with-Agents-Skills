@@ -28,10 +28,9 @@ class Sample:
     """Per-domain energy the host exposed. Not disjoint, and not summed -- see
     `meters/codegreen_meter.py`. Present so a row records its own coverage."""
     quality: str | None = None
-    """Meter's own noise verdict, when it computed one: excellent/good/
-    moderate/high-noise. `None` unless time series recording was enabled."""
-    power_cv_pct: float | None = None
-    """Coefficient of variation of power within the window, same caveat."""
+    """The meter's own verdict on the reading: `ok` when it measured
+    something, or one of `no_backend`, `energy_zero`, `failed` when it did
+    not. A window that reports anything else is not evidence."""
 
 
 @dataclass(frozen=True)

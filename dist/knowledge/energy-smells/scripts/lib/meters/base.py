@@ -16,14 +16,16 @@ from typing import Callable, Protocol, runtime_checkable
 
 from ..models import Sample
 
-# Energy domains we count by default.  The CPU package and its DRAM are what
-# Python workloads actually move; an idle GPU still reports several watts, and
-# including it only dilutes the effect we are trying to resolve.
+# Energy domains a reading is expected to cover.  The CPU package is where
+# Python workloads spend, and it is the one domain every host with RAPL
+# exposes; DRAM is a separate counter that many hosts do not let a normal user
+# read, and a Python workload moves little enough memory that its absence does
+# not change a verdict.
 #
-# What a meter reports is the raw total over these domains for the whole
-# machine.  Nothing is subtracted -- no idle baseline, no attribution to this
-# process.  See measure.py for why.
-DEFAULT_DOMAINS = ("package", "dram")
+# This list is what `missing_domains()` is checked against, not a filter: the
+# reported figure is the meter's own total, and nothing is subtracted from it
+# -- no idle baseline, no attribution to this process.  See measure.py for why.
+DEFAULT_DOMAINS = ("package",)
 
 
 @runtime_checkable
