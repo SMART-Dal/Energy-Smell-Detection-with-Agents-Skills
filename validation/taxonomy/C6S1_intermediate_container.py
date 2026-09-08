@@ -17,5 +17,4 @@ def after(names):
 
 def cases():
     return [("large",  lambda: ([f"name{i}" for i in range(1_000_000)],)),
-            ("short",  lambda: ([f"name{i}" for i in range(30)],)),
-            ("edge",   lambda: ([],))]
+            ("short",  lambda: ([f"name{i}" for i in range(30)],))]

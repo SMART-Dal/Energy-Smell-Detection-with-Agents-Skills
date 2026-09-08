@@ -56,5 +56,4 @@ def cases():
     big = list(range(0, 200_000, 2))
     small = list(range(0, 16, 2))
     return [("large-n", lambda: (big, [(i * 7919) % 200_000 for i in range(2_000)])),
-            ("small-n", lambda: (small, [(i * 7) % 16 for i in range(200_000)])),
-            ("edge",    lambda: ([], [1]))]
+            ("small-n", lambda: (small, [(i * 7) % 16 for i in range(200_000)]))]

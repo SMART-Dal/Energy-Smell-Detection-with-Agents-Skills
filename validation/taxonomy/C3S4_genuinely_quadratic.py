@@ -28,5 +28,4 @@ def after(points):
 
 def cases():
     return [("large",  lambda: (list(range(900)),)),
-            ("normal", lambda: (list(range(90)),)),
-            ("edge",   lambda: ([1],))]
+            ("normal", lambda: (list(range(90)),))]

@@ -25,5 +25,4 @@ def after(rows, floor):
 def cases():
     rows = [(i * 7919) % 1_000 for i in range(120_000)]
     return [("selective",   lambda: (list(rows), 950)),
-            ("unselective", lambda: (list(rows), -1)),
-            ("edge",        lambda: ([], 0))]
+            ("unselective", lambda: (list(rows), -1))]

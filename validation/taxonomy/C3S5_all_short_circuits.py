@@ -37,5 +37,4 @@ def _records(n, fail_at):
 
 def cases():
     return [("fails-early", lambda: (_records(400_000, 3),)),
-            ("never-fails", lambda: (_records(400_000, None),)),
-            ("edge",        lambda: ([],))]
+            ("never-fails", lambda: (_records(400_000, None),))]

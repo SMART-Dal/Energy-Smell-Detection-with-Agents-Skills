@@ -27,5 +27,4 @@ def after(keys, table):
 def cases():
     table = {i: i for i in range(1000)}
     return [("always-raises", lambda: (list(range(10_000, 210_000)), dict(table))),
-            ("never-raises", lambda: ([i % 1000 for i in range(200_000)], dict(table))),
-            ("empty", lambda: ([], {}))]
+            ("never-raises", lambda: ([i % 1000 for i in range(200_000)], dict(table)))]

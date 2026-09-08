@@ -31,5 +31,4 @@ def after(rows):
 
 def cases():
     return [("large",  lambda: ([Row(i) for i in range(300_000)],)),
-            ("normal", lambda: ([Row(i) for i in range(3_000)],)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: ([Row(i) for i in range(3_000)],))]

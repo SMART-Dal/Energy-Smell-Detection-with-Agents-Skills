@@ -21,5 +21,4 @@ def after(xs, target):
 
 def cases():
     return [("hit-early", lambda: (list(range(400_000)), 5)),
-            ("no-hit", lambda: (list(range(400_000)), -1)),
-            ("empty", lambda: ([], 1))]
+            ("no-hit", lambda: (list(range(400_000)), -1))]

@@ -9,6 +9,7 @@ from .rapl import RaplMeter
 
 __all__ = [
     "DEFAULT_DOMAINS",
+    "describe",
     "EnergyMeter",
     "CodeGreenMeter",
     "NullMeter",
@@ -42,3 +43,27 @@ def get_meter(name: str = "auto") -> EnergyMeter:
         raise ValueError(
             f"unknown meter {name!r}, expected one of {sorted(_METERS)} or 'auto'"
         ) from None
+
+
+def describe(name: str = "auto") -> dict:
+    """What a meter will actually cover on this host, measured not assumed.
+
+    A RAPL domain the current user cannot read is skipped silently by both
+    real meters, which quietly narrows a reading from "package + DRAM" to
+    whatever happened to be readable.
+
+    For a one-off check from a shell, not for use inside a measurement run:
+    taking a CodeGreen reading starts a sampler thread that keeps warning on
+    stderr about every counter it cannot read, for the remaining life of the
+    process.  `verify.py` therefore reads its coverage off the measurements it
+    already takes, in the child process, rather than probing here.
+    """
+    meter = get_meter(name)
+    visible = getattr(meter, "visible_domains", lambda: ())()
+    missing = getattr(meter, "missing_domains", lambda: ())()
+    return {
+        "meter": meter.name,
+        "requested_domains": list(DEFAULT_DOMAINS),
+        "visible_domains": list(visible),
+        "missing_domains": list(missing),
+    }

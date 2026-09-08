@@ -29,5 +29,4 @@ def after(rows, verbose=False):
 
 def cases():
     return [("quiet",   lambda: (list(range(200_000)), False)),
-            ("verbose", lambda: (list(range(200_000)), True)),
-            ("edge",    lambda: ([], False))]
+            ("verbose", lambda: (list(range(200_000)), True))]

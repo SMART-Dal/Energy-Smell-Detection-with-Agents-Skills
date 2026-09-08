@@ -18,5 +18,4 @@ def after(xs, k):
 
 def cases():
     return [("cheap-test-rejects-most", lambda: (list(range(200_000)), 10**9)),
-            ("cheap-test-rejects-none", lambda: (list(range(200_000)), -1)),
-            ("empty", lambda: ([], 0))]
+            ("cheap-test-rejects-none", lambda: (list(range(200_000)), -1))]

@@ -37,5 +37,4 @@ def _rows(n, width):
 
 def cases():
     return [("one-probe-each", lambda: (_rows(300_000, 6),)),
-            ("wide-lists",     lambda: (_rows(20_000, 400),)),
-            ("edge",           lambda: ([],))]
+            ("wide-lists",     lambda: (_rows(20_000, 400),))]

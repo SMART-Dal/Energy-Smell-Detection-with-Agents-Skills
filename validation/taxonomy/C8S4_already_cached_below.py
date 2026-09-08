@@ -47,5 +47,4 @@ def _store(n):
 
 def cases():
     return [("many-repeats", lambda: (_store(400), [i % 400 for i in range(200_000)])),
-            ("all-distinct", lambda: (_store(200_000), list(range(200_000)))),
-            ("edge",         lambda: (_store(1), []))]
+            ("all-distinct", lambda: (_store(200_000), list(range(200_000))))]

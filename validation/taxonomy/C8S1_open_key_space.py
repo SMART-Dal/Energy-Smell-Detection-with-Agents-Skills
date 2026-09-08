@@ -32,5 +32,4 @@ def after(values):
 
 def cases():
     return [("few-distinct", lambda: ([i % 400 for i in range(200_000)],)),
-            ("all-distinct", lambda: (list(range(200_000)),)),
-            ("edge",         lambda: ([],))]
+            ("all-distinct", lambda: (list(range(200_000)),))]

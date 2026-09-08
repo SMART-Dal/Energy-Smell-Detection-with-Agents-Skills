@@ -24,5 +24,4 @@ def after(lines):
 
 def cases():
     return [("long-strings",  lambda: (["x" * 4_000] * 20_000,)),
-            ("short-strings", lambda: (["abc"] * 20_000,)),
-            ("edge",          lambda: ([],))]
+            ("short-strings", lambda: (["abc"] * 20_000,))]

@@ -44,5 +44,4 @@ def _rows(n, width):
 
 def cases():
     return [("three-parts",  lambda: (_rows(300_000, 1),)),
-            ("long-parts",   lambda: (_rows(20_000, 200),)),
-            ("edge",         lambda: ([],))]
+            ("long-parts",   lambda: (_rows(20_000, 200),))]

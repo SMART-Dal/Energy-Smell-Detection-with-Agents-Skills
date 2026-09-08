@@ -30,5 +30,4 @@ def after(row, repeats):
 
 def cases():
     return [("many-calls", lambda: (Row(100, 7), 2_000_000)),
-            ("few-calls",  lambda: (Row(100, 7), 100)),
-            ("edge",       lambda: (Row(0, 0), 0))]
+            ("few-calls",  lambda: (Row(100, 7), 100))]

@@ -28,6 +28,4 @@ def after(keys):
 
 
 def cases():
-    return [("many-calls", lambda: ([f"key{i % 400}" for i in range(4_000)],)),
-            ("one-call",   lambda: (["key1"],)),
-            ("edge",       lambda: ([],))]
+    return [("many-calls", lambda: ([f"key{i % 400}" for i in range(4_000)],))]

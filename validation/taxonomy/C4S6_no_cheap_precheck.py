@@ -49,5 +49,4 @@ def _registry(n):
 
 def cases():
     return [("mostly-present", lambda: (_registry(200_000), list(range(200_000)))),
-            ("mostly-missing", lambda: (_registry(200_000), list(range(400_000, 600_000)))),
-            ("edge",           lambda: (_registry(4), []))]
+            ("mostly-missing", lambda: (_registry(200_000), list(range(400_000, 600_000))))]

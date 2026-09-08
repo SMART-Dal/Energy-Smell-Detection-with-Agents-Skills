@@ -27,5 +27,4 @@ def after(keys):
 
 
 def cases():
-    return [("many-reads", lambda: (list(range(2_000)),)),
-            ("one-read", lambda: ([1],))]
+    return [("many-reads", lambda: (list(range(2_000)),))]

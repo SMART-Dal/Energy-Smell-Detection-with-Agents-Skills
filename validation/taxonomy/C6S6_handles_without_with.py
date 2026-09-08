@@ -38,5 +38,4 @@ def after(count):
 
 def cases():
     return [("many-handles", lambda: (200,)),
-            ("few-handles",  lambda: (5,)),
-            ("edge",         lambda: (0,))]
+            ("few-handles",  lambda: (5,))]

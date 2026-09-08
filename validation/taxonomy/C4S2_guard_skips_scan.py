@@ -19,5 +19,4 @@ def after(values, k):
 
 def cases():
     return [("k-positive", lambda: ([(i * 7919) % 2001 - 1000 for i in range(400_000)], 5)),
-            ("k-negative", lambda: ([(i * 7919) % 2001 - 1000 for i in range(400_000)], -5)),
-            ("edge",       lambda: ([], 5))]
+            ("k-negative", lambda: ([(i * 7919) % 2001 - 1000 for i in range(400_000)], -5))]

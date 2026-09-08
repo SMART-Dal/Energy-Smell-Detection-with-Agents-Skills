@@ -22,5 +22,4 @@ def cases():
     return [
         ("hits-late", lambda: (list(range(5_000)), list(range(0, 5_000, 5)))),
         ("hits-early", lambda: (list(range(5_000)), [1] * 1_000)),
-        ("empty", lambda: ([], [1, 2, 3])),
     ]

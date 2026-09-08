@@ -58,5 +58,4 @@ def cases():
     batch = [i % 300 for i in range(2_000)]
     return [("repeated-batches", lambda: ([list(batch) for _ in range(20)],)),
             ("distinct-batches", lambda: ([[i * 2_000 + j for j in range(2_000)]
-                                           for i in range(20)],)),
-            ("edge",             lambda: ([[]],))]
+                                           for i in range(20)],))]

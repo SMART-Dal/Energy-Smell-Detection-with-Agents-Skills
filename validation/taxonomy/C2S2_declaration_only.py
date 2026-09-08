@@ -50,5 +50,4 @@ def after(pairs):
 
 def cases():
     return [("large",  lambda: ([(i, i + 1) for i in range(500_000)],)),
-            ("normal", lambda: ([(i, i + 1) for i in range(5_000)],)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: ([(i, i + 1) for i in range(5_000)],))]

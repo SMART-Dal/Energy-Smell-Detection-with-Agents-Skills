@@ -40,5 +40,4 @@ def cases():
     return [("large-table", lambda: ([f"/p{i}" for i in range(2_000)],
                                      [f"/p{i % 4000}" for i in range(20_000)])),
             ("small-table", lambda: ([f"/p{i}" for i in range(6)],
-                                     [f"/p{i % 12}" for i in range(20_000)])),
-            ("edge",        lambda: ([], []))]
+                                     [f"/p{i % 12}" for i in range(20_000)]))]

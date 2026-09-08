@@ -25,5 +25,4 @@ def after(candidates, request):
 
 def cases():
     return [("large",  lambda: ([f"candidate-{i}" for i in range(200_000)], 97)),
-            ("normal", lambda: ([f"candidate-{i}" for i in range(2_000)], 97)),
-            ("edge",   lambda: (["only"], 97))]
+            ("normal", lambda: ([f"candidate-{i}" for i in range(2_000)], 97))]

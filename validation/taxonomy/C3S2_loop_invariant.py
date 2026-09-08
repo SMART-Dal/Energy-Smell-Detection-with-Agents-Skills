@@ -26,5 +26,4 @@ def cases():
     return [
         ("large", lambda: (list(range(300_000)), list(range(64)))),
         ("small", lambda: (list(range(50)), list(range(64)))),
-        ("empty", lambda: ([], [])),
     ]

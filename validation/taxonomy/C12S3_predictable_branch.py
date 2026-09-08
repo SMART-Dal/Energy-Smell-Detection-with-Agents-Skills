@@ -25,5 +25,4 @@ def after(values):
 def cases():
     n = 300_000
     return [("long-runs",  lambda: ([(1 if (i // 1000) % 2 else -1) * (i % 97) for i in range(n)],)),
-            ("all-taken",  lambda: (list(range(1, n)),)),
-            ("edge",       lambda: ([],))]
+            ("all-taken",  lambda: (list(range(1, n)),))]

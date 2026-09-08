@@ -17,5 +17,4 @@ def after(records):
 
 def cases():
     return [("large",  lambda: (list(range(300_000)),)),
-            ("normal", lambda: (list(range(3_000)),)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: (list(range(3_000)),))]

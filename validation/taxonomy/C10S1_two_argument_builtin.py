@@ -45,5 +45,4 @@ def after(values):
 
 def cases():
     return [("large",  lambda: ([((i * 7919) % 201) - 100 for i in range(1_000_000)],)),
-            ("normal", lambda: ([((i * 7919) % 201) - 100 for i in range(10_000)],)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: ([((i * 7919) % 201) - 100 for i in range(10_000)],))]

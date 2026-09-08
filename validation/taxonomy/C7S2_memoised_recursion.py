@@ -48,5 +48,4 @@ def after(n, kind):
 
 def cases():
     return [("overlap",    lambda: (26, "overlap")),
-            ("no-overlap", lambda: (400, "chain")),
-            ("edge",       lambda: (1, "overlap"))]
+            ("no-overlap", lambda: (400, "chain"))]

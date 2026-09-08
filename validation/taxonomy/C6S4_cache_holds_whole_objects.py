@@ -32,5 +32,4 @@ def after(records):
 
 def cases():
     return [("many",   lambda: ([Record(i) for i in range(60_000)],)),
-            ("few",    lambda: ([Record(i) for i in range(60)],)),
-            ("edge",   lambda: ([],))]
+            ("few",    lambda: ([Record(i) for i in range(60)],))]

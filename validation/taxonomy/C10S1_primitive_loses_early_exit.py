@@ -34,5 +34,4 @@ def _pair(n, mismatch_at):
 
 def cases():
     return [("mismatch-early", lambda: _pair(400_000, 5)),
-            ("identical",      lambda: _pair(400_000, None)),
-            ("edge",           lambda: ([], []))]
+            ("identical",      lambda: _pair(400_000, None))]

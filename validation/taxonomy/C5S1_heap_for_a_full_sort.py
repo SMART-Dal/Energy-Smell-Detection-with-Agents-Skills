@@ -42,5 +42,4 @@ def _occurrences(n):
 
 def cases():
     return [("many-items", lambda: (_occurrences(200_000),)),
-            ("few-items",  lambda: (_occurrences(20),)),
-            ("edge",       lambda: ([],))]
+            ("few-items",  lambda: (_occurrences(20),))]

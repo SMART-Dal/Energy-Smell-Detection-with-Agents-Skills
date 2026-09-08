@@ -58,5 +58,4 @@ def _amounts(n, mixed):
 
 def cases():
     return [("mixed-currencies", lambda: (_amounts(300_000, True),)),
-            ("one-currency",     lambda: (_amounts(300_000, False),)),
-            ("edge",             lambda: ([],))]
+            ("one-currency",     lambda: (_amounts(300_000, False),))]

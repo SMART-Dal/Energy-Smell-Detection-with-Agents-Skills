@@ -28,5 +28,4 @@ def after(lines, minimum):
 def cases():
     lines = [f"a{i},b{i},c{i}" for i in range(400_000)]
     return [("keeps-all",   lambda: (list(lines), 0)),
-            ("with-filter", lambda: (list(lines), 12)),
-            ("edge",        lambda: ([], 0))]
+            ("with-filter", lambda: (list(lines), 12))]

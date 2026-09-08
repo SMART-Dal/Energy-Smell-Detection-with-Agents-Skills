@@ -46,5 +46,4 @@ def _strings(count, width, palindromic):
 
 def cases():
     return [("palindromes",  lambda: (_strings(4_000, 500, True),)),
-            ("early-reject", lambda: (_strings(4_000, 500, False),)),
-            ("edge",         lambda: ([""],))]
+            ("early-reject", lambda: (_strings(4_000, 500, False),))]

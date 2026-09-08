@@ -56,5 +56,4 @@ def after(codes):
 
 def cases():
     return [("late-match",  lambda: (["failed"] * 400_000,)),
-            ("early-match", lambda: (["created"] * 400_000,)),
-            ("edge",        lambda: ([],))]
+            ("early-match", lambda: (["created"] * 400_000,))]

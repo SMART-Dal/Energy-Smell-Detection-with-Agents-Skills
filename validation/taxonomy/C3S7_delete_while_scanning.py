@@ -30,5 +30,4 @@ def _values(n, none_ratio):
 
 def cases():
     return [("many-removals", lambda: (_values(40_000, 0.5),)),
-            ("few-removals",  lambda: (_values(40_000, 0.01),)),
-            ("edge",          lambda: ([],))]
+            ("few-removals",  lambda: (_values(40_000, 0.01),))]

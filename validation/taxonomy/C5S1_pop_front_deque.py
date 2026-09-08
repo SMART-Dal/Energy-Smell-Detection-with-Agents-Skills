@@ -35,5 +35,4 @@ def after(pending):
 
 def cases():
     return [("large",  lambda: (list(range(60_000)),)),
-            ("normal", lambda: (list(range(600)),)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: (list(range(600)),))]

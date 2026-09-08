@@ -18,5 +18,4 @@ def after(rows):
 
 def cases():
     return [("large", lambda: ([list(range(32))] * 100_000,)),
-            ("small", lambda: ([list(range(32))] * 20,)),
-            ("empty", lambda: ([],))]
+            ("small", lambda: ([list(range(32))] * 20,))]

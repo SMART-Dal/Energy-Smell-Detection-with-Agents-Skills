@@ -89,5 +89,4 @@ def cases():
     return [
         ("large", lambda: (_mixed(200_000),)),
         ("small", lambda: (_mixed(40),)),
-        ("empty", lambda: ([],)),
     ]

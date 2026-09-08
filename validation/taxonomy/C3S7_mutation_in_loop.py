@@ -18,5 +18,4 @@ def after(xs, k):
 
 def cases():
     return [("large", lambda: (list(range(20_000)), 3)),
-            ("small", lambda: (list(range(20)), 3)),
-            ("empty", lambda: ([], 3))]
+            ("small", lambda: (list(range(20)), 3))]

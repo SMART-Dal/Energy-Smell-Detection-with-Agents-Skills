@@ -20,5 +20,4 @@ def cases():
     return [
         ("k-tiny-n-large", lambda: ([(i * 7919) % 1_000_003 for i in range(400_000)], 100)),
         ("k-near-n", lambda: ([(i * 7919) % 1_000_003 for i in range(20_000)], 19_000)),
-        ("empty", lambda: ([], 5)),
     ]

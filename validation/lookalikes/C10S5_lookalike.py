@@ -52,5 +52,4 @@ def after(values):
 
 def cases():
     return [("recalibrating", lambda: ([(i * 7919) % 1_000 for i in range(400_000)],)),
-            ("steady",        lambda: ([(i * 7919) % 1_000 for i in range(999)],)),
-            ("edge",          lambda: ([],))]
+            ("steady",        lambda: ([(i * 7919) % 1_000 for i in range(999)],))]

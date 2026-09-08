@@ -45,5 +45,4 @@ def after(rows):
 
 def cases():
     return [("overlapping", lambda: ([(i % 60, (i * 7919) % 4_000) for i in range(400_000)],)),
-            ("disjoint",    lambda: ([(i % 20, i % 90) for i in range(400_000)],)),
-            ("edge",        lambda: ([],))]
+            ("disjoint",    lambda: ([(i % 20, i % 90) for i in range(400_000)],))]

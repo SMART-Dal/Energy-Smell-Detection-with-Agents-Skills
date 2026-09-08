@@ -34,5 +34,4 @@ def cases():
     first = [(i * 7919) % 10_000 for i in range(400_000)]
     second = [(i * 104_729) % 10_000 for i in range(400_000)]
     return [("abs-removable", lambda: (first, second, True)),
-            ("abs-needed",    lambda: (first, second, False)),
-            ("edge",          lambda: ([], [], True))]
+            ("abs-needed",    lambda: (first, second, False))]

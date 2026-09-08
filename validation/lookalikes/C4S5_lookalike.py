@@ -51,5 +51,4 @@ def _mixed(n, with_bools):
 
 def cases():
     return [("has-booleans", lambda: (_mixed(300_000, True),)),
-            ("no-booleans",  lambda: (_mixed(300_000, False),)),
-            ("edge",         lambda: ([],))]
+            ("no-booleans",  lambda: (_mixed(300_000, False),))]

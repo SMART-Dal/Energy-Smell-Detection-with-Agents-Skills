@@ -30,4 +30,12 @@ class NullMeter:
         start = time.perf_counter()
         fn()
         duration = time.perf_counter() - start
-        return Sample(energy_j=duration * ASSUMED_POWER_W, duration_s=duration)
+        return Sample(
+            energy_j=duration * ASSUMED_POWER_W,
+            duration_s=duration,
+            power_w=ASSUMED_POWER_W,
+        )
+
+    def missing_domains(self) -> tuple[str, ...]:
+        """Nothing is measured, so nothing is missing in the reportable sense."""
+        return ()

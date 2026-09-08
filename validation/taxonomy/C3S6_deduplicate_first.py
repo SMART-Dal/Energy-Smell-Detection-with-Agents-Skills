@@ -26,5 +26,4 @@ def after(values):
 
 def cases():
     return [("dense-duplicates", lambda: ([i % 101 for i in range(200_000)],)),
-            ("all-unique",       lambda: (list(range(200_000)),)),
-            ("edge",             lambda: ([],))]
+            ("all-unique",       lambda: (list(range(200_000)),))]

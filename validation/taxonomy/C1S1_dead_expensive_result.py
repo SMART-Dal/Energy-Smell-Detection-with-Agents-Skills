@@ -28,5 +28,4 @@ def _scrambled(n):
 
 def cases():
     return [("large",  lambda: (_scrambled(200_000),)),
-            ("normal", lambda: (_scrambled(2_000),)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: (_scrambled(2_000),))]

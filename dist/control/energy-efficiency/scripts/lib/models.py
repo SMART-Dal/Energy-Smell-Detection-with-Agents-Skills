@@ -13,10 +13,25 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Sample:
-    """A single execution: how much energy it took and how long it ran."""
+    """A single execution: how much energy it took and how long it ran.
+
+    `energy_j` and `duration_s` are the two fields the statistics are built
+    from.  The rest is provenance -- what the meter saw while taking the
+    reading -- carried so a result can be audited without re-running it.
+    """
 
     energy_j: float
     duration_s: float
+    power_w: float = 0.0
+    """Average watts over the window; `energy_j / duration_s` by construction."""
+    domains_j: dict[str, float] | None = None
+    """Per-domain energy the host exposed. Not disjoint, and not summed -- see
+    `meters/codegreen_meter.py`. Present so a row records its own coverage."""
+    quality: str | None = None
+    """Meter's own noise verdict, when it computed one: excellent/good/
+    moderate/high-noise. `None` unless time series recording was enabled."""
+    power_cv_pct: float | None = None
+    """Coefficient of variation of power within the window, same caveat."""
 
 
 @dataclass(frozen=True)
@@ -37,6 +52,15 @@ class Comparison:
     time_saved_pct: float
     time_ci_pct: float
     reps: int
+    domains: tuple[str, ...] = ()
+    """Energy domains the meter actually reported over these windows. Taken
+    from the readings themselves rather than probed separately, so it cannot
+    disagree with the numbers it sits beside."""
+    baseline_power_w: float = 0.0
+    patched_power_w: float = 0.0
+    """Mean watts over the measured windows. Reported because a repair can cut
+    energy by finishing sooner, by drawing less, or both, and only the pair of
+    energy and power tells those apart."""
 
     @property
     def energy_significant(self) -> bool:

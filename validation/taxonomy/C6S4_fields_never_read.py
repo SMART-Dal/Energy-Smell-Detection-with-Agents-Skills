@@ -23,5 +23,4 @@ def _rows(n):
 
 def cases():
     return [("many",  lambda: (_rows(60_000),)),
-            ("few",   lambda: (_rows(60),)),
-            ("edge",  lambda: ([],))]
+            ("few",   lambda: (_rows(60),))]

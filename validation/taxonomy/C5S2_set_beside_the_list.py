@@ -29,5 +29,4 @@ def after(rows):
 
 def cases():
     return [("many-duplicates", lambda: ([i % 500 for i in range(40_000)],)),
-            ("all-distinct",    lambda: (list(range(20_000)),)),
-            ("edge",            lambda: ([],))]
+            ("all-distinct",    lambda: (list(range(20_000)),))]

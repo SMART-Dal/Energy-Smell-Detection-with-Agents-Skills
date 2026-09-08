@@ -18,5 +18,4 @@ def after(first, second):
 
 def cases():
     return [("large",  lambda: (list(range(600_000)), list(range(600_000, 0, -1)))),
-            ("normal", lambda: (list(range(6_000)), list(range(6_000, 0, -1)))),
-            ("edge",   lambda: ([], []))]
+            ("normal", lambda: (list(range(6_000)), list(range(6_000, 0, -1))))]

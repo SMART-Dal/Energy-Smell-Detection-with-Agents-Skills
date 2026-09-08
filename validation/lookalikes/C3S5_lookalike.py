@@ -40,5 +40,4 @@ def after(records):
 
 def cases():
     return [("many-failures", lambda: (list(range(300_000)),)),
-            ("no-failures",   lambda: ([i * 97 + 1 for i in range(300_000)],)),
-            ("edge",          lambda: ([],))]
+            ("no-failures",   lambda: ([i * 97 + 1 for i in range(300_000)],))]

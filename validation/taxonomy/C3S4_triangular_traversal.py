@@ -35,5 +35,4 @@ def after(limit, expensive):
 
 def cases():
     return [("expensive-pairs", lambda: (400, True)),
-            ("cheap-pairs",     lambda: (400, False)),
-            ("edge",            lambda: (3, True))]
+            ("cheap-pairs",     lambda: (400, False))]

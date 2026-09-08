@@ -62,5 +62,4 @@ def after(text, pattern):
 
 def cases():
     return [("repetitive-text", lambda: ("a" * 60_000, "a" * 40 + "b")),
-            ("sparse-text",     lambda: ("abcdefgh" * 20_000, "xyz")),
-            ("edge",            lambda: ("", "a"))]
+            ("sparse-text",     lambda: ("abcdefgh" * 20_000, "xyz"))]

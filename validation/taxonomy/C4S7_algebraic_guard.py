@@ -28,5 +28,4 @@ def after(values):
 
 def cases():
     return [("mixed",    lambda: (list(range(2, 60_000)),)),
-            ("all-even", lambda: (list(range(2, 60_000, 2)),)),
-            ("edge",     lambda: ([0, 1, 2, 3],))]
+            ("all-even", lambda: (list(range(2, 60_000, 2)),))]

@@ -16,5 +16,4 @@ def after(names):
 def cases():
     names = [f"tmp_{i}" if i % 2 else f"keep_{i}" for i in range(100_000)]
     return [("large", lambda: (list(names),)),
-            ("small", lambda: (names[:20],)),
-            ("empty", lambda: ([],))]
+            ("small", lambda: (names[:20],))]

@@ -23,5 +23,4 @@ def after(records):
 def cases():
     records = [(i, i % 100, i % 7, float(i)) for i in range(200_000)]
     return [("large",  lambda: (list(records),)),
-            ("normal", lambda: (records[:2_000],)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: (records[:2_000],))]

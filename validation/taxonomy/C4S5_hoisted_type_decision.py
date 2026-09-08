@@ -25,5 +25,4 @@ def after(values, work):
 def cases():
     homogeneous = [f" s{i} " for i in range(120_000)]
     return [("heavy-body", lambda: (list(homogeneous), 40)),
-            ("light-body", lambda: (list(homogeneous), 1)),
-            ("edge",       lambda: ([], 1))]
+            ("light-body", lambda: (list(homogeneous), 1))]

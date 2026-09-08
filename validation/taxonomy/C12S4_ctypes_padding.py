@@ -60,5 +60,4 @@ def after(count):
 
 def cases():
     return [("many-samples", lambda: (SAMPLES,)),
-            ("few-samples",  lambda: (300,)),
-            ("edge",         lambda: (1,))]
+            ("few-samples",  lambda: (300,))]

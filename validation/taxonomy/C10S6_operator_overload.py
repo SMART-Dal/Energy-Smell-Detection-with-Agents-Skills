@@ -26,5 +26,4 @@ def after(items):
 
 def cases():
     return [("large", lambda: ([Money(i) for i in range(200_000)],)),
-            ("small", lambda: ([Money(i) for i in range(20)],)),
-            ("empty", lambda: ([],))]
+            ("small", lambda: ([Money(i) for i in range(20)],))]

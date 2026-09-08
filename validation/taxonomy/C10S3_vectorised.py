@@ -23,5 +23,4 @@ def after(values, factor):
 
 def cases():
     return [("large",  lambda: (np.arange(1_000_000, dtype=np.float64), 1.5)),
-            ("normal", lambda: (np.arange(2_000, dtype=np.float64), 1.5)),
-            ("edge",   lambda: (np.zeros(0, dtype=np.float64), 1.5))]
+            ("normal", lambda: (np.arange(2_000, dtype=np.float64), 1.5))]

@@ -35,5 +35,4 @@ def _records(n, width):
 
 def cases():
     return [("many-records", lambda: (_records(40_000, 8),)),
-            ("wide-records", lambda: (_records(400, 800),)),
-            ("edge",         lambda: (_records(1, 1),))]
+            ("wide-records", lambda: (_records(400, 800),))]

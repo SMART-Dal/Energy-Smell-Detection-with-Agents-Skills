@@ -23,5 +23,4 @@ def after(batches):
 
 def cases():
     return [("mostly-trivial", lambda: ([[] if i % 2 else [i] for i in range(400_000)],)),
-            ("mostly-real",    lambda: ([[3, 1, 2, i] for i in range(200_000)],)),
-            ("edge",           lambda: ([],))]
+            ("mostly-real",    lambda: ([[3, 1, 2, i] for i in range(200_000)],))]

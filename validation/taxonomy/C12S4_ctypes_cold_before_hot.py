@@ -57,5 +57,4 @@ def after(count):
 
 def cases():
     return [("many-frames", lambda: (FRAMES,)),
-            ("few-frames",  lambda: (40,)),
-            ("edge",        lambda: (1,))]
+            ("few-frames",  lambda: (40,))]

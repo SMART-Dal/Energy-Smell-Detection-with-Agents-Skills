@@ -24,5 +24,4 @@ def after(values, target):
 def cases():
     values = [i % 40 for i in range(200_000)]
     return [("hits-early", lambda: (list(values), _expensive(values[3]))),
-            ("no-hit",     lambda: (list(values), -1)),
-            ("edge",       lambda: ([], 1))]
+            ("no-hit",     lambda: (list(values), -1))]

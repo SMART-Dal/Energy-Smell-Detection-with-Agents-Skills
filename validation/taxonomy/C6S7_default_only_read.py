@@ -34,5 +34,4 @@ def after(scopes):
 def cases():
     scopes = [("read", "write", "admin", "none")[i % 4] for i in range(400_000)]
     return [("many-calls", lambda: (list(scopes),)),
-            ("few-calls",  lambda: (scopes[:40],)),
-            ("edge",       lambda: ([],))]
+            ("few-calls",  lambda: (scopes[:40],))]

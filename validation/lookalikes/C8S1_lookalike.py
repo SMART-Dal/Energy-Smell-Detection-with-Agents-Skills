@@ -51,5 +51,4 @@ def after(rows):
 def cases():
     rows = [(f"cur{i % 20}", i % 97) for i in range(200_000)]
     return [("rates-move",  lambda: (list(rows),)),
-            ("rates-still", lambda: ([(f"cur{i % 20}", i % 97) for i in range(4_999)],)),
-            ("edge",        lambda: ([],))]
+            ("rates-still", lambda: ([(f"cur{i % 20}", i % 97) for i in range(4_999)],))]

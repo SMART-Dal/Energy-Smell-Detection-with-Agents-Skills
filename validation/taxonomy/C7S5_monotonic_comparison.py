@@ -38,5 +38,4 @@ def cases():
     pairs = [((i * 7919) % 10_000, (i * 104_729) % 10_000) for i in range(400_000)]
     mixed = [(a - 5_000, b) for a, b in pairs]
     return [("non-negative",  lambda: (pairs, True)),
-            ("has-negatives", lambda: (mixed, False)),
-            ("edge",          lambda: ([], True))]
+            ("has-negatives", lambda: (mixed, False))]

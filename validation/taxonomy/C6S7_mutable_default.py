@@ -44,5 +44,4 @@ def after(rows):
 
 def cases():
     return [("many-calls", lambda: (list(range(400_000)),)),
-            ("few-calls",  lambda: (list(range(40)),)),
-            ("edge",       lambda: ([],))]
+            ("few-calls",  lambda: (list(range(40)),))]

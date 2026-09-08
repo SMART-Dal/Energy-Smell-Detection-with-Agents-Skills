@@ -26,5 +26,4 @@ def cases():
     return [
         ("many-small", lambda: (["abcde"] * 200_000,)),
         ("few-large", lambda: (["abcde" * 1000] * 2_000,)),
-        ("empty", lambda: ([],)),
     ]

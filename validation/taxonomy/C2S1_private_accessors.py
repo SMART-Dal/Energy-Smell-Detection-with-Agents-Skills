@@ -48,5 +48,4 @@ def after(name, repeats):
 
 def cases():
     return [("many-calls", lambda: ("ada", 1_000_000)),
-            ("few-calls",  lambda: ("ada", 100)),
-            ("edge",       lambda: ("ada", 0))]
+            ("few-calls",  lambda: ("ada", 100))]

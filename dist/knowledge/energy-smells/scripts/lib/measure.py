@@ -32,7 +32,11 @@ before trusting a batch from it.
 A note on what is being measured
 --------------------------------
 The meter reports whole-machine CPU package + DRAM energy over the workload
-window, and nothing is subtracted from it. On a many-core host much of that is
+window, and nothing is subtracted from it. The number is CodeGreen's own
+`TaskResult.energy_j`, taken as it comes: we do not re-derive it from the
+per-domain breakdown, because those domains are not disjoint and summing them
+double-counts. Which domains a host actually exposed is recorded next to every
+verdict, since a counter the user cannot read is skipped without complaint. On a many-core host much of that is
 idle power from cores doing nothing, so only a fraction of any reading is work
 we caused, and what that fraction is depends on the host.
 
@@ -216,6 +220,8 @@ def _summarise(samples: list[dict], *, reps: int) -> Comparison:
     energy_savings, time_savings = [], []
     before_energy, after_energy = [], []
     before_time, after_time = [], []
+    before_power, after_power = [], []
+    seen_domains: set[str] = set()
 
     for pair in by_rep.values():
         before, after = pair["before"], pair["after"]
@@ -223,6 +229,10 @@ def _summarise(samples: list[dict], *, reps: int) -> Comparison:
         after_energy.append(after["energy_j"])
         before_time.append(before["duration_s"])
         after_time.append(after["duration_s"])
+        before_power.append(before.get("power_w", 0.0))
+        after_power.append(after.get("power_w", 0.0))
+        seen_domains.update(before.get("domains", ()))
+        seen_domains.update(after.get("domains", ()))
         if before["energy_j"] > 0:
             energy_savings.append(
                 100.0 * (before["energy_j"] - after["energy_j"]) / before["energy_j"]
@@ -245,6 +255,9 @@ def _summarise(samples: list[dict], *, reps: int) -> Comparison:
         time_saved_pct=time_mean,
         time_ci_pct=time_ci,
         reps=reps,
+        baseline_power_w=statistics.mean(before_power),
+        patched_power_w=statistics.mean(after_power),
+        domains=tuple(sorted(seen_domains)),
     )
 
 

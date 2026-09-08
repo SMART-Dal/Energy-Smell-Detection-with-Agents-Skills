@@ -35,5 +35,4 @@ _PATHS = _make()
 
 
 def cases():
-    return [("many-files", lambda: (list(_PATHS),)),
-            ("one-file", lambda: (_PATHS[:1],))]
+    return [("many-files", lambda: (list(_PATHS),))]

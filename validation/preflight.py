@@ -47,6 +47,7 @@ def main() -> int:
     print("1. noise floor  (identical code against itself, expect ~0%)")
     floor = verify(PREFLIGHT_DIR / "null.py", canary=False, log=_quiet)
     reading = abs(_saving(floor))
+    _report_coverage(floor)
     print(f"   canary reads {reading:+.2f}%   floor for a usable host is "
           f"{USABLE_FLOOR_PCT:.1f}%")
     if reading > USABLE_FLOOR_PCT:
@@ -79,6 +80,28 @@ def main() -> int:
     print(f"preflight passed: noise floor {reading:.2f}%, "
           f"direction and magnitude both correct.")
     return 0
+
+
+def _report_coverage(result) -> None:
+    """Say what the readings actually covered before any of them are believed.
+
+    A domain the current user cannot read is skipped without complaint, so a
+    rig can pass all three checks below while measuring one socket and no
+    memory. That is not a failure -- a narrower reading is still a valid
+    paired comparison -- but it is not what the batch intends to measure, and
+    finding out afterwards costs the whole batch.
+    """
+    coverage = result.coverage
+    if not coverage:
+        return
+    print(f"   meter {coverage['meter']}, domains "
+          f"{', '.join(coverage['visible_domains']) or 'none'}")
+    if coverage["missing_domains"]:
+        print(f"   WARNING: no counter for "
+              f"{', '.join(coverage['missing_domains'])} on this host.\n"
+              f"   Readings cover CPU package only, not whole-machine "
+              f"CPU + RAM.\n"
+              f"   Fix the powercap permissions if that matters, then re-run.")
 
 
 def _saving(result) -> float:

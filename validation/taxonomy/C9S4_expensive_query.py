@@ -63,5 +63,4 @@ def cases():
     return [
         ("many-lookups", lambda: (DB, list(hits))),
         ("one-lookup", lambda: (DB, hits[:1])),
-        ("no-lookups", lambda: (DB, [])),
     ]

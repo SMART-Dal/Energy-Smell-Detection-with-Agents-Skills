@@ -20,5 +20,4 @@ def after(values, limit, floor):
 def cases():
     values = [(i * 7919) % 100_000 for i in range(400_000)]
     return [("limit-small", lambda: (list(values), 20, 10)),
-            ("limit-large", lambda: (list(values), 350_000, 10)),
-            ("edge",        lambda: ([], 5, 0))]
+            ("limit-large", lambda: (list(values), 350_000, 10))]

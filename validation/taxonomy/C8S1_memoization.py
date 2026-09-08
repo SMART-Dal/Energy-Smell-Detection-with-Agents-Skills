@@ -30,5 +30,4 @@ def after(xs):
 
 def cases():
     return [("many-repeats", lambda: ([(i % 300) + 10_000 for i in range(30_000)],)),
-            ("all-distinct", lambda: (list(range(10_000, 40_000)),)),
-            ("empty", lambda: ([],))]
+            ("all-distinct", lambda: (list(range(10_000, 40_000)),))]

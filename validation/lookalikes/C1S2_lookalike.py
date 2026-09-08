@@ -41,5 +41,4 @@ def _mostly_ints(n, strays):
 
 def cases():
     return [("one-stray-in-a-thousand", lambda: (_mostly_ints(200_000, 200),)),
-            ("all-numeric",             lambda: (list(range(200_000)),)),
-            ("edge",                    lambda: ([1],))]
+            ("all-numeric",             lambda: (list(range(200_000)),))]

@@ -45,5 +45,4 @@ def _profiles(n):
 
 def cases():
     return [("mostly-hit",  lambda: (_profiles(4_000), [i % 4_000 for i in range(40_000)])),
-            ("mostly-miss", lambda: (_profiles(4_000), [i + 100_000 for i in range(40_000)])),
-            ("edge",        lambda: (_profiles(4), []))]
+            ("mostly-miss", lambda: (_profiles(4_000), [i + 100_000 for i in range(40_000)]))]

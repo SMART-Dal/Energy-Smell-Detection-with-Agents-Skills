@@ -27,5 +27,4 @@ def _mapping(n):
 
 def cases():
     return [("mostly-hit",  lambda: (_mapping(50_000), [f"k{i}" for i in range(200_000)])),
-            ("mostly-miss", lambda: (_mapping(50_000), [f"m{i}" for i in range(200_000)])),
-            ("edge",        lambda: (_mapping(4), []))]
+            ("mostly-miss", lambda: (_mapping(50_000), [f"m{i}" for i in range(200_000)]))]

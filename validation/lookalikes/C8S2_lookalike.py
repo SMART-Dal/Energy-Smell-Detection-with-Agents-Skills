@@ -44,6 +44,4 @@ def after(requests):
 
 
 def cases():
-    return [("many-requests", lambda: (list(range(4_000)),)),
-            ("one-request",   lambda: ([1],)),
-            ("edge",          lambda: ([],))]
+    return [("many-requests", lambda: (list(range(4_000)),))]

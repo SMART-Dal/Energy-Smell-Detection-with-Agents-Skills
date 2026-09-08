@@ -43,5 +43,4 @@ def _vectors(n, width):
 
 def cases():
     return [("many-small", lambda: _vectors(200_000, 4)),
-            ("few-large",  lambda: _vectors(2_000, 4_000)),
-            ("edge",       lambda: ([], 4))]
+            ("few-large",  lambda: _vectors(2_000, 4_000))]

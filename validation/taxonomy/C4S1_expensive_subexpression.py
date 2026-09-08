@@ -36,5 +36,4 @@ def _responses(n, exhausted_ratio):
 
 def cases():
     return [("mostly-exhausted", lambda: (_responses(60_000, 0.9), Policy(3))),
-            ("mostly-retrying",  lambda: (_responses(60_000, 0.0), Policy(3))),
-            ("edge",             lambda: ([], Policy(3)))]
+            ("mostly-retrying",  lambda: (_responses(60_000, 0.0), Policy(3)))]

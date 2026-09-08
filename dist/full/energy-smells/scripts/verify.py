@@ -39,6 +39,7 @@ from lib.measure import (  # noqa: E402
     compare_case,
     noise_floor,
 )
+from lib import meters  # noqa: E402
 from lib.models import Comparison  # noqa: E402
 
 CANARY_CASE = Path(__file__).resolve().parent / "lib" / "canary_case.py"
@@ -101,6 +102,8 @@ class CaseOutcome:
     significant: bool = False
     energy_only: bool = False
     baseline_energy_j: float = 0.0
+    baseline_power_w: float = 0.0
+    patched_power_w: float = 0.0
     before_s_per_call: float = 0.0
     after_s_per_call: float = 0.0
 
@@ -112,6 +115,8 @@ class CaseOutcome:
         self.significant = comparison.energy_significant
         self.energy_only = comparison.energy_only
         self.baseline_energy_j = comparison.baseline_energy_j
+        self.baseline_power_w = comparison.baseline_power_w
+        self.patched_power_w = comparison.patched_power_w
         self.before_s_per_call = comparison.baseline_duration_s / self.repeats
         self.after_s_per_call = comparison.patched_duration_s / self.repeats
 
@@ -134,6 +139,36 @@ class Verification:
     per_case: list[CaseOutcome] = field(default_factory=list)
     relaxations: tuple[str, ...] = ()
     """Ways this case file weakened the equivalence check, if any."""
+    coverage: dict = field(default_factory=dict)
+    """Which meter took the readings and which energy domains it could see."""
+
+    def note_coverage(self, meter: str, domains: tuple[str, ...], log) -> None:
+        """Record what the readings covered, and say so once if it fell short.
+
+        A RAPL domain the current user cannot read is skipped in silence by
+        every meter, quietly narrowing a reading from "package + DRAM" to
+        whatever happened to be readable. That narrowing is invisible in the
+        numbers themselves, and a batch runs for hours, so it is recorded
+        beside every verdict and announced the first time it is seen.
+        """
+        if self.coverage:
+            return
+        missing = [
+            requested
+            for requested in meters.DEFAULT_DOMAINS
+            if not any(name.startswith(requested) for name in domains)
+        ]
+        self.coverage = {
+            # Resolve "auto" to what actually ran. Constructing a meter only
+            # checks availability; it does not open a measurement session.
+            "meter": meters.get_meter(meter).name,
+            "requested_domains": list(meters.DEFAULT_DOMAINS),
+            "visible_domains": list(domains),
+            "missing_domains": missing,
+        }
+        if missing:
+            log(f"  WARNING: no counter for {', '.join(missing)} on this host; "
+                f"readings cover {', '.join(domains) or 'nothing'} only")
 
     @property
     def deciding(self) -> CaseOutcome | None:
@@ -156,6 +191,7 @@ class Verification:
             "noise_floor_pct": round(self.noise_floor_pct, 2),
             "reps": self.reps,
             "equivalence_relaxed": list(self.relaxations),
+            "coverage": self.coverage,
             "per_case": [
                 {
                     "label": case.label,
@@ -163,6 +199,8 @@ class Verification:
                     "energy_saved_pct": round(case.energy_saved_pct, 2),
                     "energy_ci_pct": round(case.energy_ci_pct, 2),
                     "significant": case.significant,
+                    "baseline_power_w": round(case.baseline_power_w, 2),
+                    "patched_power_w": round(case.patched_power_w, 2),
                 }
                 for case in self.per_case
             ],
@@ -234,6 +272,7 @@ def verify(
             meter=meter,
         )
         outcome.record(comparison)
+        result.note_coverage(meter, comparison.domains, log)
         log(f"  {case.label:<12} {outcome.energy_saved_pct:+7.2f}% energy "
             f"+-{outcome.energy_ci_pct:.2f}%   "
             f"{'significant' if outcome.significant else 'not significant':<15}"

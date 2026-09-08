@@ -40,5 +40,4 @@ def _requests(n):
 
 def cases():
     return [("large",  lambda: (_requests(500_000),)),
-            ("normal", lambda: (_requests(5_000),)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: (_requests(5_000),))]

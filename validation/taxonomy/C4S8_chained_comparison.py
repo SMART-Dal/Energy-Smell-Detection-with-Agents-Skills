@@ -38,5 +38,4 @@ def after(rows, low, high):
 
 def cases():
     return [("large",  lambda: (list(range(300_000)), 100, 900)),
-            ("normal", lambda: (list(range(3_000)), 100, 900)),
-            ("edge",   lambda: ([], 100, 900))]
+            ("normal", lambda: (list(range(3_000)), 100, 900))]

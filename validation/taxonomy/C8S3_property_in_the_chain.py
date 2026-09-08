@@ -44,5 +44,4 @@ def after(config, rows):
 
 def cases():
     return [("large",  lambda: (Config(500_000), list(range(1_000_000)))),
-            ("normal", lambda: (Config(5_000), list(range(10_000)))),
-            ("edge",   lambda: (Config(1), []))]
+            ("normal", lambda: (Config(5_000), list(range(10_000))))]

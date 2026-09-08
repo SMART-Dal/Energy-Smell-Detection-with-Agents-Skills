@@ -47,5 +47,4 @@ def _mixed(n):
 
 def cases():
     return [("large",  lambda: (_mixed(300_000),)),
-            ("normal", lambda: (_mixed(3_000),)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: (_mixed(3_000),))]

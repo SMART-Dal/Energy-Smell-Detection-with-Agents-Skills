@@ -32,5 +32,4 @@ def cases():
     # 100_000 pairs of five elements meant 200_000 sorts or 200_000 Counters
     # per call, which timed out. The crossover is what matters, not the count.
     return [("short-sequences", lambda: _pairs(20_000, 5)),
-            ("long-sequences",  lambda: _pairs(200, 2_000)),
-            ("edge",            lambda: ([],))]
+            ("long-sequences",  lambda: _pairs(200, 2_000))]

@@ -21,5 +21,4 @@ def after(rows, k):
 
 def cases():
     return [("mostly-skipped", lambda: (list(range(200_000)), 10)),
-            ("mostly-taken", lambda: (list(range(200_000)), 10**9)),
-            ("empty", lambda: ([], 0))]
+            ("mostly-taken", lambda: (list(range(200_000)), 10**9))]

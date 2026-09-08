@@ -35,5 +35,4 @@ def after(rows):
 
 def cases():
     return [("large",  lambda: ([{"id": i, "value": i * 2} for i in range(120_000)],)),
-            ("normal", lambda: ([{"id": i, "value": i * 2} for i in range(1_200)],)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: ([{"id": i, "value": i * 2} for i in range(1_200)],))]

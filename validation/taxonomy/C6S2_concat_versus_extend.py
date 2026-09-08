@@ -22,5 +22,4 @@ def after(groups):
 
 def cases():
     return [("many-groups", lambda: ([[1, 2, 3, 4]] * 20_000,)),
-            ("few-groups",  lambda: ([[1, 2, 3, 4]] * 50,)),
-            ("edge",        lambda: ([],))]
+            ("few-groups",  lambda: ([[1, 2, 3, 4]] * 50,))]

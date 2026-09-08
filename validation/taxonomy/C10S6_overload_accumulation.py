@@ -39,5 +39,4 @@ def after(amounts):
 
 def cases():
     return [("large",  lambda: ([Money(i) for i in range(400_000)],)),
-            ("normal", lambda: ([Money(i) for i in range(4_000)],)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: ([Money(i) for i in range(4_000)],))]

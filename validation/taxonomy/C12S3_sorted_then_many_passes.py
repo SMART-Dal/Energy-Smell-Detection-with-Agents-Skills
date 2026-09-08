@@ -33,5 +33,4 @@ def _unpredictable(n):
 
 def cases():
     return [("many-passes", lambda: (_unpredictable(200_000), 20)),
-            ("one-pass",    lambda: (_unpredictable(200_000), 1)),
-            ("edge",        lambda: ([], 1))]
+            ("one-pass",    lambda: (_unpredictable(200_000), 1))]

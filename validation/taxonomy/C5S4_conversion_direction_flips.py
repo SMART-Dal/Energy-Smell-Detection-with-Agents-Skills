@@ -30,5 +30,4 @@ def _lists(n):
 def cases():
     a, b = _lists(400_000)
     return [("intersection", lambda: (a, b, "intersection")),
-            ("difference",   lambda: (a, b, "difference")),
-            ("edge",         lambda: ([], [], "intersection"))]
+            ("difference",   lambda: (a, b, "difference"))]

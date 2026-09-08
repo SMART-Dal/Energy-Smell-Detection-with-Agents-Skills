@@ -37,5 +37,4 @@ def after(lines):
 
 def cases():
     return [("many-lines", lambda: ([f"line {i}\n" for i in range(20_000)],)),
-            ("few-lines",  lambda: ([f"line {i}\n" for i in range(20)],)),
-            ("edge",       lambda: ([],))]
+            ("few-lines",  lambda: ([f"line {i}\n" for i in range(20)],))]

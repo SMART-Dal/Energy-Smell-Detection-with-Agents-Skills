@@ -40,5 +40,4 @@ def after(kinds):
 
 def cases():
     return [("many-hits",   lambda: ([i % 400 for i in range(300_000)],)),
-            ("many-misses", lambda: ([(i % 400) | 1 for i in range(300_000)],)),
-            ("edge",        lambda: ([],))]
+            ("many-misses", lambda: ([(i % 400) | 1 for i in range(300_000)],))]

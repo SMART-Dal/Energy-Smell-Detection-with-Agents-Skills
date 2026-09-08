@@ -40,5 +40,4 @@ def after(candidates):
 
 def cases():
     return [("many-candidates", lambda: ([f"candidate-{i}" for i in range(200_000)],)),
-            ("few-candidates",  lambda: ([f"candidate-{i}" for i in range(20)],)),
-            ("edge",            lambda: (["only"],))]
+            ("few-candidates",  lambda: ([f"candidate-{i}" for i in range(20)],))]

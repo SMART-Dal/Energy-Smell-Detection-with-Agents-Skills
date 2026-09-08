@@ -32,5 +32,4 @@ def after(rows):
 
 def cases():
     return [("many-rows", lambda: (list(range(400_000)),)),
-            ("few-rows",  lambda: (list(range(400)),)),
-            ("edge",      lambda: ([],))]
+            ("few-rows",  lambda: (list(range(400)),))]

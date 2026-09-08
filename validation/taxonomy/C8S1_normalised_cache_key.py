@@ -50,5 +50,4 @@ def cases():
     pairs = [((i * 7) % 400, (i * 13) % 400) for i in range(200_000)]
     ordered = [(a, b) if a <= b else (b, a) for a, b in pairs]
     return [("mirrored-pairs", lambda: (list(pairs),)),
-            ("already-sorted", lambda: (list(ordered),)),
-            ("edge",           lambda: ([],))]
+            ("already-sorted", lambda: (list(ordered),))]

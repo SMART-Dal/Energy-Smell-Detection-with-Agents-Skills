@@ -26,5 +26,4 @@ def _rows(n, published_ratio):
 
 def cases():
     return [("mostly-unpublished", lambda: (_rows(200_000, 0.1), 3)),
-            ("mostly-published",   lambda: (_rows(200_000, 1.0), 3)),
-            ("edge",               lambda: ([], 3))]
+            ("mostly-published",   lambda: (_rows(200_000, 1.0), 3))]

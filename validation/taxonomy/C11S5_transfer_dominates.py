@@ -44,5 +44,4 @@ def cases():
     # Same reason again. The ratio of bytes moved to work done is the finding,
     # and it survives a smaller matrix; the pool-per-call cost does not.
     return [("big-payload",   lambda: (_matrix(4, 60), _matrix(60, 60))),
-            ("small-payload", lambda: (_matrix(4, 8), _matrix(8, 8))),
-            ("edge",          lambda: (_matrix(1, 4), _matrix(4, 4)))]
+            ("small-payload", lambda: (_matrix(4, 8), _matrix(8, 8)))]

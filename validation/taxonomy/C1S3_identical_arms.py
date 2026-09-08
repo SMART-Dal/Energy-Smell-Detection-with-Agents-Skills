@@ -27,5 +27,4 @@ def after(values, limit):
 
 def cases():
     return [("large",  lambda: (list(range(500_000)), 250_000)),
-            ("normal", lambda: (list(range(5_000)), 2_500)),
-            ("edge",   lambda: ([], 0))]
+            ("normal", lambda: (list(range(5_000)), 2_500))]

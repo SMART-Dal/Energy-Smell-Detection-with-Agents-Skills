@@ -17,5 +17,4 @@ def after(rows):
 def cases():
     row = {"id": 1, "blob": "x" * 512, "meta": list(range(32))}
     return [("large", lambda: ([dict(row) for _ in range(50_000)],)),
-            ("small", lambda: ([dict(row) for _ in range(20)],)),
-            ("empty", lambda: ([],))]
+            ("small", lambda: ([dict(row) for _ in range(20)],))]

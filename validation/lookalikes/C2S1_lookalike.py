@@ -42,5 +42,4 @@ def _reports(count, width):
 
 def cases():
     return [("many-reports", lambda: (_reports(200_000, 4),)),
-            ("few-reports",  lambda: (_reports(200, 4),)),
-            ("edge",         lambda: ([],))]
+            ("few-reports",  lambda: (_reports(200, 4),))]

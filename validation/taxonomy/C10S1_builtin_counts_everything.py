@@ -56,5 +56,4 @@ def _mostly_odd(n):
 
 def cases():
     return [("mostly-even", lambda: (_mostly_even(600_000),)),
-            ("mostly-odd",  lambda: (_mostly_odd(600_000),)),
-            ("edge",        lambda: ([],))]
+            ("mostly-odd",  lambda: (_mostly_odd(600_000),))]

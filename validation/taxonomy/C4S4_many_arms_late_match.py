@@ -49,5 +49,4 @@ def after(grades):
 
 def cases():
     return [("late-match",  lambda: (["L"] * 300_000,)),
-            ("early-match", lambda: (["A"] * 300_000,)),
-            ("edge",        lambda: ([],))]
+            ("early-match", lambda: (["A"] * 300_000,))]

@@ -129,6 +129,8 @@ def main(argv: list[str]) -> int:
                 "rep": rep,
                 "energy_j": sample.energy_j,
                 "duration_s": sample.duration_s,
+                "power_w": sample.power_w,
+                "domains": sorted(sample.domains_j or {}),
             })
 
     print(json.dumps(samples))

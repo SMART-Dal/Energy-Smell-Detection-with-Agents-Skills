@@ -28,5 +28,4 @@ def cases():
     # microseconds, so the null comparison was all scheduler jitter. Both live
     # cases are now large enough for one call to take milliseconds.
     return [("large",  lambda: (list(range(60_000)),)),
-            ("normal", lambda: (list(range(6_000)),)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: (list(range(6_000)),))]

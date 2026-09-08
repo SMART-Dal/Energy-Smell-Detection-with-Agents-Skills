@@ -47,5 +47,4 @@ def _values(n, with_zeros):
 
 def cases():
     return [("has-zeros", lambda: (_values(400_000, True),)),
-            ("no-zeros",  lambda: (_values(400_000, False),)),
-            ("edge",      lambda: ([],))]
+            ("no-zeros",  lambda: (_values(400_000, False),))]

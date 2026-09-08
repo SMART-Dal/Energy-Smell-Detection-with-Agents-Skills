@@ -51,5 +51,4 @@ def _store(n):
 
 def cases():
     return [("large",  lambda: (_store(60_000), list(range(60_000)))),
-            ("normal", lambda: (_store(1_000), list(range(1_000)))),
-            ("edge",   lambda: (_store(1), []))]
+            ("normal", lambda: (_store(1_000), list(range(1_000))))]

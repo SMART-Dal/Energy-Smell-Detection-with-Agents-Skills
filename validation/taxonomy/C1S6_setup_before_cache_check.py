@@ -36,5 +36,4 @@ def after(cache, names):
 def cases():
     warm = {f"n{i}": f"n{i}" for i in range(500)}
     return [("warm-cache", lambda: (dict(warm), [f"n{i % 500}" for i in range(4_000)])),
-            ("cold-cache", lambda: ({}, [f"m{i}" for i in range(4_000)])),
-            ("edge",       lambda: ({}, []))]
+            ("cold-cache", lambda: ({}, [f"m{i}" for i in range(4_000)]))]

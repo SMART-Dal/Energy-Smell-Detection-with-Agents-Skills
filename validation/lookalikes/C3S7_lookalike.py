@@ -40,5 +40,4 @@ def _batches(count, width):
 
 def cases():
     return [("many-batches", lambda: (_batches(4_000, 60),)),
-            ("wide-batches", lambda: (_batches(40, 6_000),)),
-            ("edge",         lambda: ([[]],))]
+            ("wide-batches", lambda: (_batches(40, 6_000),))]

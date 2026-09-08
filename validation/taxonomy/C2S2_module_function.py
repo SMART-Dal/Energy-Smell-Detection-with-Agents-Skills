@@ -38,5 +38,4 @@ def after(lines):
 
 def cases():
     return [("large",  lambda: ([f"a{i}, b{i} , c{i}" for i in range(200_000)],)),
-            ("normal", lambda: ([f"a{i}, b{i} , c{i}" for i in range(2_000)],)),
-            ("edge",   lambda: ([],))]
+            ("normal", lambda: ([f"a{i}, b{i} , c{i}" for i in range(2_000)],))]

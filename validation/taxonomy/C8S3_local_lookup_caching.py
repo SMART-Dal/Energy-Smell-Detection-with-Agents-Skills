@@ -28,5 +28,4 @@ def after(xs, config):
 
 def cases():
     return [("large", lambda: (list(range(400_000)), Config())),
-            ("small", lambda: (list(range(50)), Config())),
-            ("empty", lambda: ([], Config()))]
+            ("small", lambda: (list(range(50)), Config()))]

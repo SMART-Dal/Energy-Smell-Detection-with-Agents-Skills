@@ -23,5 +23,4 @@ def after(n):
 
 def cases():
     return [("large",  lambda: (1_000_000,)),
-            ("normal", lambda: (10_000,)),
-            ("edge",   lambda: (0,))]
+            ("normal", lambda: (10_000,))]

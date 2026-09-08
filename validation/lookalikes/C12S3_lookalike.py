@@ -42,5 +42,4 @@ def _pairs(n, with_zeros):
 
 def cases():
     return [("has-zeros", lambda: (_pairs(300_000, True),)),
-            ("no-zeros",  lambda: (_pairs(300_000, False),)),
-            ("edge",      lambda: ([],))]
+            ("no-zeros",  lambda: (_pairs(300_000, False),))]

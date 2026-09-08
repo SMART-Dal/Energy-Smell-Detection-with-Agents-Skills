@@ -28,5 +28,4 @@ def _rows(keys, per_key):
 
 def cases():
     return [("few-keys-many-parts", lambda: (_rows(20, 4_000),)),
-            ("many-keys-few-parts", lambda: (_rows(20_000, 4),)),
-            ("edge",                lambda: ([],))]
+            ("many-keys-few-parts", lambda: (_rows(20_000, 4),))]

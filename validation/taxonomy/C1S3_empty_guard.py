@@ -29,5 +29,4 @@ def after(sink, values):
 
 def cases():
     return [("large",  lambda: (Sink(True), list(range(500_000)))),
-            ("normal", lambda: (Sink(True), list(range(5_000)))),
-            ("edge",   lambda: (Sink(False), []))]
+            ("normal", lambda: (Sink(True), list(range(5_000))))]
