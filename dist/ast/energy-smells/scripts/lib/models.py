@@ -27,6 +27,8 @@ class Sample:
     domains_j: dict[str, float] | None = None
     """Per-domain energy the host exposed. Not disjoint, and not summed -- see
     `meters/codegreen_meter.py`. Present so a row records its own coverage."""
+    domains_power_w: dict[str, float] | None = None
+    """Per-domain average power, as the meter reported it."""
     quality: str | None = None
     """The meter's own verdict on the reading: `ok` when it measured
     something, or one of `no_backend`, `energy_zero`, `failed` when it did
