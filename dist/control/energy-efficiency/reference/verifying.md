@@ -201,7 +201,7 @@ something else is running. Nothing measured in that state means anything.
    paired repetitions, order flipped each repetition. Paired samples must sit
    close together in time because the dominant noise source is drift in the
    machine's idle power.
-4. **The canary.** The deciding case measured against *itself*, `before` versus
+4. **The canary.** One case measured against *itself*, `before` versus
    `before`. The true answer is zero, so whatever it reads is contamination,
    and it is the floor every real effect has to clear.
 5. **Statistics.** Savings are computed per repetition and averaged, with a 95%

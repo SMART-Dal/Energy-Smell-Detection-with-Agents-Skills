@@ -54,23 +54,6 @@ from lib.models import Comparison  # noqa: E402
 
 CANARY_CASE = Path(__file__).resolve().parent / "lib" / "canary_case.py"
 
-REGRESSION_TOLERANCE_PCT = 1.0
-"""When a loss on one case is big enough to sink an otherwise good repair.
-
-Measured as a percentage of the *deciding* case's per-call cost, not of the
-case's own. That distinction is the whole rule. Joining an empty list costs a
-microsecond or so where returning `""` costs a fraction of one, so on an empty
-case the repair measures as several times worse -- a true statement about a
-quantity nobody cares about. Weighted against a deciding case running in
-milliseconds, the same loss rounds to nothing and is correctly ignored.
-
-A repair that costs 20% on a case a tenth the size of the deciding one is a
-different matter: that is 2% of real work, it clears this bar, and the verdict
-calls it a trade-off.
-
-This is one of two bars. The loss must also clear the host's noise floor, for
-the same reason a saving must. See `_harmful_cases`.
-"""
 
 TIMING_CALLS = 5
 """Calls used to estimate per-call cost. Enough to avoid a cold-start outlier."""
@@ -208,7 +191,10 @@ class Verification:
     case_file: str
     status: str = "negligible"
     reason: str = ""
-    deciding_case: str = ""
+    canary_case: str = ""
+    """Which case the noise floor was measured on. Provenance for that one
+    number, not a headline: the floor has to be measured on something, and
+    measuring it on every case would roughly double the batch."""
     noise_floor_pct: float = 0.0
     reps: int = DEFAULT_REPS
     per_case: list[CaseOutcome] = field(default_factory=list)
@@ -246,8 +232,8 @@ class Verification:
                 f"readings cover {', '.join(domains) or 'nothing'} only")
 
     @property
-    def deciding(self) -> CaseOutcome | None:
-        return next((c for c in self.per_case if c.label == self.deciding_case), None)
+    def canary(self) -> CaseOutcome | None:
+        return next((c for c in self.per_case if c.label == self.canary_case), None)
 
     def to_dict(self) -> dict:
         """The row written to results/<suite>.jsonl.
@@ -261,21 +247,19 @@ class Verification:
         half-width of the 95% interval on the paired per-repetition
         comparison, which is the only thing here that cannot be recovered from
         the means, and without it `significant` cannot be judged.
+
+        There is no headline case. `status` says whether every case improved,
+        some did, or none did, and `per_case` carries what each one measured.
+        Promoting one case's numbers to the top of the row only invited them to
+        be quoted as though they were the file's result.
         """
-        deciding = self.deciding
         return {
             "status": self.status,
             "reason": self.reason,
             "case_file": self.case_file,
             "cases_checked": len(self.per_case),
-            "deciding_case": self.deciding_case,
-            "repeats": deciding.repeats if deciding else 0,
-            "before_energy_j": round(deciding.before_energy_j, 4) if deciding else 0.0,
-            "after_energy_j": round(deciding.after_energy_j, 4) if deciding else 0.0,
-            "before_time_s": round(deciding.baseline_window_s, 4) if deciding else 0.0,
-            "after_time_s": round(deciding.patched_window_s, 4) if deciding else 0.0,
-            "energy_ci_pct": round(deciding.energy_ci_pct, 2) if deciding else 0.0,
             "noise_floor_pct": round(self.noise_floor_pct, 2),
+            "canary_case": self.canary_case,
             "reps": self.reps,
             "equivalence_relaxed": list(self.relaxations),
             "coverage": self.coverage,
@@ -377,86 +361,52 @@ def verify(
             f"{'significant' if outcome.significant else 'not significant':<15}"
             f"time {outcome.time_saved_pct:+.2f}% +-{outcome.time_ci_pct:.2f}%")
 
-    # The deciding case is the one that costs the most *energy* to run, which
-    # is the question being asked. It used to be the one with the slowest call,
-    # which let a stopwatch pick the case an energy verdict was written about.
-    # This has to happen after measurement, because energy is not known before.
-    result.deciding_case = max(
-        result.per_case, key=lambda c: c.before_energy_per_call
-    ).label
-    log(f"  deciding case: {result.deciding_case!r} "
-        f"(highest energy per call of the {len(result.per_case)} measured)")
-
-    if canary:
-        deciding = result.deciding
+    # The floor has to be measured on one case, and measuring it on every case
+    # would roughly double the batch. Pick the case whose windows carry the
+    # most energy, taking each variant at whichever of the two is larger: a
+    # repair that regresses spends more in `after`, and choosing on `before`
+    # alone would assume the answer.
+    if canary and result.per_case:
+        result.canary_case = max(
+            result.per_case,
+            key=lambda c: max(c.before_energy_j, c.after_energy_j),
+        ).label
+        subject = result.canary
         floor = noise_floor(
-            case_path, result.deciding_case,
-            repeats=deciding.repeats, mutates=deciding.mutates_args,
-            reps=deciding.reps, meter=meter,
+            case_path, result.canary_case,
+            repeats=subject.repeats, mutates=subject.mutates_args,
+            reps=subject.reps, meter=meter,
         )
         result.noise_floor_pct = abs(floor.energy_saved_pct) + floor.energy_ci_pct
-        log(f"\nnoise floor  ({result.deciding_case}, before vs before)"
+        log(f"\nnoise floor  ({result.canary_case}, before vs before)"
             f"  +-{result.noise_floor_pct:.2f}%")
 
-    _log_scale_note(result, log)
     _decide(result)
     return result
 
 
-def _log_scale_note(result: Verification, log) -> None:
-    """Explain away the losses that look alarming and are not.
+def _harmful_cases(result: Verification) -> list[CaseOutcome]:
+    """Cases the repair measurably hurts, each judged on its own.
 
-    A repair tuned for bulk input often measures far worse on an empty one --
-    building a list to join nothing beats returning a constant by a wide
-    *ratio* and a negligible *amount*. Printing the ratio without the amount
-    invites the reader to reject a good repair, so print both.
+    Two tests, and both are about this case alone. The loss has to be
+    statistically separable from zero, and it has to clear the host's noise
+    floor -- the same bar a saving has to clear. Without that symmetry the rig
+    can refuse to call a saving real at 2% and still let a 2% loss sink the
+    verdict, which is contamination deciding the answer in one direction only.
+
+    There is deliberately no cross-case scale test any more. One used to
+    require a loss to be worth some fraction of the most expensive case's
+    per-call energy, so that a large percentage on a trivial input could not
+    veto a real saving elsewhere. That mattered when the corpus was full of
+    inputs like `[]`, where any repair looks catastrophic in relative terms and
+    costs nanojoules in absolute ones. Those cases are gone, and each case now
+    reports its own joules, so a reader can weigh the magnitudes without the
+    verdict having done it for them.
     """
-    deciding = result.deciding
-    if deciding is None or deciding.before_energy_per_call <= 0:
-        return
-    threshold = deciding.before_energy_per_call * REGRESSION_TOLERANCE_PCT / 100.0
-    negligible = [
-        case for case in result.per_case
-        if case is not deciding
-        and case.significant
-        and case.energy_saved_pct < 0
-        and 0 < case.excess_energy_per_call <= threshold
-    ]
-    if not negligible:
-        return
-    log("\nscale note")
-    for case in negligible:
-        log(f"  {case.label:<12} reads as {case.energy_saved_pct:+.0f}%, but that is "
-            f"{case.excess_energy_per_call:.3g} J/call against "
-            f"{deciding.before_energy_per_call:.3g} J on {deciding.label!r}. "
-            f"Not disqualifying.")
-
-
-def _harmful_cases(result: Verification, deciding: CaseOutcome) -> list[CaseOutcome]:
-    """Cases the repair measurably hurts.
-
-    A loss has to pass two tests, because there are two different ways for one
-    to be an artefact.
-
-    It has to be *large enough to care about*, judged against the deciding
-    case's per-call cost rather than its own, so a relative blow-up on a
-    microsecond input cannot veto a repair that saves real work on the input
-    the code actually sees. See REGRESSION_TOLERANCE_PCT.
-
-    And it has to be *large enough to believe*, which means clearing this
-    host's noise floor -- the same bar a saving has to clear. Without the
-    symmetry the rig can refuse to call a saving real at 2% and still let a 2%
-    loss sink the whole verdict, which is contamination deciding the answer in
-    one direction only.
-    """
-    if deciding.before_energy_per_call <= 0:
-        return []
-    threshold = deciding.before_energy_per_call * REGRESSION_TOLERANCE_PCT / 100.0
     return [
         case for case in result.per_case
         if case.significant
         and case.energy_saved_pct < 0
-        and case.excess_energy_per_call > threshold
         and abs(case.energy_saved_pct) > result.noise_floor_pct
     ]
 
@@ -488,14 +438,13 @@ def _decide(result: Verification) -> None:
     evidence. `inconclusive` says the machine was too noisy for the question,
     which is a fact about the host and no evidence about the code at all.
     """
-    deciding = result.deciding
-    if deciding is None:
+    if not result.per_case:
         result.status = "error"
         result.reason = "no case was measured."
         return
 
     helped = _helped_cases(result)
-    hurt = _harmful_cases(result, deciding)
+    hurt = _harmful_cases(result)
     floor = result.noise_floor_pct
 
     if helped and hurt:
@@ -509,11 +458,13 @@ def _decide(result: Verification) -> None:
         result.reason = _confirmed_reason(result, helped)
     elif floor > USABLE_FLOOR_PCT:
         result.status = "inconclusive"
+        biggest = max(result.per_case, key=lambda c: abs(c.energy_saved_pct))
         result.reason = (
             f"this host's noise floor measured {floor:.1f}%, above the "
-            f"{USABLE_FLOOR_PCT:.1f}% needed to resolve the "
-            f"{deciding.energy_saved_pct:+.1f}% seen on {deciding.label!r}. The "
-            f"canary compares identical code against itself, so that figure is "
+            f"{USABLE_FLOOR_PCT:.1f}% needed to resolve anything here -- the "
+            f"largest reading across {len(result.per_case)} cases was "
+            f"{biggest.energy_saved_pct:+.1f}% on {biggest.label!r}. The canary "
+            f"compares identical code against itself, so that floor is "
             f"contamination, not the repair. Re-run on an idle machine before "
             f"concluding anything; this is not evidence either way."
         )
@@ -555,7 +506,7 @@ def _mixed_reason(
 ) -> str:
     """A trade-off: real on both sides, so the report needs both named."""
     best = max(helped, key=lambda c: c.energy_saved_pct)
-    worst = max(hurt, key=lambda c: c.excess_energy_per_call)
+    worst = max(hurt, key=lambda c: abs(c.excess_energy_per_call))
     return (
         f"a trade-off, not a fix: {best.energy_saved_pct:.1f}% saved on "
         f"{best.label!r} but {abs(worst.energy_saved_pct):.1f}% lost on "
@@ -567,7 +518,7 @@ def _mixed_reason(
 
 def _regressed_reason(result: Verification, hurt: list[CaseOutcome]) -> str:
     """Worse everywhere it measurably moved."""
-    worst = max(hurt, key=lambda c: c.excess_energy_per_call)
+    worst = max(hurt, key=lambda c: abs(c.excess_energy_per_call))
     labels = ", ".join(repr(c.label) for c in hurt)
     return (
         f"the repair costs more than the code it replaces: "

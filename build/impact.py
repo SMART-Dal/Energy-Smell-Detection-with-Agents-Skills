@@ -75,16 +75,25 @@ def measured_impact(results: Path = RESULTS, root: Path | None = None) -> dict[s
 def _saving_pct(row: dict) -> float:
     """Percentage of energy a confirmed row saved, or zero.
 
-    Results store what was measured -- joules for each variant -- rather than a
-    percentage derived from them, so the ranking figure is computed here. Any
-    status other than `confirmed` counts as zero: a repair that only pays on
-    some inputs (`mixed`), or does nothing measurable (`negligible`), should
+    Results store what was measured -- joules for each variant, on each case --
+    rather than a percentage derived from them, and no case is promoted to
+    stand for the file. So the figure is the total across every case measured:
+    all the joules `before` spent against all the joules `after` spent.
+
+    Totalling is what makes this weight the cases correctly without nominating
+    one. A case whose window carries two hundred joules contributes two hundred
+    times what a case carrying one does, which is the right answer for "what is
+    this repair worth" and is exactly what picking a single expensive case used
+    to approximate.
+
+    Any status other than `confirmed` counts as zero: a repair that pays only
+    on some inputs (`mixed`), or does nothing measurable (`negligible`), must
     not be ranked as though it always pays.
     """
     if row.get("status") != "confirmed":
         return 0.0
-    before = row.get("before_energy_j")
-    after = row.get("after_energy_j")
-    if not before or before <= 0 or after is None:
+    before = sum(c.get("before_energy_j") or 0.0 for c in row.get("per_case", []))
+    after = sum(c.get("after_energy_j") or 0.0 for c in row.get("per_case", []))
+    if before <= 0:
         return 0.0
     return max(0.0, 100.0 * (before - after) / before)

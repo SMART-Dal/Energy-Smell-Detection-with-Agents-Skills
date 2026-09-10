@@ -103,8 +103,14 @@ def _report_coverage(result) -> None:
 
 
 def _saving(result) -> float:
-    deciding = result.deciding
-    return deciding.energy_saved_pct if deciding else 0.0
+    """The largest energy change the run saw, in percent.
+
+    Preflight's case files carry one case each, so this is that case. It reads
+    the largest by magnitude rather than a nominated one, because check 3
+    deliberately inverts the variants and must come back negative."""
+    if not result.per_case:
+        return 0.0
+    return max(result.per_case, key=lambda c: abs(c.energy_saved_pct)).energy_saved_pct
 
 
 def _quiet(*_args, **_kwargs) -> None:

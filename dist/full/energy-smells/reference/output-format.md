@@ -63,22 +63,24 @@ right.
         "status": "confirmed",
         "case_file": "cases/case_C10S4.py",
         "cases_checked": 2,
-        "deciding_case": "large",
-        "repeats": 40,
-        // What was measured: joules and seconds for each variant. No
-        // percentage is stored -- it is a view of these two numbers, and
-        // keeping a derived figure beside its inputs lets the two disagree.
-        "before_energy_j": 148.2100, "after_energy_j": 109.8200,
-        "before_time_s":     3.0100, "after_time_s":     2.2300,
-        // Not a saving: the half-width of the 95% interval on the paired
-        // per-repetition comparison. `significant` cannot be read without it.
-        "energy_ci_pct": 3.0,
+        // No case is promoted to the top of the row. `status` says whether
+        // every case improved, some did, or none did; `per_case` carries what
+        // each one measured, in joules and seconds. No percentage is stored --
+        // it is a view of those numbers, and keeping a derived figure beside
+        // its inputs lets the two disagree.
         "noise_floor_pct": 1.6,
+        // Which case the floor was measured on. Provenance for that one
+        // number, not a headline.
+        "canary_case": "large",
         "equivalence_relaxed": [],
         "per_case": [
+          // Each case is judged on its own: significant, and clearing the
+          // floor. Compare the joules yourself to see which input matters.
           {"label": "small", "repeats": 9500, "clamped": false,
            "before_energy_j": 151.0300, "after_energy_j": 137.2900,
            "before_time_s": 3.0400, "after_time_s": 2.7700,
+           // Not a saving: half-width of the 95% interval on the paired
+           // per-repetition comparison. `significant` needs it.
            "energy_ci_pct": 1.2, "significant": true},
           {"label": "large", "repeats": 40, "clamped": false,
            "before_energy_j": 148.2100, "after_energy_j": 109.8200,

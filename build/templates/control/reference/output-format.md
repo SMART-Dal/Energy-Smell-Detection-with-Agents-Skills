@@ -54,15 +54,11 @@ right.
         "case_file": "cases/case_render_concat.py",
         "cases_checked": 3,
         "repeats": 40,
-        // What was measured: joules and seconds for each variant. No
-        // percentage is stored -- it is a view of these two numbers, and
-        // keeping a derived figure beside its inputs lets the two disagree.
-        "before_energy_j": 148.2100, "after_energy_j": 109.8200,
-        "before_time_s":     3.0100, "after_time_s":     2.2300,
-        // Not a saving: the half-width of the 95% interval on the paired
-        // per-repetition comparison. `significant` cannot be read without it.
-        "energy_ci_pct": 3.0,
+        // No case is promoted to the top of the row. `status` says whether
+        // every case improved, some did, or none did; `per_case` carries what
+        // each one measured, in joules and seconds.
         "noise_floor_pct": 1.6,
+        "canary_case": "large",
         "equivalence_relaxed": [],
         "per_case": [
           {"label": "small", "repeats": 9500, "clamped": false,

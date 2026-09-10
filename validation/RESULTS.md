@@ -52,7 +52,7 @@ at zero impact until the first batch lands. That is the honest state, not a bug.
 | window | ~3 s on the **faster** variant, both variants running the same count |
 | slow-side budget | 15 s, after which the repeat count is clamped |
 | repetitions | 9 paired, order alternating each rep (3 when one call exceeds the budget) |
-| canary | the deciding case measured against itself, per case file |
+| canary | one case measured against itself, per case file |
 | hard timeout | 1200 s per case file |
 
 There is no idle subtraction and no attempt to attribute energy to this
@@ -70,12 +70,17 @@ resolved slow side. The two conditions cannot bite at once.
 Every row records the repeat count, both per-call costs, and the window each
 variant actually got, so a short window is visible rather than silent.
 
-**Energy decides everything.** The deciding case is the one that costs the most
-*energy* per call, and a regression has to be large in *joules* before it can
-sink a verdict. Both used to be judged on wall-clock time, which meant an
-energy verdict could turn on a stopwatch. Time and power are still measured and
-reported beside the energy, and are worth reading -- energy improving while
-duration does not is a real and interesting result -- but no rule reads them.
+**Energy decides everything.** Every rule is written against measured joules.
+Time and power are still recorded and are worth reading -- energy improving
+while duration does not is a real and interesting result -- but no rule reads
+them.
+
+**Each case is judged on its own**, and the row says whether all of them
+improved, some did, or none did. No case is promoted to the top of the row as
+the file's headline: a file's result is its cases, and picking one to stand for
+the rest only invited that one number to be quoted as though it were the whole
+answer. The one case named in a row is `canary_case`, which says where the
+noise floor was measured and nothing more.
 
 **Rows store measurements, not percentages.** Each case carries the joules and
 seconds each variant actually used. A percentage of energy saved is a view of
