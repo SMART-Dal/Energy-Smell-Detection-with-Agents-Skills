@@ -155,10 +155,12 @@ def main(argv: list[str] | None = None) -> int:
         result = run_one(case_path, args.python)
         with log.open("a") as handle:
             handle.write(json.dumps(result) + "\n")
-        before = result.get("before_energy_j") or 0.0
-        after = result.get("after_energy_j") or 0.0
-        # Rows store joules, not a percentage; the progress line derives one
-        # purely so a long batch is readable as it scrolls past.
+        # Rows store joules per case, not a percentage and not a file-wide
+        # total; the progress line adds them up purely so a long batch is
+        # readable as it scrolls past. Same arithmetic as build/impact.py.
+        cases = result.get("per_case") or []
+        before = sum(c.get("before_energy_j") or 0.0 for c in cases)
+        after = sum(c.get("after_energy_j") or 0.0 for c in cases)
         delta = 100.0 * (before - after) / before if before > 0 else 0.0
         print(
             f"[{index}/{len(todo)}] {result['status']:<12} "
