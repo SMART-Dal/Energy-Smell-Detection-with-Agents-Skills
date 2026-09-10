@@ -43,32 +43,50 @@ at zero impact until the first batch lands. That is the honest state, not a bug.
 
 ## The rig
 
-What the measurement does, so a future run can be compared against this one:
-
 | | |
 |---|---|
-| meter | CodeGreen 0.4.8, `TaskResult.energy_j` verbatim |
-| domains | whole-machine CPU package + DRAM, **nothing subtracted** |
-| machine warmup | 10 s of unrelated arithmetic on the pinned core |
-| code warmup | 1 call of each variant |
-| window | ~3 s, sized per case by `choose_repeats` |
-| repetitions | 9 paired, order alternating each rep |
-| interval | both variants in one process, back to back |
+| meter | CodeGreen 0.4.8, `totals.energy_j` verbatim |
+| domains | whole-machine CPU package, **nothing subtracted** |
+| affinity | none; the workload runs wherever the scheduler puts it |
+| machine warmup | 10 s of unrelated arithmetic |
+| window | ~3 s on the **faster** variant, both variants running the same count |
+| slow-side budget | 15 s, after which the repeat count is clamped |
+| repetitions | 9 paired, order alternating each rep (3 when one call exceeds the budget) |
 | canary | the deciding case measured against itself, per case file |
-| hard timeout | 480 s per case file |
+| hard timeout | 1200 s per case file |
 
 There is no idle subtraction and no attempt to attribute energy to this
-process. The reading is what the machine drew over the window. `measure.py`
-explains why that is the right choice and what it costs.
+process. The reading is what the machine drew over the window.
 
-Every case file's cases are sized to fill a window, so a case whose input is
-trivial gets repeated millions of times and ends up measuring interpreter
-overhead rather than the repair. Those were removed on 2026-09-08: 144 of 597
-taxonomy cases and 20 of 99 lookalike cases, keeping 453 and 79. The evidence
-was the previous host's own data — 120 case rows needed a million repetitions
-or more to fill a one-second window, 80 of them reported a statistically
-significant result, 47 of those a *regression* on an empty or near-empty input,
-and not one of them ever decided a verdict.
+**Sizing.** Both variants are timed first (median of 5 calls each), and the
+repeat count is set so the *faster* one fills a 3 s window. Both then run that
+same count, because equal work on both sides is what makes the comparison
+fair. When one variant is far slower, that count is clamped so its window stays
+under 15 s — which means the fast side gets less than a full window, and that
+is safe: clamping only happens when the ratio between the variants is large,
+and a large ratio is a large effect whose precision comes from the well
+resolved slow side. The two conditions cannot bite at once.
+
+Every row records the repeat count, both per-call costs, and the window each
+variant actually got, so a short window is visible rather than silent.
+
+## Verdicts
+
+Five outcomes, answering five different questions:
+
+| status | meaning |
+|---|---|
+| `confirmed` | every case that moved, moved the right way |
+| `mixed` | helps some inputs, hurts others — a trade-off |
+| `regressed` | every case that moved, got worse |
+| `negligible` | measured cleanly; nothing moved more than the noise |
+| `inconclusive` | this host could not resolve an effect of this size |
+
+`negligible` and `inconclusive` must never be collapsed. The first says the
+repair does nothing on a machine quiet enough to tell, which is evidence. The
+second says the machine was too noisy to ask, which is no evidence about the
+code at all. Three more statuses report that no verdict was reached:
+`not_equivalent`, `timeout`, `error`.
 
 ## Reproducing
 

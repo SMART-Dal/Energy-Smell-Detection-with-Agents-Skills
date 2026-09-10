@@ -13,15 +13,25 @@ for the contract. This script then does four things, in order:
     3. measurement   the two variants alternate inside one process, 9 paired reps
     4. the canary    `before` against itself, to bound what this host can resolve
 
-The verdict is the point. `confirmed` means a real, measured, behaviour-
-preserving saving. `refuted` means the repair was built and measured and did
-nothing -- which is not a failure of the analysis, it is the analysis working.
+The verdict is the point, and there are five of them:
+
+    confirmed     every case that moved, moved the right way
+    mixed         helps some inputs, hurts others -- a trade-off
+    regressed     every case that moved, got worse
+    negligible    measured cleanly; nothing moved more than the noise
+    inconclusive  this host could not resolve an effect of this size
+
+`negligible` is the analysis working, not failing: the repair was built and
+measured and does nothing. `inconclusive` is the opposite -- it says nothing
+about the code, only that the machine was too noisy to ask. Collapsing those
+two is how a busy host gets recorded as evidence against a repair.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import sys
 import time
 from dataclasses import dataclass, field
@@ -59,11 +69,43 @@ different matter: that is 2% of real work, it clears this bar, and the verdict
 calls it a trade-off.
 
 This is one of two bars. The loss must also clear the host's noise floor, for
-the same reason a saving must. See `_worst_regression`.
+the same reason a saving must. See `_harmful_cases`.
 """
 
-TIMING_CALLS = 3
+TIMING_CALLS = 5
 """Calls used to estimate per-call cost. Enough to avoid a cold-start outlier."""
+
+SLOW_WINDOW_BUDGET_S = 15.0
+"""Ceiling on the slower variant's measured window.
+
+Repeats are chosen so the *faster* variant fills a full window, and both
+variants then run that same count -- equal work on both sides is what makes the
+comparison fair. When one variant is far slower, that same count makes its
+window longer by exactly the ratio between them, and a repair that is a
+thousand times slower would be measured for a thousand times as long.
+
+So the count is clamped to keep the slow side inside this budget, which means
+the fast side gets less than a full window. That is safe, and the reason is
+worth stating because it looks like a compromise and is not:
+
+A full window exists to stop noise swamping a *small* difference. A small
+difference means the two variants run at similar speeds, the ratio is near one,
+and nothing is clamped. Clamping only happens when the ratio is enormous -- and
+then the saving is enormous too, and the answer is set by the large, well
+resolved side. With a 30 s window against a 3 ms one, the reading is 1500 J
+against 0.15 J; even if the tiny side is wrong by a factor of two, the saving
+moves from 99.99% to 99.98%.
+
+The two conditions cannot bite at once. The more the clamp costs in window
+length, the less that length matters.
+"""
+
+REDUCED_REPS = 3
+"""Paired repetitions used when a single call already exceeds the budget.
+
+At that point the effect is far past anything a confidence interval needs to
+separate from zero, and nine repetitions of a window that cannot be shortened
+is most of an hour for one case."""
 
 USABLE_FLOOR_PCT = 3.0
 """Above this canary reading, a null result means nothing and says so.
@@ -94,7 +136,22 @@ class CaseOutcome:
     difference: str = ""
     mutates_args: bool = False
     seconds_per_call: float = 0.0
+    before_spc: float = 0.0
+    after_spc: float = 0.0
+    """Per-call cost of each variant, measured before sizing. The faster of the
+    two sets the repeat count; the ratio between them says how lopsided the
+    case is, and whether the count had to be clamped."""
     repeats: int = 0
+    reps: int = DEFAULT_REPS
+    clamped: bool = False
+    """True when the repeat count was cut to keep the slow side affordable, so
+    the fast side got less than a full window. The reading is still sound --
+    see SLOW_WINDOW_BUDGET_S -- but the row should say so."""
+    baseline_window_s: float = 0.0
+    patched_window_s: float = 0.0
+    """What the measured windows actually came out at, as opposed to what they
+    were sized for. Recorded because the two silently diverging is exactly the
+    failure this sizing rewrite exists to prevent."""
     energy_saved_pct: float = 0.0
     energy_ci_pct: float = 0.0
     time_saved_pct: float = 0.0
@@ -117,6 +174,8 @@ class CaseOutcome:
         self.baseline_energy_j = comparison.baseline_energy_j
         self.baseline_power_w = comparison.baseline_power_w
         self.patched_power_w = comparison.patched_power_w
+        self.baseline_window_s = comparison.baseline_duration_s
+        self.patched_window_s = comparison.patched_duration_s
         self.before_s_per_call = comparison.baseline_duration_s / self.repeats
         self.after_s_per_call = comparison.patched_duration_s / self.repeats
 
@@ -131,7 +190,7 @@ class Verification:
     """The verdict, and everything it was derived from."""
 
     case_file: str
-    status: str = "refuted"
+    status: str = "negligible"
     reason: str = ""
     deciding_case: str = ""
     noise_floor_pct: float = 0.0
@@ -199,6 +258,12 @@ class Verification:
                     "energy_saved_pct": round(case.energy_saved_pct, 2),
                     "energy_ci_pct": round(case.energy_ci_pct, 2),
                     "significant": case.significant,
+                    "reps": case.reps,
+                    "clamped": case.clamped,
+                    "before_s_per_call": case.before_spc,
+                    "after_s_per_call": case.after_spc,
+                    "before_window_s": round(case.baseline_window_s, 3),
+                    "after_window_s": round(case.patched_window_s, 3),
                     "baseline_power_w": round(case.baseline_power_w, 2),
                     "patched_power_w": round(case.patched_power_w, 2),
                 }
@@ -254,10 +319,17 @@ def verify(
 
     log("\nsizing")
     for case, outcome in zip(case_file.cases, result.per_case):
-        outcome.seconds_per_call = _time_one_call(case_file, case)
-        outcome.repeats = choose_repeats(outcome.seconds_per_call, window)
-        log(f"  {case.label:<12} {_duration(outcome.seconds_per_call):>10}/call"
-            f"  ->  {outcome.repeats:,} repeats")
+        outcome.before_spc = _time_one_call(case_file, case, case_file.before)
+        outcome.after_spc = _time_one_call(case_file, case, case_file.after)
+        outcome.seconds_per_call = max(outcome.before_spc, outcome.after_spc)
+        outcome.repeats, outcome.reps, outcome.clamped = _size(
+            outcome.before_spc, outcome.after_spc, window, reps
+        )
+        note = f"  CLAMPED to keep the slow side under {SLOW_WINDOW_BUDGET_S:g}s" \
+            if outcome.clamped else ""
+        log(f"  {case.label:<12} before {_duration(outcome.before_spc):>10}/call"
+            f"  after {_duration(outcome.after_spc):>10}/call"
+            f"  ->  {outcome.repeats:,} repeats{note}")
 
     result.deciding_case = max(result.per_case, key=lambda c: c.seconds_per_call).label
 
@@ -268,7 +340,7 @@ def verify(
             case.label,
             repeats=outcome.repeats,
             mutates=outcome.mutates_args,
-            reps=reps,
+            reps=outcome.reps,
             meter=meter,
         )
         outcome.record(comparison)
@@ -283,7 +355,7 @@ def verify(
         floor = noise_floor(
             case_path, result.deciding_case,
             repeats=deciding.repeats, mutates=deciding.mutates_args,
-            reps=reps, meter=meter,
+            reps=deciding.reps, meter=meter,
         )
         result.noise_floor_pct = abs(floor.energy_saved_pct) + floor.energy_ci_pct
         log(f"\nnoise floor  ({result.deciding_case}, before vs before)"
@@ -323,144 +395,8 @@ def _log_scale_note(result: Verification, log) -> None:
             f"Not disqualifying.")
 
 
-def _decide(result: Verification) -> None:
-    """Apply the verdict rules. All of them, in priority order."""
-    deciding = result.deciding
-    if deciding is None:
-        result.status = "refuted"
-        result.reason = "no case was measured."
-        return
-
-    worst = _worst_regression(result, deciding)
-    if worst is not None:
-        result.status = "regressed"
-        result.reason = _regression_reason(result, deciding, worst)
-        return
-
-    clears_floor = deciding.energy_saved_pct > result.noise_floor_pct
-    if deciding.significant and deciding.energy_saved_pct > 0 and clears_floor:
-        result.status = "confirmed"
-        result.reason = (
-            f"{deciding.energy_saved_pct:.1f}% +-{deciding.energy_ci_pct:.1f}% "
-            f"energy saved on {deciding.label!r}, clearing the "
-            f"{result.noise_floor_pct:.1f}% noise floor, with behaviour preserved "
-            f"on all {len(result.per_case)} cases."
-        )
-        if result.relaxations:
-            # A confirmed verdict on a weakened check has to carry that with it,
-            # or the weakening disappears the moment the number is quoted.
-            result.reason += (
-                " Behaviour was compared under a relaxed rule, which the report "
-                "must repeat: " + "; ".join(result.relaxations) + "."
-            )
-        if deciding.energy_only:
-            result.reason += (
-                " Energy improved while wall-clock time did not -- an "
-                "energy-specific effect worth calling out in the report."
-            )
-        return
-
-    # Below here the repair did not clear the bar. *Why* it did not decides the
-    # verdict, and the two reasons are opposite claims about the world:
-    #
-    #   refuted       we measured cleanly and the repair does nothing
-    #   inconclusive  this host could not resolve an effect of this size
-    #
-    # Collapsing them into `refuted` is how a busy machine gets recorded as
-    # evidence against the repair. A quiet host resolves a fraction of a
-    # percent; sharing the machine with one other user can push the canary into
-    # the tens of percent, at which point nothing smaller is measurable and
-    # "saves nothing" is not a claim the data supports.
-    if result.noise_floor_pct > USABLE_FLOOR_PCT:
-        result.status = "inconclusive"
-        result.reason = (
-            f"this host's noise floor measured {result.noise_floor_pct:.1f}%, "
-            f"above the {USABLE_FLOOR_PCT:.1f}% needed to resolve the "
-            f"{deciding.energy_saved_pct:+.1f}% seen on {deciding.label!r}. The "
-            f"canary compares identical code against itself, so that figure is "
-            f"contamination, not the repair. Re-run on an idle machine before "
-            f"concluding anything; do not report this candidate either way."
-        )
-        return
-
-    result.status = "refuted"
-    if not deciding.significant:
-        result.reason = (
-            f"no significant change on {deciding.label!r} "
-            f"({deciding.energy_saved_pct:+.1f}% +-{deciding.energy_ci_pct:.1f}%) "
-            f"against a clean {result.noise_floor_pct:.1f}% noise floor. The "
-            f"pattern is there; removing it saves nothing measurable, so it is "
-            f"not worth repairing in this code."
-        )
-    elif not clears_floor:
-        result.reason = (
-            f"the {deciding.energy_saved_pct:+.1f}% saving on {deciding.label!r} "
-            f"does not clear this host's {result.noise_floor_pct:.1f}% noise "
-            f"floor. Scale the largest case up and re-run, or report as refuted."
-        )
-    else:
-        result.reason = (
-            f"the repair saves nothing: {deciding.energy_saved_pct:+.1f}% on "
-            f"{deciding.label!r}."
-        )
-
-
-def _regression_reason(
-    result: Verification, deciding: CaseOutcome, worst: CaseOutcome
-) -> str:
-    """Say what actually happened, rather than what usually happens.
-
-    This used to be one fixed sentence: "the repair helps the large case but
-    costs N% on X". Both halves were claims the verdict had never checked. The
-    deciding case is whichever costs most per call and is named by the case
-    file, so it is only called "large" by coincidence -- and in most regressions
-    it is precisely the case the repair made worse, which makes "the repair
-    helps" it exactly backwards.
-
-    Three situations hide behind one verdict, and the report needs them apart:
-    a genuine trade-off, a repair that helps some input but not the one that
-    dominates the cost, and a repair that is worse everywhere it was measured.
-    """
-    gained = [c.label for c in result.per_case
-              if c.significant and c.energy_saved_pct > 0]
-
-    if worst is deciding:
-        # The share-of-deciding-cost figure exists to say "this loss is real
-        # work, not a ratio on a microsecond input". It says nothing when the
-        # case that lost is the one being compared against.
-        loss = f"{abs(worst.energy_saved_pct):.1f}% lost on it"
-        elsewhere = ""
-    else:
-        cost = 100.0 * worst.excess_s_per_call / deciding.before_s_per_call
-        loss = (f"{abs(worst.energy_saved_pct):.1f}% lost on {worst.label!r}, "
-                f"worth {cost:.1f}% of {deciding.label!r}'s own per-call cost, "
-                f"so it is real work and not rounding")
-        elsewhere = f" and {loss}"
-
-    if deciding.significant and deciding.energy_saved_pct > 0:
-        return (
-            f"a trade-off rather than a fix: {deciding.energy_saved_pct:.1f}% "
-            f"saved on {deciding.label!r}, the case that dominates the cost, "
-            f"against {loss}. Report under `refuted` and name both cases."
-        )
-    if gained:
-        helped = ", ".join(repr(label) for label in gained)
-        return (
-            f"the repair helps {helped}, but not {deciding.label!r}, the case "
-            f"that dominates the cost, which read "
-            f"{deciding.energy_saved_pct:+.1f}%{elsewhere}. Report under "
-            f"`refuted` and say which inputs it is for."
-        )
-    return (
-        f"no case improved: {deciding.label!r}, the case that dominates the "
-        f"cost, read {deciding.energy_saved_pct:+.1f}%{elsewhere}. The repair "
-        f"costs more than the code it replaces on every input measured; report "
-        f"under `refuted`."
-    )
-
-
-def _worst_regression(result: Verification, deciding: CaseOutcome) -> CaseOutcome | None:
-    """The case the repair hurts most, if any loss is big enough to matter.
+def _harmful_cases(result: Verification, deciding: CaseOutcome) -> list[CaseOutcome]:
+    """Cases the repair measurably hurts.
 
     A loss has to pass two tests, because there are two different ways for one
     to be an artefact.
@@ -468,25 +404,145 @@ def _worst_regression(result: Verification, deciding: CaseOutcome) -> CaseOutcom
     It has to be *large enough to care about*, judged against the deciding
     case's per-call cost rather than its own, so a relative blow-up on a
     microsecond input cannot veto a repair that saves real work on the input
-    the code actually sees. See the tolerance constant.
+    the code actually sees. See REGRESSION_TOLERANCE_PCT.
 
     And it has to be *large enough to believe*, which means clearing this
-    host's noise floor -- the same bar a saving has to clear to be confirmed.
-    Without the symmetry the rig can refuse to call a saving real at 2% and
-    still let a 2% loss on another case sink the whole verdict, which is the
-    contamination deciding the answer in one direction only.
+    host's noise floor -- the same bar a saving has to clear. Without the
+    symmetry the rig can refuse to call a saving real at 2% and still let a 2%
+    loss sink the whole verdict, which is contamination deciding the answer in
+    one direction only.
     """
     if deciding.before_s_per_call <= 0:
-        return None
+        return []
     threshold = deciding.before_s_per_call * REGRESSION_TOLERANCE_PCT / 100.0
-    harmful = [
+    return [
         case for case in result.per_case
         if case.significant
         and case.energy_saved_pct < 0
         and case.excess_s_per_call > threshold
         and abs(case.energy_saved_pct) > result.noise_floor_pct
     ]
-    return max(harmful, key=lambda c: c.excess_s_per_call, default=None)
+
+
+def _helped_cases(result: Verification) -> list[CaseOutcome]:
+    """Cases the repair measurably helps: significant, positive, above floor."""
+    return [
+        case for case in result.per_case
+        if case.significant
+        and case.energy_saved_pct > 0
+        and case.energy_saved_pct > result.noise_floor_pct
+    ]
+
+
+def _decide(result: Verification) -> None:
+    """Apply the verdict rules.
+
+    Five outcomes, and they answer five different questions. The rules below
+    are written so that each status means exactly one thing:
+
+        confirmed     every case that moved, moved the right way
+        mixed         helps some inputs, hurts others -- a trade-off
+        regressed     every case that moved, got worse
+        negligible    measured cleanly; nothing moved more than the noise
+        inconclusive  this host could not resolve an effect of this size
+
+    The last two are opposite claims and must never be collapsed. `negligible`
+    says the repair does nothing on a machine quiet enough to tell. That is
+    evidence. `inconclusive` says the machine was too noisy for the question,
+    which is a fact about the host and no evidence about the code at all.
+    """
+    deciding = result.deciding
+    if deciding is None:
+        result.status = "error"
+        result.reason = "no case was measured."
+        return
+
+    helped = _helped_cases(result)
+    hurt = _harmful_cases(result, deciding)
+    floor = result.noise_floor_pct
+
+    if helped and hurt:
+        result.status = "mixed"
+        result.reason = _mixed_reason(result, helped, hurt)
+    elif hurt:
+        result.status = "regressed"
+        result.reason = _regressed_reason(result, hurt)
+    elif helped:
+        result.status = "confirmed"
+        result.reason = _confirmed_reason(result, helped)
+    elif floor > USABLE_FLOOR_PCT:
+        result.status = "inconclusive"
+        result.reason = (
+            f"this host's noise floor measured {floor:.1f}%, above the "
+            f"{USABLE_FLOOR_PCT:.1f}% needed to resolve the "
+            f"{deciding.energy_saved_pct:+.1f}% seen on {deciding.label!r}. The "
+            f"canary compares identical code against itself, so that figure is "
+            f"contamination, not the repair. Re-run on an idle machine before "
+            f"concluding anything; this is not evidence either way."
+        )
+    else:
+        result.status = "negligible"
+        biggest = max(result.per_case, key=lambda c: abs(c.energy_saved_pct))
+        result.reason = (
+            f"no case moved more than the noise: the largest reading was "
+            f"{biggest.energy_saved_pct:+.1f}% +-{biggest.energy_ci_pct:.1f}% on "
+            f"{biggest.label!r}, against a clean {floor:.1f}% floor across "
+            f"{len(result.per_case)} cases. The pattern is here and removing it "
+            f"saves nothing measurable, so it is not worth repairing in this "
+            f"code."
+        )
+
+
+def _confirmed_reason(result: Verification, helped: list[CaseOutcome]) -> str:
+    best = max(helped, key=lambda c: c.energy_saved_pct)
+    labels = ", ".join(repr(c.label) for c in helped)
+    reason = (
+        f"{best.energy_saved_pct:.1f}% +-{best.energy_ci_pct:.1f}% energy saved "
+        f"on {best.label!r}, clearing the {result.noise_floor_pct:.1f}% noise "
+        f"floor. Improved on {len(helped)} of {len(result.per_case)} cases "
+        f"({labels}) and measurably worse on none, with behaviour preserved "
+        f"throughout."
+    )
+    if result.relaxations:
+        # A confirmed verdict on a weakened check has to carry that with it,
+        # or the weakening disappears the moment the number is quoted.
+        reason += (
+            " Behaviour was compared under a relaxed rule, which the report "
+            "must repeat: " + "; ".join(result.relaxations) + "."
+        )
+    if best.energy_only:
+        reason += (
+            " Energy improved while wall-clock time did not -- an "
+            "energy-specific effect worth calling out in the report."
+        )
+    return reason
+
+
+def _mixed_reason(
+    result: Verification, helped: list[CaseOutcome], hurt: list[CaseOutcome]
+) -> str:
+    """A trade-off: real on both sides, so the report needs both named."""
+    best = max(helped, key=lambda c: c.energy_saved_pct)
+    worst = max(hurt, key=lambda c: c.excess_s_per_call)
+    return (
+        f"a trade-off, not a fix: {best.energy_saved_pct:.1f}% saved on "
+        f"{best.label!r} but {abs(worst.energy_saved_pct):.1f}% lost on "
+        f"{worst.label!r}, both clearing the {result.noise_floor_pct:.1f}% "
+        f"noise floor. Whether it pays depends on which input the code actually "
+        f"sees, so the card must name both cases and let the agent judge."
+    )
+
+
+def _regressed_reason(result: Verification, hurt: list[CaseOutcome]) -> str:
+    """Worse everywhere it measurably moved."""
+    worst = max(hurt, key=lambda c: c.excess_s_per_call)
+    labels = ", ".join(repr(c.label) for c in hurt)
+    return (
+        f"the repair costs more than the code it replaces: "
+        f"{abs(worst.energy_saved_pct):.1f}% lost on {worst.label!r}, above the "
+        f"{result.noise_floor_pct:.1f}% noise floor, and no case improved. "
+        f"Worse on {len(hurt)} of {len(result.per_case)} cases ({labels})."
+    )
 
 
 def _duration(seconds: float) -> str:
@@ -497,15 +553,54 @@ def _duration(seconds: float) -> str:
     return f"{seconds:.3f} s"
 
 
-def _time_one_call(case_file: CaseFile, case: Case) -> float:
-    """Seconds per call of `before`, used only to size the measured window."""
-    best = float("inf")
+def _size(before_spc: float, after_spc: float, window: float,
+          reps: int) -> tuple[int, int, bool]:
+    """Repeat count, repetitions, and whether the slow side forced a clamp.
+
+    Both variants run the same number of calls -- that is what makes the
+    comparison fair -- so there is one count to choose, and it is chosen from
+    the *faster* variant. The faster one is the only side at risk of a window
+    too short to resolve; the slower one is already over-resolved by being
+    slow, and giving it a full window on its own terms would mean comparing
+    different amounts of work.
+
+    See SLOW_WINDOW_BUDGET_S for why clamping the result is safe.
+    """
+    fast = min(before_spc, after_spc)
+    slow = max(before_spc, after_spc)
+
+    wanted = choose_repeats(fast, window)
+    if slow <= 0:
+        return wanted, reps, False
+
+    affordable = max(1, int(SLOW_WINDOW_BUDGET_S / slow))
+    if wanted <= affordable:
+        return wanted, reps, False
+
+    # One call of the slow side already costs more than the whole budget, so
+    # there is nothing left to trim from the count. Trim the repetitions
+    # instead: the effect that makes a case this lopsided is not one a wider
+    # interval will hide.
+    if affordable <= 1 and slow > SLOW_WINDOW_BUDGET_S:
+        return 1, min(reps, REDUCED_REPS), True
+    return affordable, reps, True
+
+
+def _time_one_call(case_file: CaseFile, case: Case, variant=None) -> float:
+    """Seconds per call of one variant, used only to size the measured window."""
+    function = variant if variant is not None else case_file.before
+    timings = []
     for _ in range(TIMING_CALLS):
         args = case.args()
         start = time.perf_counter()
-        case_file.before(*args)
-        best = min(best, time.perf_counter() - start)
-    return best
+        function(*args)
+        timings.append(time.perf_counter() - start)
+    # Median, not minimum. The fastest of several calls is the one that met the
+    # warmest cache and the least interference, which is not the rate the
+    # measured loop will sustain. Sizing from it underestimates the per-call
+    # cost and so overestimates how many calls fit in a window, which is how a
+    # window sized for 3s ends up running for fifteen.
+    return statistics.median(timings)
 
 
 # -- entry point -----------------------------------------------------------

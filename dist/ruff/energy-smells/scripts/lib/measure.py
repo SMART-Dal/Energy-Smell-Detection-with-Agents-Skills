@@ -135,7 +135,6 @@ def compare_case(
     variants: tuple[tuple[str, str], ...] = (("before", "before"), ("after", "after")),
     reps: int = DEFAULT_REPS,
     meter: str = "auto",
-    cpu: int = 0,
 ) -> Comparison:
     """Measure how much energy `after` saves relative to `before` on one case.
 
@@ -157,7 +156,6 @@ def compare_case(
         "warmup_calls": DEFAULT_WARMUP_CALLS,
         "warmup_seconds": WARMUP_SECONDS,
         "meter": meter,
-        "cpu": cpu,
     })
     return _summarise(samples, reps=reps)
 

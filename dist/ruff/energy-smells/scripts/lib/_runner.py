@@ -91,12 +91,10 @@ def run_window(function, pool: list[tuple], repeats: int) -> None:
 def main(argv: list[str]) -> int:
     spec = json.loads(Path(argv[1]).read_text())
 
-    # Pin to one core so the workload is not migrated mid-measurement, which
-    # would attribute another core's activity to us.
-    cpu = spec.get("cpu", -1)
-    if cpu >= 0 and hasattr(os, "sched_setaffinity"):
-        os.sched_setaffinity(0, {cpu})
-
+    # No affinity is set. The meter reports whole-machine energy across every
+    # package, so a thread that migrates is still fully measured, and pinning
+    # to one core holds the workload on a single thread of a single socket
+    # while the rest of the machine idles into the same reading.
     meter = get_meter(spec["meter"])
     case_file = load_case_file(Path(spec["case_file"]))
     case = next(c for c in case_file.cases if c.label == spec["label"])
@@ -105,9 +103,9 @@ def main(argv: list[str]) -> int:
     variants = [(label, case_file.variant(attr)) for label, attr in spec["variants"]]
     pool = build_pool(case, repeats if spec.get("mutates") else 1)
 
-    # Warm the machine first: bring the pinned core to a steady clock and
-    # temperature before anything is measured. This has to happen after the
-    # affinity call above, or it warms a core we then migrate away from.
+    # Warm the machine first: bring the clock and temperature to a steady
+    # state before anything is measured, so the climb out of idle is not
+    # charged to whichever variant happens to be measured first.
     burn_cpu(spec.get("warmup_seconds", 0.0))
 
     # Then warm the code, so neither variant pays the one-off cost of

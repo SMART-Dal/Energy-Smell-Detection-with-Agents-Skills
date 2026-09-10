@@ -33,28 +33,19 @@ testing, and works before `python -m build` has been run at all.
 """
 RESULTS = ROOT / "validation" / "results"
 
-TIMEOUT_S = 900
+TIMEOUT_S = 1200
 """Wall-clock ceiling for one case file.
 
-The nominal cost is small: one measured subprocess costs `WARMUP_SECONDS +
-reps x 2 x TARGET_WINDOW_S`, which at the current settings is 10 + 9 x 2 x 3 =
-64 s, and a case file pays that once per case and once more for the canary --
-about 192 s for two cases, 256 s for three. This ceiling is not set by that
-figure. It is set by the tail.
+Derived from the sizing rule rather than guessed. Repeats are chosen so the
+faster variant fills a 3 s window, and the count is clamped to keep the slower
+one inside `SLOW_WINDOW_BUDGET_S`, so one case costs at most
+`reps x (window + budget)` = 9 x 18 = 162 s, and a three-case file plus its
+canary lands near 900 s in the worst case. This ceiling clears that with room
+for the equivalence and sizing stages on top.
 
-`choose_repeats` sizes the loop from how long `before` takes, and then runs
-`after` the same number of times. When the repair is a large saving that is
-free -- `after` finishes early and the window is short. When `after` is
-*slower* than `before`, the window stretches by the same ratio, and a case
-where the patched version costs ten times as much spends ten times as long
-being measured. Sizing on the slower of the two would fix that and would also
-mean a fast variant is measured over a window too short to resolve, which is
-worse.
-
-So the ceiling has to clear the slow tail rather than the median. Projected
-from a previous batch's timings onto the current window, 480 s would have cut
-off 33% of the suite and spent 8.4 hours producing nothing, because a timeout
-costs the full ceiling and yields no row. 900 s cuts that to about 10%.
+Projected across a previous batch's measured per-call costs, no case file
+exceeds it. Recompute this if the window, the budget or the repetition count
+changes.
 
 What it is still for: a case whose inputs were sized for a different kind of
 experiment, which is more useful reported as `timeout` than left to block the
