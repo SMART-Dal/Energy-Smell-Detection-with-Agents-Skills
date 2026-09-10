@@ -261,7 +261,7 @@ Write the JSON first and the report from it.
 `$SKILL/reference/output-format.md` has the exact schema.
 
 The report has to carry the negative results as well as the positive ones: what
-was refuted, what the host could not resolve, what each repair subsumed, and
+was negligible, what the host could not resolve, what each repair subsumed, and
 every unit you cleared. A run that only lists what it found cannot be
 distinguished from a run that only looked where it expected to find something.
 

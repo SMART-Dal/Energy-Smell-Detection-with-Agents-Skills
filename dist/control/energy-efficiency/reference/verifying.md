@@ -212,18 +212,20 @@ something else is running. Nothing measured in that state means anything.
 | Verdict | What it means | What to do |
 |---|---|---|
 | `confirmed` | equivalent everywhere; the large case saves significantly and clears the noise floor; nothing regresses significantly | report it, with the numbers |
-| `refuted` | equivalent and measured on a clean floor, and no significant saving | **no saving here.** Report under `refuted` |
-| `inconclusive` | the host's noise floor was too high to resolve an effect this size | report as inconclusive. **Do not** report it as refuted — that is a different claim |
-| `regressed` | the repair made something significantly worse | no saving here. Report under `refuted`, and say which case |
+| `mixed` | saves energy on some cases, costs it on others — both clearing the floor | report under `mixed`, and name **both** cases |
+| `regressed` | every case that moved measurably, got worse | no saving here. Report under `regressed`, and say which cases |
+| `negligible` | measured on a clean floor, and nothing moved more than the noise | **no saving here.** Report under `negligible` |
+| `inconclusive` | the host's noise floor was too high to resolve an effect this size | report as inconclusive. **Do not** report it as negligible — that is a different claim |
 | `not_equivalent` | `after` behaves differently from `before` | your repair is broken. Fix it and re-run; do not report either way |
 | `advisory` | the repair is too small to measure at any input size; never measured | report as advisory, no numbers |
 | `blocked` | no runnable case file could be built | report as blocked, and say what was missing |
 
-`refuted` and `inconclusive` findings stay in the output. A run that proposes
-ten repairs and has three refuted is more informative than one that quietly
+Every verdict stays in the output. A run that proposes
+ten repairs and reports three as `negligible` is more informative than one that quietly
 drops them.
 
-The difference between the two matters more than it looks. `refuted` says the
+The difference between `negligible` and `inconclusive` matters more than it
+looks. `negligible` says the
 repair does nothing. `inconclusive` says this machine could not tell. Reporting
 the second as the first turns a busy host into a false conclusion.
 
@@ -255,6 +257,6 @@ through an attribute, where the optimisation cannot fire, the same repair saves
 That is not a curiosity about strings. It is what most confident performance
 advice looks like once it is measured on the actual code.
 
-If a repair you were confident about comes back `refuted`, that is a result.
+If a repair you were confident about comes back `negligible`, that is a result.
 Report it, and say what you measured. Do not quietly drop it and look for a
 different claim until one sticks.

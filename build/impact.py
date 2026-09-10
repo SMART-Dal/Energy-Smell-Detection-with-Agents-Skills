@@ -16,7 +16,8 @@ a repair that always pays a little from one that pays hugely on some inputs and
 costs on others: `expensive_operand_first` confirmed 89.6% on one shape and
 regressed on two, and lands near a third of that.
 
-A root cause whose shapes all refuted or regressed comes out at zero.  That is
+A root cause whose shapes all came back `negligible`, `mixed` or
+`regressed` comes out at zero.  That is
 not a gap in the data; it is the data saying this repair does not reliably pay,
 which is exactly what should sink it in a ranking.
 """
@@ -63,15 +64,27 @@ def measured_impact(results: Path = RESULTS, root: Path | None = None) -> dict[s
         root_cause = root_cause_of(case)
         if root_cause is None:
             continue
-        confirmed = (
-            row.get("status") == "confirmed"
-            and row.get("energy_saved_pct") is not None
-        )
-        savings.setdefault(root_cause, []).append(
-            max(0.0, float(row["energy_saved_pct"])) if confirmed else 0.0
-        )
+        savings.setdefault(root_cause, []).append(_saving_pct(row))
 
     return {
         root_cause: round(sum(values) / len(values), 1)
         for root_cause, values in savings.items()
     }
+
+
+def _saving_pct(row: dict) -> float:
+    """Percentage of energy a confirmed row saved, or zero.
+
+    Results store what was measured -- joules for each variant -- rather than a
+    percentage derived from them, so the ranking figure is computed here. Any
+    status other than `confirmed` counts as zero: a repair that only pays on
+    some inputs (`mixed`), or does nothing measurable (`negligible`), should
+    not be ranked as though it always pays.
+    """
+    if row.get("status") != "confirmed":
+        return 0.0
+    before = row.get("before_energy_j")
+    after = row.get("after_energy_j")
+    if not before or before <= 0 or after is None:
+        return 0.0
+    return max(0.0, 100.0 * (before - after) / before)

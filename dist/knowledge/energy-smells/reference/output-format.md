@@ -62,31 +62,52 @@ right.
       "verification": {
         "status": "confirmed",
         "case_file": "cases/case_C10S4.py",
-        "cases_checked": 3,
+        "cases_checked": 2,
+        "deciding_case": "large",
         "repeats": 40,
-        "energy_saved_pct": 25.9, "energy_ci_pct": 3.0,
-        "time_saved_pct": 26.1,  "time_ci_pct": 2.4,
-        "energy_only": false,
+        // What was measured: joules and seconds for each variant. No
+        // percentage is stored -- it is a view of these two numbers, and
+        // keeping a derived figure beside its inputs lets the two disagree.
+        "before_energy_j": 148.2100, "after_energy_j": 109.8200,
+        "before_time_s":     3.0100, "after_time_s":     2.2300,
+        // Not a saving: the half-width of the 95% interval on the paired
+        // per-repetition comparison. `significant` cannot be read without it.
+        "energy_ci_pct": 3.0,
         "noise_floor_pct": 1.6,
         "equivalence_relaxed": [],
         "per_case": [
-          {"label": "empty",  "energy_saved_pct":  0.4, "significant": false},
-          {"label": "small",  "energy_saved_pct":  9.1, "significant": true},
-          {"label": "large",  "energy_saved_pct": 25.9, "significant": true}
+          {"label": "small", "repeats": 9500, "clamped": false,
+           "before_energy_j": 151.0300, "after_energy_j": 137.2900,
+           "before_time_s": 3.0400, "after_time_s": 2.7700,
+           "energy_ci_pct": 1.2, "significant": true},
+          {"label": "large", "repeats": 40, "clamped": false,
+           "before_energy_j": 148.2100, "after_energy_j": 109.8200,
+           "before_time_s": 3.0100, "after_time_s": 2.2300,
+           "energy_ci_pct": 3.0, "significant": true}
         ]
       }
     }
   ],
 
-  "refuted": [
+  "negligible": [
     // Same object shape. Candidates that were accepted at step 3, repaired,
-    // measured, and did not save anything on a clean noise floor. Keep them:
-    // they are evidence about the taxonomy, not failures to hide.
+    // measured, and moved nothing more than the noise on a clean floor. Keep
+    // them: they are evidence about the taxonomy, not failures to hide.
+  ],
+
+  "mixed": [
+    // Same object shape. The repair pays on some inputs and costs on others.
+    // Report both, and say which input each applies to.
+  ],
+
+  "regressed": [
+    // Same object shape. Worse everywhere it measurably moved.
   ],
 
   "inconclusive": [
     // Same object shape. Measured, but the host could not resolve an effect
-    // this size. A different claim from `refuted` — do not merge the two.
+    // this size. A different claim from `negligible` — do not merge the two.
+    // `negligible` is evidence about the code; this is a fact about the host.
   ],
 
   "units_examined": [
@@ -168,7 +189,8 @@ there is no way to tell whether you read the code or the labels.
 
 Rendered from the JSON, grouped by file. For each finding: the root cause and
 its name, one paragraph of `why`, the repair as a diff, and the measured
-result. Then a short section for `refuted` and `inconclusive`, and one line for
+result. Then a short section for `mixed`, `regressed`, `negligible` and
+`inconclusive`, and one line for
 anything `advisory` or `blocked`.
 
 Open with a summary the reader can act on:
@@ -176,7 +198,8 @@ Open with a summary the reader can act on:
 ```markdown
 # Energy smells — acme-parser @ a1b2c3d
 
-15 units examined, 4 smells confirmed, 2 refuted, 1 inconclusive, 1 advisory.
+15 units examined, 4 smells confirmed, 1 mixed, 1 regressed, 2 negligible,
+1 inconclusive, 1 advisory.
 Host noise floor 1.6%; every confirmed saving clears it.
 
 | Unit | Root cause | Energy saved |

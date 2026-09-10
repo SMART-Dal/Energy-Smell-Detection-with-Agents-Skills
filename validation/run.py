@@ -155,10 +155,14 @@ def main(argv: list[str] | None = None) -> int:
         result = run_one(case_path, args.python)
         with log.open("a") as handle:
             handle.write(json.dumps(result) + "\n")
+        before = result.get("before_energy_j") or 0.0
+        after = result.get("after_energy_j") or 0.0
+        # Rows store joules, not a percentage; the progress line derives one
+        # purely so a long batch is readable as it scrolls past.
+        delta = 100.0 * (before - after) / before if before > 0 else 0.0
         print(
-            f"[{index}/{len(todo)}] {result['status']:<10} "
-            f"{result.get('energy_saved_pct', 0):+7.1f}%  "
-            f"{case_path.stem}",
+            f"[{index}/{len(todo)}] {result['status']:<12} "
+            f"{delta:+7.1f}%  {case_path.stem}",
             flush=True,
         )
     return 0

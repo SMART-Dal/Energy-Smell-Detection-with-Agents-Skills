@@ -204,42 +204,53 @@ something else is running. Nothing measured in that state means anything.
 4. **The canary.** The deciding case measured against *itself*, `before` versus
    `before`. The true answer is zero, so whatever it reads is contamination,
    and it is the floor every real effect has to clear.
-5. **Statistics.** Savings are computed per repetition and averaged, with a 95%
-   confidence interval. Energy and wall-clock time are reported separately.
+5. **Statistics.** The energy difference is computed per repetition and
+   averaged, with a 95% confidence interval. Energy decides the verdict;
+   wall-clock time is measured and reported but never decides anything.
 
 ## Verdicts
 
 | Verdict | What it means | What to do |
 |---|---|---|
-| `confirmed` | equivalent everywhere; the large case saves significantly and clears the noise floor; nothing regresses significantly | report it, with the numbers |
-| `refuted` | equivalent and measured on a clean floor, and no significant saving | **not a smell.** Report under `refuted` |
-| `inconclusive` | the host's noise floor was too high to resolve an effect this size | report as inconclusive. **Do not** report it as refuted — that is a different claim |
-| `regressed` | the repair made something significantly worse | not a smell. Report under `refuted`, and say which case |
+| `confirmed` | every case that moved, moved the right way, clearing the noise floor | report it, with the numbers |
+| `mixed` | saves energy on some cases, costs it on others — both clearing the floor | report under `mixed`, and name **both** cases. It is a trade-off, and which side wins depends on the input the code sees |
+| `regressed` | every case that moved measurably, got worse | not a smell. Report under `regressed`, and say which cases |
+| `negligible` | measured on a clean floor, and nothing moved more than the noise | **not a smell.** Report under `negligible` |
+| `inconclusive` | the host's noise floor was too high to resolve an effect this size | report as inconclusive. **Do not** report it as negligible — that is a different claim |
 | `not_equivalent` | `after` behaves differently from `before` | your repair is broken. Fix it and re-run; do not report either way |
 | `advisory` | card says advisory only; never measured | report as advisory, no numbers |
 | `blocked` | no runnable case file could be built | report as blocked, and say what was missing |
 
-`refuted` and `inconclusive` findings stay in the output. A run that proposes
-ten smells and has three refuted is more informative than one that quietly
-drops them.
+Every verdict stays in the output. A run that proposes ten smells and reports
+three as `negligible` is more informative than one that quietly drops them.
 
-The difference between the two matters more than it looks. `refuted` says the
-repair does nothing. `inconclusive` says this machine could not tell. Reporting
-the second as the first writes a busy host down as evidence against the
-taxonomy.
+The difference between `negligible` and `inconclusive` matters more than it
+looks. `negligible` says the repair does nothing, on a machine quiet enough to
+tell — that is evidence. `inconclusive` says this machine could not tell, which
+is a fact about the host and says nothing about the code. Reporting the second
+as the first writes a busy host down as evidence against the taxonomy.
+
+`mixed` is not a softer `regressed`. It means both effects are real: the repair
+genuinely pays on one input and genuinely costs on another, so the report must
+carry both numbers and let the reader decide which input their code has.
 
 ## What the numbers mean
 
-The meter reports CPU package + DRAM energy over the workload window. On a
-many-core host most of that is idle power from cores doing nothing — this
-machine idles at 47.3 W and one busy Python thread takes it to 55.4 W.
+The meter reports whole-machine CPU package energy over the workload window,
+with nothing subtracted. On a many-core host much of that is idle power from
+cores doing nothing, so only a fraction of any reading is work you caused.
 
 That does not dilute the result the way it looks like it should, because the
 window is not a fixed length: a variant that finishes sooner accrues less idle
 power too. What the figure cannot do is separate a change in power draw from a
-change in duration. Energy and time are therefore reported separately, and when
-energy improves while wall-clock time does not, you have found something more
-interesting than a performance bug — say so explicitly in the report.
+change in duration.
+
+**Every verdict is decided on energy alone.** Time and power are reported
+beside it, and are worth reading — when energy improves while wall-clock time
+does not, you have found something more interesting than a performance bug, and
+should say so — but no rule reads them. A result carries the measured joules
+and seconds for each variant rather than a percentage, because the percentage
+is a view of those numbers and storing it beside them lets the two disagree.
 
 ## When the card is wrong
 
@@ -253,6 +264,6 @@ example was already linear. The real smell turned out to be about aliasing:
 through an attribute, where the optimisation cannot fire, the same repair saves
 94.8% ± 0.1%.
 
-If a repair you built faithfully from a card comes back `refuted`, that is a
+If a repair you built faithfully from a card comes back `negligible`, that is a
 result. Report it, say which card, and say what you measured. Do not quietly
 drop it and try a different root cause until one sticks.

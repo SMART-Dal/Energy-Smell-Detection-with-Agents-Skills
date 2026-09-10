@@ -156,13 +156,18 @@ class CaseOutcome:
     energy_ci_pct: float = 0.0
     time_saved_pct: float = 0.0
     time_ci_pct: float = 0.0
+    """Reported, never decided on. Kept so a reader can see when energy and
+    duration diverge; no verdict rule reads either field."""
     significant: bool = False
-    energy_only: bool = False
     baseline_energy_j: float = 0.0
     baseline_power_w: float = 0.0
     patched_power_w: float = 0.0
     before_s_per_call: float = 0.0
     after_s_per_call: float = 0.0
+    before_energy_j: float = 0.0
+    after_energy_j: float = 0.0
+    """Mean joules per measured window. Every verdict rule is written against
+    these and nothing else: not time, not power."""
 
     def record(self, comparison: Comparison) -> None:
         self.energy_saved_pct = comparison.energy_saved_pct
@@ -170,7 +175,6 @@ class CaseOutcome:
         self.time_saved_pct = comparison.time_saved_pct
         self.time_ci_pct = comparison.time_ci_pct
         self.significant = comparison.energy_significant
-        self.energy_only = comparison.energy_only
         self.baseline_energy_j = comparison.baseline_energy_j
         self.baseline_power_w = comparison.baseline_power_w
         self.patched_power_w = comparison.patched_power_w
@@ -178,11 +182,23 @@ class CaseOutcome:
         self.patched_window_s = comparison.patched_duration_s
         self.before_s_per_call = comparison.baseline_duration_s / self.repeats
         self.after_s_per_call = comparison.patched_duration_s / self.repeats
+        self.before_energy_j = comparison.baseline_energy_j
+        self.after_energy_j = comparison.patched_energy_j
 
     @property
-    def excess_s_per_call(self) -> float:
-        """Extra time `after` costs per call. Negative when the repair helps."""
-        return self.after_s_per_call - self.before_s_per_call
+    def before_energy_per_call(self) -> float:
+        return self.before_energy_j / self.repeats if self.repeats else 0.0
+
+    @property
+    def excess_energy_per_call(self) -> float:
+        """Extra joules `after` costs per call. Negative when the repair helps.
+
+        This is the quantity a regression is judged on. It used to be the time
+        equivalent, which meant a verdict about energy could turn on a
+        stopwatch."""
+        if not self.repeats:
+            return 0.0
+        return (self.after_energy_j - self.before_energy_j) / self.repeats
 
 
 @dataclass
@@ -234,6 +250,18 @@ class Verification:
         return next((c for c in self.per_case if c.label == self.deciding_case), None)
 
     def to_dict(self) -> dict:
+        """The row written to results/<suite>.jsonl.
+
+        What is reported is what was measured: joules and seconds for each
+        variant, on each case. Percentages of energy saved are not stored --
+        they are a view of the same two numbers, and storing a derived figure
+        beside its inputs invites the two to disagree.
+
+        `energy_ci_pct` is the exception and is not a saving. It is the
+        half-width of the 95% interval on the paired per-repetition
+        comparison, which is the only thing here that cannot be recovered from
+        the means, and without it `significant` cannot be judged.
+        """
         deciding = self.deciding
         return {
             "status": self.status,
@@ -242,11 +270,11 @@ class Verification:
             "cases_checked": len(self.per_case),
             "deciding_case": self.deciding_case,
             "repeats": deciding.repeats if deciding else 0,
-            "energy_saved_pct": round(deciding.energy_saved_pct, 2) if deciding else 0.0,
+            "before_energy_j": round(deciding.before_energy_j, 4) if deciding else 0.0,
+            "after_energy_j": round(deciding.after_energy_j, 4) if deciding else 0.0,
+            "before_time_s": round(deciding.baseline_window_s, 4) if deciding else 0.0,
+            "after_time_s": round(deciding.patched_window_s, 4) if deciding else 0.0,
             "energy_ci_pct": round(deciding.energy_ci_pct, 2) if deciding else 0.0,
-            "time_saved_pct": round(deciding.time_saved_pct, 2) if deciding else 0.0,
-            "time_ci_pct": round(deciding.time_ci_pct, 2) if deciding else 0.0,
-            "energy_only": deciding.energy_only if deciding else False,
             "noise_floor_pct": round(self.noise_floor_pct, 2),
             "reps": self.reps,
             "equivalence_relaxed": list(self.relaxations),
@@ -255,17 +283,18 @@ class Verification:
                 {
                     "label": case.label,
                     "repeats": case.repeats,
-                    "energy_saved_pct": round(case.energy_saved_pct, 2),
-                    "energy_ci_pct": round(case.energy_ci_pct, 2),
-                    "significant": case.significant,
                     "reps": case.reps,
                     "clamped": case.clamped,
+                    "before_energy_j": round(case.before_energy_j, 4),
+                    "after_energy_j": round(case.after_energy_j, 4),
+                    "before_time_s": round(case.baseline_window_s, 4),
+                    "after_time_s": round(case.patched_window_s, 4),
+                    "before_power_w": round(case.baseline_power_w, 2),
+                    "after_power_w": round(case.patched_power_w, 2),
                     "before_s_per_call": case.before_spc,
                     "after_s_per_call": case.after_spc,
-                    "before_window_s": round(case.baseline_window_s, 3),
-                    "after_window_s": round(case.patched_window_s, 3),
-                    "baseline_power_w": round(case.baseline_power_w, 2),
-                    "patched_power_w": round(case.patched_power_w, 2),
+                    "energy_ci_pct": round(case.energy_ci_pct, 2),
+                    "significant": case.significant,
                 }
                 for case in self.per_case
             ],
@@ -331,8 +360,6 @@ def verify(
             f"  after {_duration(outcome.after_spc):>10}/call"
             f"  ->  {outcome.repeats:,} repeats{note}")
 
-    result.deciding_case = max(result.per_case, key=lambda c: c.seconds_per_call).label
-
     log(f"\nmeasurement  ({reps} paired reps, ~{window:g}s windows)")
     for case, outcome in zip(case_file.cases, result.per_case):
         comparison = compare_case(
@@ -349,6 +376,16 @@ def verify(
             f"+-{outcome.energy_ci_pct:.2f}%   "
             f"{'significant' if outcome.significant else 'not significant':<15}"
             f"time {outcome.time_saved_pct:+.2f}% +-{outcome.time_ci_pct:.2f}%")
+
+    # The deciding case is the one that costs the most *energy* to run, which
+    # is the question being asked. It used to be the one with the slowest call,
+    # which let a stopwatch pick the case an energy verdict was written about.
+    # This has to happen after measurement, because energy is not known before.
+    result.deciding_case = max(
+        result.per_case, key=lambda c: c.before_energy_per_call
+    ).label
+    log(f"  deciding case: {result.deciding_case!r} "
+        f"(highest energy per call of the {len(result.per_case)} measured)")
 
     if canary:
         deciding = result.deciding
@@ -375,23 +412,23 @@ def _log_scale_note(result: Verification, log) -> None:
     invites the reader to reject a good repair, so print both.
     """
     deciding = result.deciding
-    if deciding is None or deciding.before_s_per_call <= 0:
+    if deciding is None or deciding.before_energy_per_call <= 0:
         return
-    threshold = deciding.before_s_per_call * REGRESSION_TOLERANCE_PCT / 100.0
+    threshold = deciding.before_energy_per_call * REGRESSION_TOLERANCE_PCT / 100.0
     negligible = [
         case for case in result.per_case
         if case is not deciding
         and case.significant
         and case.energy_saved_pct < 0
-        and 0 < case.excess_s_per_call <= threshold
+        and 0 < case.excess_energy_per_call <= threshold
     ]
     if not negligible:
         return
     log("\nscale note")
     for case in negligible:
         log(f"  {case.label:<12} reads as {case.energy_saved_pct:+.0f}%, but that is "
-            f"{_duration(case.excess_s_per_call)}/call against "
-            f"{_duration(deciding.before_s_per_call)} on {deciding.label!r}. "
+            f"{case.excess_energy_per_call:.3g} J/call against "
+            f"{deciding.before_energy_per_call:.3g} J on {deciding.label!r}. "
             f"Not disqualifying.")
 
 
@@ -412,14 +449,14 @@ def _harmful_cases(result: Verification, deciding: CaseOutcome) -> list[CaseOutc
     loss sink the whole verdict, which is contamination deciding the answer in
     one direction only.
     """
-    if deciding.before_s_per_call <= 0:
+    if deciding.before_energy_per_call <= 0:
         return []
-    threshold = deciding.before_s_per_call * REGRESSION_TOLERANCE_PCT / 100.0
+    threshold = deciding.before_energy_per_call * REGRESSION_TOLERANCE_PCT / 100.0
     return [
         case for case in result.per_case
         if case.significant
         and case.energy_saved_pct < 0
-        and case.excess_s_per_call > threshold
+        and case.excess_energy_per_call > threshold
         and abs(case.energy_saved_pct) > result.noise_floor_pct
     ]
 
@@ -510,11 +547,6 @@ def _confirmed_reason(result: Verification, helped: list[CaseOutcome]) -> str:
             " Behaviour was compared under a relaxed rule, which the report "
             "must repeat: " + "; ".join(result.relaxations) + "."
         )
-    if best.energy_only:
-        reason += (
-            " Energy improved while wall-clock time did not -- an "
-            "energy-specific effect worth calling out in the report."
-        )
     return reason
 
 
@@ -523,7 +555,7 @@ def _mixed_reason(
 ) -> str:
     """A trade-off: real on both sides, so the report needs both named."""
     best = max(helped, key=lambda c: c.energy_saved_pct)
-    worst = max(hurt, key=lambda c: c.excess_s_per_call)
+    worst = max(hurt, key=lambda c: c.excess_energy_per_call)
     return (
         f"a trade-off, not a fix: {best.energy_saved_pct:.1f}% saved on "
         f"{best.label!r} but {abs(worst.energy_saved_pct):.1f}% lost on "
@@ -535,7 +567,7 @@ def _mixed_reason(
 
 def _regressed_reason(result: Verification, hurt: list[CaseOutcome]) -> str:
     """Worse everywhere it measurably moved."""
-    worst = max(hurt, key=lambda c: c.excess_s_per_call)
+    worst = max(hurt, key=lambda c: c.excess_energy_per_call)
     labels = ", ".join(repr(c.label) for c in hurt)
     return (
         f"the repair costs more than the code it replaces: "
