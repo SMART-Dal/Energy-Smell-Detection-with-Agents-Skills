@@ -170,7 +170,7 @@
     The single most over-applied label in the taxonomy.  The discipline that
     prevents it is naming both algorithms.  "It has nested loops" is not this
     root cause; "it is a linear scan where binary search applies" is.
-  similar: [C3.S4, C5.S1, C7.S2, C10.S1]
+  similar: [C3.S4, C5.S1, C7.S2, C7.S5, C9.S4]
 
 - id: C7.S2
   signals: [recursion_without_memo]
@@ -332,7 +332,7 @@
   min_workload_hint: >
     the input must be large enough for the exponent to show; for a memoisation
     case that usually means an input where the naive version is visibly slow
-  similar: [C3.S6, C7.S1, C8.S1]
+  similar: [C3.S5, C7.S1, C7.S3, C8.S1]
 
 - id: C7.S3
   signals: [linear_recursion]
@@ -675,4 +675,4 @@
   min_workload_hint: >
     when the simplification removes per-element work, size on the element count;
     when it removes a whole stage, almost any realistic input shows it
-  similar: [C1.S5, C4.S2, C4.S7, C7.S4]
+  similar: [C7.S1, C7.S4, C10.S2]

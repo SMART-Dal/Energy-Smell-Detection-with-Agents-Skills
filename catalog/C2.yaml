@@ -142,7 +142,7 @@
     it this root cause is indistinguishable from ordinary good design.  A wrapper
     on a cold path is not a smell at any size, however plainly the pattern is
     present.
-  similar: [C2.S2, C2.S3, C8.S3, C10.S6]
+  similar: [C2.S2, C2.S3]
 
 - id: C2.S2
   signals: [method_ignores_self]
@@ -262,7 +262,7 @@
     any finding here as requiring measurement rather than as following from the
     mechanism, and if it comes back refuted, that is a result about the taxonomy
     worth recording rather than a failed analysis.
-  similar: [C2.S1, C5.S3]
+  similar: [C2.S1, C2.S3]
 
 - id: C2.S3
   signals: [self_delegation_chain]
@@ -396,4 +396,4 @@
     several separate observations rather than as one fact.  Recognising it means
     following the path from the loop to the work and counting -- which is what
     step 2 asks for, and why the procedure insists on reading callees.
-  similar: [C2.S1, C3.S1, C7.S3]
+  similar: [C2.S1, C2.S2, C7.S3]

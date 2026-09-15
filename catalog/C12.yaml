@@ -157,7 +157,7 @@
     cache-misses,LLC-load-misses` on the two variants, because the energy
     difference is DRAM traffic.  This is the only category where those counters
     measure the program rather than the interpreter.
-  similar: [C3.S4, C10.S3, C12.S2]
+  similar: [C12.S2, C12.S4]
 
 - id: C12.S2
   in_one_line: >
@@ -256,7 +256,7 @@
   min_workload_hint: >
     the buffer must be far larger than last-level cache, and the indices must be
     reused or the per-index work substantial, or the sort dominates
-  similar: [C6.S4, C12.S1]
+  similar: [C5.S3, C6.S4, C12.S1, C12.S4]
 
 - id: C12.S3
   in_one_line: >
@@ -390,7 +390,7 @@
     reading interpreted Python, the correct answer is that C12.S3 does not apply
     -- and if a vectorised rewrite happens to save energy, report it under the
     root cause that describes what actually changed.
-  similar: [C4.S3, C10.S3, C12.S4]
+  similar: [C4.S1, C4.S3]
 
 - id: C12.S4
   in_one_line: >
@@ -488,4 +488,4 @@
     exception worth knowing: the padding form is not a measurement claim but an
     arithmetic one, and `ctypes.sizeof` before and after settles it exactly.
     Quote those two numbers instead of an energy figure.
-  similar: [C5.S3, C12.S3]
+  similar: [C5.S3, C12.S1, C12.S2]

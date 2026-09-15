@@ -164,7 +164,7 @@
     measurement and say so, or to report the operations avoided as a count and
     leave the energy claim unmade.  A counted claim honestly stated is worth more
     than a measured one built on an invented constant.
-  similar: [C3.S3, C6.S6, C8.S4, C9.S3]
+  similar: [C8.S4, C9.S2, C9.S3, C10.S3, C11.S5]
 
 - id: C9.S2
   signals: []
@@ -272,7 +272,7 @@
   min_workload_hint: >
     the effect is proportional to the bytes and objects avoided, so the case needs
     realistically wide rows or large payloads; a two-column table shows nothing
-  similar: [C3.S6, C6.S3, C9.S1]
+  similar: [C6.S3, C9.S1, C9.S4]
 
 - id: C9.S3
   signals: [io_call_in_loop]
@@ -397,7 +397,7 @@
   min_workload_hint: >
     the effect is N avoided round trips, so scale on N; the stub's per-call cost
     has to be defensible, since it is what the whole figure rests on
-  similar: [C3.S4, C8.S4, C9.S1]
+  similar: [C3.S4, C8.S4, C9.S1, C9.S4]
 
 - id: C9.S4
   in_one_line: >
@@ -512,4 +512,4 @@
     the query's measured execution time.  A finding here that quotes a local
     energy figure is quoting the wrong number -- and an honest report of a
     hundred-million-row Cartesian product needs no energy figure to be convincing.
-  similar: [C7.S1, C9.S1, C9.S2]
+  similar: [C7.S1, C9.S2, C9.S3]

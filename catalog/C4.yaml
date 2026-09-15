@@ -99,7 +99,7 @@
     the driver must supply inputs where the cheap test actually short-circuits;
     with data that always reaches the expensive operand the repair correctly
     measures as nothing
-  similar: [C4.S2, C4.S7, C7.S4]
+  similar: [C4.S6, C4.S7, C4.S8, C7.S4, C12.S3]
 
 - id: C4.S2
   in_one_line: >
@@ -268,7 +268,7 @@
     `floor <= ceil`, `abs(x) >= 0`, an `elif` restating a negation, and four
     range branches collapsing to `low <= x <= high`.  None is findable
     syntactically, and every one is ordinary code somebody wrote on purpose.
-  similar: [C1.S3, C1.S4, C4.S7, C7.S5]
+  similar: [C1.S3, C4.S4, C4.S5]
 
 - id: C4.S3
   signals: [deep_conditional_nesting]
@@ -383,7 +383,7 @@
     evaluates the same tests in the same number.  Report it, and expect advisory
     rather than verified unless the guarded work is in a hot loop.  The
     dispatch-table form is the measurable one.
-  similar: [C4.S4, C10.S1]
+  similar: [C4.S4, C5.S1, C12.S3]
 
 - id: C4.S4
   signals: [independent_exclusive_ifs]
@@ -502,7 +502,7 @@
   min_workload_hint: >
     needs many evaluations and enough arms for the skipped tests to add up; the
     driver's data should sometimes match early and sometimes late
-  similar: [C1.S3, C4.S3]
+  similar: [C1.S3, C4.S2, C4.S3]
 
 - id: C4.S5
   signals: []
@@ -610,7 +610,7 @@
     pointer compare.  The style preference for `isinstance` is about *semantics*
     -- it accepts subclasses -- and it is not an energy improvement.  Do not
     report a change from `type(x) ==` to `isinstance` as a saving.
-  similar: [C3.S2, C10.S2]
+  similar: [C3.S2, C4.S2, C10.S2]
 
 - id: C4.S6
   signals: [try_except_in_loop]
@@ -722,7 +722,7 @@
     root cause cannot be confirmed without a driver whose inputs raise at a
     realistic rate.  A case file that never raises is measuring the wrong thing
     rather than refuting the claim.
-  similar: [C3.S3, C4.S7]
+  similar: [C4.S1, C4.S7]
 
 - id: C4.S7
   in_one_line: >
@@ -831,7 +831,7 @@
     the driver must supply the degenerate inputs at a rate you can defend, and
     the normal inputs too, so that the test the guard adds to every call is
     charged against the saving
-  similar: [C3.S5, C4.S2, C7.S5]
+  similar: [C1.S6, C4.S1, C4.S6]
 
 - id: C4.S8
   signals: [ruff_SIM401, ruff_SIM118]
@@ -928,4 +928,4 @@
     not manufacture a case file that measures a difference nobody will ever
     observe -- a claim measured badly is worse than a claim reported as
     unmeasured.
-  similar: [C4.S2, C10.S2]
+  similar: [C4.S1, C10.S2]

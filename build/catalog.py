@@ -366,6 +366,15 @@ def load_catalog(strict: bool = True) -> Catalog:
     return catalog
 
 
+MAX_SIMILAR = 5
+"""How many `similar` entries one card may end up with after mirroring.
+
+A cross-reference list is for getting the reader to the two or three cards they
+might have wanted instead; past five it stops ranking anything and becomes a
+second table of contents.
+"""
+
+
 def _validate(catalog: Catalog, *, strict: bool) -> None:
     taxonomy = load_taxonomy("python")
     known = set(taxonomy.root_cause_ids)
@@ -382,6 +391,19 @@ def _validate(catalog: Catalog, *, strict: bool) -> None:
             problems.append(f"{entry.id} has no what_to_look_for")
         if entry.id in entry.similar:
             problems.append(f"{entry.id} lists itself as similar")
+        if len(entry.similar) > MAX_SIMILAR:
+            # Checked after `_mirrored`, which is the only place this can be
+            # exceeded without anyone noticing: the YAML shows a card's
+            # hand-written half, and the back-links completed from other cards
+            # do not appear next to it. Thirteen cards once rendered with more
+            # than five neighbours that way, one with nine, none of which was
+            # visible in the file anyone would have looked at.
+            problems.append(
+                f"{entry.id} has {len(entry.similar)} similar entries, over the "
+                f"cap of {MAX_SIMILAR}: {list(entry.similar)}. Some of them are "
+                f"back-links from cards that name it; drop the weakest edge at "
+                f"whichever end it is written."
+            )
         for target in entry.similar:
             if target not in known:
                 problems.append(f"{entry.id} points at unknown root cause {target}")

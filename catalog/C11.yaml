@@ -133,7 +133,7 @@
     Interpret a small effect cautiously here, and prefer to report the structural
     argument -- what was serialised and no longer is -- alongside whatever the
     meter says.
-  similar: [C3.S3, C11.S2]
+  similar: [C11.S2, C11.S4]
 
 - id: C11.S2
   in_one_line: >
@@ -238,7 +238,7 @@
     the case needs enough workers and enough per-task work for the serial fraction
     to bite; report energy and time separately, since removing pointless
     concurrency can cut energy substantially while barely moving wall time
-  similar: [C9.S1, C11.S1, C11.S5]
+  similar: [C11.S1, C11.S4, C11.S5]
 
 - id: C11.S3
   signals: []
@@ -362,7 +362,7 @@
     profiling session both read as leaked threads, and any `.join()` in the unit
     -- `",".join(parts)` included -- silenced it.  Worse, all three shapes above
     join their threads, so the shape it looked for is not the shape that pays.
-  similar: [C6.S6, C11.S5]
+  similar: [C6.S4, C6.S6]
 
 - id: C11.S4
   signals: [blocking_call_in_async]
@@ -510,7 +510,7 @@
     with little energy change if the loop was mostly idle.  Report both numbers and
     say which one moved; the divergence is the interesting finding, not a
     complication.
-  similar: [C9.S1, C11.S5]
+  similar: [C11.S1, C11.S2, C11.S5]
 
 - id: C11.S5
   in_one_line: >
@@ -637,4 +637,4 @@
     faithfully is more valuable than finding a saving: it is direct evidence for
     the claim that energy is not time, which is one of the things this taxonomy
     exists to test.
-  similar: [C9.S1, C10.S3, C11.S2, C11.S3, C11.S4]
+  similar: [C9.S1, C10.S3, C11.S2, C11.S4]

@@ -129,7 +129,7 @@
     pipeline consumed once by `sum`, because generator resumption costs more per
     element than the allocation saves at that size.  Neither construct is
     categorically better; see C10.S2 and C6.S3.
-  similar: [C3.S2, C10.S1, C10.S3]
+  similar: [C10.S1, C10.S3]
 
 - id: C3.S2
   signals: [loop_invariant_expression]
@@ -285,7 +285,7 @@
   min_workload_hint: >
     the saving is (iterations - 1) times the expression's own cost, so size the
     case on both -- a heavy invariant needs fewer iterations to show
-  similar: [C1.S4, C3.S3, C8.S2]
+  similar: [C1.S4, C3.S3, C4.S5, C8.S3, C10.S5]
 
 - id: C3.S3
   signals: [regex_in_loop]
@@ -416,7 +416,7 @@
   min_workload_hint: >
     scale by what is created rather than by the loop length; a per-iteration
     `open` shows at hundreds of iterations, a per-iteration `[]` needs millions
-  similar: [C3.S2, C6.S1, C8.S2]
+  similar: [C1.S8, C3.S2, C6.S1, C8.S2]
 
 - id: C3.S4
   signals: [membership_test_on_sequence]
@@ -532,7 +532,7 @@
   min_workload_hint: >
     both dimensions must be large; the effect is the gap between n*m and n+m, so
     a case with a small inner collection shows almost nothing
-  similar: [C5.S2, C7.S1, C7.S2]
+  similar: [C5.S1, C5.S2, C7.S1, C9.S3]
 
 - id: C3.S5
   signals: [missing_early_exit]
@@ -634,7 +634,7 @@
   min_workload_hint: >
     the driver's data decides everything: the answer must arrive early on the
     large case, and the case file should say why that is representative
-  similar: [C3.S6, C4.S7, C10.S1]
+  similar: [C3.S6, C7.S2]
 
 - id: C3.S6
   signals: [ruff_RUF015]
@@ -745,7 +745,7 @@
     the same waste in the opposite direction.  `Counter(values)` followed by a
     filter to odd keys tallies every even value for nothing, and a hand loop that
     skips them beats it.  Reducing first applies to primitives too.
-  similar: [C3.S5, C7.S4, C9.S2]
+  similar: [C1.S5, C3.S5, C6.S3, C7.S4]
 
 - id: C3.S7
   signals: [mutation_during_iteration]
@@ -848,4 +848,4 @@
     correctness finding with an energy consequence, measured on a variant that
     fixes the skip in both arms, so that the measurement isolates the quadratic
     removal rather than the bug.
-  similar: [C6.S2, C7.S1]
+  similar: [C6.S2]

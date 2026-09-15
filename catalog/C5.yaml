@@ -133,7 +133,7 @@
   min_workload_hint: >
     both the collection and the number of operations must be large; a
     three-element list beats a set, and one lookup never repays building one
-  similar: [C3.S4, C5.S2, C5.S3]
+  similar: [C3.S4, C4.S3, C5.S2, C5.S3, C7.S1]
 
 - id: C5.S2
   in_one_line: >
@@ -370,7 +370,7 @@
   min_workload_hint: >
     needs many instances alive at once, or many operations, before a
     per-instance or per-operation saving is visible
-  similar: [C5.S1, C6.S1]
+  similar: [C5.S1, C5.S4, C6.S4, C12.S2, C12.S4]
 
 - id: C5.S4
   signals: [redundant_materialisation, ruff_C411, ruff_C414, ruff_C416, ruff_PERF101]
@@ -485,4 +485,4 @@
           together. The repair spans two units -- say which ones in the finding.
   patch_shape: expression
   measurability: scales_with_input
-  similar: [C1.S4, C6.S3]
+  similar: [C5.S3, C6.S1, C6.S2]

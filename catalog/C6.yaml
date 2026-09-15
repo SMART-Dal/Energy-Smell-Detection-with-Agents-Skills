@@ -132,7 +132,7 @@
   min_workload_hint: >
     tens of thousands of objects at least; the cost is per allocation, not per
     byte, so many small objects beat one large one for showing an effect
-  similar: [C3.S3, C5.S3, C6.S3]
+  similar: [C3.S3, C5.S4, C6.S2, C10.S4, C10.S6]
 
 - id: C6.S2
   signals:
@@ -247,7 +247,7 @@
     than about the function, so the finding has to say which call sites were
     checked, and the case file has to declare the relaxation rather than let the
     difference pass unnoticed.
-  similar: [C5.S4, C6.S3, C10.S3]
+  similar: [C3.S7, C5.S4, C6.S1, C6.S3]
 
 - id: C6.S3
   # `redundant_materialisation` also names C5.S4: `list(g)` fed to a lazy
@@ -378,7 +378,7 @@
     stated -- laziness buys allocation and peak memory and costs per-element
     resumption -- so what this card asks is which side dominates in the code in
     front of you.
-  similar: [C3.S5, C5.S4, C6.S1]
+  similar: [C3.S6, C6.S2, C9.S2]
 
 - id: C6.S4
   in_one_line: >
@@ -496,7 +496,7 @@
     *and* the retained volume -- "N objects held for the process lifetime where N
     identifiers would do" -- because the second is the part the measurement
     cannot reach.
-  similar: [C5.S3, C6.S5, C8.S1]
+  similar: [C5.S3, C6.S5, C6.S7, C11.S3, C12.S2]
 
 - id: C6.S5
   in_one_line: >
@@ -601,7 +601,7 @@
     classification.  Footprint is still the part a paired comparison cannot see,
     so an over-allocation that happens once at start-up remains a finding
     reported with the two sizes and no number.
-  similar: [C6.S1, C6.S4]
+  similar: [C1.S6, C6.S4]
 
 - id: C6.S6
   signals: [unmanaged_resource, ruff_SIM115]
@@ -705,7 +705,7 @@
     comparison measures nothing and refuting it would be the wrong conclusion --
     the claim is about what happens on the failure path and at scale, which the
     harness does not exercise.
-  similar: [C3.S3, C9.S1]
+  similar: [C6.S7, C11.S3]
 
 - id: C6.S7
   signals: [mutable_default_argument, ruff_B006]
@@ -806,4 +806,4 @@
     correctly and differ only in how they get there.  The honest presentation is
     a correctness finding whose energy consequence is unbounded growth, with the
     growth rate stated rather than an energy figure.
-  similar: [C6.S4, C8.S1]
+  similar: [C6.S4, C6.S6]

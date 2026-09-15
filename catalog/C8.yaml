@@ -160,7 +160,7 @@
     the driver must call the unit many times with *repeating* arguments at a ratio
     you can defend; a driver with all-distinct arguments measures the regression
     rather than the saving, and is measuring the wrong thing
-  similar: [C1.S4, C5.S2, C6.S4, C7.S2]
+  similar: [C1.S4, C5.S2, C7.S2, C8.S2, C8.S4]
 
 - id: C8.S2
   signals: [regex_in_loop]
@@ -278,7 +278,7 @@
   min_workload_hint: >
     many calls over small inputs; the saving is one derivation per call avoided,
     so a case that calls the unit once measures nothing whatever the input size
-  similar: [C3.S3, C8.S1, C10.S2]
+  similar: [C1.S4, C3.S3, C8.S1]
 
 - id: C8.S3
   signals: [repeated_lookup_in_loop]
@@ -384,7 +384,7 @@
   min_workload_hint: >
     hundreds of thousands of iterations at least; each saved lookup is tens of
     nanoseconds, so below that report it as advisory
-  similar: [C2.S1, C3.S2, C10.S5]
+  similar: [C3.S2, C10.S5]
 
 - id: C8.S4
   signals: [io_call_in_loop]
@@ -500,4 +500,4 @@
     to stub at a cost you can justify from an observed latency and to state that
     figure in the finding, or to report the round trips avoided as a count rather
     than as an energy figure.
-  similar: [C6.S4, C8.S1, C9.S1, C9.S3]
+  similar: [C8.S1, C9.S1, C9.S3]

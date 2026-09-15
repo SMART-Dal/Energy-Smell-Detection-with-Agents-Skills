@@ -182,7 +182,7 @@
     The discipline that stops it here is to say what the
     primitive would touch that the loop did not.  If the answer is "nothing", the
     candidate is good; if it is "most of the data", the loop was right.
-  similar: [C3.S5, C7.S1, C10.S2, C10.S3]
+  similar: [C3.S1, C10.S2, C10.S3, C10.S6]
 
 - id: C10.S2
   signals: [ruff_C417, ruff_SIM118, ruff_SIM401]
@@ -314,7 +314,7 @@
   min_workload_hint: >
     the effect is a fixed amount per call, so the driver must call the unit many
     times over small inputs rather than once over a large one
-  similar: [C4.S8, C8.S2, C10.S1]
+  similar: [C4.S5, C4.S8, C7.S5, C10.S1, C10.S6]
 
 - id: C10.S3
   signals: [append_only_loop, ruff_PERF401, ruff_PERF402]
@@ -429,7 +429,7 @@
   min_workload_hint: >
     hundreds of elements upward; the saving is a call's worth of overhead per
     element
-  similar: [C3.S1, C6.S2, C10.S1, C11.S5, C12.S1, C12.S3]
+  similar: [C3.S1, C9.S1, C10.S1, C10.S4, C11.S5]
 
 - id: C10.S4
   signals: [string_concat_in_loop]
@@ -774,4 +774,4 @@
   min_workload_hint: >
     thousands of iterations; each dispatch-plus-allocation is worth hundreds of
     nanoseconds
-  similar: [C2.S1, C5.S3, C6.S1]
+  similar: [C6.S1, C10.S1, C10.S2]

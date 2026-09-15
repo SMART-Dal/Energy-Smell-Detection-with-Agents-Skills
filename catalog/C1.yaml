@@ -115,7 +115,7 @@
     saving in a whole analysis.  An unread local is easy to spot and usually the
     trivial kind, so treat noticing one as a prompt to look at what its right-hand
     side costs rather than as a finding in itself.
-  similar: [C1.S2, C1.S5, C1.S7]
+  similar: [C1.S2, C1.S3, C1.S5, C1.S7]
 
 - id: C1.S2
   signals: [ruff_PLW2901]
@@ -221,7 +221,7 @@
     *call* is not free, and `.strip()` or `.lower()` on an already-normalised
     string still scans it, which scales with the string rather than with the
     call count.
-  similar: [C1.S1, C1.S4]
+  similar: [C1.S1, C1.S4, C1.S7]
 
 - id: C1.S3
   signals: [redundant_bool_branch]
@@ -322,7 +322,7 @@
     floor, collapsing `if c: return True else: return False` into `return c` in
     a per-element helper.  The card had called it unmeasurable; the measurement
     says otherwise, and the card was wrong.
-  similar: [C1.S5, C4.S2, C4.S4]
+  similar: [C1.S1, C4.S2, C4.S4]
 
 - id: C1.S4
   signals: [repeated_pure_call]
@@ -416,7 +416,7 @@
   min_workload_hint: >
     the effect is one evaluation per call, so size on the call count and on what
     the expression costs; a repeated `len()` needs millions of calls to show
-  similar: [C1.S2, C3.S2, C8.S1]
+  similar: [C1.S2, C3.S2, C8.S1, C8.S2]
 
 - id: C1.S5
   signals: [discarded_pure_result]
@@ -523,7 +523,7 @@
     intermediate *nobody needed*, and it is invisible line by line: each statement
     looks purposeful and the redundancy is in the relationship between them.  That
     is what makes this a reading finding rather than a rule finding.
-  similar: [C1.S1, C3.S5, C7.S5]
+  similar: [C1.S1, C1.S6, C1.S8, C3.S6]
 
 - id: C1.S6
   signals: [dead_initialization]
@@ -634,7 +634,7 @@
     the driver must call the unit many times with the *common* argument values, so
     that the calls which skip the setup dominate; a driver that always takes the
     using path measures nothing
-  similar: [C1.S1, C4.S7, C6.S1]
+  similar: [C1.S5, C4.S7, C6.S5]
 
 - id: C1.S7
   signals: [single_use_temporary]
@@ -734,7 +734,7 @@
     for the larger repair it is a symptom of: an explicit `append` loop that
     should be a comprehension, or a value that should not be computed per
     iteration at all.
-  similar: [C1.S1, C3.S1]
+  similar: [C1.S1, C1.S2]
 
 - id: C1.S8
   signals: [runtime_management_in_loop]
@@ -824,4 +824,4 @@
     for `gc.collect` the effect scales with the live heap as well as the call
     count, so the case needs a realistic amount of tracked data alive; for logging
     the level must be disabled, as it is in production
-  similar: [C1.S5, C3.S3, C6.S4]
+  similar: [C1.S5, C3.S3]
