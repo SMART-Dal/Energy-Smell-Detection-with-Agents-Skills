@@ -48,7 +48,25 @@ LAZY_CONSUMERS = frozenset({"sum", "any", "all", "min", "max", "sorted", "set",
 calls `PySequence_Fast`, which hands back a list unchanged and materialises
 anything else, so `"".join(list(gen))` and `"".join(gen)` build exactly one list
 either way: 0.1928 ms against 0.1927 ms over 2000 elements. There is no
-allocation to remove, and the rule was claiming one."""
+allocation to remove, and the rule was claiming one.
+
+`sorted`, `set`, `tuple`, `frozenset` and `dict` *are* in the set, and stay in
+it, though they build a container of their own.  The argument for removing them
+-- that they materialise anyway, so the `list()` is free -- does not survive
+being run.  Building the container from a generator allocates once; building it
+from a list allocates twice and copies.  Over 2000 elements, deleting the
+`list()` call measured:
+
+    set       0.1321 -> 0.0979 ms   +25.9%
+    dict      0.1179 -> 0.1084 ms    +8.1%
+    sum       0.0818 -> 0.0753 ms    +7.9%
+    sorted    0.1039 -> 0.0987 ms    +5.1%
+    tuple     0.0794 -> 0.0757 ms    +4.7%
+
+Deleting a `list()` call is a real saving for all of them, which is why this
+set is wider than `STREAMING_CONSUMERS`.  Replacing a list *comprehension* with
+a generator in front of them is the claim that does not hold, and that is the
+narrower set's job."""
 
 VARIADIC_ITERABLES = frozenset({"zip"})
 """Consumers that iterate *every* positional argument, so any of them counts."""

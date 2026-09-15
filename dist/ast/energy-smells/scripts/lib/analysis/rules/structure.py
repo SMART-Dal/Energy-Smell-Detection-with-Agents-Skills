@@ -292,10 +292,19 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
                 unit, "expensive_operand_first", node, ("C4.S1",),
                 f"`{ast.unparse(operand)}` calls a function before the cheaper "
                 f"test `{ast.unparse(cheaper[0])}`, so short-circuiting cannot "
-                f"skip the call",
+                f"skip the call; swapping them is only safe if the call has no "
+                f"effect the later operand depends on",
                 expensive=ast.unparse(operand), cheap=ast.unparse(cheaper[0]),
             )
             break
+
+
+# Reordering operands is behaviour-preserving only when the promoted operand
+# does not depend on the demoted one.  `if initialize() and CONFIG.ready:` is
+# the counter-example: promoting `CONFIG.ready` reads it before the call that
+# sets it.  Walrus bindings are the one form of that dependency a parser can
+# see, and the rule enforces those; everything else is invisible to it, so the
+# message names the precondition instead of pretending it was checked.
 
 
 def _supplies_a_default(node: ast.BoolOp, scope: ast.AST) -> bool:
@@ -672,8 +681,19 @@ def _has_cache_decorator(node: ast.AST) -> bool:
 def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """The same pure call appearing more than once outside any loop.
 
-    Within a loop this is C3.S2 and the loop analyzer already reports it, so
+    Inside anything that repeats this is C3.S2 and the loop analyzer owns it, so
     this rule deliberately looks only at straight-line code (C1.S4).
+
+    "Repeats" is `ctx.repeats`, not `ctx.in_loop`.  `in_loop` sees `for` and
+    `while` and not comprehensions, so the same call written three times in a
+    comprehension used to arrive here and be reported as straight-line
+    redundancy "with nothing changing in between" -- which is the wrong
+    subcategory for work that runs once per element, and the wrong advice,
+    since there is no straight line to hoist it into.
+
+    Calls inside a nested `def` are not counted either.  One occurrence in the
+    body plus two in a closure is not the same expression computed three times
+    in one scope; the closure's two run whenever it is called.
 
     Two things disqualify a repeat.  A call that writes somewhere -- `print`,
     a logger -- is not a value to compute once and reuse; the second call is
@@ -683,8 +703,8 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     real code and none of it was a finding.
     """
     seen: dict[str, list[ast.Call]] = {}
-    for node in ast.walk(ctx.node):
-        if not isinstance(node, ast.Call) or ctx.in_loop(node):
+    for node in ctx.own_nodes():
+        if not isinstance(node, ast.Call) or ctx.repeats(node):
             continue
         if not node.args or not _repeatable(node, ctx):
             continue

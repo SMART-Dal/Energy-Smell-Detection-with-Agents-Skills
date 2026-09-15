@@ -15,6 +15,7 @@ exposes `collect()`, which is how the engine reaches it without naming it.
 from __future__ import annotations
 
 import ast
+import collections
 from pathlib import Path
 
 from ..context import (
@@ -28,7 +29,22 @@ from . import loops, memory, structure, waste
 
 ALL_RULES = [*loops.RULES, *memory.RULES, *structure.RULES, *waste.RULES]
 
-__all__ = ["ALL_RULES", "collect", "loops", "memory", "structure", "waste"]
+RULE_ERRORS: collections.Counter = collections.Counter()
+"""How many units each analyzer crashed on, keyed by `(rule name, exception)`.
+
+An analyzer that raises is caught below so one brittle rule cannot abort a
+whole repo, and that is right -- but until this counter existed the catch was
+also silent, and a rule crashing on a third of the units it saw was
+indistinguishable in the output from a rule that looked and found nothing.
+Those are opposite facts, and a precision or recall figure computed over a
+scan that hid the difference is not a figure about the rule.
+
+Counts accumulate for the life of the process.  `scan.py` prints them to
+stderr when the run ends, so they land beside the report rather than in it.
+"""
+
+__all__ = ["ALL_RULES", "RULE_ERRORS", "collect", "loops", "memory",
+           "structure", "waste"]
 
 
 def collect(
@@ -68,8 +84,14 @@ def collect(
         for rule in ALL_RULES:
             try:
                 found.extend(rule(unit, context))
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 # One brittle analyzer must not abort the scan of a whole repo.
                 # Analyzers are heuristic by nature and meet strange code.
+                #
+                # Evidence already yielded before the raise is kept: `extend`
+                # appends as it consumes, so a rule that fails on its fifth
+                # yield still contributes its first four. Counting the failure
+                # is what was missing, not recovering the partial result.
+                RULE_ERRORS[(rule.__name__, type(exc).__name__)] += 1
                 continue
     return found

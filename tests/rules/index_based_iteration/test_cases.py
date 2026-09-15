@@ -35,8 +35,11 @@ def strip_in_place(items):
 
 
 def find_position(items, target):
-    # The index is the answer, so it cannot be dropped. `enumerate` is the
-    # repair here, not direct iteration.
+    # The index is the answer, so it cannot be dropped -- `enumerate` is the
+    # repair, not direct iteration. This was silent until the rule learned to
+    # say so: carrying the index out of the loop used to abandon the finding
+    # rather than change the advice, which left the shape C3.S1 names first as
+    # the one shape it never reported.
     for i in range(len(items)):
         if items[i] == target:
             return i

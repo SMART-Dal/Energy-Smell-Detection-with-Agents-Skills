@@ -204,12 +204,12 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                 loop_line=loop.lineno,
             )
         elif isinstance(target, ast.Name):
-            if _name_is_read_in(loop, target.id, skip=node):
+            if _name_is_retained_in(loop, target.id, skip=node):
                 yield _evidence(
                     unit, "string_concat_in_loop", node, ("C10.S4",),
                     f"`{target.id}` is grown by concatenation inside a loop and "
-                    f"is also read there, so a second reference exists and each "
-                    f"iteration copies the whole value",
+                    f"a reference to it is kept there, so it survives to the next "
+                    f"pass and each iteration copies the whole value",
                     accumulator=target.id, accumulator_kind="escaping",
                     loop_line=loop.lineno,
                 )
@@ -301,25 +301,69 @@ def _target_name(node: ast.AST) -> str:
     return "the accumulator"
 
 
-def _name_is_read_in(loop: ast.AST, name: str, skip: ast.AST | None = None) -> bool:
-    """Whether `name` is loaded anywhere in the loop, not just assigned to.
+RETAINING_METHODS = frozenset({"append", "appendleft", "add", "insert",
+                               "extend", "push", "put"})
+"""Methods that keep the object they are handed after they return."""
 
-    An augmented assignment stores to its target, so any *load* of the same
-    name inside the loop means a second reference is taken -- which is exactly
-    what stops CPython from resizing the string in place.
+
+def _name_is_retained_in(loop: ast.AST, name: str, skip: ast.AST | None = None) -> bool:
+    """Whether the loop keeps a reference to `name` that outlives the iteration.
+
+    This used to ask the much weaker question "is `name` read anywhere in the
+    loop", on the reasoning that any load takes a second reference and defeats
+    CPython's in-place resize.  Half of that is true: the resize happens only
+    when the string's refcount is 1 at the moment of the `+=`.  But a load on
+    another line holds its reference only while that expression is being
+    evaluated, and has dropped it again long before the next `+=`.
+
+    Measured on CPython 3.10, 20k against 40k iterations, wall clock:
+
+        out += p                                1.12 ->    2.09 ms   linear
+        out += p; if len(out) > N: ...          2.22 ->    4.48 ms   linear
+        out += p; noop(out)                     2.10 ->    4.11 ms   linear
+        out += p; other = out                  41.03 ->  266.77 ms   QUADRATIC
+        out += p; kept.append(out)            569.92 -> 2204.44 ms   QUADRATIC
+
+    So a bare read and an ordinary call argument stay linear, and the rule was
+    reporting both as "a second reference exists and each iteration copies the
+    whole value" -- a claim the machine disagrees with by a factor of 500.
+    What actually costs is a reference that is still alive on the next pass:
+    bound to another name, stored in a container, or yielded.
+
+    `noop(out)` and `kept.append(out)` are the same shape to a parser, so the
+    call case is split by method name rather than by what the callee does.  A
+    plain call is read as transient, which is right for `flush(out)` and wrong
+    for a callee that stores its argument.  That direction is the safe one to
+    be wrong in: it downgrades a finding to the branch that says the loop is
+    already linear, rather than asserting a copy that is not happening.
 
     `skip` excludes the accumulating statement itself, because `s = s + x`
-    reads `s` as part of the accumulation.  Counting that as an escaping
+    reads `s` as part of the accumulation.  Counting that as a retained
     reference would grade every long-form concatenation as aliased.
     """
     skipped = {id(node) for node in ast.walk(skip)} if skip is not None else set()
-    return any(
-        isinstance(node, ast.Name)
-        and node.id == name
-        and isinstance(node.ctx, ast.Load)
-        and id(node) not in skipped
-        for node in ast.walk(loop)
-    )
+
+    def reads_it(tree: ast.AST) -> bool:
+        return any(isinstance(n, ast.Name) and n.id == name
+                   and isinstance(n.ctx, ast.Load) and id(n) not in skipped
+                   for n in ast.walk(tree))
+
+    for node in ast.walk(loop):
+        if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+            # `other = out` -- the new binding outlives this pass.  A store back
+            # into the accumulator itself is the accumulation, not a reference.
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if reads_it(node.value) and not all(
+                    isinstance(tgt, ast.Name) and tgt.id == name for tgt in targets):
+                return True
+        elif isinstance(node, (ast.Yield, ast.YieldFrom)):
+            if node.value is not None and reads_it(node.value):
+                return True
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if node.func.attr in RETAINING_METHODS and any(
+                    reads_it(arg) for arg in node.args):
+                return True
+    return False
 
 
 def _looks_stringy(node: ast.AST) -> bool:
@@ -405,18 +449,39 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     prefix; a chain inside a loop nest was reported once per enclosing loop; and
     a chain the loop itself assigns to was reported even though the card's whole
     point is that a local binding has to stay valid.
+
+    The nest is walked innermost first, so a chain read only inside an inner
+    loop is reported against *that* loop.  Outermost first put the finding on
+    the outer loop and then said "resolved N times inside the loop" with the
+    inner loop's count, which understates it by however many times the inner
+    loop runs -- a true number attached to the wrong loop.  The repair is
+    unchanged either way, because a binding made above the inner loop is
+    re-made each outer pass and stays valid.
+
+    Reads inside a `def` or `lambda` written in the loop are not counted.  The
+    closure is built per pass but the chain is resolved whenever it is finally
+    called, which may be once, later, or never, so binding above the loop saves
+    nothing there.  `ctx.owns` covers the `def` half; `lambda` is not one of
+    `context.OPAQUE_NODES`, so its body is walked with the unit and has to be
+    excluded here.
     """
     reported_at: dict[int, set[str]] = {}
-    for loop in ctx.loops:
+    inner_first = sorted(ctx.loops, key=lambda l: -len(ctx.loops_around(l)))
+    for loop in inner_first:
         rewritten = ctx.assigned_names(loop)
         rebound = _rebound_chains(loop)
         covered = set().union(
-            *(reported_at.get(id(outer), set()) for outer in ctx.loops_around(loop)),
+            *(reported_at.get(id(inner), set())
+              for inner in ctx.loops if loop in ctx.loops_around(inner)),
             set(),
         )
+        deferred = {id(inner) for lam in ast.walk(loop)
+                    if isinstance(lam, ast.Lambda) for inner in ast.walk(lam)}
         seen: dict[str, list[ast.AST]] = {}
         for node in ast.walk(loop):
             if not isinstance(node, ast.Attribute) or not isinstance(node.ctx, ast.Load):
+                continue
+            if not ctx.owns(node) or id(node) in deferred:
                 continue
             chain = _attribute_chain(node)
             if chain is None or chain.count(".") < 1:
@@ -715,10 +780,17 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         for i in range(len(points)): d = points[i] - points[i - 1]
 
     A write-back cannot become `for item in items` -- rebinding the loop
-    variable does not touch the list.  An index that escapes needs `enumerate`.
-    A neighbour lookup needs the offset.  So every *read* of the index has to
-    be the entire slice of a Load subscript; anything else and the index is
-    doing work direct iteration cannot do.
+    variable does not touch the list.  A neighbour lookup needs the offset.
+    Those two still disqualify: a Store subscript, or the index inside any
+    arithmetic, and the rule declines.
+
+    An index that escapes needs `enumerate`, and that case is now reported
+    rather than dropped.  `for i in range(len(xs)): print(i, xs[i])` is the
+    textbook `enumerate` shape and C3.S1's own territory, but every use of the
+    index that was not a Load subscript used to abandon the whole loop, so the
+    commonest repair the card names was the one shape the rule stayed silent
+    on.  A use that merely passes the index along as a value -- to a call, a
+    return, a tuple, a comparison -- keeps the finding and changes the repair.
 
     Indexing a second sequence is not disqualifying, only differently
     repairable: `total += abs(first[i] - second[i])` is `zip(first, second)`,
@@ -737,6 +809,7 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
 
         indexed: set[str] = set()
         spent_elsewhere = False
+        carried = False
         for node in ast.walk(scope):
             if not (isinstance(node, ast.Name) and node.id == index
                     and isinstance(node.ctx, ast.Load)):
@@ -747,13 +820,24 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                     and isinstance(parent.ctx, ast.Load)):
                 indexed.add(ast.unparse(parent.value))
                 continue
-            spent_elsewhere = True
-            break
+            if isinstance(parent, (ast.Subscript, ast.BinOp, ast.UnaryOp)):
+                # A write-back through the index, or a neighbour offset.
+                # Neither survives direct iteration or `enumerate`.
+                spent_elsewhere = True
+                break
+            # The index is handed on as a plain value: `enumerate` supplies it.
+            carried = True
         if spent_elsewhere or not indexed:
             continue
 
         others = sorted(indexed - {sequence})
-        if others:
+        if carried and others:
+            repair = (f"`enumerate(zip({sequence}, {', '.join(others)}))` walks "
+                      f"them together and still hands back the index")
+        elif carried:
+            repair = (f"`enumerate({sequence})` hands back the index and the "
+                      f"item together, so the index costs no lookup")
+        elif others:
             repair = (f"`zip({sequence}, {', '.join(others)})` walks them "
                       f"together without an index")
         else:

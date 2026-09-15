@@ -11,6 +11,7 @@ CASES = Path(__file__).with_name("test_cases.py")
 EXPECTED = {
     "doubled": 1,          # the index exists only to subscript
     "absolute_gaps": 1,    # one index over two sequences; `zip` is the repair
+    "find_position": 1,    # the index is carried out of the loop; `enumerate`
     "matrix_diagonal": 1,  # the same shape inside a comprehension
 }
 

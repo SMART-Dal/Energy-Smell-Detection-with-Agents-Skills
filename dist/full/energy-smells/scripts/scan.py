@@ -72,6 +72,33 @@ mean over benchmark shapes -- and the ordering only has to be roughly right for
 the reader to start in a sensible place."""
 
 
+def _report_rule_errors() -> None:
+    """Say on stderr which analyzers crashed, and how often.
+
+    `rules.collect` catches an analyzer that raises so one brittle rule cannot
+    abort a whole repo, which is right, and used to do it silently, which was
+    not: a rule failing on a third of the units it saw looked exactly like a
+    rule that found nothing there. Anyone computing precision over the scan
+    would have been computing it over a rule that never ran.
+
+    Imported here rather than at module scope because the `ruff` arm ships this
+    file and withholds `lib/analysis/rules` -- a top-level import would turn a
+    missing analyzer family into a crashing one.
+    """
+    try:
+        from lib.analysis.rules import RULE_ERRORS
+    except ImportError:
+        return
+    if not RULE_ERRORS:
+        return
+    total = sum(RULE_ERRORS.values())
+    print(f"note: {total} analyzer failure(s) were caught and skipped; "
+          f"findings from those units are incomplete", file=sys.stderr)
+    for (rule, exception), count in sorted(RULE_ERRORS.items(),
+                                           key=lambda kv: -kv[1]):
+        print(f"  {rule} raised {exception} on {count} unit(s)", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="scan.py",
@@ -129,6 +156,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"note: skipping {name} -- {why}", file=sys.stderr)
 
     findings = analyse_path(args.path)
+    _report_rule_errors()
     table = load_signals()
 
     described = sorted(
