@@ -156,3 +156,32 @@ def score_batches_inline(batches, static_weights):
     # The same generator passed straight to a call, with no name to hoist to.
     for batch in batches:
         consume(batch, (w * 2 for w in static_weights))
+
+
+class Service:
+    def dispatch(self, rows):
+        # `self.log.debug(...)` mutates `self.log` and nothing else, so
+        # `len(self.limits)` is still invariant and still reportable. Tracking
+        # the mutation by its root name instead marked the whole of `self` as
+        # changed, and one logging call inside a loop was enough to hide every
+        # other `self.*` invariant in it -- which, in method-heavy code, is most
+        # loops the rule ever sees.
+        for row in rows:
+            self.log.debug(row)
+            if row.size > len(self.limits):
+                skip(row)
+
+    def touches_what_it_reads(self, rows):
+        # Quiet: the read reaches inside the thing that changed.
+        for row in rows:
+            self.log.debug(row)
+            if row.size > len(self.log.limits):
+                skip(row)
+
+    def rebuilds_itself(self, rows):
+        # Quiet: a method on `self` can touch anything under it, so the bare
+        # receiver still suppresses its whole subtree.
+        for row in rows:
+            self.reset()
+            if row.size > len(self.limits):
+                skip(row)

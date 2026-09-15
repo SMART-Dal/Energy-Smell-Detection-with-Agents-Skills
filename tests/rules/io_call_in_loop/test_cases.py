@@ -85,3 +85,25 @@ async def poll_each(worklist, session):
     # so a timeout should not silence the rule.
     for item in worklist:
         await asyncio.wait_for(session.get(item), timeout=1.0)
+
+
+def render_to_memory(rows):
+    # Quiet. `stream` is in IO_RECEIVERS and `write` is in AMBIGUOUS_IO_CALLS,
+    # so the name heuristic reports this as leaving the process -- but the unit
+    # binds it to `StringIO`, which never does. A binding the unit can see
+    # outranks the name; a parameter still falls back to the name, because
+    # nothing here can tell what was passed in.
+    import io
+    stream = io.StringIO()
+    for row in rows:
+        stream.write(row.text)
+    return stream.getvalue()
+
+
+def drain_a_local_queue(items):
+    # Quiet for the same reason: `pool` names a `queue.Queue`, not a connection
+    # pool.
+    import queue
+    pool = queue.Queue()
+    for item in items:
+        pool.get()

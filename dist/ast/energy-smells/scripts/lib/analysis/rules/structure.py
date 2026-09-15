@@ -1236,10 +1236,58 @@ def _is_io_receiver(node: ast.AST, ctx: UnitContext) -> bool:
         return _is_io_receiver(node.func, ctx)
     if not isinstance(node, ast.Name):
         return False
+    if _bound_to_something_in_memory(node.id, ctx):
+        return False
     if node.id.lower().lstrip("_") in IO_RECEIVERS:
         return True
     origin = ctx.imports.get(node.id, "")
     return origin.split(".")[0] in IO_MODULES
+
+
+IN_MEMORY_FACTORIES = frozenset({
+    "StringIO", "BytesIO", "Queue", "LifoQueue", "PriorityQueue", "SimpleQueue",
+    "deque", "defaultdict", "Counter", "OrderedDict", "list", "dict", "set",
+})
+"""Constructors whose result never leaves the process.
+
+`IO_RECEIVERS` matches on the *name* of the receiver, which is what makes the
+rule work at all -- there is no type information to match on -- and it is also
+what makes it wrong when the name is honest about the role and silent about the
+medium.  `stream`, `handle`, `pool`, `writer` and `file` are all in that set,
+and all of them are ordinary names for an in-memory object:
+
+    stream = io.StringIO()
+    for row in rows:
+        stream.write(row.text)     # reported as leaving the process
+
+    pool = queue.Queue()
+    for item in items:
+        pool.get()                 # same
+
+Neither is I/O and neither is C9.S1, which is about unbatched round trips.  A
+binding visible in the unit settles it, so when there is one, it wins over the
+name.
+"""
+
+
+def _bound_to_something_in_memory(name: str, ctx: UnitContext) -> bool:
+    """Whether the unit binds `name` from a constructor that stays in memory.
+
+    Only a binding this unit can see counts.  A parameter or an attribute is
+    left to the name heuristic, because nothing here can tell what was passed
+    in -- which is the right way round: this narrows a name match that would
+    otherwise be wrong, and never widens one.
+    """
+    for node in ctx.own_nodes():
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Call):
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+            continue
+        func = node.value.func
+        built = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+        if built in IN_MEMORY_FACTORIES:
+            return True
+    return False
 
 
 def lock_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:

@@ -71,7 +71,8 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
     the rule blind to the commonest way a loop is written in Python.
     """
     for scope in ctx.repeat_scopes:
-        rewritten = ctx.assigned_names(scope) | _mutated_names(scope)
+        rewritten = ctx.assigned_names(scope)
+        mutated = _mutated_paths(scope)
         reported: list[ast.AST] = []
         for node in ctx.per_iteration_nodes(scope):
             if not isinstance(node, REPORTABLE_INVARIANTS):
@@ -88,6 +89,8 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
             # because `i` is assigned somewhere inside it.
             free = ctx.read_names(node) - ctx.assigned_names(node)
             if free & rewritten:
+                continue
+            if _reads_mutated_path(ctx, node, mutated):
                 continue
             if any(_contains(outer, node) for outer in reported):
                 continue  # already covered by a larger invariant expression
@@ -116,34 +119,91 @@ def _is_trivial_call(call: ast.Call) -> bool:
     return not call.args and not call.keywords
 
 
-def _mutated_names(scope: ast.AST) -> set[str]:
-    """Names whose *contents* change inside `scope` without the name being rebound.
+def _mutated_paths(scope: ast.AST) -> set[str]:
+    """Receiver paths whose *contents* change inside `scope`, as written.
 
     `assigned_names` only sees rebinding, so a work-list traversal
     (`queue.extend(...)` under `while position < len(queue)`) and an in-place
     compaction (`del values[i]` under `while i < len(values)`) both left the
     length looking invariant.  Both are C3.S2 counter-examples where hoisting
     the call is a behaviour change, not an optimisation.
-    """
-    names: set[str] = set()
 
-    def base(node: ast.AST) -> str | None:
-        while isinstance(node, (ast.Subscript, ast.Attribute)):
-            node = node.value
-        return node.id if isinstance(node, ast.Name) else None
+    Paths, not root names.  This used to walk every receiver down to its root
+    `Name`, so `self.log.debug(row)` recorded `self` and suppressed every other
+    `self.*` expression in the loop -- `len(self.limits)`, `self.cfg.mode`, all
+    of it.  One logging call is enough to trigger that, and in method-heavy
+    code most loops contain one, so the rule was quietly declining to look at
+    the receiver it sees most often.
+
+    Recording `self.log` instead lets the caller ask whether the expression it
+    is about to report actually overlaps what changed.  A bare receiver still
+    records the bare name: `self.reset()` can touch anything under `self`, and
+    `queue.extend(...)` rebinds nothing but changes `queue` itself, so both
+    keep their whole subtree suppressed.  `repeated_lookup_in_loop` already
+    reasons about chains this way; this brings the two into line.
+    """
+    paths: set[str] = set()
+
+    def path_of(node: ast.AST) -> str | None:
+        while isinstance(node, ast.Subscript):
+            node = node.value          # `self.cache[k] = v` changes `self.cache`
+        if isinstance(node, (ast.Name, ast.Attribute)):
+            try:
+                return ast.unparse(node)
+            except Exception:          # pragma: no cover - unparse is total here
+                return None
+        return None
 
     for node in ast.walk(scope):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
             if node.func.attr not in PURE_METHODS:
-                names.add(base(node.func.value))
+                paths.add(path_of(node.func.value))
         elif isinstance(node, ast.Delete):
-            names.update(base(target) for target in node.targets)
+            paths.update(path_of(target) for target in node.targets)
         elif isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            names.update(base(t) for t in targets
+            paths.update(path_of(t) for t in targets
                          if isinstance(t, (ast.Subscript, ast.Attribute)))
-    names.discard(None)
-    return names
+    paths.discard(None)
+    return paths
+
+
+def _overlaps(read: str, mutated: str) -> bool:
+    """Whether reading `read` can observe a change made through `mutated`.
+
+    True when they are the same path, when the read reaches inside what
+    changed (`self.log.level` against `self.log`), and when the read is a
+    prefix of it (`self` against `self.log`) -- the last because handing the
+    whole object to something else exposes the part that moved.
+    """
+    return (read == mutated
+            or read.startswith(mutated + ".")
+            or mutated.startswith(read + "."))
+
+
+def _reads_mutated_path(ctx: UnitContext, node: ast.AST, mutated: set[str]) -> bool:
+    """Whether any receiver path `node` reads overlaps something `scope` changes.
+
+    Each `Name` load is grown outward into the longest attribute chain that is
+    still inside `node`, so `len(self.limits)` is tested as `self.limits`
+    rather than as `self`.
+    """
+    if not mutated:
+        return False
+    for sub in ast.walk(node):
+        if not (isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Load)):
+            continue
+        top = sub
+        while top is not node:
+            parent = ctx.parent_of(top)
+            if isinstance(parent, ast.Attribute) and parent.value is top:
+                top = parent
+            else:
+                break
+        read = ast.unparse(top)
+        if any(_overlaps(read, path) for path in mutated):
+            return True
+    return False
 
 
 def _contains(outer: ast.AST, inner: ast.AST) -> bool:
@@ -193,6 +253,19 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             continue
 
         loop = enclosing[-1]
+        if isinstance(value, ast.JoinedStr):
+            # No in-place path exists for an f-string, so the accumulator's
+            # reference count is irrelevant and every spelling is quadratic.
+            yield _evidence(
+                unit, "string_concat_in_loop", node, ("C10.S4",),
+                f"`{name}` is rebuilt by an f-string that interpolates itself "
+                f"inside a loop; f-strings always allocate a new object, so "
+                f"this copies the whole value every iteration even when the "
+                f"accumulator is a plain local",
+                accumulator=name, accumulator_kind="fstring",
+                loop_line=loop.lineno,
+            )
+            continue
         if isinstance(target, (ast.Attribute, ast.Subscript)):
             through = "an attribute" if isinstance(target, ast.Attribute) else "a subscript"
             yield _evidence(
@@ -228,13 +301,21 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
 def _concatenation(node: ast.AST):
     """`(target, value)` if this statement appends to its own target.
 
-    Covers both spellings, because they allocate identically:
+    Covers three spellings:
 
         s += x                  AugAssign
         s = s + x               Assign whose value re-reads the target
+        s = f"{s}{x}"           Assign whose f-string interpolates the target
+
+    The first two allocate identically.  The third does not, and is worse --
+    see `_is_fstring_accumulation`.
     """
     if isinstance(node, ast.AugAssign) and isinstance(node.op, ast.Add):
         return node.target, node.value
+    if (isinstance(node, ast.Assign) and len(node.targets) == 1
+            and isinstance(node.value, ast.JoinedStr)
+            and _is_fstring_accumulation(node.targets[0], node.value)):
+        return node.targets[0], node.value
     if (
         isinstance(node, ast.Assign)
         and len(node.targets) == 1
@@ -253,6 +334,36 @@ def _concatenation(node: ast.AST):
         if _target_name(node.value.right) == rendered:
             return target, node.value.left
     return None
+
+
+def _is_fstring_accumulation(target: ast.AST, value: ast.JoinedStr) -> bool:
+    """Whether an f-string rebuilds its own target: `s = f"{s}{x}"`.
+
+    This is the same quadratic growth as `s = s + x` to a reader, and a worse
+    one to the interpreter.  `+=` and `+` both reach CPython's
+    `unicode_concatenate`, which resizes the string in place when its refcount
+    is 1, so a plain local accumulator stays linear.  An f-string is compiled
+    to `FORMAT_VALUE`/`BUILD_STRING`, which always builds a new object, so
+    there is no in-place path to hit and no refcount that would help.
+
+    Measured on CPython 3.10, 20k against 40k iterations:
+
+        out += p             1.15 ->   2.10 ms   linear
+        out = out + p        1.01 ->   2.08 ms   linear
+        out = f"{out}{p}"   41.16 -> 260.18 ms   QUADRATIC
+
+    That is why the caller does not run the local/escaping distinction over
+    this shape: unlike `+=`, it is quadratic for every accumulator, including
+    the plain local the other two spellings are safe with.
+    """
+    rendered = _target_name(target)
+    if rendered is None:
+        return False
+    return any(
+        isinstance(part, ast.FormattedValue)
+        and _target_name(part.value) == rendered
+        for part in value.values
+    )
 
 
 def _leftmost_operand(node: ast.AST) -> ast.AST:
@@ -1392,6 +1503,13 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                             and ast.unparse(victim.value) == iterated):
                         operation = "`del`"
                         break
+            elif isinstance(node, ast.Assign):
+                # `d[k + "_x"] = 1` inserts a key and raises RuntimeError, and
+                # a store is neither a call nor a `del`, so it was invisible.
+                for victim in node.targets:
+                    if _inserts_a_derived_key(victim, iterated, loop.target):
+                        operation = "a store under a new key"
+                        break
             if operation is None:
                 continue
             yield _evidence(
@@ -1401,6 +1519,38 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 collection=iterated,
                 operation=operation.strip("`.()"),
             )
+
+
+def _inserts_a_derived_key(target: ast.AST, iterated: str,
+                           loop_target: ast.AST) -> bool:
+    """Whether this store can add a key to the collection being iterated.
+
+    Three shapes have to come apart, and only the middle one is a bug:
+
+        for k in d: d[k] = f(k)        legal -- the key already exists, so the
+                                       dict does not change size
+        for k in d: d[k + "_x"] = 1    RuntimeError: dictionary changed size
+        for x in xs: xs[0] = x         legal -- storing at a list index never
+                                       resizes the list
+
+    So the index has to be *derived from* the loop variable without *being* it.
+    Reading the loop variable is what says the collection is keyed by its own
+    elements, which is the dict-shaped case; being exactly the loop variable
+    says the key is one already present.  An index that never mentions the loop
+    variable is left alone, because for a list it is ordinary and for a dict
+    this rule cannot tell whether the key is new.
+    """
+    if not isinstance(target, ast.Subscript):
+        return False
+    if ast.unparse(target.value) != iterated:
+        return False
+    if not isinstance(loop_target, ast.Name):
+        return False
+    index = target.slice
+    if isinstance(index, ast.Name) and index.id == loop_target.id:
+        return False                    # the key is already in the collection
+    return any(isinstance(n, ast.Name) and n.id == loop_target.id
+               for n in ast.walk(index))
 
 
 def _deferred_nodes(loop: ast.AST) -> set[int]:

@@ -1266,6 +1266,10 @@ def _blocking_name(func: ast.AST, ctx: UnitContext) -> str | None:
 # -- C12.S1  large-stride traversal ----------------------------------------
 
 
+PANDAS_ACCESSORS = frozenset({"iloc", "loc", "iat", "at"})
+"""Label-and-position accessors whose overhead hides any memory-layout effect."""
+
+
 def column_major_traversal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """Iterating a C-ordered array down its columns.
 
@@ -1275,11 +1279,25 @@ def column_major_traversal(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     NumPy lays rows out contiguously, so a column walk touches one useful value
     per cache line. Only fires when the file imports an array library, since
     `a[:, j]` on a list of lists means something else entirely.
+
+    A pandas accessor is not an array subscript and is skipped.  The shape is
+    identical -- `df.iloc[:, j]` matches `[slice, non-slice]` exactly -- but the
+    reasoning does not survive it: the accessor's own overhead dwarfs anything
+    the memory layout contributes.  Over a 400x400 frame, column-wise measured
+    21.61 ms against 21.19 ms row-wise, a 2% spread that is noise, while the
+    same traversal on the underlying ndarray ran 0.81 ms and 0.68 ms.  The
+    finding promised a saving that is not there in either direction.
+
+    `.values` and `.to_numpy()` are deliberately not in the skip list: those
+    hand back a real ndarray, and the cache argument applies again.
     """
     if not ctx.uses_arrays:
         return
     for node in ctx.own_nodes():
         if not (isinstance(node, ast.Subscript) and ctx.repeats(node)):
+            continue
+        if (isinstance(node.value, ast.Attribute)
+                and node.value.attr in PANDAS_ACCESSORS):
             continue
         index = node.slice
         if not isinstance(index, ast.Tuple) or len(index.elts) < 2:

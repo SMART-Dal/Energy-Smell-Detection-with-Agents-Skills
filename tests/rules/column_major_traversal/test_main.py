@@ -11,6 +11,7 @@ CASES = Path(__file__).with_name("test_cases.py")
 EXPECTED = {
     "column_sums": 1,    # `matrix[:, j]` inside a loop
     "column_maxima": 1,  # the same access in a comprehension
+    "through_values": 1,  # `.values` is an ndarray again, so the layout matters
 }
 
 

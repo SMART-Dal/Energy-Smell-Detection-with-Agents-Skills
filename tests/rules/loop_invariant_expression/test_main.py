@@ -16,6 +16,7 @@ EXPECTED = {
     "score_all": 1,          # constant subscript into a module-level table
     "normalise": 1,          # `sum()` per element: a quadratic comprehension
     "row_products": 2,       # `a[i]`, and the inner comprehension's own `range(len(b))`
+    "Service.dispatch": 1,   # a sibling attribute changing is not this one changing
 }
 
 

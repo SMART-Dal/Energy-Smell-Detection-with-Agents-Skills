@@ -70,3 +70,27 @@ def shuffle_while_walking(elements):
     # Reordering skips and repeats elements as surely as removing one.
     for _ in elements:
         elements.reverse()
+
+
+def insert_derived_key(counts):
+    # A store under a key built from the loop variable adds an entry, and
+    # CPython raises "dictionary changed size during iteration" on the next
+    # pass. Neither a call nor a `del`, so a rule watching only those walked
+    # past a shape that does not merely skip elements -- it crashes.
+    for word in counts:
+        counts[word + "_total"] = 0
+
+
+def overwrite_existing_key(counts):
+    # Quiet on purpose, and the reason is the whole distinction: storing under
+    # the loop variable itself replaces a key that is already there, the dict
+    # never changes size, and this is ordinary correct code.
+    for word in counts:
+        counts[word] = 0
+
+
+def store_at_a_list_index(rows):
+    # Also quiet. A list store never resizes the list, so the index has to be
+    # derived from the loop variable before there is anything to report.
+    for row in rows:
+        rows[0] = row

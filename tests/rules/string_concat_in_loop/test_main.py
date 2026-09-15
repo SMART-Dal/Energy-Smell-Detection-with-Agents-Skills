@@ -17,6 +17,7 @@ EXPECTED = {
     "render_grid": 1,               # nested loops, one statement, one report
     "build_bytes": 1,               # bytes concatenate the same way
     "build_row": 1,                 # `a = a + b + c`, three parts deep
+    "grow_with_an_fstring": 1,      # f-strings never resize in place
 }
 
 

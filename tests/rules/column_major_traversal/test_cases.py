@@ -37,3 +37,25 @@ def scalar_cells(matrix):
     for i in range(matrix.shape[0]):
         total += matrix[i, 0]
     return total
+
+
+def pandas_column_means(frame, width):
+    # Quiet. The shape matches exactly -- `[slice, non-slice]` -- but the
+    # reasoning does not survive a pandas accessor: `.iloc`'s own overhead
+    # dwarfs the memory layout. Over a 400x400 frame, column-wise measured
+    # 21.61 ms against 21.19 ms row-wise, a 2% spread that is noise, while the
+    # same traversal on the underlying ndarray ran 0.81 and 0.68 ms. There is
+    # no saving to promise in either direction.
+    total = 0
+    for j in range(width):
+        total += frame.iloc[:, j].mean()
+    return total
+
+
+def through_values(frame, width):
+    # Fires: `.values` hands back a real ndarray, so the cache argument applies
+    # again and the accessor overhead is gone.
+    total = 0
+    for j in range(width):
+        total += frame.values[:, j].sum()
+    return total

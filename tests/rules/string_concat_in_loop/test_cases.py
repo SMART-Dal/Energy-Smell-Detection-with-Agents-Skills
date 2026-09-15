@@ -97,3 +97,26 @@ def build_row(cells):
     for c in cells:
         res = res + "[" + c + "]"
     return res
+
+
+def grow_with_an_fstring(rows):
+    # An f-string that interpolates its own target is the same quadratic growth
+    # as `s = s + x` to a reader and a worse one to the interpreter: `+=` and
+    # `+` reach `unicode_concatenate`, which resizes in place when the refcount
+    # is 1, while an f-string compiles to BUILD_STRING and always allocates.
+    # Measured 20k -> 40k: `out += p` 1.15 -> 2.10 ms, `out = f"{out}{p}"`
+    # 41.16 -> 260.18 ms. So this fires even though the accumulator is a plain
+    # local, which is exactly where the other two spellings are safe.
+    out = ""
+    for row in rows:
+        out = f"{out}{row}"
+    return out
+
+
+def fstring_that_does_not_read_itself(rows):
+    # Quiet: an f-string per iteration allocates, but it is not accumulation --
+    # nothing grows, so there is no quadratic copy to report.
+    out = ""
+    for row in rows:
+        out = f"[{row}]"
+    return out
