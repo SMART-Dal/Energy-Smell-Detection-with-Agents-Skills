@@ -683,7 +683,7 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
             continue
         if not isinstance(node.ops[0], (ast.In, ast.NotIn)):
             continue
-        if not ctx.repeats(node):
+        if not ctx.runs_repeatedly(node):
             continue
         haystack = node.comparators[0]
         if not _is_sequence_valued(haystack, ctx):
@@ -691,12 +691,20 @@ def membership_test_on_sequence(unit: UnitRef, ctx: UnitContext) -> Iterator[Evi
         if _is_small_sequence(haystack, ctx):
             continue
         enclosing = ctx.repeats_around(node)
+        if enclosing:
+            where = "on every iteration"
+        else:
+            # No loop here: the repeats belong to a caller, so saying "every
+            # iteration" would send the reader looking for a loop this file
+            # does not contain.
+            where = (f"on every call, and this unit is called from "
+                     f"{ctx.entry_depth} level(s) of loop elsewhere")
         yield _evidence(
             unit, "membership_test_on_sequence", node, ("C5.S1", "C5.S2", "C3.S4"),
             f"membership test `{ast.unparse(node)}` scans a sequence linearly "
-            f"on every iteration; a set or dict index would be constant-time",
+            f"{where}; a set or dict index would be constant-time",
             haystack=ast.unparse(haystack),
-            loop_line=getattr(enclosing[-1], "lineno", unit.lineno),
+            loop_line=getattr(enclosing[-1], "lineno", unit.lineno) if enclosing else unit.lineno,
         )
 
 

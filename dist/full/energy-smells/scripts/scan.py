@@ -118,6 +118,11 @@ def main(argv: list[str] | None = None) -> int:
                              f"(default {DETAIL_DIR}/)")
     parser.add_argument("--json", action="store_true",
                         help="emit JSON instead of the readable report")
+    parser.add_argument(
+        "--cross-unit", action="store_true",
+        help="let rules see that a unit runs inside a caller's loop, across "
+             "files; off by default, and dropping it returns the scan to "
+             "file-at-a-time exactly")
     args = parser.parse_args(argv)
 
     if not args.path.exists():
@@ -128,7 +133,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.units:
         # The reading list keeps units nothing flagged: its whole purpose is to
         # rank code before any rule has spoken.
-        ranked = analyse_path(args.path, only_with_evidence=False)
+        ranked = analyse_path(args.path, only_with_evidence=False,
+                              cross_unit=args.cross_unit)
         report = {
             "target": str(args.path),
             "files_scanned": len(files),
@@ -155,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
         if why is not None:
             print(f"note: skipping {name} -- {why}", file=sys.stderr)
 
-    findings = analyse_path(args.path)
+    findings = analyse_path(args.path, cross_unit=args.cross_unit)
     _report_rule_errors()
     table = load_signals()
 

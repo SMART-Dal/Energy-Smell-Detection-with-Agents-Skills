@@ -52,6 +52,7 @@ def collect(
     units: list[tuple[UnitRef, object]],
     source: str,
     imports: dict,
+    entry_depth: dict[str, int] | None = None,
 ) -> list[Evidence]:
     """Run every analyzer over every function-like unit in one file.
 
@@ -80,6 +81,7 @@ def collect(
             node=node, source=source, imports=imports,
             module_bindings=module_bindings, overridden_methods=overridden,
             module_aliases=aliases,
+            entry_depth=(entry_depth or {}).get(unit.qualname, 0),
         )
         for rule in ALL_RULES:
             try:

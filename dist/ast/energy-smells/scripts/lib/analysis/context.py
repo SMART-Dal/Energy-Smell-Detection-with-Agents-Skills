@@ -82,6 +82,21 @@ class UnitContext:
     """Module-level constant -> its assigned value, for names the unit only reads."""
 
     overridden_methods: frozenset[str] = frozenset()
+
+    entry_depth: int = 0
+    """Loops this unit is already inside before it runs a line of its own.
+
+    Filled from the call graph by `engine._apply_rules`, and only on a
+    whole-tree scan with cross-unit analysis switched on. Zero otherwise, which
+    is what makes every rule that ignores it behave exactly as it did when a
+    unit was the whole world.
+
+    A unit whose body has no loop at all can still be the hottest thing in a
+    repo. `def check(x): return x in ALLOWED` is straight-line code until you
+    see that its one caller is a doubly-nested loop in another file, at which
+    point the linear scan inside it runs n*m times. That fact lives in the
+    edge, not in either function, so no amount of reading one file finds it.
+    """
     """Method names that take part in an override relationship in this module.
 
     A method that never touches `self` is a static-declaration candidate right
@@ -218,6 +233,22 @@ class UnitContext:
             node for node in self.own_nodes()
             if isinstance(node, LOOP_NODES + COMPREHENSION_NODES)
         ]
+
+    def runs_repeatedly(self, node: ast.AST) -> bool:
+        """Whether this node runs many times -- counting the callers' loops.
+
+        `repeats` asks about loops written in this unit. This asks the question
+        a cost actually depends on, which is how often the line runs, and a
+        caller's loop makes a straight-line body run just as often as a local
+        one would.
+
+        The repair usually differs even though the finding is the same, because
+        there is no local loop to hoist out of, so a rule using this must say
+        where the loop it is talking about lives. `entry_depth` is zero unless
+        a whole-tree scan turned cross-unit analysis on, so this collapses to
+        `repeats` in every other case.
+        """
+        return self.repeats(node) or self.entry_depth > 0
 
     def repeats(self, node: ast.AST) -> bool:
         """Whether this node is evaluated once per element of something.
