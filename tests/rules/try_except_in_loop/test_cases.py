@@ -71,3 +71,13 @@ def build_handlers(specs):
                 return None
         handlers.append(run)
     return handlers
+
+
+def cleanup_each_pass(rows):
+    # Silent. `try/finally` with no `except` catches nothing, so there is no
+    # exception path to be on. What is here is cleanup, and it has to run.
+    for row in rows:
+        try:
+            use(row)
+        finally:
+            release(row)

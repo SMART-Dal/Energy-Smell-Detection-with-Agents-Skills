@@ -94,3 +94,20 @@ def store_at_a_list_index(rows):
     # derived from the loop variable before there is anything to report.
     for row in rows:
         rows[0] = row
+
+
+def remove_then_stop(users, target):
+    # Silent. The `break` means there is no next iteration to skip an element,
+    # which is the ordinary way to remove one item by search.
+    for user in users:
+        if user is target:
+            users.remove(user)
+            break
+
+
+def pop_while_enumerating(rows):
+    # `enumerate(rows)` walks `rows` itself, so this mutates what it iterates
+    # exactly as the bare form does. Requiring a Name or Attribute iterable
+    # walked straight past the commonest way the shape is written.
+    for index, row in enumerate(rows):
+        rows.pop(index)

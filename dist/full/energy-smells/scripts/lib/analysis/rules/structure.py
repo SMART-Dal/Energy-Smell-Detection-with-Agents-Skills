@@ -964,6 +964,39 @@ def _extreme_from(test: ast.AST) -> str | None:
 # -- call overhead --------------------------------------------------------
 
 
+TEST_BASES = frozenset({"TestCase", "IsolatedAsyncioTestCase", "TransactionTestCase"})
+"""Framework bases whose methods are found by name and called by the runner."""
+
+
+def _uses_implicit_super(node: ast.AST) -> bool:
+    """Whether the body calls zero-argument `super()`.
+
+    `super()` with no arguments compiles to a lookup using `__class__` and the
+    method's first positional parameter, so it works only in a method that has
+    one. Making such a method static does not merely change a lookup -- it
+    raises `RuntimeError: super(): no arguments`. The body never names `self`,
+    so the rule saw an unused parameter and suggested the one change that
+    breaks it.
+    """
+    return any(isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+               and n.func.id == "super" and not n.args
+               for n in ast.walk(node))
+
+
+def _is_test_method(unit: UnitRef, ctx: UnitContext) -> bool:
+    """Whether this is a test the framework discovers rather than code we call.
+
+    A runner collects `test_*` methods off an instance; nothing in the project
+    calls them by name. The repair this rule names is to make the method static
+    *and rewrite its call sites* as `Class.method(...)`, and there are no call
+    sites here, so the finding asks for a change with nothing on the other side
+    of it. Matching the name rather than the base class is deliberate: the base
+    may be `unittest.TestCase`, a project mixin, or nothing at all under
+    pytest, and the naming convention is the part all of them share.
+    """
+    return ctx.node.name.startswith("test_") and unit.kind == "method"
+
+
 def method_ignores_self(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """An instance method that never touches `self`.
 
@@ -982,6 +1015,10 @@ def method_ignores_self(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     if _is_abstract_body(ctx.node.body):
         return
     if "self" in ctx.read_names(ctx.node):
+        return
+    if _uses_implicit_super(ctx.node):
+        return
+    if _is_test_method(unit, ctx):
         return
     # A method that ignores `self` and is also overridden -- or is itself an
     # override -- is the dispatch point. The decorator alone would be harmless,

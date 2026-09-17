@@ -599,6 +599,8 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         scopes = ctx.repeats_around(node)
         rebound = ctx.assigned_names(scopes[-1]) if scopes else set()
         rebound |= _mutated_in(scopes[-1]) if scopes else set()
+        if described and _copy_is_consumed(node, ctx, scopes):
+            continue
         if described and not (ctx.read_names(node) & (ctx.iteration_names(node) | rebound)):
             yield _evidence(
                 unit, "copy_in_loop", node, ("C6.S2",),
@@ -606,6 +608,41 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 f"using {described}; the copy is only needed if something mutates "
                 f"it and the original must not change",
             )
+
+
+def _copy_is_consumed(node: ast.AST, ctx: UnitContext, scopes) -> bool:
+    """Whether the copy's result is changed or kept, so each pass needs its own.
+
+    The guard above asks whether the thing being *copied* changes. This asks
+    what happens to the *copy*, which is the half that decides whether hoisting
+    is even legal:
+
+        for row in rows:
+            current = defaults.copy()
+            current.update(row)          # changed
+            out.append(current)          # and kept
+
+    Hoisting that leaves every row sharing one dict. The rule used to report it
+    while staying silent on the character-for-character identical version
+    written `dict(defaults)` -- silent because a constructor is not a copy
+    spelling -- so the same code got two different answers depending on
+    punctuation. The answer that matches the repair is to report neither.
+    """
+    if not scopes:
+        return False
+    parent = ctx.parent_of(node)
+    while parent is not None and not isinstance(parent, (ast.Assign, ast.AnnAssign)):
+        if isinstance(parent, (ast.stmt,)):
+            break
+        parent = ctx.parent_of(parent)
+    if not isinstance(parent, (ast.Assign, ast.AnnAssign)):
+        return False
+    targets = parent.targets if isinstance(parent, ast.Assign) else [parent.target]
+    names = {t.id for t in targets if isinstance(t, ast.Name)}
+    if not names:
+        return False
+    loop = scopes[-1]
+    return bool(names & (_mutated_in(loop) | {n for n in names if _escapes(loop, n)}))
 
 
 def _is_full_slice(node: ast.AST) -> bool:
@@ -665,6 +702,11 @@ def _keeps_a_prefix_or_suffix(node: ast.Slice) -> bool:
     if node.step is not None:
         return False
     if node.lower is None:
+        # `[:k]` only when k is a positive literal. `[:-1]` reads as a prefix
+        # and keeps all but one element, so the sort is not thrown away and
+        # `nsmallest` is not the same answer -- the opposite of this rule.
+        if isinstance(node.upper, ast.UnaryOp) and isinstance(node.upper.op, ast.USub):
+            return False
         return node.upper is not None            # [:k]
     if node.upper is None:                       # [-k:]
         return (isinstance(node.lower, ast.UnaryOp)
@@ -953,6 +995,17 @@ def redundant_bool_branch(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     the guard above untouched.  Read as a whole-body rewrite it looks like it
     drops that guard, and a careful reader read it that way.
     """
+    for node in ctx.own_nodes():
+        pair = _bool_ternary_or_assign(node)
+        if pair is None:
+            continue
+        test, kind = pair
+        yield _evidence(
+            unit, "redundant_bool_branch", node, ("C1.S3",),
+            f"{kind} hands back True/False for `{test}`, which already produces "
+            f"a boolean; `bool({test})` is the same answer without the branch",
+        )
+
     for node, yes, no in _bool_branches(ctx.node):
         if {yes, no} != {True, False}:
             continue
@@ -1008,6 +1061,49 @@ def _bool_branches(scope: ast.AST):
             yes, no = _single_return(first.body), _single_return([second])
             if yes is not None and no is not None:
                 yield first, yes, no
+
+
+def _bool_ternary_or_assign(node: ast.AST):
+    """`(test, description)` for the two spellings `_bool_branches` cannot see.
+
+        return True if x else False        an IfExp, not an If
+        if c: flag = True
+        else: flag = False                 assignment, not return
+
+    Both are the same two constant loads around a test that already produced a
+    boolean, and both are common enough that leaving them out made the rule
+    look like it was about `return` rather than about the branch.
+    """
+    if isinstance(node, ast.IfExp):
+        if _constant_bool(node.body) is True and _constant_bool(node.orelse) is False:
+            return ast.unparse(node.test), "a conditional expression"
+        return None
+    if not (isinstance(node, ast.If) and node.orelse):
+        return None
+    yes, no = _sole_bool_assignment(node.body), _sole_bool_assignment(node.orelse)
+    if yes is None or no is None:
+        return None
+    (yes_name, yes_val), (no_name, no_val) = yes, no
+    if yes_name != no_name or (yes_val, no_val) != (True, False):
+        return None
+    return ast.unparse(node.test), f"assigning `{yes_name}` in both arms"
+
+
+def _constant_bool(node: ast.AST):
+    """`True`/`False` for a literal boolean, else None."""
+    return node.value if isinstance(node, ast.Constant) and isinstance(
+        node.value, bool) else None
+
+
+def _sole_bool_assignment(body: list):
+    """`(name, value)` when a block is exactly one `name = True/False`."""
+    if len(body) != 1 or not isinstance(body[0], ast.Assign):
+        return None
+    stmt = body[0]
+    if len(stmt.targets) != 1 or not isinstance(stmt.targets[0], ast.Name):
+        return None
+    value = _constant_bool(stmt.value)
+    return None if value is None else (stmt.targets[0].id, value)
 
 
 def _yields_a_bool(node: ast.AST) -> bool:

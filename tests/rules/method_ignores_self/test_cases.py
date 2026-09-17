@@ -63,3 +63,20 @@ class Charge:
 class PremiumCharge(Charge):
     def fee(self, amount):
         return amount
+
+
+class Saver:
+    def save(self):
+        # Silent. Zero-argument `super()` compiles using `__class__` and the
+        # first positional parameter, so `@staticmethod` here does not change a
+        # lookup -- it raises `RuntimeError: super(): no arguments`. The body
+        # never names `self`, which is exactly why the rule needed telling.
+        return super().save()
+
+
+class WidgetTest:
+    def test_addition(self):
+        # Silent. A runner discovers this by name; nothing calls it, so the
+        # repair -- make it static and rewrite the call sites -- has no call
+        # site to rewrite.
+        assert 1 + 1 == 2

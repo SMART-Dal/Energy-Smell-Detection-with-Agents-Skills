@@ -58,3 +58,10 @@ def drop_smallest_three(data):
     # `[3:]` keeps everything but the smallest three -- the opposite of the
     # case `heapq.nsmallest` answers.
     return sorted(data)[3:]
+
+
+def all_but_the_last(data):
+    # Silent. `[:-1]` reads as a prefix but keeps all but one element, so the
+    # sort is not thrown away and `nsmallest` is not the same answer -- the
+    # opposite of what this rule claims.
+    return sorted(data)[:-1]

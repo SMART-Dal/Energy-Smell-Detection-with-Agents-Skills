@@ -4,7 +4,9 @@ import copy
 
 
 def refresh_scratch(rows, defaults):
-    # `.copy()` says copy and means nothing else.
+    # Silent. `.copy()` says copy and means nothing else, but the copy is then
+    # mutated and appended, so each row needs its own and there is nothing to
+    # hoist. Identical to `merge_defaults` below but for the spelling.
     out = []
     for row in rows:
         current = defaults.copy()
@@ -19,7 +21,8 @@ def snapshot_each(rows, template):
 
 
 def slice_per_row(rows, header):
-    # A `[:]` slice is a copy with different punctuation.
+    # Silent, and for the same reason as `refresh_scratch`: a `[:]` slice is a
+    # copy with different punctuation, but this one is appended to and kept.
     out = []
     for row in rows:
         line = header[:]

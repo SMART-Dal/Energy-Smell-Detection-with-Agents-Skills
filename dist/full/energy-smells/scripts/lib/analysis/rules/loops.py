@@ -921,14 +921,16 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
     for scope, target, iterable in _iteration_clauses(ctx):
         if not isinstance(target, ast.Name):
             continue
-        sequence = _range_len_argument(iterable)
-        if sequence is None:
+        driven = _range_len_argument(iterable)
+        if driven is None:
             continue
+        sequence, slice_form = driven
         index = target.id
 
         indexed: set[str] = set()
         spent_elsewhere = False
         carried = False
+        wrote_back = False
         for node in ast.walk(scope):
             if not (isinstance(node, ast.Name) and node.id == index
                     and isinstance(node.ctx, ast.Load)):
@@ -939,9 +941,20 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                     and isinstance(parent.ctx, ast.Load)):
                 indexed.add(ast.unparse(parent.value))
                 continue
-            if isinstance(parent, (ast.Subscript, ast.BinOp, ast.UnaryOp)):
-                # A write-back through the index, or a neighbour offset.
-                # Neither survives direct iteration or `enumerate`.
+            if isinstance(parent, (ast.BinOp, ast.UnaryOp)):
+                # A neighbour offset: `xs[i - 1]` needs the arithmetic, which
+                # neither direct iteration nor `enumerate` can express.
+                spent_elsewhere = True
+                break
+            if isinstance(parent, ast.Subscript) and parent.slice is node:
+                # A write-back: `items[i] = items[i].strip()`. Direct iteration
+                # cannot express it -- rebinding the loop variable leaves the
+                # list untouched -- but `enumerate` can, and it still removes
+                # the read half. Only when the same sequence is also *read* at
+                # the index, since that read is what there is to remove.
+                if ast.unparse(parent.value) == sequence:
+                    wrote_back = True
+                    continue
                 spent_elsewhere = True
                 break
             # The index is handed on as a plain value: `enumerate` supplies it.
@@ -950,7 +963,12 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             continue
 
         others = sorted(indexed - {sequence})
-        if carried and others:
+        if wrote_back:
+            repair = (f"`enumerate({sequence})` gives the element without a "
+                      f"second lookup, and keeps the index the write-back needs")
+        elif slice_form:
+            repair = f"`{slice_form}` walks those elements without an index"
+        elif carried and others:
             repair = (f"`enumerate(zip({sequence}, {', '.join(others)}))` walks "
                       f"them together and still hands back the index")
         elif carried:
@@ -963,7 +981,7 @@ def index_based_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             repair = "iterating the sequence directly avoids an index lookup per item"
         yield _evidence(
             unit, "index_based_iteration", scope, ("C3.S1",),
-            f"iterating `range(len({sequence}))` and indexing back into it; {repair}",
+            f"iterating `{ast.unparse(iterable)}` and indexing back into it; {repair}",
             sequence=sequence,
             index=index,
             also_indexed=others,
@@ -981,18 +999,80 @@ def _iteration_clauses(ctx: UnitContext):
                 yield node, generator.target, generator.iter
 
 
-def _range_len_argument(node: ast.AST) -> str | None:
-    """Return `xs` for an iterable expression of the form `range(len(xs))`."""
+def _len_call(node: ast.AST) -> str | None:
+    """Return `xs` for `len(xs)`."""
     if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)):
         return None
-    if node.func.id != "range" or len(node.args) != 1:
+    if node.func.id != "len" or len(node.args) != 1:
         return None
-    inner = node.args[0]
-    if not (isinstance(inner, ast.Call) and isinstance(inner.func, ast.Name)):
+    return ast.unparse(node.args[0])
+
+
+def _int(node: ast.AST):
+    """The value of an integer literal, or None.
+
+    `-1` is a `UnaryOp` around `Constant(1)` in the tree, not `Constant(-1)`:
+    the folding happens at compile time, long after this sees it. Reading only
+    `Constant` made every reverse walk invisible, since `range(len(xs) - 1, -1,
+    -1)` is negative literals in two of its three arguments.
+    """
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        inner = _int(node.operand)
+        return None if inner is None else -inner
+    if isinstance(node, ast.Constant) and isinstance(node.value, int) \
+            and not isinstance(node.value, bool):
+        return node.value
+    return None
+
+
+def _range_len_argument(node: ast.AST):
+    """`(xs, slice_form)` for a `range(...)` driven by `len(xs)`.
+
+    `slice_form` is the spelling that walks the same elements directly, and is
+    empty for the plain case where the sequence itself does:
+
+        range(len(xs))                  ->  ("xs", "")
+        range(0, len(xs), 2)            ->  ("xs", "xs[::2]")
+        range(len(xs) - 1, -1, -1)      ->  ("xs", "reversed(xs)")
+
+    A stride and a reverse walk were declined outright before, on the grounds
+    that they are not `range(len(xs))`. They are not, but the index is doing
+    the same job in all three and Python spells all three without one; what
+    changes is the repair, which is the thing worth saying rather than a reason
+    to stay quiet.
+    """
+    if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)):
         return None
-    if inner.func.id != "len" or len(inner.args) != 1:
+    if node.func.id != "range" or not 1 <= len(node.args) <= 3:
         return None
-    return ast.unparse(inner.args[0])
+    args = node.args
+
+    if len(args) == 1:
+        seq = _len_call(args[0])
+        return (seq, "") if seq else None
+
+    step = _int(args[2]) if len(args) == 3 else 1
+    if step is None or step == 0:
+        return None
+
+    if step > 0:
+        # `range(0, len(xs))` and `range(0, len(xs), k)`.
+        if _int(args[0]) != 0:
+            return None
+        seq = _len_call(args[1])
+        if seq is None:
+            return None
+        return (seq, "") if step == 1 else (seq, f"{seq}[::{step}]")
+
+    # A reverse walk: `range(len(xs) - 1, -1, -1)`.
+    if step != -1 or _int(args[1]) != -1:
+        return None
+    start = args[0]
+    if not (isinstance(start, ast.BinOp) and isinstance(start.op, ast.Sub)
+            and _int(start.right) == 1):
+        return None
+    seq = _len_call(start.left)
+    return (seq, f"reversed({seq})") if seq else None
 
 
 def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
@@ -1034,12 +1114,70 @@ def append_only_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         # evaluation corpus were that shape.
         if _starts_non_empty(ast.unparse(call.func.value), ctx):
             continue
+        if _reads_the_target(loop, call, root):
+            continue
+        if _already_appended_before(ctx, loop, root):
+            continue
         yield _evidence(
             unit, "append_only_loop", loop, ("C3.S1", "C10.S3"),
             "loop body is a single `.append()`; a comprehension does the same "
             "work without a bound-method lookup and call per item",
             target=ast.unparse(call.func.value),
         )
+
+
+def _reads_the_target(loop: ast.AST, call: ast.Call, root: str) -> bool:
+    """Whether the loop reads the list it is building, other than to append.
+
+        for x in xs:
+            if x not in out:
+                out.append(x)
+
+    A comprehension can carry a filter, but not one that consults the list
+    being built: `out` is empty while the comprehension runs, so the condition
+    means something different. The append's own receiver is excluded, since
+    that read is the append.
+    """
+    receiver = {id(n) for n in ast.walk(call.func.value)}
+    return any(
+        isinstance(n, ast.Name) and n.id == root and isinstance(n.ctx, ast.Load)
+        and id(n) not in receiver
+        for n in ast.walk(loop)
+    )
+
+
+def _already_appended_before(ctx: UnitContext, loop: ast.AST, root: str) -> bool:
+    """Whether an earlier loop in the unit already appended to this list.
+
+        out = []
+        for x in a: out.append(x)
+        for y in b: out.append(y)     <- `out` is not empty by the time this runs
+
+    The first is a comprehension. The second is `out.extend(b)`, and suggesting
+    a comprehension for it would discard everything the first one put there.
+    `_starts_non_empty` cannot see this: the binding really is `[]`, and what
+    fills it is a statement in between.
+    """
+    # An enclosing loop is not an earlier one. `ctx.loops` is in source order,
+    # so a loop nested inside another has a later line number and its parent
+    # looked like a previous loop that had already filled the list -- which
+    # silenced the ordinary nested-append shape entirely.
+    around = set(map(id, ctx.loops_around(loop)))
+    for other in ctx.loops:
+        if other is loop:
+            return False
+        if id(other) in around:
+            continue
+        if getattr(other, "lineno", 0) >= getattr(loop, "lineno", 0):
+            continue
+        if any(n is loop for n in ast.walk(other)):
+            continue
+        for n in ast.walk(other):
+            if (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                    and n.func.attr in {"append", "extend"}
+                    and _root_name(n.func.value) == root):
+                return True
+    return False
 
 
 def _starts_non_empty(receiver: str, ctx: UnitContext) -> bool:
@@ -1400,6 +1538,11 @@ def try_except_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     """
     for node, enclosing in ctx.inside_loops():
         if isinstance(node, ast.Try):
+            if not node.handlers:
+                # `try/finally` with no `except` catches nothing, so there is
+                # no exception path to be on. C4.S6 is an exception used as
+                # control flow; this is cleanup, and it has to run.
+                continue
             yield _evidence(
                 unit, "try_except_in_loop", node, ("C4.S6",),
                 "try/except sits on the per-iteration path; if the exception is "
@@ -1491,9 +1634,9 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         # An attribute is where a collection usually lives, so matching only a
         # bare name missed `for job in self.pending: self.pending.remove(job)`.
         # A call -- `for x in list(xs)` -- is the repair and must stay quiet.
-        if not isinstance(loop, ast.For) or not isinstance(loop.iter, (ast.Name, ast.Attribute)):
+        iterated = _iterated_collection(loop)
+        if iterated is None:
             continue
-        iterated = ast.unparse(loop.iter)
         deferred = _deferred_nodes(loop)
         for node in ast.walk(loop):
             if id(node) in deferred:
@@ -1520,6 +1663,8 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                         break
             if operation is None:
                 continue
+            if _stops_immediately(node, loop):
+                continue
             yield _evidence(
                 unit, "mutation_during_iteration", node, ("C3.S7",),
                 f"`{iterated}` is mutated with {operation} while being "
@@ -1527,6 +1672,55 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 collection=iterated,
                 operation=operation.strip("`.()"),
             )
+
+
+def _iterated_collection(loop: ast.AST) -> str | None:
+    """The collection a `for` walks, seeing through `enumerate`.
+
+    `for i, x in enumerate(lst): lst.pop(i)` mutates the thing it is walking
+    just as plainly as the bare form, but the iterable is a `Call`, and
+    requiring a `Name` or `Attribute` walked straight past it. `reversed` is
+    not included: it materialises nothing but does walk a live view, which is
+    the same hazard, while `sorted` and a slice both copy and are the repair.
+    """
+    if not isinstance(loop, ast.For):
+        return None
+    it = loop.iter
+    if (isinstance(it, ast.Call) and isinstance(it.func, ast.Name)
+            and it.func.id == "enumerate" and it.args):
+        it = it.args[0]
+    return ast.unparse(it) if isinstance(it, (ast.Name, ast.Attribute)) else None
+
+
+def _stops_immediately(node: ast.AST, loop: ast.AST) -> bool:
+    """Whether the block holding this mutation ends the loop on the same pass.
+
+        for u in users:
+            if u is target:
+                users.remove(u)
+                break
+
+    Nothing is skipped, because there is no next iteration to skip it. This is
+    the ordinary way to remove one element by search, and reporting it told
+    correct code it was broken.
+    """
+    innermost, smallest = None, None
+    for parent in ast.walk(loop):
+        for attr in ("body", "orelse", "finalbody"):
+            block = getattr(parent, attr, None)
+            if not isinstance(block, list) or not block:
+                continue
+            if not any(node is n or node in set(ast.walk(n)) for n in block):
+                continue
+            # Several blocks contain the node -- the loop's own body, the `if`
+            # inside it, and so on. Only the innermost decides, because that is
+            # the one whose next statement actually runs.
+            size = sum(len(list(ast.walk(n))) for n in block)
+            if smallest is None or size < smallest:
+                innermost, smallest = block, size
+    if innermost is None:
+        return False
+    return any(isinstance(s, (ast.Break, ast.Return)) for s in innermost)
 
 
 def _inserts_a_derived_key(target: ast.AST, iterated: str,

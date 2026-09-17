@@ -69,3 +69,19 @@ def validate_token(token):
     if not token:
         return False
     return True
+
+
+def ternary_bool(x):
+    # `return True if x else False` is the same two constant loads around a
+    # test that already produced a boolean -- an IfExp rather than an If, which
+    # is the only reason it used to be invisible.
+    return True if x > 3 else False
+
+
+def flag_in_both_arms(c):
+    # Assignment rather than return, same smell.
+    if c > 3:
+        flag = True
+    else:
+        flag = False
+    return flag

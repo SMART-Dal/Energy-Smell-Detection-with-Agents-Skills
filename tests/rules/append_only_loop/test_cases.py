@@ -95,3 +95,26 @@ def keep_valid_and_scored(rows):
             if row.score > 10:
                 kept.append(row)
     return kept
+
+
+def reads_the_list_it_builds(xs):
+    # Silent. A comprehension can carry a filter, but not one that consults the
+    # list being built -- `out` is empty while the comprehension runs, so the
+    # condition means something different there.
+    out = []
+    for x in xs:
+        if x not in out:
+            out.append(x)
+    return out
+
+
+def two_loops_one_list(a, b):
+    # The first loop is a comprehension. The second is not: `out` already holds
+    # the first loop's output, so `[y for y in b]` would discard it. The repair
+    # there is `out.extend(b)`, which is a different signal.
+    out = []
+    for x in a:
+        out.append(x)
+    for y in b:
+        out.append(y)
+    return out

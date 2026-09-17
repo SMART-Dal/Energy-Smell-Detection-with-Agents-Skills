@@ -5,6 +5,7 @@ validation/results/*.log
 .energy-scan/
 .vscode
 eval/
+decision&notes_paper.txt
 
 # Large artifacts, purged from history — kept on disk only
 data/classified_smells.jsonl

@@ -14,6 +14,8 @@ EXPECTED = {
     "above": 1,     # True/False for a comparison
     "missing": 1,   # the inverted form
     "is_ready": 1,  # an attribute test, same shape
+    "ternary_bool": 1,        # the conditional-expression spelling
+    "flag_in_both_arms": 1,   # the assignment spelling
 }
 
 

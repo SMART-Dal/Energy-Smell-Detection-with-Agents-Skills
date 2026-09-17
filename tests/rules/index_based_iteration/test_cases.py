@@ -28,8 +28,10 @@ def running_totals(values):
 
 
 def strip_in_place(items):
-    # The write-back again, in its plainest form. `for item in items:
-    # item = item.strip()` rebinds a local and leaves the list untouched.
+    # A write-back. Direct iteration cannot express it -- `for item in items:
+    # item = item.strip()` rebinds a local and leaves the list untouched -- but
+    # `enumerate` can, and the read half `items[i]` still goes away. Declining
+    # outright treated "no direct-iteration repair" as "no repair".
     for i in range(len(items)):
         items[i] = items[i].strip()
 
@@ -68,7 +70,9 @@ def with_enumerate(values):
 
 
 def every_other(values):
-    # A stride: `range(0, len(values), 2)` is not `range(len(values))`.
+    # A stride: not `range(len(values))`, but the index is doing the same job
+    # and `values[::2]` walks the same elements without one. What changes is
+    # the repair, which is worth saying rather than a reason to stay quiet.
     out = []
     for i in range(0, len(values), 2):
         out.append(values[i])
@@ -78,3 +82,11 @@ def every_other(values):
 def matrix_diagonal(grid):
     # An index-driven loop over one sequence used to read another.
     return [grid[i][i] for i in range(len(grid))]
+
+
+def reverse_walk(values):
+    # A reverse walk is still an index doing the sequence's job; `reversed`
+    # does it without one. Declining because it is not literally
+    # `range(len(xs))` treated a different repair as no repair.
+    for i in range(len(values) - 1, -1, -1):
+        use(values[i])

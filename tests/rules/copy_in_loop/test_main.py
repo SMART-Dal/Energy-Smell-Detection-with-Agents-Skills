@@ -10,10 +10,14 @@ CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
     "stage_configs": 1,       # a dotted receiver is still a copy
-    "refresh_scratch": 1,  # `.copy()` per row
     "snapshot_each": 1,    # `deepcopy` inside a comprehension
-    "slice_per_row": 1,    # `[:]` is a copy with different punctuation
 }
+# `refresh_scratch` and `slice_per_row` are deliberately absent. Both copy,
+# then mutate the copy, then append it -- so every pass needs its own and
+# hoisting would leave each row sharing one container. `refresh_scratch` is
+# character-for-character `merge_defaults`, which was already silent because a
+# constructor is not a copy spelling; reporting one and not the other gave the
+# same code two answers depending on punctuation.
 
 
 def test_copy_in_loop():

@@ -15,6 +15,7 @@ EXPECTED = {
     "drain_queue": 1,     # `del queue[0]` is a mutation too
     "shuffle_while_walking": 1,  # so is reordering in place
     "insert_derived_key": 1,     # a new key raises RuntimeError mid-iteration
+    "pop_while_enumerating": 1,  # `enumerate` still walks the live collection
 }
 
 
