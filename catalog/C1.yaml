@@ -1,827 +1,939 @@
-# C1 -- Redundant Computation
-#
-# Work that does not contribute to the required output, or repeats work already
-# done in the same scope.
-#
-# The category splits sharply into two halves, and confusing them is how this
-# category gets misreported. Three entries -- S2, S3, S7 -- are worth one or two
-# bytecode instructions per execution, and measure at 3-6% in a million-
-# iteration loop and nothing at all outside one. The others -- S1, S4, S5, S6,
-# S8 -- can be arbitrarily large, because what is redundant may be a call, a
-# pass over a collection, or an entire stage of a computation. Before reporting
-# anything here, say which half you are in and at what scale.
-#
-# The entries are separated by *what the repair deletes*: a binding (S1, S7), a
-# store (S2), a branch (S3), a recomputation (S4), a result nobody consumes
-# (S5), setup on a path that did not need it (S6), or a housekeeping call (S8).
-#
-# Note the boundary with C8: everything here is redundancy *within one scope*.
-# The same work repeated across calls or call sites is C8.
-
 - id: C1.S1
-  signals: [ruff_F841]
-  in_one_line: >
+  signals:
+  - ruff_F841
+  in_one_line: |
     a value computed and bound to a name that nothing ever reads
-  what_to_look_for: >
-    A binding nothing reads still evaluates everything on its right-hand side:
-    the call is made, the objects are allocated, the value is stored into a
-    local that nothing loads.  The size of the finding is therefore the size of
-    that expression and never the assignment -- an unread `x = 1` is one
-    bytecode, an unread `rows = fetch_all()` is a query and a full
-    materialisation -- so what matters is what got computed, not that a name
-    went unused.  Two things make this shape appear where there is no waste: the
-    expression's side effect may be the reason it is there, and a binding may
-    exist to hold a reference alive.  Reads are easy to miss as well -- a
-    closure, `locals()`, a template, a debugger hook.  Unreachable code after a
-    `return` is a different finding entirely, since it costs nothing to execute
-    because it never executes.
+  what_to_look_for: |
+    A binding nothing reads still evaluates everything on its right-hand side: the call is made, the objects are allocated, the value is stored into a local that nothing loads.  The size of the finding is therefore the size of that expression and never the assignment -- an unread `x = 1` is one bytecode, an unread `rows = fetch_all()` is a query and a full materialisation -- so what matters is what got computed, not that a name went unused.  Two things make this shape appear where there is no waste: the expression's side effect may be the reason it is there, and a binding may exist to hold a reference alive.  Reads are easy to miss as well -- a closure, `locals()`, a template, a debugger hook.  Unreachable code after a `return` is a different finding entirely, since it costs nothing to execute because it never executes.
   not_a_smell_when:
-    - >
-      the expression has a side effect that is the reason it is there, so only
-      the binding is redundant and the saving is one instruction
-    - >
-      the binding keeps an object alive deliberately -- a weakref target, a
-      context object, a handle whose collection would close something
-    - >
-      the name is read by something the reader cannot see: a closure, `locals()`,
-      a template, a debugger hook
-    - >
-      the code is unreachable, in which case it costs nothing to run and the
-      finding is maintenance
-    - >
-      it is a conventional discard such as `_` or a tuple unpack where only some
-      names are wanted
+  - |
+    the expression has a side effect that is the reason it is there, so only the binding is redundant and the saving is one instruction
+  - |
+    the binding keeps an object alive deliberately -- a weakref target, a context object, a handle whose collection would close something
+  - |
+    the name is read by something the reader cannot see: a closure, `locals()`, a template, a debugger hook
+  - |
+    the code is unreachable, in which case it costs nothing to run and the finding is maintenance
+  - |
+    it is a conventional discard such as `_` or a tuple unpack where only some names are wanted
   counter_examples:
-    - code: |
-        def install(path):
-            handle = open(path, "wb")
-            _register(handle)
-      why: >
-        `handle` is assigned and never read, which is the shape exactly -- and
-        the binding is what keeps the file open until `_register` takes its own
-        reference. Deleting it is a behaviour change. A local nothing reads is not
-        the same as a local nothing needs.
-    - code: |
-        def parse(text):
-            result = validate(text)      # raises on malformed input
-            return json.loads(text)
-      why: >
-        The return value is discarded and the call is not: `validate` is there to
-        raise. Only `result =` is redundant, and that is one instruction. The
-        expensive half of the statement is load-bearing.
+  - code: |
+      def install(path):
+          handle = open(path, "wb")
+          _register(handle)
+    why: |
+      `handle` is assigned and never read, which is the shape exactly -- and the binding is what keeps the file open until `_register` takes its own reference. Deleting it is a behaviour change. A local nothing reads is not the same as a local nothing needs.
+  - code: |
+      def parse(text):
+          result = validate(text)      # raises on malformed input
+          return json.loads(text)
+    why: |
+      The return value is discarded and the call is not: `validate` is there to raise. Only `result =` is redundant, and that is one instruction. The expensive half of the statement is load-bearing.
   refactoring:
     summary: delete the computation whose result nothing reads
     examples:
-      - title: an expensive result nobody consumes
-        before: |
-          def report(connection, since):
-              recent = connection.execute(
-                  "SELECT * FROM events WHERE at >= ?", (since,)
-              ).fetchall()
-              summary = connection.execute("SELECT count(*) FROM events").fetchone()
-              return summary[0]
-        after: |
-          def report(connection, since):
-              summary = connection.execute("SELECT count(*) FROM events").fetchone()
-              return summary[0]
-        note: >
-          A query, a transfer and a full materialisation, all discarded. The
-          binding is a bytecode; the statement is a round trip. This is the form
-          worth reporting, and the reason to size the right-hand side before
-          deciding anything.
-      - title: a loop that builds something and drops it
-        before: |
-          def audit(records):
-              seen = []
-              for record in records:
-                  seen.append(record.checksum)
-              return len(records)
-        after: |
-          def audit(records):
-              return len(records)
-        note: >
-          A full pass, a list of N strings, and N appends, for a value the
-          function already had. Check first that `seen` is not read through a
-          closure or returned by a wrapper -- a whole loop disappearing is worth
-          being sure about.
+    - title: an expensive result nobody consumes
+      before: |
+        def _summarise(rows):
+            return {"n": len(rows), "total": sum(rows)}
+
+
+        def before(rows):
+            ordered = sorted(rows)               # built, bound, never read again
+            summary = _summarise(rows)
+            return summary["total"]
+      after: |
+        def _summarise(rows):
+            return {"n": len(rows), "total": sum(rows)}
+
+
+        def after(rows):
+            summary = _summarise(rows)
+            return summary["total"]
+      note: |
+        A query, a transfer and a full materialisation, all discarded. The binding is a bytecode; the statement is a round trip. This is the form worth reporting, and the reason to size the right-hand side before deciding anything.
+
+        Measured in `validation/taxonomy/C1S1_dead_expensive_result.py`.
+    - title: a loop that builds something and drops it
+      before: |
+        def before(records):
+            checksums = []
+            for record in records:
+                checksums.append(record * 31 + 7)
+            return len(records)
+      after: |
+        def after(records):
+            return len(records)
+      note: |
+        A full pass, a list of N strings, and N appends, for a value the function already had. Check first that `seen` is not read through a closure or returned by a wrapper -- a whole loop disappearing is worth being sure about.
+
+        Measured in `validation/taxonomy/C1S1_dead_loop.py`.
+    - title: a scratch value recomputed every iteration
+      before: |
+        def before(xs):
+            total = 0
+            for x in xs:
+                scratch = sorted(str(x))          # never read
+                total += x
+            return total
+      after: |
+        def after(xs):
+            total = 0
+            for x in xs:
+                total += x
+            return total
+      note: |
+        A value computed into a local nothing reads.
+
+        Measured in `validation/taxonomy/C1S1_dead_code.py`.
   patch_shape: statement_local
   measurability: scales_with_input
-  min_workload_hint: >
-    size on what the discarded expression costs, not on the number of dead
-    bindings; a dead `x = 1` will not measure at any size
-  notes: >
-    Two very different findings share this root cause, and the report should say
-    which.  A dead *binding* is advisory.  A dead *computation* can be the largest
-    saving in a whole analysis.  An unread local is easy to spot and usually the
-    trivial kind, so treat noticing one as a prompt to look at what its right-hand
-    side costs rather than as a finding in itself.
-  similar: [C1.S2, C1.S3, C1.S5, C1.S7]
-
+  min_workload_hint: |
+    size on what the discarded expression costs, not on the number of dead bindings; a dead `x = 1` will not measure at any size
+  notes: |
+    Two very different findings share this root cause, and the report should say which.  A dead *binding* is advisory.  A dead *computation* can be the largest saving in a whole analysis.  An unread local is easy to spot and usually the trivial kind, so treat noticing one as a prompt to look at what its right-hand side costs rather than as a finding in itself.
+  similar:
+  - C1.S2
+  - C1.S3
+  - C1.S5
+  - C1.S7
 - id: C1.S2
-  signals: [ruff_PLW2901]
-  in_one_line: >
+  signals:
+  - ruff_PLW2901
+  in_one_line: |
     a store that leaves the program's state exactly as it already was
-  what_to_look_for: >
-    An assignment is a `STORE_FAST` into the frame's array plus a reference
-    count adjustment, or a dict write for a global or an attribute: one to three
-    instructions, and no input size makes it more.  Look for a store whose
-    effect the machine already has -- a name reassigned before anything reads
-    it, `x = x`, or a conversion that cannot change this particular value
-    (`int()` on an int, `.strip()` on stripped text).  Because the cost is the
-    store and not the value, the size does not change with the right-hand side;
-    if the value was expensive to compute, the finding is a discarded result or
-    a repeated computation and it is much larger.  Measured, a redundant store
-    inside a million-iteration loop is worth **+2.9% +-0.7** -- real, but only
-    where a tight loop executes it and nothing else in the body dilutes it.  The exception worth
-    knowing is that an idempotent *call* is not free -- `.strip()` on an
-    already-stripped string still scans it from both ends -- so a redundant
-    operation inside a loop can scale where a redundant store never does.  Watch
-    for stores that do observable work: a property setter, a descriptor,
-    `__setattr__`, or a name that a closure or a callee can read in between.
+  what_to_look_for: |
+    An assignment is a `STORE_FAST` into the frame's array plus a reference count adjustment, or a dict write for a global or an attribute: one to three instructions, and no input size makes it more.  Look for a store whose effect the machine already has -- a name reassigned before anything reads it, `x = x`, or a conversion that cannot change this particular value (`int()` on an int, `.strip()` on stripped text).  Because the cost is the store and not the value, the size does not change with the right-hand side; if the value was expensive to compute, the finding is a discarded result or a repeated computation and it is much larger.  Measured, a redundant store inside a million-iteration loop is worth **+2.9% +-0.7** -- real, but only where a tight loop executes it and nothing else in the body dilutes it.  The exception worth knowing is that an idempotent *call* is not free -- `.strip()` on an already-stripped string still scans it from both ends -- so a redundant operation inside a loop can scale where a redundant store never does.  Watch for stores that do observable work: a property setter, a descriptor, `__setattr__`, or a name that a closure or a callee can read in between.
   not_a_smell_when:
-    - >
-      the assignment triggers a property setter, a descriptor or `__setattr__`, so
-      it does observable work
-    - >
-      the store is a deliberate reset that makes the following code independent of
-      what came before
-    - >
-      the value's type is not actually known, so an apparently idempotent
-      conversion is a genuine normalisation
-    - >
-      the name is read in between by something not visible locally -- a closure,
-      a global, a nested function
+  - |
+    the assignment triggers a property setter, a descriptor or `__setattr__`, so it does observable work
+  - |
+    the store is a deliberate reset that makes the following code independent of what came before
+  - |
+    the value's type is not actually known, so an apparently idempotent conversion is a genuine normalisation
+  - |
+    the name is read in between by something not visible locally -- a closure, a global, a nested function
   counter_examples:
-    - code: |
-        def load(raw):
-            value = int(raw)
-            value = int(value)
-            return value
-      why: >
-        The second `int()` looks idempotent and is -- but only because the first
-        one established the type. Remove the *first* and the function breaks;
-        remove the second and you have saved one call on an int, which is a few
-        nanoseconds. Correctly identifying which of two similar statements is
-        redundant is the whole exercise.
-    - code: |
-        def normalise(text):
-            text = text.strip()
-            text = text.strip()
-            return text
-      why: >
-        Genuinely redundant -- and `str.strip` on an already-stripped string still
-        scans it from both ends, so unlike the `int` case this is proportional to
-        the string length. Included because it shows the size argument has an
-        exception: an idempotent operation is not always constant-cost.
+  - code: |
+      def load(raw):
+          value = int(raw)
+          value = int(value)
+          return value
+    why: |
+      The second `int()` looks idempotent and is -- but only because the first one established the type. Remove the *first* and the function breaks; remove the second and you have saved one call on an int, which is a few nanoseconds. Correctly identifying which of two similar statements is redundant is the whole exercise.
+  - code: |
+      def normalise(text):
+          text = text.strip()
+          text = text.strip()
+          return text
+    why: |
+      Genuinely redundant -- and `str.strip` on an already-stripped string still scans it from both ends, so unlike the `int` case this is proportional to the string length. Included because it shows the size argument has an exception: an idempotent operation is not always constant-cost.
   refactoring:
     summary: delete the assignment that leaves state unchanged
     examples:
-      - title: a value overwritten before it is read
-        before: |
-          def choose(config, override):
-              level = config.get("level", "info")
-              level = override or level
-              return level
-        after: |
-          def choose(config, override):
-              return override or config.get("level", "info")
-        note: >
-          The first store is read by the second, so nothing here is dead -- what
-          the repair removes is two bindings, not a computation. One or two
-          instructions, so this is only worth reporting where it runs a great
-          many times.
-      - title: an idempotent conversion inside a loop
-        before: |
-          def totals(counts):
-              running = 0
-              for value in counts:
-                  running += int(value)
-              return running
-        after: |
-          def totals(counts):
-              return sum(counts)
-        note: >
-          `int()` on a value that is already an `int` returns the same object, so
-          the call is a global lookup and a type check per element -- which does
-          scale with input, unlike the bare store. Note the repair here is
-          really C10.S1: once the redundant conversion goes, `sum` does the rest.
-          Report the larger finding and subsume this.
+    - title: a store that leaves the value it already had
+      before: |
+        def before(xs):
+            state = 0
+            for x in xs:
+                if x % 2:
+                    state = state          # leaves state unchanged
+                else:
+                    state = x
+            return state
+      after: |
+        def after(xs):
+            state = 0
+            for x in xs:
+                if not x % 2:
+                    state = x
+            return state
+      note: |
+        Advisory; assigning a value already held.
+
+        Advisory means the repair is real but too small to measure. This checks that.
+
+        Measured in `validation/taxonomy/C1S2_redundant_assignment.py`.
+    - title: an idempotent conversion inside a loop
+      before: |
+        def before(values):
+            total = 0
+            for value in values:
+                value = int(value)               # already an int on every element
+                total += value
+            return total
+      after: |
+        def after(values):
+            total = 0
+            for value in values:
+                total += value
+            return total
+      note: |
+        `int()` on a value that is already an `int` returns the same object, so the call is a global lookup and a type check per element -- which does scale with input, unlike the bare store. Note the repair here is really C10.S1: once the redundant conversion goes, `sum` does the rest. Report the larger finding and subsume this.
+
+        Measured in `validation/taxonomy/C1S2_idempotent_conversion.py`.
+    - title: a normalisation applied to already-normalised input
+      before: |
+        def before(lines):
+            out = []
+            for line in lines:
+                line = line.strip()              # nothing to strip; still scans
+                out.append(line)
+            return out
+      after: |
+        def after(lines):
+            out = []
+            for line in lines:
+                out.append(line)
+            return out
+      note: |
+        `.strip()` on text that is already stripped.
+
+        The card's own counter-example says this one *does* scale, because `str.strip`
+        scans from both ends whether or not there is anything to remove. Long strings
+        should therefore show more than short ones, which is the point of the two
+        sizes: this is the case that separates "a redundant store" from "a redundant
+        operation".
+
+        Measured in `validation/taxonomy/C1S2_redundant_strip.py`.
   patch_shape: statement_local
   measurability: scales_with_calls
-  min_workload_hint: >
-    a tight loop with almost nothing else in the body, executed on the order of
-    a million times; measured at +2.9% there and invisible anywhere shorter
-  notes: >
-    This was classified as advisory -- too small for any workload to measure --
-    until it was measured at **+2.9% +-0.7** in a million-iteration loop on a
-    0.9% floor.  The cost per execution really is one to three instructions;
-    what was wrong was the claim that no workload could lift it.  A hot enough
-    loop can, and the honest report is a small confirmed saving rather than an
-    unmeasured note.  There is one exception worth knowing on top: an idempotent
-    *call* is not free, and `.strip()` or `.lower()` on an already-normalised
-    string still scans it, which scales with the string rather than with the
-    call count.
-  similar: [C1.S1, C1.S4, C1.S7]
-
+  min_workload_hint: |
+    a tight loop with almost nothing else in the body, executed on the order of a million times; measured at +2.9% there and invisible anywhere shorter
+  notes: |
+    This was classified as advisory -- too small for any workload to measure -- until it was measured at **+2.9% +-0.7** in a million-iteration loop on a 0.9% floor.  The cost per execution really is one to three instructions; what was wrong was the claim that no workload could lift it.  A hot enough loop can, and the honest report is a small confirmed saving rather than an unmeasured note.  There is one exception worth knowing on top: an idempotent *call* is not free, and `.strip()` or `.lower()` on an already-normalised string still scans it, which scales with the string rather than with the call count.
+  similar:
+  - C1.S1
+  - C1.S4
+  - C1.S7
 - id: C1.S3
-  signals: [redundant_bool_branch]
-  in_one_line: >
+  signals:
+  - redundant_bool_branch
+  in_one_line: |
     a branch whose outcome is the same whichever way it goes
-  what_to_look_for: >
-    A branch that cannot change what the program does still evaluates its
-    condition and dispatches its jump -- two to four instructions, with nothing
-    behind them.  The shapes are an `if` whose body is empty, arms that compute
-    the same answer, a `match` whose cases are identical, and a `try` that
-    catches something its body cannot raise.  That last one is settled by
-    reading the callees rather than the body: `json.loads` raises a `ValueError`
-    subclass, so a handler that looks unreachable is not.  The size is a couple
-    of instructions per evaluation, so it needs a hot path -- measured at
-    **+6.1% +-0.6** for `if c: return True else: return False` collapsed to
-    `return c`, called once per element over half a million elements.  Where the
-    *condition* is expensive to evaluate the waste is the call rather than the
-    branch, and the finding is much larger.  An empty arm is also frequently
-    load-bearing -- it stops a value reaching the `elif` below it -- and is
-    sometimes a documented decision whose comment was lost, so read what it
-    excludes before removing it.
+  what_to_look_for: |
+    A branch that cannot change what the program does still evaluates its condition and dispatches its jump -- two to four instructions, with nothing behind them.  The shapes are an `if` whose body is empty, arms that compute the same answer, a `match` whose cases are identical, and a `try` that catches something its body cannot raise.  That last one is settled by reading the callees rather than the body: `json.loads` raises a `ValueError` subclass, so a handler that looks unreachable is not.  The size is a couple of instructions per evaluation, so it needs a hot path -- measured at **+6.1% +-0.6** for `if c: return True else: return False` collapsed to `return c`, called once per element over half a million elements.  Where the *condition* is expensive to evaluate the waste is the call rather than the branch, and the finding is much larger.  An empty arm is also frequently load-bearing -- it stops a value reaching the `elif` below it -- and is sometimes a documented decision whose comment was lost, so read what it excludes before removing it.
   not_a_smell_when:
-    - >
-      the branch is a documented placeholder, and deleting it removes the record
-      of a decision rather than dead work
-    - >
-      the bodies differ and only the condition was determined, which is C4.S2
-    - >
-      the `try` catches something a callee can raise, which you can only know by
-      reading the callee
-    - >
-      an arm has a side effect that the others do not, however similar they look
+  - |
+    the branch is a documented placeholder, and deleting it removes the record of a decision rather than dead work
+  - |
+    the bodies differ and only the condition was determined, which is C4.S2
+  - |
+    the `try` catches something a callee can raise, which you can only know by reading the callee
+  - |
+    an arm has a side effect that the others do not, however similar they look
   counter_examples:
-    - code: |
-        if response.status == 204:
-            pass       # no body expected; fall through to the common return
-        elif response.status >= 400:
-            raise HttpError(response)
-        return response.body
-      why: >
-        An `if` with an empty body, which is the shape -- and it is load-bearing:
-        it stops 204 from reaching the `elif`. Deleting the arm changes nothing
-        here, but deleting the *branch* would change which statuses raise. Read
-        what the empty arm is excluding before removing it.
-    - code: |
-        try:
-            return json.loads(text)
-        except ValueError:
-            return None
-      why: >
-        `json.loads` raises `JSONDecodeError`, which is a `ValueError` subclass, so
-        the handler is reachable. A rule that only checks whether the literal
-        `ValueError` appears in the body would call this unreachable. Subclass
-        relationships are why this step says to read the callee.
+  - code: |
+      if response.status == 204:
+          pass       # no body expected; fall through to the common return
+      elif response.status >= 400:
+          raise HttpError(response)
+      return response.body
+    why: |
+      An `if` with an empty body, which is the shape -- and it is load-bearing: it stops 204 from reaching the `elif`. Deleting the arm changes nothing here, but deleting the *branch* would change which statuses raise. Read what the empty arm is excluding before removing it.
+  - code: |
+      try:
+          return json.loads(text)
+      except ValueError:
+          return None
+    why: |
+      `json.loads` raises `JSONDecodeError`, which is a `ValueError` subclass, so the handler is reachable. A rule that only checks whether the literal `ValueError` appears in the body would call this unreachable. Subclass relationships are why this step says to read the callee.
   refactoring:
     summary: delete the control flow that cannot change the outcome
     examples:
-      - title: arms that do the same thing
-        before: |
-          def label(status):
-              if status == "queued":
-                  return "pending"
-              elif status == "scheduled":
-                  return "pending"
-              elif status == "running":
-                  return "pending"
-              return status
-        after: |
-          _PENDING = frozenset({"queued", "scheduled", "running"})
+    - title: arms that do the same thing
+      before: |
+        def before(values, limit):
+            out = []
+            for value in values:
+                if value > limit:
+                    out.append(value * 2)
+                elif value == limit:
+                    out.append(value * 2)
+                else:
+                    out.append(value * 2)
+            return out
+      after: |
+        def after(values, limit):
+            out = []
+            for value in values:
+                out.append(value * 2)
+            return out
+      note: |
+        Three comparisons on average become one hash probe, and the branch structure disappears. Note this is only *just* worth measuring -- and if the set were larger it would be C4.S3, a chain that should be a lookup.
 
-          def label(status):
-              return "pending" if status in _PENDING else status
-        note: >
-          Three comparisons on average become one hash probe, and the branch
-          structure disappears. Note this is only *just* worth measuring -- and if
-          the set were larger it would be C4.S3, a chain that should be a lookup.
-      - title: a condition guarding nothing
-        before: |
-          def flush(self, records):
-              if self.strict:
-                  pass
-              self._write(records)
-        after: |
-          def flush(self, records):
-              self._write(records)
-        note: >
-          An attribute read and a jump, per call. Two instructions, so this is
-          a finding only on a path that runs a great many times -- and check the
-          version history first, because an empty arm under a flag is often a
-          removal that lost its comment rather than something nobody meant.
+        Measured in `validation/taxonomy/C1S3_identical_arms.py`.
+    - title: a condition guarding nothing
+      before: |
+        def before(sink, values):
+            for value in values:
+                if sink.strict:
+                    pass
+                sink.seen += value
+            return sink.seen
+      after: |
+        def after(sink, values):
+            for value in values:
+                sink.seen += value
+            return sink.seen
+      note: |
+        An attribute read and a jump, per call. Two instructions, so this is a finding only on a path that runs a great many times -- and check the version history first, because an empty arm under a flag is often a removal that lost its comment rather than something nobody meant.
+
+        Measured in `validation/taxonomy/C1S3_empty_guard.py`.
+    - title: a branch that only rebuilds the condition's own value
+      before: |
+        def _over(x, k):
+            if x > k:
+                return True
+            else:
+                return False
+
+
+        def before(xs, k):
+            hits = 0
+            for x in xs:
+                if _over(x, k):
+                    hits += 1
+            return hits
+      after: |
+        def _over_direct(x, k):
+            return x > k
+
+
+        def after(xs, k):
+            hits = 0
+            for x in xs:
+                if _over_direct(x, k):
+                    hits += 1
+            return hits
+      note: |
+        Also marked advisory, also checked.
+
+        `if c: return True else: return False` collapses to `return c`. The analyzer
+        grades this DEFINITE, which is a strong word for something the card says is
+        too small to measure. Both cannot be right about how much it matters.
+
+        Measured in `validation/taxonomy/C1S3_bool_branch.py`.
   patch_shape: statement_local
   measurability: scales_with_calls
-  min_workload_hint: >
-    the branch must be evaluated per element of a large collection; measured at
-    +6.1% over half a million evaluations, and nothing at all below that scale
-  notes: >
-    Classified as advisory until it was measured at **+6.1% +-0.6** on a 0.9%
-    floor, collapsing `if c: return True else: return False` into `return c` in
-    a per-element helper.  The card had called it unmeasurable; the measurement
-    says otherwise, and the card was wrong.
-  similar: [C1.S1, C4.S2, C4.S4]
-
+  min_workload_hint: |
+    the branch must be evaluated per element of a large collection; measured at +6.1% over half a million evaluations, and nothing at all below that scale
+  notes: |
+    Classified as advisory until it was measured at **+6.1% +-0.6** on a 0.9% floor, collapsing `if c: return True else: return False` into `return c` in a per-element helper.  The card had called it unmeasurable; the measurement says otherwise, and the card was wrong.
+  similar:
+  - C1.S1
+  - C4.S2
+  - C4.S4
 - id: C1.S4
-  signals: [repeated_pure_call]
-  in_one_line: >
+  signals:
+  - repeated_pure_call
+  in_one_line: |
     the same value computed twice in one scope, where one local would serve both
-  what_to_look_for: >
-    Computing the same value twice pays for it twice, and the repair replaces
-    the second evaluation with a `LOAD_FAST`.  What the finding is worth is
-    entirely the cost of the expression -- two `len()` calls are a few
-    nanoseconds, two parses are a whole parse -- so establish that before
-    anything else.  What makes the repair valid is that nothing between the two
-    evaluations can change the answer: no operand rebound, no container mutated,
-    no call that could reach either.  For anything but a pure function of
-    immutable arguments, that means reading the code in between.  Purity is the
-    other condition and it is where identical-looking calls diverge, since
-    `queue.get()` twice consumes two items.  Count the evaluations that actually
-    happen rather than the occurrences in the text, because two of three
-    appearances may sit on mutually exclusive paths.  Repetition *across* calls
-    is a different problem needing a cache rather than a local.
+  what_to_look_for: |
+    Computing the same value twice pays for it twice, and the repair replaces the second evaluation with a `LOAD_FAST`.  What the finding is worth is entirely the cost of the expression -- two `len()` calls are a few nanoseconds, two parses are a whole parse -- so establish that before anything else.  What makes the repair valid is that nothing between the two evaluations can change the answer: no operand rebound, no container mutated, no call that could reach either.  For anything but a pure function of immutable arguments, that means reading the code in between.  Purity is the other condition and it is where identical-looking calls diverge, since `queue.get()` twice consumes two items.  Count the evaluations that actually happen rather than the occurrences in the text, because two of three appearances may sit on mutually exclusive paths.  Repetition *across* calls is a different problem needing a cache rather than a local.
   not_a_smell_when:
-    - >
-      the expression has a side effect that must happen each time
-    - >
-      something in between can change the result, directly or through a call
-    - >
-      the expression is trivial -- a `len`, an attribute read, an `isinstance` --
-      where binding it saves a few nanoseconds
-    - >
-      the two evaluations are on mutually exclusive paths, so only one ever runs
-    - >
-      the repetition spans calls rather than one scope, which is C8.S1 or C8.S3
+  - |
+    the expression has a side effect that must happen each time
+  - |
+    something in between can change the result, directly or through a call
+  - |
+    the expression is trivial -- a `len`, an attribute read, an `isinstance` -- where binding it saves a few nanoseconds
+  - |
+    the two evaluations are on mutually exclusive paths, so only one ever runs
+  - |
+    the repetition spans calls rather than one scope, which is C8.S1 or C8.S3
   counter_examples:
-    - code: |
-        def poll(queue):
-            first = queue.get()
-            second = queue.get()
-            return first, second
-      why: >
-        The same call twice with the same arguments, and each one consumes a
-        different item. Purity is the load-bearing condition and it fails here.
-        Any rule matching on identical call text reports this.
-    - code: |
-        def report(records):
-            if not records:
-                return f"0 of {len(records)}"
-            return f"{len(records)} of {len(records)}"
-      why: >
-        `len(records)` appears three times, and the first is on a mutually
-        exclusive path -- at most two ever run. Binding it above the `if` also
-        evaluates it on the early-return path, which is not a win. Count the
-        evaluations that actually happen, not the occurrences in the text.
+  - code: |
+      def poll(queue):
+          first = queue.get()
+          second = queue.get()
+          return first, second
+    why: |
+      The same call twice with the same arguments, and each one consumes a different item. Purity is the load-bearing condition and it fails here. Any rule matching on identical call text reports this.
+  - code: |
+      def report(records):
+          if not records:
+              return f"0 of {len(records)}"
+          return f"{len(records)} of {len(records)}"
+    why: |
+      `len(records)` appears three times, and the first is on a mutually exclusive path -- at most two ever run. Binding it above the `if` also evaluates it on the early-return path, which is not a win. Count the evaluations that actually happen, not the occurrences in the text.
   refactoring:
     summary: compute the value once, bind it, and read the binding
     examples:
-      - title: an expensive call made twice
-        before: |
-          def summarise(path):
-              if parse_manifest(path).version < 2:
-                  raise Unsupported(path)
-              return parse_manifest(path).entries
-        after: |
-          def summarise(path):
-              manifest = parse_manifest(path)
-              if manifest.version < 2:
-                  raise Unsupported(path)
-              return manifest.entries
-        note: >
-          Two parses become one. The saving is the whole of `parse_manifest`, so
-          this is worth reporting whatever the loop count -- provided the parse is
-          pure, which for anything reading a file means checking it does not also
-          write, cache or lock.
-      - title: an operand chain re-derived on two lines
-        before: |
-          def apply(self, rows):
-              if len(rows) > self.config.limits.batch:
-                  rows = rows[: self.config.limits.batch]
-              return self._write(rows)
-        after: |
-          def apply(self, rows):
-              batch = self.config.limits.batch
-              if len(rows) > batch:
-                  rows = rows[:batch]
-              return self._write(rows)
-        note: >
-          Four dict lookups become two plus one array read. Small, and clearer.
-          Report advisory unless `apply` is genuinely hot -- and if it is called
-          in a loop over rows, the binding belongs above that loop, which is
-          C3.S2 rather than this.
+    - title: an expensive call made twice
+      before: |
+        def _parse_manifest(text):
+            entries = {}
+            for line in text.split(";"):
+                if "=" in line:
+                    key, _, value = line.partition("=")
+                    entries[key] = int(value)
+            return entries
+
+
+        def before(text):
+            if _parse_manifest(text)["version"] < 2:
+                return None
+            return _parse_manifest(text)["entries"]
+      after: |
+        def _parse_manifest(text):
+            entries = {}
+            for line in text.split(";"):
+                if "=" in line:
+                    key, _, value = line.partition("=")
+                    entries[key] = int(value)
+            return entries
+
+
+        def after(text):
+            manifest = _parse_manifest(text)
+            if manifest["version"] < 2:
+                return None
+            return manifest["entries"]
+      note: |
+        Two parses become one. The saving is the whole of `parse_manifest`, so this is worth reporting whatever the loop count -- provided the parse is pure, which for anything reading a file means checking it does not also write, cache or lock.
+
+        Measured in `validation/taxonomy/C1S4_expensive_call_twice.py`.
+    - title: an operand chain re-derived on two lines
+      before: |
+        def before(config, rows, repeats):
+            kept = 0
+            for _ in range(repeats):
+                if len(rows) > config.limits.batch:
+                    kept += len(rows[: config.limits.batch])
+                else:
+                    kept += len(rows)
+            return kept
+      after: |
+        def after(config, rows, repeats):
+            kept = 0
+            for _ in range(repeats):
+                batch = config.limits.batch
+                if len(rows) > batch:
+                    kept += len(rows[:batch])
+                else:
+                    kept += len(rows)
+            return kept
+      note: |
+        Four dict lookups become two plus one array read. Small, and clearer. Report advisory unless `apply` is genuinely hot -- and if it is called in a loop over rows, the binding belongs above that loop, which is C3.S2 rather than this.
+
+        Measured in `validation/taxonomy/C1S4_operand_chain.py`.
+    - title: the same derivation in the test and in the body
+      before: |
+        def before(rows):
+            out = []
+            for r in rows:
+                if len(str(r)) > 3:
+                    out.append(len(str(r)))
+            return out
+      after: |
+        def after(rows):
+            out = []
+            for r in rows:
+                width = len(str(r))
+                if width > 3:
+                    out.append(width)
+            return out
+      note: |
+        The same pure call evaluated twice per item.
+
+        Measured in `validation/taxonomy/C1S4_repeated_computation.py`.
   patch_shape: statement_local
   measurability: scales_with_calls
-  min_workload_hint: >
-    the effect is one evaluation per call, so size on the call count and on what
-    the expression costs; a repeated `len()` needs millions of calls to show
-  similar: [C1.S2, C3.S2, C8.S1, C8.S2]
-
+  min_workload_hint: |
+    the effect is one evaluation per call, so size on the call count and on what the expression costs; a repeated `len()` needs millions of calls to show
+  similar:
+  - C1.S2
+  - C3.S2
+  - C8.S1
+  - C8.S2
 - id: C1.S5
-  signals: [discarded_pure_result]
-  in_one_line: >
+  signals:
+  - discarded_pure_result
+  in_one_line: |
     a computation run in full whose result nothing downstream actually needs
-  what_to_look_for: >
-    A computation nothing consumes runs in full for nothing -- every allocation,
-    every pass, every call.  The small form is a bare call whose return value is
-    dropped.  The form that matters is a pipeline stage the *next* stage is
-    invariant under: a normalisation before a case-insensitive compare, a sort
-    before a `sum`, a softmax before an `argmax`.  That form is invisible line
-    by line, because every statement looks purposeful and the redundancy lives
-    in the relationship between them, so it is found by asking what the answer
-    actually depends on rather than by looking at any one line.  Loops have
-    their own version: one that overwrites a variable each pass and is read once
-    afterwards did n-1 iterations for nothing.  Purity is the condition
-    throughout -- a discarded return value is often the whole point of the call,
-    when it validates, warms a cache, takes a lock or advances a counter.
-    Expect this to be one of the largest effects available and one that leaves
-    no syntactic trace at all.
+  what_to_look_for: |
+    A computation nothing consumes runs in full for nothing -- every allocation, every pass, every call.  The small form is a bare call whose return value is dropped.  The form that matters is a pipeline stage the *next* stage is invariant under: a normalisation before a case-insensitive compare, a sort before a `sum`, a softmax before an `argmax`.  That form is invisible line by line, because every statement looks purposeful and the redundancy lives in the relationship between them, so it is found by asking what the answer actually depends on rather than by looking at any one line.  Loops have their own version: one that overwrites a variable each pass and is read once afterwards did n-1 iterations for nothing.  Purity is the condition throughout -- a discarded return value is often the whole point of the call, when it validates, warms a cache, takes a lock or advances a counter. Expect this to be one of the largest effects available and one that leaves no syntactic trace at all.
   not_a_smell_when:
-    - >
-      the call has a side effect that is the reason for it: validation that
-      raises, a cache being warmed, a lock acquired, a counter advanced
-    - >
-      the result is consumed somewhere the reader has not looked -- a closure, a
-      generator the caller drives, an attribute set as a side effect
-    - >
-      the computation is a deliberate warm-up, a timing probe, or a benchmark
-    - >
-      it raises on bad input and that is what protects the code after it
+  - |
+    the call has a side effect that is the reason for it: validation that raises, a cache being warmed, a lock acquired, a counter advanced
+  - |
+    the result is consumed somewhere the reader has not looked -- a closure, a generator the caller drives, an attribute set as a side effect
+  - |
+    the computation is a deliberate warm-up, a timing probe, or a benchmark
+  - |
+    it raises on bad input and that is what protects the code after it
   counter_examples:
-    - code: |
-        def save(self, record):
-            self._schema.validate(record)
-            self._store[record.id] = record
-      why: >
-        The return value is discarded and the call is the point: `validate` raises
-        on a malformed record. Deleting it removes the check. Purity is the
-        condition, and this call is not pure in the relevant sense -- it has an
-        exceptional effect.
-    - code: |
-        def warm(self, keys):
-            for key in keys:
-                self.lookup(key)
-      why: >
-        A loop whose results are all discarded, which is the shape exactly -- and
-        the function's entire purpose is the cache `lookup` populates. Purity is
-        the condition, and it fails here on the side effect rather than on the
-        return value.
+  - code: |
+      def save(self, record):
+          self._schema.validate(record)
+          self._store[record.id] = record
+    why: |
+      The return value is discarded and the call is the point: `validate` raises on a malformed record. Deleting it removes the check. Purity is the condition, and this call is not pure in the relevant sense -- it has an exceptional effect.
+  - code: |
+      def warm(self, keys):
+          for key in keys:
+              self.lookup(key)
+    why: |
+      A loop whose results are all discarded, which is the shape exactly -- and the function's entire purpose is the cache `lookup` populates. Purity is the condition, and it fails here on the side effect rather than on the return value.
   refactoring:
     summary: delete the computation whose result nothing consumes
     examples:
-      - title: a stage the next stage is invariant under
-        before: |
-          def classify(logits):
-              probabilities = softmax(logits)
-              best, index = 0, 0
-              for i, p in enumerate(probabilities):
-                  if p > best:
-                      best, index = p, i
-              return index
-        after: |
-          def classify(logits):
-              best, index = float("-inf"), 0
-              for i, value in enumerate(logits):
-                  if value > best:
-                      best, index = value, i
-              return index
-        note: >
-          Softmax is strictly monotonic, so it preserves the position of the
-          maximum -- and the function returns only that position. A full
-          exponentiation and normalisation of a million logits is dead work. Note
-          the initial value must change from `0` to `-inf`, because logits can be
-          negative where probabilities cannot: without that the repair is silently
-          wrong on all-negative input. C7.S5 describes this equally well, since
-          the answer never needed probabilities; either attribution is fine as
-          long as the repair matches the words on the card you file it under.
-      - title: a loop where only the last iteration is read
-        before: |
-          def resolve(candidates, request):
-              for candidate in candidates:
-                  match = score(candidate, request)
-              return match
-        after: |
-          def resolve(candidates, request):
-              if not candidates:
-                  raise ValueError("no candidates")
-              return score(candidates[-1], request)
-        note: >
-          Every iteration but the last computed a value that was immediately
-          overwritten. Only valid if `score` is pure -- if it records anything,
-          every call mattered. The empty case also has to be handled explicitly,
-          because the original raises `UnboundLocalError` and the repair should
-          raise something meaningful.
+    - title: a stage the next stage is invariant under
+      before: |
+        import math
+
+
+        def _softmax(logits):
+            exponentials = [math.exp(v) for v in logits]
+            total = sum(exponentials)
+            return [e / total for e in exponentials]
+
+
+        def before(logits):
+            probabilities = _softmax(logits)
+            best, index = float("-inf"), 0
+            for i, p in enumerate(probabilities):
+                if p > best:
+                    best, index = p, i
+            return index
+      after: |
+        def after(logits):
+            best, index = float("-inf"), 0
+            for i, value in enumerate(logits):
+                if value > best:
+                    best, index = value, i
+            return index
+      note: |
+        Softmax is strictly monotonic, so it preserves the position of the maximum -- and the function returns only that position. A full exponentiation and normalisation of a million logits is dead work. Note the initial value must change from `0` to `-inf`, because logits can be negative where probabilities cannot: without that the repair is silently wrong on all-negative input. C7.S5 describes this equally well, since the answer never needed probabilities; either attribution is fine as long as the repair matches the words on the card you file it under.
+
+        Measured in `validation/taxonomy/C1S5_invariant_stage.py`.
+    - title: a loop where only the last iteration is read
+      before: |
+        def _score(candidate, request):
+            return sum(ord(c) for c in candidate) % (request + 1)
+
+
+        def before(candidates, request):
+            for candidate in candidates:
+                match = _score(candidate, request)
+            return match
+      after: |
+        def _score(candidate, request):
+            return sum(ord(c) for c in candidate) % (request + 1)
+
+
+        def after(candidates, request):
+            if not candidates:
+                raise UnboundLocalError(
+                    "local variable 'match' referenced before assignment")
+            return _score(candidates[-1], request)
+      note: |
+        Every iteration but the last computed a value that was immediately overwritten. Only valid if `score` is pure -- if it records anything, every call mattered. The empty case also has to be handled explicitly, because the original raises `UnboundLocalError` and the repair should raise something meaningful.
+
+        Measured in `validation/taxonomy/C1S5_last_iteration_only.py`.
+    - title: a call whose result is dropped on the floor
+      before: |
+        def before(rows):
+            total = 0
+            for r in rows:
+                sorted(r)                  # result dropped on the floor
+                total += r[0]
+            return total
+      after: |
+        def after(rows):
+            total = 0
+            for r in rows:
+                total += r[0]
+            return total
+      note: |
+        A pure call whose result is discarded.
+
+        Measured in `validation/taxonomy/C1S5_resultless.py`.
   patch_shape: statement_local
   measurability: scales_with_input
-  min_workload_hint: >
-    size on what the deleted stage costs; when a whole pass over a collection
-    disappears, almost any realistic input shows it
-  notes: >
-    The published example -- "calling `expensive_format(data)` without assigning
-    the result" -- is the small, rare form.  The form that matters is an
-    intermediate *nobody needed*, and it is invisible line by line: each statement
-    looks purposeful and the redundancy is in the relationship between them.  That
-    is what makes this a reading finding rather than a rule finding.
-  similar: [C1.S1, C1.S6, C1.S8, C3.S6]
-
+  min_workload_hint: |
+    size on what the deleted stage costs; when a whole pass over a collection disappears, almost any realistic input shows it
+  notes: |
+    The published example -- "calling `expensive_format(data)` without assigning the result" -- is the small, rare form.  The form that matters is an intermediate *nobody needed*, and it is invisible line by line: each statement looks purposeful and the redundancy is in the relationship between them.  That is what makes this a reading finding rather than a rule finding.
+  similar:
+  - C1.S1
+  - C1.S6
+  - C1.S8
+  - C3.S6
 - id: C1.S6
-  signals: [dead_initialization]
-  in_one_line: >
+  signals:
+  - dead_initialization
+  in_one_line: |
     setup done unconditionally that only one path actually needs
-  what_to_look_for: >
-    Setup performed before the check that decides whether it is wanted is paid
-    on every call and returns value only on the fraction of calls that reach the
-    code using it.  Moving it inside the branch makes the expected cost the
-    setup times the probability of that branch, which makes the hit rate the
-    whole finding and something the report has to state -- a repair worth 90% on
-    a warm cache is worth nothing on a cold one.  Size the setup honestly: an
-    empty list is one allocation and advisory, while a configuration load, a
-    connection, a compiled pattern or a large zeroed buffer is not.  Two things
-    block the move.  If several branches each need the value, pushing it down
-    duplicates it and costs more than it saves; and if a `finally` or an
-    `except` refers to the name, the unconditional position is what stops that
-    being a `NameError`.  Watch also for setup whose side effect the current
-    position guarantees -- a lock taken, a directory created, a counter
-    registered.
+  what_to_look_for: |
+    Setup performed before the check that decides whether it is wanted is paid on every call and returns value only on the fraction of calls that reach the code using it.  Moving it inside the branch makes the expected cost the setup times the probability of that branch, which makes the hit rate the whole finding and something the report has to state -- a repair worth 90% on a warm cache is worth nothing on a cold one.  Size the setup honestly: an empty list is one allocation and advisory, while a configuration load, a connection, a compiled pattern or a large zeroed buffer is not.  Two things block the move.  If several branches each need the value, pushing it down duplicates it and costs more than it saves; and if a `finally` or an `except` refers to the name, the unconditional position is what stops that being a `NameError`.  Watch also for setup whose side effect the current position guarantees -- a lock taken, a directory created, a counter registered.
   not_a_smell_when:
-    - >
-      the value is used on almost every path, so the branch is nearly always taken
-    - >
-      moving it would duplicate it into several branches
-    - >
-      the setup has a side effect that must happen regardless of which path runs
-    - >
-      the setup is trivial and the function is not hot -- an empty list is one
-      allocation
-    - >
-      the unconditional form is what makes a later `finally` or `except` block
-      safe to reference the name
+  - |
+    the value is used on almost every path, so the branch is nearly always taken
+  - |
+    moving it would duplicate it into several branches
+  - |
+    the setup has a side effect that must happen regardless of which path runs
+  - |
+    the setup is trivial and the function is not hot -- an empty list is one allocation
+  - |
+    the unconditional form is what makes a later `finally` or `except` block safe to reference the name
   counter_examples:
-    - code: |
-        def handle(self, request):
-            audit = self._audit_context(request)
-            try:
-                return self._dispatch(request)
-            finally:
-                audit.close()
-      why: >
-        Created before a branch and only used at the end, so it looks movable --
-        and the `finally` needs the name bound whatever happens inside. Moving it
-        makes the cleanup a `NameError` on the failure path.
-    - code: |
-        def process(items):
-            errors = []
-            for item in items:
-                try:
-                    handle(item)
-                except Failure as exc:
-                    errors.append(exc)
-            return errors
-      why: >
-        `errors` is initialised unconditionally and only appended to inside an
-        `except`, which matches the shape -- and it is returned on every path, so
-        it must exist. One allocation per call is advisory anyway. Both reasons to
-        reject.
+  - code: |
+      def handle(self, request):
+          audit = self._audit_context(request)
+          try:
+              return self._dispatch(request)
+          finally:
+              audit.close()
+    why: |
+      Created before a branch and only used at the end, so it looks movable -- and the `finally` needs the name bound whatever happens inside. Moving it makes the cleanup a `NameError` on the failure path.
+  - code: |
+      def process(items):
+          errors = []
+          for item in items:
+              try:
+                  handle(item)
+              except Failure as exc:
+                  errors.append(exc)
+          return errors
+    why: |
+      `errors` is initialised unconditionally and only appended to inside an `except`, which matches the shape -- and it is returned on every path, so it must exist. One allocation per call is advisory anyway. Both reasons to reject.
   refactoring:
     summary: move the setup inside the branch that needs it
     examples:
-      - title: expensive setup before the check that makes it unnecessary
-        before: |
-          def config_for(self, name):
-              defaults = load_defaults_from_disk()
-              if name in self._cache:
-                  return self._cache[name]
-              return {**defaults, **self._load(name)}
-        after: |
-          def config_for(self, name):
-              if name in self._cache:
-                  return self._cache[name]
-              defaults = load_defaults_from_disk()
-              return {**defaults, **self._load(name)}
-        note: >
-          On a warm cache the disk read happened on every call and was thrown
-          away. Moving it below the check makes it cost nothing on the common
-          path. The finding's size is the cache hit rate -- state it, because on a
-          cold cache this repair is worth nothing.
-      - title: a buffer allocated for a rarely-taken branch
-        before: |
-          def render(self, rows, verbose=False):
-              trace = [None] * len(rows)
-              output = []
-              for i, row in enumerate(rows):
-                  output.append(self._line(row))
-                  if verbose:
-                      trace[i] = self._explain(row)
-              return output, trace if verbose else None
-        after: |
-          def render(self, rows, verbose=False):
-              trace = [None] * len(rows) if verbose else None
-              output = []
-              for i, row in enumerate(rows):
-                  output.append(self._line(row))
-                  if verbose:
-                      trace[i] = self._explain(row)
-              return output, trace
-        note: >
-          An N-element list allocated and zeroed on every call when `verbose` is
-          almost never set. The conditional allocation costs one comparison. Note
-          the return statement simplifies too, because `trace` is already `None`
-          -- which is the tell that the original was carrying the condition twice.
+    - title: expensive setup before the check that makes it unnecessary
+      before: |
+        def _load_defaults():
+            return {f"key{i}": i for i in range(400)}
+
+
+        def before(cache, names):
+            out = []
+            for name in names:
+                defaults = _load_defaults()
+                if name in cache:
+                    out.append(cache[name])
+                else:
+                    out.append({**defaults, "name": name}["name"])
+            return out
+      after: |
+        def _load_defaults():
+            return {f"key{i}": i for i in range(400)}
+
+
+        def after(cache, names):
+            out = []
+            for name in names:
+                if name in cache:
+                    out.append(cache[name])
+                else:
+                    defaults = _load_defaults()
+                    out.append({**defaults, "name": name}["name"])
+            return out
+      note: |
+        On a warm cache the disk read happened on every call and was thrown away. Moving it below the check makes it cost nothing on the common path. The finding's size is the cache hit rate -- state it, because on a cold cache this repair is worth nothing.
+
+        Measured in `validation/taxonomy/C1S6_setup_before_cache_check.py`.
+    - title: a buffer allocated for a rarely-taken branch
+      before: |
+        def before(rows, verbose=False):
+            trace = [None] * len(rows)
+            output = []
+            for i, row in enumerate(rows):
+                output.append(row * 2)
+                if verbose:
+                    trace[i] = row
+            return output, (trace if verbose else None)
+      after: |
+        def after(rows, verbose=False):
+            trace = [None] * len(rows) if verbose else None
+            output = []
+            for i, row in enumerate(rows):
+                output.append(row * 2)
+                if verbose:
+                    trace[i] = row
+            return output, trace
+      note: |
+        An N-element list allocated and zeroed on every call when `verbose` is almost never set. The conditional allocation costs one comparison. Note the return statement simplifies too, because `trace` is already `None` -- which is the tell that the original was carrying the condition twice.
+
+        Measured in `validation/taxonomy/C1S6_buffer_for_rare_branch.py`.
+    - title: a fallback built on every pass and used on almost none
+      before: |
+        def before(rows, k):
+            out = []
+            for r in rows:
+                fallback = [0] * 64        # built every time, used rarely
+                out.append(r if r > k else fallback[0])
+            return out
+      after: |
+        def after(rows, k):
+            out = []
+            for r in rows:
+                if r > k:
+                    out.append(r)
+                else:
+                    fallback = [0] * 64
+                    out.append(fallback[0])
+            return out
+      note: |
+        Building a value the branch may not need.
+
+        Measured in `validation/taxonomy/C1S6_unnecessary_init.py`.
   patch_shape: statement_local
   measurability: scales_with_calls
-  min_workload_hint: >
-    the driver must call the unit many times with the *common* argument values, so
-    that the calls which skip the setup dominate; a driver that always takes the
-    using path measures nothing
-  similar: [C1.S5, C4.S7, C6.S5]
-
+  min_workload_hint: |
+    the driver must call the unit many times with the *common* argument values, so that the calls which skip the setup dominate; a driver that always takes the using path measures nothing
+  similar:
+  - C1.S5
+  - C4.S7
+  - C6.S5
 - id: C1.S7
-  signals: [single_use_temporary]
-  in_one_line: >
+  signals:
+  - single_use_temporary
+  in_one_line: |
     a name bound, read exactly once, and never needed again
-  what_to_look_for: >
-    A binding costs a store and a refcount adjustment, and each read costs a
-    load, so inlining a name used exactly once removes two or three instructions
-    per execution and no input size makes it more.  This is the smallest repair
-    in the taxonomy, and the card is more useful as a reason to reject than as
-    one to accept: a name that explains what a complicated subexpression means
-    is doing a job that two instructions do not pay for.  Measured in a
-    million-iteration loop whose body is one arithmetic expression, inlining is
-    worth **+3.4% +-1.0** on a 2.0% floor -- real, and about as small as a
-    confirmed finding gets.  Anywhere less hot than that it is worth reporting
-    without a number.  When you
-    do find one inside a loop, look past it -- a single-use temporary there is
-    usually a symptom of a larger repair, an `append` loop that wants to be a
-    comprehension or a value that should not be computed per iteration at all.
-    Check too that inlining does not move when a value is released, which
-    matters when it holds a resource, and that no debugger, traceback or
-    exception message reads the local.
+  what_to_look_for: |
+    A binding costs a store and a refcount adjustment, and each read costs a load, so inlining a name used exactly once removes two or three instructions per execution and no input size makes it more.  This is the smallest repair in the taxonomy, and the card is more useful as a reason to reject than as one to accept: a name that explains what a complicated subexpression means is doing a job that two instructions do not pay for.  Measured in a million-iteration loop whose body is one arithmetic expression, inlining is worth **+3.4% +-1.0** on a 2.0% floor -- real, and about as small as a confirmed finding gets.  Anywhere less hot than that it is worth reporting without a number.  When you do find one inside a loop, look past it -- a single-use temporary there is usually a symptom of a larger repair, an `append` loop that wants to be a comprehension or a value that should not be computed per iteration at all. Check too that inlining does not move when a value is released, which matters when it holds a resource, and that no debugger, traceback or exception message reads the local.
   not_a_smell_when:
-    - >
-      the name explains what the expression means, so inlining costs
-      comprehension for two instructions
-    - >
-      the statement runs a handful of times, where the whole saving is nanoseconds
-    - >
-      inlining would produce a line long enough to need wrapping, which is a net
-      loss
-    - >
-      the binding exists so a debugger or an exception handler can see the value
+  - |
+    the name explains what the expression means, so inlining costs comprehension for two instructions
+  - |
+    the statement runs a handful of times, where the whole saving is nanoseconds
+  - |
+    inlining would produce a line long enough to need wrapping, which is a net loss
+  - |
+    the binding exists so a debugger or an exception handler can see the value
   counter_examples:
-    - code: |
-        def eligible(user):
-            tenure_days = (today() - user.joined).days
-            return tenure_days > 90
-      why: >
-        Used exactly once, immediately, and the name is the only thing explaining
-        what the arithmetic means. Inlining saves two instructions and costs the
-        reader the meaning. Most instances of this root cause look like this, and
-        the correct answer is to reject.
-    - code: |
-        def totals(rows):
-            for row in rows:
-                amount = row.gross - row.discount
-                yield row.id, amount
-      why: >
-        Inside a loop, used once -- so the count argument is satisfied and the
-        naming argument is not. `yield row.id, row.gross - row.discount` is
-        marginally cheaper and marginally worse to read. Advisory at best, and a
-        reasonable reviewer would decline.
+  - code: |
+      def eligible(user):
+          tenure_days = (today() - user.joined).days
+          return tenure_days > 90
+    why: |
+      Used exactly once, immediately, and the name is the only thing explaining what the arithmetic means. Inlining saves two instructions and costs the reader the meaning. Most instances of this root cause look like this, and the correct answer is to reject.
+  - code: |
+      def totals(rows):
+          for row in rows:
+              amount = row.gross - row.discount
+              yield row.id, amount
+    why: |
+      Inside a loop, used once -- so the count argument is satisfied and the naming argument is not. `yield row.id, row.gross - row.discount` is marginally cheaper and marginally worse to read. Advisory at best, and a reasonable reviewer would decline.
   refactoring:
     summary: inline the single-use temporary
     examples:
-      - title: a temporary in a hot loop
-        before: |
-          def checksums(records):
-              out = []
-              for record in records:
-                  digest = hash(record.key)
-                  out.append(digest)
-              return out
-        after: |
-          def checksums(records):
-              return [hash(record.key) for record in records]
-        note: >
-          The binding disappears -- but so does the `append` call and the explicit
-          loop, and those are the larger part of the saving. That makes the honest
-          label C3.S1 or C10.S3, with this subsumed. It is included to show that
-          a single-use temporary is usually a symptom of a bigger repair rather
-          than a finding of its own.
-      - title: a return that goes through a name
-        before: |
-          def render(self, row):
-              result = self._template.format(**row)
-              return result
-        after: |
-              return self._template.format(**row)
-        note: >
-          Two instructions per call. Genuinely redundant, genuinely tiny, and on
-          a per-request path not worth reporting at all. Included because it is
-          the canonical example and because the canonical example is not worth
-          measuring -- which is the most useful thing this card can teach.
+    - title: a temporary in a hot loop
+      before: |
+        def before(xs):
+            total = 0
+            for x in xs:
+                value = x * 2 + 1
+                total += value
+            return total
+      after: |
+        def after(xs):
+            total = 0
+            for x in xs:
+                total += x * 2 + 1
+            return total
+      note: |
+        The binding disappears -- but so does the `append` call and the explicit loop, and those are the larger part of the saving. That makes the honest label C3.S1 or C10.S3, with this subsumed. It is included to show that a single-use temporary is usually a symptom of a bigger repair rather than a finding of its own.
+
+        Measured in `validation/taxonomy/C1S7_single_use_temp.py`.
+    - title: a value that goes through a name on its way to being used
+      before: |
+        def before(row, repeats):
+            total = 0
+            for _ in range(repeats):
+                result = row.gross - row.discount
+                total += result
+            return total
+      after: |
+        def after(row, repeats):
+            total = 0
+            for _ in range(repeats):
+                total += row.gross - row.discount
+            return total
+      note: |
+        A return that goes through a name.
+
+        The card calls this the canonical example and says the canonical example is not
+        worth measuring. Two instructions per call, so the large case is many calls
+        over a trivial input rather than one call over a large one.
+
+        Measured in `validation/taxonomy/C1S7_return_through_name.py`.
   patch_shape: expression
   measurability: scales_with_calls
-  min_workload_hint: >
-    a loop of a million iterations whose body is otherwise one expression;
-    measured at +3.4% there, and a body that does any real work buries it
-  notes: >
-    Classified as advisory until measurement put it at **+3.4% +-1.0** on a 2.0%
-    floor.  It clears, barely, and only in a loop that does almost nothing else.
-    Read the card as a reason to reject more often than to accept.  The
-    published description is accurate about the mechanism -- a `STORE_FAST` and a
-    refcount adjustment -- and that mechanism is two instructions.  Where a single-use temporary appears inside a loop, look
-    for the larger repair it is a symptom of: an explicit `append` loop that
-    should be a comprehension, or a value that should not be computed per
-    iteration at all.
-  similar: [C1.S1, C1.S2]
-
+  min_workload_hint: |
+    a loop of a million iterations whose body is otherwise one expression; measured at +3.4% there, and a body that does any real work buries it
+  notes: |
+    Classified as advisory until measurement put it at **+3.4% +-1.0** on a 2.0% floor.  It clears, barely, and only in a loop that does almost nothing else. Read the card as a reason to reject more often than to accept.  The published description is accurate about the mechanism -- a `STORE_FAST` and a refcount adjustment -- and that mechanism is two instructions.  Where a single-use temporary appears inside a loop, look for the larger repair it is a symptom of: an explicit `append` loop that should be a comprehension, or a value that should not be computed per iteration at all.
+  similar:
+  - C1.S1
+  - C1.S2
 - id: C1.S8
-  signals: [runtime_management_in_loop]
-  in_one_line: >
+  signals:
+  - runtime_management_in_loop
+  in_one_line: |
     runtime housekeeping invoked far more often than anything needs it
-  what_to_look_for: >
-    Look for work that exists to manage the runtime rather than to compute the
-    answer, executed once per iteration rather than once.  `gc.collect()`
-    traverses every tracked object in the process, so calling it in a loop turns
-    a per-iteration cost into one proportional to the whole heap -- and
-    CPython's collector is already running on allocation thresholds.  Logging
-    has a quieter version of the same problem: a log call's arguments are
-    evaluated before the logger decides whether the level is enabled, so an
-    f-string or a `json.dumps` inside `debug()` is built in full and thrown away
-    in production.  Both have legitimate forms that a name match cannot tell
-    apart -- a collection before a fork or a memory measurement is a deliberate
-    decision, and `log.debug("processed %s", record.id)` already defers its
-    formatting and has nothing to guard.  The repair keeps the diagnostic
-    available rather than deleting it, which means guarding with `isEnabledFor`
-    *and* passing `%s` arguments, since either change alone still evaluates or
-    still builds.
+  what_to_look_for: |
+    Look for work that exists to manage the runtime rather than to compute the answer, executed once per iteration rather than once.  `gc.collect()` traverses every tracked object in the process, so calling it in a loop turns a per-iteration cost into one proportional to the whole heap -- and CPython's collector is already running on allocation thresholds.  Logging has a quieter version of the same problem: a log call's arguments are evaluated before the logger decides whether the level is enabled, so an f-string or a `json.dumps` inside `debug()` is built in full and thrown away in production.  Both have legitimate forms that a name match cannot tell apart -- a collection before a fork or a memory measurement is a deliberate decision, and `log.debug("processed %s", record.id)` already defers its formatting and has nothing to guard.  The repair keeps the diagnostic available rather than deleting it, which means guarding with `isEnabledFor` *and* passing `%s` arguments, since either change alone still evaluates or still builds.
   not_a_smell_when:
-    - >
-      the collection is deliberate and documented -- before a fork, before a
-      memory measurement, after dropping a large object graph
-    - >
-      the logging arguments are cheap, so lazy formatting saves nothing
-    - >
-      the instrumentation is the point, as in a profiling build
-    - >
-      it happens once at start-up or shutdown rather than per iteration
+  - |
+    the collection is deliberate and documented -- before a fork, before a memory measurement, after dropping a large object graph
+  - |
+    the logging arguments are cheap, so lazy formatting saves nothing
+  - |
+    the instrumentation is the point, as in a profiling build
+  - |
+    it happens once at start-up or shutdown rather than per iteration
   counter_examples:
-    - code: |
-        gc.collect()
-        gc.freeze()
-        os.fork()
-      why: >
-        A deliberate collection before forking, so the child inherits a compacted
-        heap and copy-on-write pages are not dirtied by a later collection. One of
-        the few places `gc.collect()` earns its cost, and a rule matching the call
-        name reports it.
-    - code: |
-        log.debug("processed %s", record.id)
-      why: >
-        The logging module defers `%`-formatting until it knows the level is
-        enabled, so `record.id` is the only thing evaluated -- an attribute read.
-        There is nothing to guard. The smell needs the *arguments* to be
-        expensive, which is a property of the expression rather than of the call.
+  - code: |
+      gc.collect()
+      gc.freeze()
+      os.fork()
+    why: |
+      A deliberate collection before forking, so the child inherits a compacted heap and copy-on-write pages are not dirtied by a later collection. One of the few places `gc.collect()` earns its cost, and a rule matching the call name reports it.
+  - code: |
+      log.debug("processed %s", record.id)
+    why: |
+      The logging module defers `%`-formatting until it knows the level is enabled, so `record.id` is the only thing evaluated -- an attribute read. There is nothing to guard. The smell needs the *arguments* to be expensive, which is a property of the expression rather than of the call.
   refactoring:
     summary: remove the housekeeping call, or defer the work until it is known to be needed
     examples:
-      - title: collecting on every iteration
-        before: |
-          def process_all(batches):
-              for batch in batches:
-                  handle(batch)
-                  gc.collect()
-        after: |
-          def process_all(batches):
-              for batch in batches:
-                  handle(batch)
-        note: >
-          Each `gc.collect()` walks every tracked object in the process, so the
-          loop costs iterations times heap size. CPython's collector already runs
-          on allocation thresholds. If the loop genuinely needs bounded memory,
-          the answer is to release the batch's references -- not to force a full
-          collection per pass.
-      - title: an expensive log argument evaluated regardless of level
-        before: |
-          def handle(self, record):
-              log.debug(f"record: {json.dumps(record.as_dict(), indent=2)}")
-              self._store(record)
-        after: |
-          def handle(self, record):
-              if log.isEnabledFor(logging.DEBUG):
-                  log.debug("record: %s", json.dumps(record.as_dict(), indent=2))
-              self._store(record)
-        note: >
-          The f-string is evaluated before `debug()` is called, so in production
-          -- where DEBUG is off -- every record is serialised and the string is
-          thrown away. The guard makes it conditional and the `%s` form defers the
-          formatting as well. Both changes are needed: the guard alone still
-          builds nothing, but the f-string alone would still evaluate.
+    - title: collecting on every iteration
+      before: |
+        import gc
+
+
+        def before(batches, heap):
+            total = 0
+            for batch in batches:
+                total += sum(batch)
+                gc.collect()
+            return total + len(heap)
+      after: |
+        def after(batches, heap):
+            total = 0
+            for batch in batches:
+                total += sum(batch)
+            return total + len(heap)
+      note: |
+        Each `gc.collect()` walks every tracked object in the process, so the loop costs iterations times heap size. CPython's collector already runs on allocation thresholds. If the loop genuinely needs bounded memory, the answer is to release the batch's references -- not to force a full collection per pass.
+
+        Measured in `validation/taxonomy/C1S8_collect_with_live_heap.py`.
+    - title: an expensive log argument evaluated regardless of level
+      before: |
+        import json
+
+
+        import logging
+
+
+        _log = logging.getLogger("c1s8")
+
+
+        def before(records, level):
+            _log.setLevel(level)
+            seen = 0
+            for record in records:
+                _log.debug(f"record: {json.dumps(record)}")
+                seen += record["id"]
+            return seen
+      after: |
+        import json
+
+
+        import logging
+
+
+        _log = logging.getLogger("c1s8")
+
+
+        def after(records, level):
+            _log.setLevel(level)
+            seen = 0
+            for record in records:
+                if _log.isEnabledFor(logging.DEBUG):
+                    _log.debug("record: %s", json.dumps(record))
+                seen += record["id"]
+            return seen
+      note: |
+        The f-string is evaluated before `debug()` is called, so in production -- where DEBUG is off -- every record is serialised and the string is thrown away. The guard makes it conditional and the `%s` form defers the formatting as well. Both changes are needed: the guard alone still builds nothing, but the f-string alone would still evaluate.
+
+        Measured in `validation/taxonomy/C1S8_log_argument.py`.
+    - title: the same collection against a heap that is nearly empty
+      before: |
+        import gc
+
+
+        def before(batches):
+            total = 0
+            for b in batches:
+                total += sum(b)
+                gc.collect()
+            return total
+      after: |
+        def after(batches):
+            total = 0
+            for b in batches:
+                total += sum(b)
+            return total
+      note: |
+        Gc.collect() inside a loop.
+
+        Measured in `validation/taxonomy/C1S8_runtime_management.py`.
+    - title: the guard added where there was nothing to pre-compute
+      before: |
+        import logging
+
+
+        _log = logging.getLogger("c1s8-counter")
+
+
+        def before(records, level):
+            _log.setLevel(level)
+            seen = 0
+            for record in records:
+                _log.debug("processed record %s", record)     # nothing to pre-compute
+                seen += record
+            return seen
+      after: |
+        import logging
+
+
+        _log = logging.getLogger("c1s8-counter")
+
+
+        def after(records, level):
+            _log.setLevel(level)
+            seen = 0
+            for record in records:
+                if _log.isEnabledFor(logging.DEBUG):
+                    _log.debug("processed record %s", record)
+                seen += record
+            return seen
+      note: |
+        Guarding a log
+        call that has nothing to build.
+
+        The repair is real and `C1S8_log_argument` measures it at +93% with the level
+        off: an f-string that serialises a record is evaluated before `debug()` is
+        entered, so the work happens whether or not anything is emitted.
+
+        The guard is worth what the arguments cost. Here they cost nothing -- a literal
+        and one integer that already exists -- so `isEnabledFor` adds a method call and
+        a comparison per record in front of a call whose own first act is the same
+        comparison in C. The check is done twice and the saving is zero.
+
+        Both readings should be at or below zero, which is what stops the guard being
+        applied to every `logger.debug` in a file.
+
+        Measured in `validation/taxonomy/C1S8_guard_with_nothing_to_guard.py`.
   patch_shape: statement_local
   measurability: scales_with_calls
-  min_workload_hint: >
-    for `gc.collect` the effect scales with the live heap as well as the call
-    count, so the case needs a realistic amount of tracked data alive; for logging
-    the level must be disabled, as it is in production
-  similar: [C1.S5, C3.S3]
+  min_workload_hint: |
+    for `gc.collect` the effect scales with the live heap as well as the call count, so the case needs a realistic amount of tracked data alive; for logging the level must be disabled, as it is in production
+  similar:
+  - C1.S5
+  - C3.S3

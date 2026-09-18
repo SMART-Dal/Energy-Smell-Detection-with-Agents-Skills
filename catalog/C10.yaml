@@ -1,777 +1,1024 @@
-# C10 -- Underused Language Primitives
-#
-# The category where received wisdom is least reliable, and where this project's
-# own measurements have contradicted the textbook advice more than once. Two
-# results run through every card here and both are counter-intuitive:
-#
-#   * A C-level primitive wins by removing the interpreter from the per-element
-#     path. It therefore wins only when there are many elements AND the primitive
-#     does exactly the needed work -- handing a whole collection to Counter when
-#     a tenth of it is wanted is itself the waste, and `max(a, b)` on two scalars
-#     is slower than `if a > b`.
-#   * `map` beats a comprehension if and only if the callable is a C builtin.
-#     With a lambda or a Python def, every element pays a frame and the
-#     comprehension's inlined bytecode wins.
-#
-# So no card in this file may be read as "prefer the built-in". Each one states
-# the mechanism -- what the interpreter stops doing -- and makes the reader
-# establish that the mechanism applies here.
-
 - id: C10.S1
-  signals: [manual_builtin_loop, ruff_SIM110, ruff_PLR1730]
-  in_one_line: >
+  signals:
+  - manual_builtin_loop
+  - ruff_SIM110
+  - ruff_PLR1730
+  in_one_line: |
     a hand-written loop doing bulk work a C-level primitive already does
-  what_to_look_for: >
-    A Python loop pays the interpreter on every element -- a bytecode dispatch
-    per operation, a boxing round trip per intermediate, refcount traffic per
-    binding, a frame lookup per name -- and a C-implemented primitive does the
-    whole traversal inside one C loop and pays none of it.  That is where the
-    factor of five to fifty comes from, and it is entirely a *per-element*
-    saving.  Name the primitive that does the job and confirm it does the *same*
-    job: `min`/`max` for a running extreme, `sum` for a total, `any`/`all` for a
-    short-circuiting predicate, `Counter` for a tally, `set.intersection` for
-    common members, `bisect` for a position in sorted data, `str.find` for a
-    substring scan.  Three things reverse the verdict and all three are measured
-    facts from this project rather than cautions.  A primitive asked to touch
-    elements the program does not need is the waste: `Counter(items)` tallies
-    everything, and where the code keeps a tenth of the result a hand loop that
-    skipped the rest wins.  A primitive called on two scalars is not a bulk
-    operation at all -- `max(best, value)` inside a loop pays a call and builds a
-    tuple where the comparison is one bytecode, and there the loop is right and
-    the primitive is the smell.  And a hand loop that returns at the first match
-    beats a primitive that materialises everything first, however C-level it is;
-    `''.join(a) == ''.join(b)` loses to an element-wise compare with an early
-    exit.  Also check the body is only per-element work: a side effect, an early
-    exit the primitive cannot express, or two accumulations in one pass all block
-    the repair, since replacing a sum-and-maximum loop with both primitives costs
-    two traversals.
+  what_to_look_for: |
+    A Python loop pays the interpreter on every element -- a bytecode dispatch per operation, a boxing round trip per intermediate, refcount traffic per binding, a frame lookup per name -- and a C-implemented primitive does the whole traversal inside one C loop and pays none of it.  That is where the factor of five to fifty comes from, and it is entirely a *per-element* saving.  Name the primitive that does the job and confirm it does the *same* job: `min`/`max` for a running extreme, `sum` for a total, `any`/`all` for a short-circuiting predicate, `Counter` for a tally, `set.intersection` for common members, `bisect` for a position in sorted data, `str.find` for a substring scan.  Three things reverse the verdict and all three are measured facts from this project rather than cautions.  A primitive asked to touch elements the program does not need is the waste: `Counter(items)` tallies everything, and where the code keeps a tenth of the result a hand loop that skipped the rest wins.  A primitive called on two scalars is not a bulk operation at all -- `max(best, value)` inside a loop pays a call and builds a tuple where the comparison is one bytecode, and there the loop is right and the primitive is the smell.  And a hand loop that returns at the first match beats a primitive that materialises everything first, however C-level it is; `''.join(a) == ''.join(b)` loses to an element-wise compare with an early exit.  Also check the body is only per-element work: a side effect, an early exit the primitive cannot express, or two accumulations in one pass all block the repair, since replacing a sum-and-maximum loop with both primitives costs two traversals.
   not_a_smell_when:
-    - >
-      the loop does something the primitive cannot express -- a side effect, two
-      accumulations in one pass, an exit condition with no `any`/`all` equivalent
-    - >
-      the primitive would process elements the loop skipped, so it does strictly
-      more work on this data
-    - >
-      the collection is small, or the primitive is applied to two scalars, where
-      the call overhead exceeds the interpreted comparison it replaces
-    - >
-      the loop exits early on most inputs and the primitive would materialise
-      everything first
-    - >
-      the loop is the clearer expression of a genuinely intricate condition, and
-      it is not on a hot path
+  - |
+    the loop does something the primitive cannot express -- a side effect, two accumulations in one pass, an exit condition with no `any`/`all` equivalent
+  - |
+    the primitive would process elements the loop skipped, so it does strictly more work on this data
+  - |
+    the collection is small, or the primitive is applied to two scalars, where the call overhead exceeds the interpreted comparison it replaces
+  - |
+    the loop exits early on most inputs and the primitive would materialise everything first
+  - |
+    the loop is the clearer expression of a genuinely intricate condition, and it is not on a hot path
   counter_examples:
-    - code: |
-        def odd_counts(values):
-            counts = {}
-            for x in values:
-                if x % 2 == 0:
-                    continue
-                counts[x] = counts.get(x, 0) + 1
-            return counts
-      why: >
-        The obvious repair is `Counter(values)` followed by a filter, and it is
-        slower. On data that is mostly even -- the project's sample uses a
-        hundred even values repeated sixty thousand times plus a handful of odd
-        ones -- `Counter` tallies six million elements and the filter discards
-        nearly all of it, where this loop skips them with one modulo. **Handing a
-        whole collection to a bulk primitive when only a slice is wanted is the
-        waste, not the fix.** This is the most important counter-example in the
-        category.
-    - code: |
-        best = float("-inf")
-        running = 0
-        for x in values:
-            running += x
-            if running > best:
-                best = running
-            if running < 0:
-                running = 0
-        return best
-      why: >
-        `best = max(best, running)` reads better and measures worse: on two
-        scalars `max` pays a call, packs a tuple and unpacks a result where the
-        comparison is a single bytecode. C-level primitives win on *bulk*. Called
-        once per iteration on scalars, they are overhead.
-    - code: |
-        def equal(list_a, list_b):
-            for a, b in zip(list_a, list_b):
-                if a != b:
-                    return False
-            return True
-      why: >
-        `"".join(a) == "".join(b)` is the primitive version and it is
-        catastrophically worse on large data: it materialises both sequences in
-        full -- roughly a gigabyte in the project's sample -- where this loop
-        returns at the first mismatch. Early exit beats vectorisation whenever
-        the answer usually arrives early.
+  - code: |
+      def odd_counts(values):
+          counts = {}
+          for x in values:
+              if x % 2 == 0:
+                  continue
+              counts[x] = counts.get(x, 0) + 1
+          return counts
+    why: |
+      The obvious repair is `Counter(values)` followed by a filter, and it is slower. On data that is mostly even -- the project's sample uses a hundred even values repeated sixty thousand times plus a handful of odd ones -- `Counter` tallies six million elements and the filter discards nearly all of it, where this loop skips them with one modulo. **Handing a whole collection to a bulk primitive when only a slice is wanted is the waste, not the fix.** This is the most important counter-example in the category.
+  - code: |
+      best = float("-inf")
+      running = 0
+      for x in values:
+          running += x
+          if running > best:
+              best = running
+          if running < 0:
+              running = 0
+      return best
+    why: |
+      `best = max(best, running)` reads better and measures worse: on two scalars `max` pays a call, packs a tuple and unpacks a result where the comparison is a single bytecode. C-level primitives win on *bulk*. Called once per iteration on scalars, they are overhead.
+  - code: |
+      def equal(list_a, list_b):
+          for a, b in zip(list_a, list_b):
+              if a != b:
+                  return False
+          return True
+    why: |
+      `"".join(a) == "".join(b)` is the primitive version and it is catastrophically worse on large data: it materialises both sequences in full -- roughly a gigabyte in the project's sample -- where this loop returns at the first mismatch. Early exit beats vectorisation whenever the answer usually arrives early.
   refactoring:
     summary: replace the hand-written loop with the primitive that already does it
     examples:
-      - title: a running extreme over the whole collection
-        before: |
-          def spread(values):
-              smallest = values[0]
-              largest = values[0]
-              for x in values:
-                  if x < smallest:
-                      smallest = x
-                  elif x > largest:
-                      largest = x
-              return largest - smallest
-        after: |
-          def spread(values):
-              return max(values) - min(values)
-        note: >
-          Measured **+48%** over a million integers. Two C traversals beat one
-          interpreted traversal because the interpreted one pays dispatch and
-          refcounting per element. Note the original is also subtly wrong -- the
-          `elif` means a new minimum can never also update the maximum -- so
-          check the equivalence carefully rather than assuming the hand loop was
-          correct.
-      - title: a tally, where the primitive does exactly the needed work
-        before: |
-          def item_counts(values):
-              counts = {}
-              for x in values:
-                  counts[x] = counts.get(x, 0) + 1
-              return counts
-        after: |
-          from collections import Counter
+    - title: a hand-written reduction the primitive already does
+      before: |
+        def before(xs):
+            total = 0
+            for x in xs:
+                total += x
+            return total
+      after: |
+        def after(xs):
+            return sum(xs)
+      note: |
+        The accumulate-by-hand case.
 
-          def item_counts(values):
-              return Counter(values)
-        note: >
-          Every element is wanted, so `Counter` does not do extra work and the
-          per-element interpreter cost disappears. Contrast the first
-          counter-example above, where a `continue` means the same repair loses.
-          Measured on this project's host the gain was small and inconclusive on
-          a contaminated floor, so treat the size of the win as unsettled even
-          though the direction is right.
-      - title: a substring scan the standard library does in C
-        before: |
-          def occurrences(pattern, corpus):
-              found = []
-              for i in range(len(corpus) - len(pattern) + 1):
-                  if corpus[i:i + len(pattern)] == pattern:
-                      found.append(i)
-              return found
-        after: |
-          def occurrences(pattern, corpus):
-              found = []
-              at = corpus.find(pattern)
-              while at != -1:
-                  found.append(at)
-                  at = corpus.find(pattern, at + 1)
-              return found
-        note: >
-          The original allocates a fresh slice per position -- one string object
-          per character of the corpus -- and recomputes `len(pattern)` each time.
-          `str.find` scans in C with no allocation at all. The repair keeps a
-          Python loop, which is the point: what mattered was moving the
-          per-element work into C, not eliminating the loop.
+        The card's central claim: a loop that reimplements a builtin should call the
+        builtin, because the builtin's loop runs in C.
+
+        Measured in `validation/taxonomy/C10S1_manual_sum.py`.
+    - title: a tally, where the primitive does exactly the needed work
+      before: |
+        def before(xs):
+            counts = {}
+            for x in xs:
+                seen = counts.get(x, -1)
+                counts[x] = seen + 1 if seen != -1 else 1
+            return counts
+      after: |
+        from collections import Counter
+
+
+        def after(xs):
+            return dict(Counter(xs))
+      note: |
+        Every element is wanted, so `Counter` does not do extra work and the per-element interpreter cost disappears. Contrast the first counter-example above, where a `continue` means the same repair loses. Measured on this project's host the gain was small and inconclusive on a contaminated floor, so treat the size of the win as unsettled even though the direction is right.
+
+        Measured in `validation/taxonomy/C10S1_counter.py`.
+    - title: a substring scan the standard library does in C
+      before: |
+        def before(corpus, pattern):
+            found = []
+            for i in range(len(corpus) - len(pattern) + 1):
+                if corpus[i:i + len(pattern)] == pattern:
+                    found.append(i)
+            return found
+      after: |
+        def after(corpus, pattern):
+            found = []
+            at = corpus.find(pattern)
+            while at != -1:
+                found.append(at)
+                at = corpus.find(pattern, at + 1)
+            return found
+      note: |
+        The original allocates a fresh slice per position -- one string object per character of the corpus -- and recomputes `len(pattern)` each time. `str.find` scans in C with no allocation at all. The repair keeps a Python loop, which is the point: what mattered was moving the per-element work into C, not eliminating the loop.
+
+        Measured in `validation/taxonomy/C10S1_substring_scan.py`.
+    - title: a running extreme kept by hand
+      before: |
+        def before(values):
+            best = float("-inf")
+            running = 0
+            for value in values:
+                running += value
+                if running > best:
+                    best = running
+                if running < 0:
+                    running = 0
+            return best
+      after: |
+        def after(values):
+            best = float("-inf")
+            running = 0
+            for value in values:
+                running += value
+                best = max(best, running)
+                if running < 0:
+                    running = 0
+            return best
+      note: |
+        The built-in called once per element,
+        on two scalars.
+
+        From Javad's OveruseOfLoops/SumMaxSubsequence, where the refactoring runs in the
+        direction this card does not expect: it *removes* `max`.
+
+        `C10S1_manual_sum` measures the claim where it holds -- `sum(xs)` replaces the
+        whole loop, so one C-level loop replaces N interpreted iterations, and it reads
+        +88.7%. Here the loop stays. `max(curr_max, curr_sum)` replaces one
+        `COMPARE_OP` and one conditional store with a global lookup, a tuple of
+        arguments, a call and a return, N times over. The built-in is still C, and C
+        called N times from Python is not the same thing as C looping N times.
+
+        `before` is the hand-written comparison, so a negative reading is the repair
+        losing.
+
+        The question is where the loop boundary sits relative to the built-in. A
+        built-in that consumes the iterable replaces the loop; a built-in called
+        *inside* the loop on two scalars only adds a frame to it -- and the same is true
+        of `min`, `abs`, `len` on a name that never changes, and `sorted` on a pair.
+
+        Measured in `validation/taxonomy/C10S1_two_argument_builtin.py`.
+    - title: the primitive that counts what the loop was skipping
+      before: |
+        def before(values):
+            counts = {}
+            for value in values:
+                if value % 2 == 0:
+                    continue                      # even values never reach the dict
+                seen = counts.get(value, 0)
+                counts[value] = seen + 1
+            return counts
+      after: |
+        from collections import Counter
+
+
+        def after(values):
+            counted = Counter(values)
+            return {key: count for key, count in counted.items() if key % 2 == 1}
+      note: |
+        The built-in counts
+        everything and the caller wanted a hundredth of it.
+
+        This is Javad's OveruseOfLoops/OccurenceOfOddItems sample, which is where the
+        whole shape came from. The function reports how often each *odd* value appears.
+        `collections.Counter` is the obvious built-in for counting and its loop runs in
+        C, so the hand-written dict loop reads as the textbook instance of this root
+        cause -- and `C10S1_manual_sum` measures the same reasoning at +88.7% where it
+        holds.
+
+        The comprehension after the `Counter(...)` is what breaks it. The input is
+        overwhelmingly even, so `Counter` hashes and tallies six million values in order
+        to throw all but nine of them away, while the loop's `if x % 2 == 0: continue`
+        never lets them reach the dictionary at all. Six million C-level operations lose
+        to nine Python-level ones.
+
+        The question the card has to ask is not "is there a built-in for this" but "does
+        the built-in do the same amount of work". A filter *after* an aggregation is the
+        sign that the aggregation ran over the wrong set -- and the same trap is waiting
+        in `sum(...)` over a comprehension that discards most of its input, in
+        `sorted()` before a slice, and in `max()` over a mapped list.
+
+        `mostly-odd` is the same code on input the filter does not shrink, where the
+        built-in is ahead again.
+
+        Measured in `validation/taxonomy/C10S1_builtin_counts_everything.py`.
+    - title: the primitive that must see all the data, against a loop that need not
+      before: |
+        def before(a, b):
+            return "".join(a) == "".join(b)
+      after: |
+        def after(a, b):
+            if len(a) != len(b):
+                return False
+            for x, y in zip(a, b):
+                if x != y:
+                    return False
+            return True
+      note: |
+        The hand loop wins, because it
+        stops.
+
+        From the project's own sample set. `''.join(a) == ''.join(b)` hands the whole
+        job to C and materialises both sequences; the element-wise loop returns at the
+        first mismatch. The card says a primitive that materialises everything loses to
+        a loop that short-circuits however C-level it is, and this puts the mismatch
+        position on either side: early, where the loop wins, and absent, where the
+        primitive should.
+
+        `before` is the primitive here, so a *negative* reading is the card being right.
+
+        Measured in `validation/taxonomy/C10S1_primitive_loses_early_exit.py`.
   patch_shape: statement_local
   measurability: scales_with_input
-  min_workload_hint: >
-    thousands of elements at least; the saving is per element, and on a short
-    collection or on two scalars the primitive's call overhead wins instead
-  notes: >
-    In the published LeetCode labelling this category and C7.S1 absorbed a large
-    share of all assignments, which is what a label with an appealing name does.
-    The discipline that stops it here is to say what the
-    primitive would touch that the loop did not.  If the answer is "nothing", the
-    candidate is good; if it is "most of the data", the loop was right.
-  similar: [C3.S1, C10.S2, C10.S3, C10.S6]
-
+  min_workload_hint: |
+    thousands of elements at least; the saving is per element, and on a short collection or on two scalars the primitive's call overhead wins instead
+  notes: |
+    In the published LeetCode labelling this category and C7.S1 absorbed a large share of all assignments, which is what a label with an appealing name does. The discipline that stops it here is to say what the primitive would touch that the loop did not.  If the answer is "nothing", the candidate is good; if it is "most of the data", the loop was right.
+  similar:
+  - C3.S1
+  - C10.S2
+  - C10.S3
+  - C10.S6
 - id: C10.S2
-  signals: [ruff_C417, ruff_SIM118, ruff_SIM401]
-  in_one_line: >
+  signals:
+  - ruff_C417
+  - ruff_SIM118
+  - ruff_SIM401
+  in_one_line: |
     one primitive used where a cheaper primitive computes the same answer
-  what_to_look_for: >
-    Two constructs that compute the same answer can cost very different amounts,
-    because CPython's implementations differ in how much work they do to get
-    there.  `re.match("^abc", s)` walks a compiled state machine where
-    `s.startswith("abc")` compares bytes; `key in d.keys()` builds a view object
-    before probing where `key in d` probes; `n % 2` does a full division where
-    `n & 1` masks a bit.  Name both constructs and say what the cheaper one
-    stops doing -- if you cannot state the mechanism, you have a style
-    preference rather than a finding.  Equivalence on *this* data is the other
-    half: `startswith` matches a literal prefix where `re.match` matches a
-    pattern, and `n & 1` gives the wrong sign for negative operands.  The
-    direction of the saving is not always what the style guides say, and this
-    project has measured two reversals worth knowing.  `map(f, xs)` beats a
-    comprehension only when `f` is a C builtin -- `map(float, xs)` won by 47%,
-    `map(lambda x: x*2, xs)` lost by 25% -- because a Python callable pays a
-    frame per element where a comprehension body is inlined bytecode.  And
-    `isinstance(x, C)` measured 5.4% *slower* than `type(x) == C`, since it
-    walks the MRO where the equality test is a pointer compare; the reason to
-    prefer `isinstance` is that it accepts subclasses, which is semantics and
-    not energy.  The saving is fixed per call, so it needs a large call count and
-    is otherwise advisory.
+  what_to_look_for: |
+    Two constructs that compute the same answer can cost very different amounts, because CPython's implementations differ in how much work they do to get there.  `re.match("^abc", s)` walks a compiled state machine where `s.startswith("abc")` compares bytes; `key in d.keys()` builds a view object before probing where `key in d` probes; `n % 2` does a full division where `n & 1` masks a bit.  Name both constructs and say what the cheaper one stops doing -- if you cannot state the mechanism, you have a style preference rather than a finding.  Equivalence on *this* data is the other half: `startswith` matches a literal prefix where `re.match` matches a pattern, and `n & 1` gives the wrong sign for negative operands.  The direction of the saving is not always what the style guides say, and this project has measured two reversals worth knowing.  `map(f, xs)` beats a comprehension only when `f` is a C builtin -- `map(float, xs)` won by 47%, `map(lambda x: x*2, xs)` lost by 25% -- because a Python callable pays a frame per element where a comprehension body is inlined bytecode.  And `isinstance(x, C)` measured 5.4% *slower* than `type(x) == C`, since it walks the MRO where the equality test is a pointer compare; the reason to prefer `isinstance` is that it accepts subclasses, which is semantics and not energy.  The saving is fixed per call, so it needs a large call count and is otherwise advisory.
   not_a_smell_when:
-    - >
-      the two forms are not equivalent on this data -- a pattern rather than a
-      literal, negative operands, a custom `__eq__`, a subclass that
-      `type(x) ==` would reject
-    - >
-      the "slower" form is doing something the faster one cannot, such as
-      accepting subclasses or matching a genuine pattern
-    - >
-      the call count is small, where the whole saving is a few hundred nanoseconds
-    - >
-      the clearer form is worth more than the difference, on a path that is not
-      hot
+  - |
+    the two forms are not equivalent on this data -- a pattern rather than a literal, negative operands, a custom `__eq__`, a subclass that `type(x) ==` would reject
+  - |
+    the "slower" form is doing something the faster one cannot, such as accepting subclasses or matching a genuine pattern
+  - |
+    the call count is small, where the whole saving is a few hundred nanoseconds
+  - |
+    the clearer form is worth more than the difference, on a path that is not hot
   counter_examples:
-    - code: |
-        for item in items:
-            if isinstance(item, Widget):
-                render(item)
-      why: >
-        The description names `type(x) == C` becoming `isinstance(x, C)` as an
-        improvement, and it is one -- `isinstance` accepts subclasses, which is
-        nearly always what you want. What it is not is an *energy* improvement:
-        measured over a million elements it costs **5.4% more**, because it walks
-        the class's MRO where the equality test is a pointer comparison. Take the
-        change for the semantics, and do not report it as a saving. Do not report a
-        change in this direction as a saving, and do not report the reverse
-        direction as one either, because it changes behaviour for subclasses.
-    - code: |
-        doubled = [x * 2 for x in values]
-      why: >
-        `map(lambda x: x * 2, values)` looks like the C-level version and is
-        **24.6% slower** (measured, floor 0.8%): the lambda is a Python function,
-        so every element pays a frame push and pop, and the comprehension's body
-        is inlined bytecode with no call at all. `map` wins only with a C
-        callable -- `list(map(float, values))` measured **46.8% faster** than the
-        equivalent comprehension. The rule is about the callable, not about
-        `map`.
-    - code: |
-        same_contents = sorted(first) == sorted(second)
-      why: >
-        `Counter(first) == Counter(second)` is the reflex repair and is
-        asymptotically better -- one pass against a sort. Measured on
-        five-element lists compared a hundred thousand times, it is **twelve
-        times slower**: two dicts have to be built and hashed where two tiny
-        sorts are a handful of comparisons in C. Complexity decides this only
-        once the sequences are long, and nothing in the expression says how long
-        they are. Whichever way you propose to change it, say what the length is.
-    - code: |
-        if n % 2:
-            handle_odd(n)
-      why: >
-        `n & 1` is faster and gives a different answer for negative `n`:
-        `-3 % 2` is 1 and `-3 & 1` is 1, but the two diverge as soon as the
-        expression is compared or arithmetic is done on it, and for a
-        `__mod__`-defining type the mask does not apply at all. The repair
-        requires knowing the operands are non-negative integers.
+  - code: |
+      for item in items:
+          if isinstance(item, Widget):
+              render(item)
+    why: |
+      The description names `type(x) == C` becoming `isinstance(x, C)` as an improvement, and it is one -- `isinstance` accepts subclasses, which is nearly always what you want. What it is not is an *energy* improvement: measured over a million elements it costs **5.4% more**, because it walks the class's MRO where the equality test is a pointer comparison. Take the change for the semantics, and do not report it as a saving. Do not report a change in this direction as a saving, and do not report the reverse direction as one either, because it changes behaviour for subclasses.
+  - code: |
+      doubled = [x * 2 for x in values]
+    why: |
+      `map(lambda x: x * 2, values)` looks like the C-level version and is **24.6% slower** (measured, floor 0.8%): the lambda is a Python function, so every element pays a frame push and pop, and the comprehension's body is inlined bytecode with no call at all. `map` wins only with a C callable -- `list(map(float, values))` measured **46.8% faster** than the equivalent comprehension. The rule is about the callable, not about `map`.
+  - code: |
+      same_contents = sorted(first) == sorted(second)
+    why: |
+      `Counter(first) == Counter(second)` is the reflex repair and is asymptotically better -- one pass against a sort. Measured on five-element lists compared a hundred thousand times, it is **twelve times slower**: two dicts have to be built and hashed where two tiny sorts are a handful of comparisons in C. Complexity decides this only once the sequences are long, and nothing in the expression says how long they are. Whichever way you propose to change it, say what the length is.
+  - code: |
+      if n % 2:
+          handle_odd(n)
+    why: |
+      `n & 1` is faster and gives a different answer for negative `n`: `-3 % 2` is 1 and `-3 & 1` is 1, but the two diverge as soon as the expression is compared or arithmetic is done on it, and for a `__mod__`-defining type the mask does not apply at all. The repair requires knowing the operands are non-negative integers.
   refactoring:
     summary: use the cheaper construct that computes the same answer
     examples:
-      - title: a regex where a string method would do
-        before: |
-          import re
+    - title: a regex where a string method would do
+      before: |
+        import re
 
-          def is_internal(host):
-              return re.match(r"^10\.", host) is not None
-        after: |
-          def is_internal(host):
-              return host.startswith("10.")
-        note: >
-          The pattern is a literal prefix, so the regex engine's state machine is
-          pure overhead -- and even a cached compile still enters the matcher and
-          allocates a match object. `startswith` compares bytes and returns a
-          bool. Only valid because the pattern has no metacharacters beyond the
-          anchor.
-      - title: map with a C-level callable
-        before: |
-          def as_floats(values):
-              return [float(v) for v in values]
-        after: |
-          def as_floats(values):
-              return list(map(float, values))
-        note: >
-          Measured **+46.8% ± 4.3** over a million integers (floor 4.0%).
-          `float` is a C builtin, so `map` drives the whole traversal in C with
-          no per-element frame. Reverse the callable to a lambda and the verdict
-          reverses with it -- which is the whole content of this repair.
-      - title: a membership test followed by a second lookup
-        before: |
-          def setting(config, key):
-              if key in config:
-                  return config[key]
-              return None
-        after: |
-          def setting(config, key):
-              return config.get(key)
-        note: >
-          Two hashes of the same key become one. Note this is not equivalent
-          when the stored value can itself be `None` and the caller needs to
-          distinguish "absent" from "present and None" -- use a sentinel if it
-          does.
+
+        _PREFIX = re.compile(r"^10\.")
+
+
+        _GENERAL = re.compile(r"^10\.\d+\.")
+
+
+        def before(hosts, general):
+            pattern = _GENERAL if general else _PREFIX
+            return sum(1 for host in hosts if pattern.match(host) is not None)
+      after: |
+        import re
+
+
+        _GENERAL = re.compile(r"^10\.\d+\.")
+
+
+        def after(hosts, general):
+            if general:
+                return sum(1 for host in hosts if _GENERAL.match(host) is not None)
+            return sum(1 for host in hosts if host.startswith("10."))
+      note: |
+        The pattern is a literal prefix, so the regex engine's state machine is pure overhead -- and even a cached compile still enters the matcher and allocates a match object. `startswith` compares bytes and returns a bool. Only valid because the pattern has no metacharacters beyond the anchor.
+
+        Measured in `validation/taxonomy/C10S2_regex_versus_startswith.py`.
+    - title: map with a C-level callable
+      before: |
+        def before(xs):
+            return [float(x) for x in xs]
+      after: |
+        def after(xs):
+            return list(map(float, xs))
+      note: |
+        Measured **+46.8% ± 4.3** over a million integers (floor 4.0%). `float` is a C builtin, so `map` drives the whole traversal in C with no per-element frame. Reverse the callable to a lambda and the verdict reverses with it -- which is the whole content of this repair.
+
+        Measured in `validation/taxonomy/C10S2_map_builtin.py`.
+    - title: a membership test followed by a second lookup
+      before: |
+        def before(mapping, keys):
+            out = []
+            for key in keys:
+                if key in mapping.keys():
+                    out.append(mapping[key])
+                else:
+                    out.append(None)
+            return out
+      after: |
+        def after(mapping, keys):
+            return [mapping.get(key) for key in keys]
+      note: |
+        Two hashes of the same key become one. Note this is not equivalent when the stored value can itself be `None` and the caller needs to distinguish "absent" from "present and None" -- use a sentinel if it does.
+
+        Measured in `validation/taxonomy/C4S8_membership_and_get.py`.
+    - title: the same map with a Python callable, where it reverses
+      before: |
+        def before(xs):
+            return sum(map(lambda x: x * 2, xs))
+      after: |
+        def after(xs):
+            return sum([x * 2 for x in xs])
+      note: |
+        `map` with a lambda against a comprehension.
+
+        Javad's BuiltInBehavior/SumMap2 goes the other way from ChangeListElementsType:
+        it replaces map+lambda *with* a comprehension. Both cannot be a general rule.
+        If the deciding factor is whether the mapped callable is a C builtin or a
+        Python-level lambda, the card has to say so.
+
+        Measured in `validation/taxonomy/C10S2_map_lambda.py`.
+    - title: two primitives whose order of merit depends on the width
+      before: |
+        def before(pairs):
+            return sum(1 for a, b in pairs if sorted(a) == sorted(b))
+      after: |
+        from collections import Counter
+
+
+        def after(pairs):
+            return sum(1 for a, b in pairs if Counter(a) == Counter(b))
+      note: |
+        `Counter` against `sorted` for multiset
+        equality.
+
+        `Counter` is asymptotically better -- one pass against a sort -- and on short
+        sequences it loses badly, because two dicts have to be built and hashed where
+        two tiny sorts are a handful of comparisons in C. This was measured at twelve
+        times slower on five-element lists while it was misfiled as a C4.S5 case; here
+        it is asked properly, with the sequence length as the variable, so the card can
+        say roughly where the crossover sits.
+
+        `before` is `sorted`, so a negative reading means `sorted` wins.
+
+        Measured in `validation/taxonomy/C10S2_counter_versus_sorted.py`.
+    - title: the default argument that is built whether or not it is used
+      before: |
+        def _default_profile():
+            return {f"field{i}": i for i in range(60)}
+
+
+        def before(profiles, keys):
+            total = 0
+            for key in keys:
+                if key in profiles:
+                    profile = profiles[key]
+                else:
+                    profile = _default_profile()          # built only on a miss
+                total += profile["field1"]
+            return total
+      after: |
+        def _default_profile():
+            return {f"field{i}": i for i in range(60)}
+
+
+        def after(profiles, keys):
+            total = 0
+            for key in keys:
+                profile = profiles.get(key, _default_profile())   # built every time
+                total += profile["field1"]
+            return total
+      note: |
+        `.get(k, default)`
+        evaluates the default whether or not it is needed.
+
+        `d.get(key, fallback)` instead of a membership test and a second subscript is the
+        description's own family of swaps, and `C4S8_membership_and_get` measures it at
+        +41.2%. One hash instead of two, one call instead of a branch.
+
+        That holds when the default is a value. Here it is a call, and Python evaluates
+        arguments before it enters `get`, so `_default_profile()` is built on every
+        lookup including the 95% that hit. The branch form built it only on the misses.
+        The faster built-in is being handed work the slower construct skipped.
+
+        The check is whether the second argument is an expression with a cost. `.get(k,
+        0)`, `.get(k, None)` and `.get(k, EMPTY)` are free; `.get(k, expensive())`,
+        `.get(k, [])` and `.get(k, Class())` are not, and `dict.setdefault` has exactly
+        the same problem.
+
+        Measured in `validation/taxonomy/C10S2_default_always_evaluated.py`.
   patch_shape: expression
   measurability: scales_with_input
-  min_workload_hint: >
-    the effect is a fixed amount per call, so the driver must call the unit many
-    times over small inputs rather than once over a large one
-  similar: [C4.S5, C4.S8, C7.S5, C10.S1, C10.S6]
-
+  min_workload_hint: |
+    the effect is a fixed amount per call, so the driver must call the unit many times over small inputs rather than once over a large one
+  similar:
+  - C4.S5
+  - C4.S8
+  - C7.S5
+  - C10.S1
+  - C10.S6
 - id: C10.S3
-  signals: [append_only_loop, ruff_PERF401, ruff_PERF402]
-  in_one_line: >
+  signals:
+  - append_only_loop
+  - ruff_PERF401
+  - ruff_PERF402
+  in_one_line: |
     a per-element call inside a loop that a single batched call would replace
-  what_to_look_for: >
-    A per-element call pays the full call protocol every time: resolve the
-    attribute, build a bound method, push a frame, return.  A batched primitive
-    resolves once and loops in C -- `lst.append(x)` in a Python loop does N
-    attribute lookups and N calls where `lst.extend(other)` does one of each and
-    copies the pointers in a C loop, and a comprehension goes further still with
-    a dedicated bytecode and no attribute lookup at all.  So look for a loop
-    whose body is a single element operation on a container: `append`, `add`, a
-    subscript assignment, an element copy.  The commonest false positive is a
-    body that does one more thing than it looks like -- a running count, a log
-    line, an early exit -- none of which a batched form can express.  Confirm
-    the batched form produces the same container with the same contents, and
-    that it does not materialise a lazy source that has to stay lazy.  For a
-    numeric array, a Python loop is the worst of both worlds, unboxing per
-    element on top of interpreter overhead, so vectorising is worth much more
-    there than the general figure suggests.  This is the most reliably positive
-    family in the taxonomy, because the batched form does exactly the same work
-    with less ceremony around it.
+  what_to_look_for: |
+    A per-element call pays the full call protocol every time: resolve the attribute, build a bound method, push a frame, return.  A batched primitive resolves once and loops in C -- `lst.append(x)` in a Python loop does N attribute lookups and N calls where `lst.extend(other)` does one of each and copies the pointers in a C loop, and a comprehension goes further still with a dedicated bytecode and no attribute lookup at all.  So look for a loop whose body is a single element operation on a container: `append`, `add`, a subscript assignment, an element copy.  The commonest false positive is a body that does one more thing than it looks like -- a running count, a log line, an early exit -- none of which a batched form can express.  Confirm the batched form produces the same container with the same contents, and that it does not materialise a lazy source that has to stay lazy.  For a numeric array, a Python loop is the worst of both worlds, unboxing per element on top of interpreter overhead, so vectorising is worth much more there than the general figure suggests.  This is the most reliably positive family in the taxonomy, because the batched form does exactly the same work with less ceremony around it.
   not_a_smell_when:
-    - >
-      the loop body does more than transfer the element -- a running count, a
-      side effect, an early exit
-    - >
-      the batched form would materialise a lazy source that must stay lazy
-    - >
-      the collection is tiny, where the batched call's own overhead dominates
-    - >
-      the elements need individual error handling, which a batch call cannot
-      express
+  - |
+    the loop body does more than transfer the element -- a running count, a side effect, an early exit
+  - |
+    the batched form would materialise a lazy source that must stay lazy
+  - |
+    the collection is tiny, where the batched call's own overhead dominates
+  - |
+    the elements need individual error handling, which a batch call cannot express
   counter_examples:
-    - code: |
-        kept = []
-        for row in rows:
-            if not row.valid:
-                log.warning("dropping %s", row.id)
-                continue
-            kept.append(row)
-        return kept
-      why: >
-        The `append` is per element, so the pattern matches, and the loop body
-        also logs. A comprehension cannot express the side effect, so the repair
-        does not exist without changing behaviour. The commonest false positive
-        for this root cause is a loop whose body does one more thing than it
-        looks like.
-    - code: |
-        seen = []
-        for line in stream:
-            seen.append(parse(line))
-            if len(seen) >= limit:
-                break
-        return seen
-      why: >
-        An early exit. A comprehension would parse the whole stream; the loop
-        stops at `limit`. Batching is only available when the loop was going to
-        run to completion anyway.
+  - code: |
+      kept = []
+      for row in rows:
+          if not row.valid:
+              log.warning("dropping %s", row.id)
+              continue
+          kept.append(row)
+      return kept
+    why: |
+      The `append` is per element, so the pattern matches, and the loop body also logs. A comprehension cannot express the side effect, so the repair does not exist without changing behaviour. The commonest false positive for this root cause is a loop whose body does one more thing than it looks like.
+  - code: |
+      seen = []
+      for line in stream:
+          seen.append(parse(line))
+          if len(seen) >= limit:
+              break
+      return seen
+    why: |
+      An early exit. A comprehension would parse the whole stream; the loop stops at `limit`. Batching is only available when the loop was going to run to completion anyway.
   refactoring:
     summary: replace the per-element operation with the batched primitive
     examples:
-      - title: element-at-a-time transfer
-        before: |
-          def merge(first, second):
-              result = first.copy()
-              for x in second:
-                  result.append(x)
-              return result
-        after: |
-          def merge(first, second):
-              result = first.copy()
-              result.extend(second)
-              return result
-        note: >
-          One attribute lookup and one call replace N of each, and the copy
-          itself happens in C. `result = first + second` is another option and
-          allocates once instead of growing, but it also stops mutating
-          `result` -- check the call sites before choosing it.
-      - title: an index-based loop where a slice does the work
-        before: |
-          def evens(values):
-              return [values[i] for i in range(0, len(values), 2)]
-        after: |
-          def evens(values):
-              return values[::2]
-        note: >
-          The original builds a `range`, boxes each index, and does a bounds-
-          checked subscript per element. The slice computes the result size once
-          and copies pointers in C. Note the slice returns the same type as the
-          input where the comprehension always returns a list -- for a tuple or a
-          str input that is a behaviour change.
-      - title: a Python loop over a NumPy array
-        before: |
-          def total(array):
-              running = 0.0
-              for i in range(array.shape[0]):
-                  running += array[i]
-              return running
-        after: |
-          def total(array):
-              return float(array.sum())
-        note: >
-          The worst case for a Python loop: every subscript unboxes a C double
-          into a Python float object, which is then added and discarded.
-          `array.sum()` stays in C throughout. The result is a numpy scalar
-          rather than a Python float, hence the cast -- without it the return
-          type changes and the equivalence check fails.
-  patch_shape: statement_local
-  measurability: scales_with_input
-  min_workload_hint: >
-    hundreds of elements upward; the saving is a call's worth of overhead per
-    element
-  similar: [C3.S1, C9.S1, C10.S1, C10.S4, C11.S5]
+    - title: element-at-a-time transfer
+      before: |
+        def before(target, source):
+            for item in source:
+                target.append(item)
+            return len(target)
+      after: |
+        def after(target, source):
+            target.extend(source)
+            return len(target)
+      note: |
+        One attribute lookup and one call replace N of each, and the copy itself happens in C. `result = first + second` is another option and allocates once instead of growing, but it also stops mutating `result` -- check the call sites before choosing it.
 
-- id: C10.S4
-  signals: [string_concat_in_loop]
-  in_one_line: >
-    a string grown with `+=` in a loop, where the target is aliased or the parts
-    are many
-  what_to_look_for: >
-    The description above gives the cost exactly: each `+=` allocates a new
-    string and copies everything already accumulated, so N concatenations of
-    average length M is O(N*M).  What decides whether a *particular* loop pays
-    that is the assignment target, so identify it before anything else.  When
-    the accumulator's reference count is one, CPython can resize the string in
-    place instead of copying and the O(N*M) term collapses; a second reference
-    anywhere stops the optimisation, and the full cost is what happens.  An
-    attribute (`self.buf += s`), a subscript (`d["k"] += s`), a global or a
-    nonlocal all hold that second reference, so every iteration copies
-    everything accumulated so far -- the case the description names, measured
-    here at **+99.9%** for the repair.  A plain local that nothing inside the
-    loop reads keeps the optimisation; a plain local that *is* read -- passed to
-    a function, appended to something, captured by a closure -- takes a second
-    reference and pays the full cost again.
+        Measured in `validation/taxonomy/C10S3_append_to_extend.py`.
+    - title: an index-based loop where a slice does the work
+      before: |
+        def before(values):
+            return [values[i] for i in range(0, len(values), 2)]
+      after: |
+        def after(values):
+            return values[::2]
+      note: |
+        The original builds a `range`, boxes each index, and does a bounds- checked subscript per element. The slice computes the result size once and copies pointers in C. Note the slice returns the same type as the input where the comprehension always returns a list -- for a tuple or a str input that is a behaviour change.
 
-    Where the resize does fire, there is still something to find, and its size
-    is decided by the number of parts rather than by the total length.  Measured on a clean floor:
-    200 000 short parts gave the join **+18.4% +-0.6**, and 2 000 long parts
-    totalling ten times as many bytes gave **+1.2%**, which is nothing.  With
-    the resize firing, both forms are linear in bytes and what remains is
-    per-part interpreter work -- a dispatch, a refcount check and a resize test
-    against an `append` -- so the saving tracks the part count.  Say what that
-    count is; without it the finding has no size.  Finally, check the
-    accumulator is not inspected mid-loop in a way a deferred join cannot
-    reproduce, such as a length test on the partial result or an early exit that
-    reads it.
-  not_a_smell_when:
-    - >
-      the accumulator is an unaliased local *and* the parts are few, so the
-      in-place resize keeps the loop linear and nothing is left to save.
-      Measured: 2 000 parts gave +1.2%, against +18.4% for 200 000 parts and
-      +99.9% through an attribute
-    - >
-      the loop is short and bounded, so even the quadratic form copies little
-    - >
-      the parts are produced lazily and joining would materialise all of them at
-      once
-    - >
-      the partial result is inspected inside the loop, so the concatenation is
-      load-bearing rather than incidental
-  counter_examples:
-    - code: |
-        def render(rows):
-            out = ""
-            for row in rows:                  # a dozen rows, plain local
-                out += f"<td>{row}</td>"
+        Measured in `validation/taxonomy/C10S3_slice_instead_of_index.py`.
+    - title: a Python loop over a NumPy array
+      before: |
+        def before(values, factor):
+            total = 0.0
+            for i in range(values.shape[0]):
+                total += float(values[i]) * factor
+            return round(total, 3)
+      after: |
+        def after(values, factor):
+            return round(float((values * factor).sum()), 3)
+      note: |
+        The worst case for a Python loop: every subscript unboxes a C double into a Python float object, which is then added and discarded. `array.sum()` stays in C throughout. The result is a numpy scalar rather than a Python float, hence the cast -- without it the return type changes and the equivalence check fails.
+
+        Measured in `validation/taxonomy/C10S3_vectorised.py`.
+    - title: an append loop the comprehension replaces
+      before: |
+        def before(xs):
+            out = []
+            for x in xs:
+                out.append(x + 1)
             return out
-      why: >
-        An unaliased local, so its refcount is one and CPython resizes the string
-        in place: on this shape the copying the description names does not
-        happen, and what is left is per-part interpreter work, which at a dozen
-        parts is nothing. The same code over 200 000 parts *is*
-        a finding, worth 18.4% -- so the count is what decides this, and the
-        aliasing decides how large it can get.
-    - code: |
-        def render(self, rows):
-            self.buf = ""
-            for row in rows:
-                self.buf += render_row(row)
-                if len(self.buf) > self.limit:
-                    self.flush()
-      why: >
-        Aliased through an attribute, so the mechanism applies -- and the partial
-        result is inspected every iteration, so a deferred join cannot reproduce
-        the behaviour. The repair here is a bounded buffer of parts flushed on a
-        length counter, which is a larger change than this card's patch shape
-        allows. Report it as blocked, or as C6.S1 for the flushing rewrite.
-  refactoring:
-    summary: >
-      collect the parts in a local list and join once, so the value that grows is
-      never the aliased one
-    examples:
-      - title: the accumulator is an attribute
-        before: |
-          def render(self, rows):
-              self.buf = ""
-              for row in rows:
-                  self.buf += render_row(row)
-        after: |
-          def render(self, rows):
-              parts = []
-              for row in rows:
-                  parts.append(render_row(row))
-              self.buf = "".join(parts)
-        note: >
-          Measured **+94.8% ± 0.1**. The repair works because the growing value
-          becomes an unaliased local list, and the single aliased assignment
-          happens once at the end. Appending to a list is amortised constant;
-          `join` computes the total length in one pass and allocates once.
-      - title: the accumulator is a dict entry
-        before: |
-          def group_text(rows):
-              out = {}
-              for row in rows:
-                  out.setdefault(row.key, "")
-                  out[row.key] += row.text
-              return out
-        after: |
-          def group_text(rows):
-              parts = {}
-              for row in rows:
-                  parts.setdefault(row.key, []).append(row.text)
-              return {key: "".join(chunk) for key, chunk in parts.items()}
-        note: >
-          A subscript target is aliased through the container, so the same
-          mechanism applies per key. The repair is the same shape and one level
-          further in. Note the return value is rebuilt, so anything relying on
-          `out` being mutated in place has to be checked.
+      after: |
+        def after(xs):
+            return [x + 1 for x in xs]
+      note: |
+        An append loop against a comprehension.
+
+        Measured in `validation/taxonomy/C10S3_bulk_primitive.py`.
   patch_shape: statement_local
   measurability: scales_with_input
-  min_workload_hint: >
-    size by the *number of parts*, not the total length. Through an aliased
-    accumulator the effect is already about eightfold at 20k parts; through a
-    plain local it needs on the order of 100k parts to reach double digits, and
-    2k parts of any size show nothing
-  notes: >
-    Where this root cause pays has been measured twice and the guidance here
-    revised both times; the description itself has not changed and did not need
-    to.  What measurement adds is *when* the quadratic term it names actually
-    appears.  Through an aliased target it appears in full, and the repair is
-    worth almost everything.  Through an unaliased local CPython's in-place
-    resize removes it, and what remains is per-part interpreter work: +18.4%
-    +-0.6 at 200 000 parts, +1.2% at 2 000 -- real, a fifth of the size, and
-    driven by the part count rather than by the total length.  A report here
-    should say which of the two it found.
-  similar: [C6.S1, C10.S3]
+  min_workload_hint: |
+    hundreds of elements upward; the saving is a call's worth of overhead per element
+  similar:
+  - C3.S1
+  - C9.S1
+  - C10.S1
+  - C10.S4
+  - C11.S5
+- id: C10.S4
+  signals:
+  - string_concat_in_loop
+  in_one_line: |
+    a string grown with `+=` in a loop, where the target is aliased or the parts are many
+  what_to_look_for: |
+    The description above gives the cost exactly: each `+=` allocates a new string and copies everything already accumulated, so N concatenations of average length M is O(N*M).  What decides whether a *particular* loop pays that is the assignment target, so identify it before anything else.  When the accumulator's reference count is one, CPython can resize the string in place instead of copying and the O(N*M) term collapses; a second reference anywhere stops the optimisation, and the full cost is what happens.  An attribute (`self.buf += s`), a subscript (`d["k"] += s`), a global or a nonlocal all hold that second reference, so every iteration copies everything accumulated so far -- the case the description names, measured here at **+99.9%** for the repair.  A plain local that nothing inside the loop reads keeps the optimisation; a plain local that *is* read -- passed to a function, appended to something, captured by a closure -- takes a second reference and pays the full cost again.
+    Where the resize does fire, there is still something to find, and its size is decided by the number of parts rather than by the total length.  Measured on a clean floor: 200 000 short parts gave the join **+18.4% +-0.6**, and 2 000 long parts totalling ten times as many bytes gave **+1.2%**, which is nothing.  With the resize firing, both forms are linear in bytes and what remains is per-part interpreter work -- a dispatch, a refcount check and a resize test against an `append` -- so the saving tracks the part count.  Say what that count is; without it the finding has no size.  Finally, check the accumulator is not inspected mid-loop in a way a deferred join cannot reproduce, such as a length test on the partial result or an early exit that reads it.
+  not_a_smell_when:
+  - |
+    the accumulator is an unaliased local *and* the parts are few, so the in-place resize keeps the loop linear and nothing is left to save. Measured: 2 000 parts gave +1.2%, against +18.4% for 200 000 parts and +99.9% through an attribute
+  - |
+    the loop is short and bounded, so even the quadratic form copies little
+  - |
+    the parts are produced lazily and joining would materialise all of them at once
+  - |
+    the partial result is inspected inside the loop, so the concatenation is load-bearing rather than incidental
+  counter_examples:
+  - code: |
+      def render(rows):
+          out = ""
+          for row in rows:                  # a dozen rows, plain local
+              out += f"<td>{row}</td>"
+          return out
+    why: |
+      An unaliased local, so its refcount is one and CPython resizes the string in place: on this shape the copying the description names does not happen, and what is left is per-part interpreter work, which at a dozen parts is nothing. The same code over 200 000 parts *is* a finding, worth 18.4% -- so the count is what decides this, and the aliasing decides how large it can get.
+  - code: |
+      def render(self, rows):
+          self.buf = ""
+          for row in rows:
+              self.buf += render_row(row)
+              if len(self.buf) > self.limit:
+                  self.flush()
+    why: |
+      Aliased through an attribute, so the mechanism applies -- and the partial result is inspected every iteration, so a deferred join cannot reproduce the behaviour. The repair here is a bounded buffer of parts flushed on a length counter, which is a larger change than this card's patch shape allows. Report it as blocked, or as C6.S1 for the flushing rewrite.
+  refactoring:
+    summary: |
+      collect the parts in a local list and join once, so the value that grows is never the aliased one
+    examples:
+    - title: the accumulator is an attribute
+      before: |
+        class Report:
+            def __init__(self):
+                self.buf = ""
 
+
+        def before(parts):
+            report = Report()
+            for p in parts:
+                report.buf += p
+            return report.buf
+      after: |
+        class Report:
+            def __init__(self):
+                self.buf = ""
+
+
+        def after(parts):
+            collected = []
+            for p in parts:
+                collected.append(p)
+            report = Report()
+            report.buf = "".join(collected)
+            return report.buf
+      note: |
+        Measured **+94.8% ± 0.1**. The repair works because the growing value becomes an unaliased local list, and the single aliased assignment happens once at the end. Appending to a list is amortised constant; `join` computes the total length in one pass and allocates once.
+
+        Measured in `validation/taxonomy/C10S4_aliased.py`.
+    - title: the accumulator is a dict entry
+      before: |
+        def before(rows):
+            out = {}
+            for key, text in rows:
+                out.setdefault(key, "")
+                out[key] += text
+            return out
+      after: |
+        def after(rows):
+            parts = {}
+            for key, text in rows:
+                parts.setdefault(key, []).append(text)
+            return {key: "".join(chunk) for key, chunk in parts.items()}
+      note: |
+        A subscript target is aliased through the container, so the same mechanism applies per key. The repair is the same shape and one level further in. Note the return value is rebuilt, so anything relying on `out` being mutated in place has to be checked.
+
+        Measured in `validation/taxonomy/C10S4_dict_entry_accumulator.py`.
+    - title: an unaliased local, where CPython already resizes in place
+      before: |
+        def before(parts):
+            out = ""
+            for p in parts:
+                out += p
+            return out
+      after: |
+        def after(parts):
+            collected = []
+            for p in parts:
+                collected.append(p)
+            return "".join(collected)
+      note: |
+        String += where the accumulator is a plain, unaliased local.
+
+        This is the shape the published taxonomy uses as its example, and the shape the
+        old analyzer fired on. CPython resizes in place when the refcount is 1, so the
+        prediction is that the canonical repair does *nothing* here, or loses.
+
+        Javad's ImproperDataStructure/ConcatenateStrInLoop is exactly this shape and is
+        labelled a smell, so this case decides between the card and the sample.
+
+        Measured in `validation/taxonomy/C10S4_plain_local.py`.
+    - title: three parts, where there is nothing to amortise
+      before: |
+        def before(rows):
+            out = []
+            for name, value, unit in rows:
+                line = ""
+                line += name
+                line += "="
+                line += f"{value}{unit}"
+                out.append(line)
+            return len(out)
+      after: |
+        def after(rows):
+            out = []
+            for name, value, unit in rows:
+                parts = []
+                parts.append(name)
+                parts.append("=")
+                parts.append(f"{value}{unit}")
+                out.append("".join(parts))
+            return len(out)
+      note: |
+        There are three
+        parts.
+
+        "For N concatenations of average length M, this is O(N*M) total copying" is the
+        description's argument, and `C10S4_aliased` measures the join repair at +99.9%
+        where N is forty thousand.
+
+        N is three here. Building a list, appending three times, resolving `.join` and
+        calling it costs more than two `+=` on an unaliased local -- which CPython
+        resizes in place when the reference count is one, so the quadratic term the
+        description describes never starts. The repair is a list allocation and four
+        extra calls per row, paid on every row.
+
+        Both the loop count and the aliasing matter. `s += part` inside a loop over an
+        unknown-length input is the finding; the same operator over a fixed handful of
+        pieces is an f-string at worst, and the join form is slower than either.
+
+        Measured in `validation/taxonomy/C10S4_three_parts.py`.
+  patch_shape: statement_local
+  measurability: scales_with_input
+  min_workload_hint: |
+    size by the *number of parts*, not the total length. Through an aliased accumulator the effect is already about eightfold at 20k parts; through a plain local it needs on the order of 100k parts to reach double digits, and 2k parts of any size show nothing
+  notes: |
+    Where this root cause pays has been measured twice and the guidance here revised both times; the description itself has not changed and did not need to.  What measurement adds is *when* the quadratic term it names actually appears.  Through an aliased target it appears in full, and the repair is worth almost everything.  Through an unaliased local CPython's in-place resize removes it, and what remains is per-part interpreter work: +18.4% +-0.6 at 200 000 parts, +1.2% at 2 000 -- real, a fifth of the size, and driven by the part count rather than by the total length.  A report here should say which of the two it found.
+  similar:
+  - C6.S1
+  - C10.S3
 - id: C10.S5
   signals:
-    - global_lookup_in_loop
-  in_one_line: >
-    a global or builtin re-resolved through the module namespace on every
-    iteration
-  what_to_look_for: >
-    A local read is an index into the frame's array of locals.  A global read is
-    a dict probe in the module namespace, and on a miss a second probe into
-    builtins.  Recent CPython caches this per bytecode so the gap is narrower
-    than it used to be -- a few nanoseconds rather than tens -- but it is still a
-    dict probe against an array index, and aliasing the name to a local before
-    the loop converts every read.  Look for a module constant, an imported
-    function or a builtin (`len`, `str`, `int`, `range`) read inside a hot loop,
-    and count the reads per iteration against the iteration count.  This is the
-    smallest reliable effect in the taxonomy: it needs on the order of a million
-    iterations to be visible at all, and a body that already does substantial
-    work drowns it entirely, so most instances are honestly advisory.  Two
-    things make the repair wrong rather than merely small.  A global that is
-    deliberately re-read because a callee or another thread may rebind it --
-    freezing it changes when a reconfiguration takes effect.  And an alias that
-    shadows a name confusingly, which costs more in reading than it saves in
-    running.
+  - global_lookup_in_loop
+  in_one_line: |
+    a global or builtin re-resolved through the module namespace on every iteration
+  what_to_look_for: |
+    A local read is an index into the frame's array of locals.  A global read is a dict probe in the module namespace, and on a miss a second probe into builtins.  Recent CPython caches this per bytecode so the gap is narrower than it used to be -- a few nanoseconds rather than tens -- but it is still a dict probe against an array index, and aliasing the name to a local before the loop converts every read.  Look for a module constant, an imported function or a builtin (`len`, `str`, `int`, `range`) read inside a hot loop, and count the reads per iteration against the iteration count.  This is the smallest reliable effect in the taxonomy: it needs on the order of a million iterations to be visible at all, and a body that already does substantial work drowns it entirely, so most instances are honestly advisory.  Two things make the repair wrong rather than merely small.  A global that is deliberately re-read because a callee or another thread may rebind it -- freezing it changes when a reconfiguration takes effect.  And an alias that shadows a name confusingly, which costs more in reading than it saves in running.
   not_a_smell_when:
-    - >
-      the global is deliberately re-read because another thread or a callee may
-      rebind it
-    - >
-      the loop is short, which for this root cause means anything under about a
-      million iterations
-    - >
-      the local alias would shadow a name confusingly, or read as an obfuscation
-    - >
-      the name is read once per iteration in a body that already does substantial
-      work, so the proportion is negligible
+  - |
+    the global is deliberately re-read because another thread or a callee may rebind it
+  - |
+    the loop is short, which for this root cause means anything under about a million iterations
+  - |
+    the local alias would shadow a name confusingly, or read as an obfuscation
+  - |
+    the name is read once per iteration in a body that already does substantial work, so the proportion is negligible
   counter_examples:
-    - code: |
-        for item in items:
-            if DEBUG:
-                log(item)
-      why: >
-        `DEBUG` is a module global read per iteration, so the pattern matches --
-        and it is read *because* it may have been reconfigured. Freezing it in a
-        local changes when a runtime change takes effect. Also worth noting the
-        real finding here is different: guarding an expensive log call behind a
-        level check is C1.S8.
-    - code: |
-        def normalise(rows):
-              return [str(row).strip() for row in rows]
-      why: >
-        `str` is a builtin read once per element, and aliasing it to a local
-        would help -- by a few nanoseconds per row, against the cost of `str()`
-        and `strip()` which is two orders of magnitude larger. The pattern
-        matches and the proportion makes it pointless. Report advisory at most.
+  - code: |
+      for item in items:
+          if DEBUG:
+              log(item)
+    why: |
+      `DEBUG` is a module global read per iteration, so the pattern matches -- and it is read *because* it may have been reconfigured. Freezing it in a local changes when a runtime change takes effect. Also worth noting the real finding here is different: guarding an expensive log call behind a level check is C1.S8.
+  - code: |
+      def normalise(rows):
+            return [str(row).strip() for row in rows]
+    why: |
+      `str` is a builtin read once per element, and aliasing it to a local would help -- by a few nanoseconds per row, against the cost of `str()` and `strip()` which is two orders of magnitude larger. The pattern matches and the proportion makes it pointless. Report advisory at most.
   refactoring:
     summary: alias the global or builtin to a local before the loop
     examples:
-      - title: a builtin resolved a million times
-        before: |
-          def render_all(values):
-              out = []
-              for value in values:
-                  out.append(str(value))
-              return out
-        after: |
-          def render_all(values):
-              out = []
-              to_text = str
-              append = out.append
-              for value in values:
-                  append(to_text(value))
-              return out
-        note: >
-          Two `LOAD_GLOBAL`s and an attribute lookup per element become three
-          `LOAD_FAST`s. This is also the point at which the repair becomes ugly
-          enough that a comprehension is the better answer -- which would be
-          C10.S3, and would subsume this. Prefer that when it is available.
-      - title: a module constant inside a tight loop
-        before: |
-          MAX_RETRIES = 5
+    - title: globals resolved on every iteration
+      before: |
+        SCALE = 3
 
-          def count_exhausted(attempts):
-              total = 0
-              for attempt in attempts:
-                  if attempt >= MAX_RETRIES:
-                      total += 1
-              return total
-        after: |
-          MAX_RETRIES = 5
 
-          def count_exhausted(attempts):
-              limit = MAX_RETRIES
-              total = 0
-              for attempt in attempts:
-                  if attempt >= limit:
-                      total += 1
-              return total
-        note: >
-          One dict probe per iteration becomes one array index. Valid only
-          because `MAX_RETRIES` is a constant nothing rebinds -- and note the
-          whole loop is better replaced by
-          `sum(1 for a in attempts if a >= MAX_RETRIES)`, which would subsume
-          this finding under C10.S1.
+        OFFSET = 7
+
+
+        def before(xs):
+            out = []
+            for x in xs:
+                out.append(x * SCALE + OFFSET - SCALE)
+            return out
+      after: |
+        SCALE = 3
+
+
+        OFFSET = 7
+
+
+        def after(xs):
+            scale = SCALE
+            offset = OFFSET
+            out = []
+            for x in xs:
+                out.append(x * scale + offset - scale)
+            return out
+      note: |
+        And a test of my own new analyzer.
+
+        `global_lookup_in_loop` was added in this pass and has never been measured. It
+        claims that binding a repeatedly-read global to a local above the loop saves
+        real energy. If it does not, the rule ships noise into every arm.
+
+        The threshold in the rule is three reads per iteration, so the `before` here
+        uses exactly that.
+
+        Measured in `validation/taxonomy/C10S5_global_hoist.py`.
+    - title: a module constant inside a tight loop
+      before: |
+        import math
+
+
+        SCALE = 3.5
+
+
+        OFFSET = 1.25
+
+
+        def before(values):
+            total = 0.0
+            for value in values:
+                total += math.sqrt(value) * SCALE + OFFSET
+            return round(total, 3)
+      after: |
+        import math
+
+
+        SCALE = 3.5
+
+
+        OFFSET = 1.25
+
+
+        def after(values):
+            # Only the two module globals are bound. `math.sqrt` stays where it is in
+            # both variants: hoisting it as well is an attribute lookup on an imported
+            # module, which is C8.S3, and folding the two together made the reading
+            # unattributable to either.
+            scale, offset = SCALE, OFFSET
+            total = 0.0
+            for value in values:
+                total += math.sqrt(value) * scale + offset
+            return round(total, 3)
+      note: |
+        One dict probe per iteration becomes one array index. Valid only because `MAX_RETRIES` is a constant nothing rebinds -- and note the whole loop is better replaced by `sum(1 for a in attempts if a >= MAX_RETRIES)`, which would subsume this finding under C10.S1.
+
+        Measured in `validation/taxonomy/C10S5_three_globals_per_iteration.py`.
+    - title: the body that dominates the lookup it repeats
+      before: |
+        FORMAT = "{:>12.4f}"
+
+
+        def before(values):
+            out = []
+            for value in values:
+                out.append(FORMAT.format(value))
+            return len(out)
+      after: |
+        FORMAT = "{:>12.4f}"
+
+
+        def after(values):
+            fmt = FORMAT
+            out = []
+            for value in values:
+                out.append(fmt.format(value))
+            return len(out)
+      note: |
+        The same alias, in a body that
+        does something.
+
+        The card's fourth `NOT a smell when` clause: one global read in a body that
+        already does substantial work is a negligible proportion. Identical repair to
+        the three-globals case, and the only difference is that each iteration also
+        formats a string -- which should bury the lookup entirely. If it does, the card
+        can state the ratio instead of saying "unless the loop is hot".
+
+        Measured in `validation/taxonomy/C10S5_body_does_real_work.py`.
   patch_shape: statement_local
   measurability: scales_with_input
-  min_workload_hint: >
-    at least ~1M iterations; one lookup is a few nanoseconds, and below that
-    scale report it as advisory instead of manufacturing a case
-  notes: >
-    Counting every global read inside a loop in one ordinary repository gives
-    forty-five instances -- more than every other pattern in this taxonomy put
-    together, and almost all of them worth nanoseconds.  Treat a single global
-    read in a loop as advisory unless the iteration count is genuinely enormous,
-    and prefer three or more reads per iteration before calling it a finding.
-  similar: [C3.S2, C8.S3]
-
+  min_workload_hint: |
+    at least ~1M iterations; one lookup is a few nanoseconds, and below that scale report it as advisory instead of manufacturing a case
+  notes: |
+    Counting every global read inside a loop in one ordinary repository gives forty-five instances -- more than every other pattern in this taxonomy put together, and almost all of them worth nanoseconds.  Treat a single global read in a loop as advisory unless the iteration count is genuinely enormous, and prefer three or more reads per iteration before calling it a finding.
+  similar:
+  - C3.S2
+  - C8.S3
 - id: C10.S6
-  in_one_line: >
-    an operator on a user-defined type dispatching and allocating once per
-    element
-  what_to_look_for: >
-    An operator on a built-in type is a single specialised bytecode with C
-    behind it.  On a user-defined type the same operator is a full method
-    dispatch: look up the dunder on the type, check for a reflected variant,
-    build a bound method, push a frame, run Python, and usually allocate a new
-    instance for the result.  So `a + b` on two `int`s costs a bytecode and
-    `a + b` on two `Money` objects costs a call plus an allocation, and in an
-    accumulating loop the allocation is the larger half, since every intermediate
-    is created and immediately discarded.  Look for `+`, `*`, `==`, `<`, `in` or
-    `[]` applied inside a loop to instances of a class defined in this codebase,
-    then read the dunder and say what it costs -- a thin delegation to a
-    primitive costs the call, an `__eq__` comparing several fields costs the
-    body.  The repair does the arithmetic on primitives and wraps once at the
-    end, so it needs the intermediates to be unobserved.  It is most often wrong
-    for the reason the class exists: the invariants the type enforces --
-    currency, units, precision, overflow -- are exactly what unwrapping
-    discards, and losing them is a bug rather than a saving.
+  in_one_line: |
+    an operator on a user-defined type dispatching and allocating once per element
+  what_to_look_for: |
+    An operator on a built-in type is a single specialised bytecode with C behind it.  On a user-defined type the same operator is a full method dispatch: look up the dunder on the type, check for a reflected variant, build a bound method, push a frame, run Python, and usually allocate a new instance for the result.  So `a + b` on two `int`s costs a bytecode and `a + b` on two `Money` objects costs a call plus an allocation, and in an accumulating loop the allocation is the larger half, since every intermediate is created and immediately discarded.  Look for `+`, `*`, `==`, `<`, `in` or `[]` applied inside a loop to instances of a class defined in this codebase, then read the dunder and say what it costs -- a thin delegation to a primitive costs the call, an `__eq__` comparing several fields costs the body.  The repair does the arithmetic on primitives and wraps once at the end, so it needs the intermediates to be unobserved.  It is most often wrong for the reason the class exists: the invariants the type enforces -- currency, units, precision, overflow -- are exactly what unwrapping discards, and losing them is a bug rather than a saving.
   not_a_smell_when:
-    - >
-      the overload is the type's whole purpose and its invariants are what stop
-      the arithmetic being wrong -- unit mismatches, currency mixing, precision
-    - >
-      the operation is already delegated to a C extension, so the dunder is a
-      thin wrapper over compiled code
-    - >
-      the intermediate objects are observed, logged, or returned
-    - >
-      the loop is short, or the dunder's body dominates its call overhead so
-      thoroughly that the dispatch is irrelevant
+  - |
+    the overload is the type's whole purpose and its invariants are what stop the arithmetic being wrong -- unit mismatches, currency mixing, precision
+  - |
+    the operation is already delegated to a C extension, so the dunder is a thin wrapper over compiled code
+  - |
+    the intermediate objects are observed, logged, or returned
+  - |
+    the loop is short, or the dunder's body dominates its call overhead so thoroughly that the dispatch is irrelevant
   counter_examples:
-    - code: |
-        total = np.zeros(3)
-        for row in rows:
-            total = total + row.vector
-      why: >
-        The operator is on a NumPy array, whose `__add__` is compiled and
-        vectorised. The per-call dispatch is real but tiny beside the work it
-        does. The genuine finding here is different -- the loop allocates a fresh
-        array per row where `total += row.vector` would accumulate in place,
-        which is C6.S2.
-    - code: |
-        total = Money(0, "GBP")
-        for line in lines:
-            total = total + line.amount
-      why: >
-        Looks exactly like the positive example below, and may not be repairable:
-        if `Money.__add__` raises on mismatched currencies, summing the raw
-        integers silently accepts a mixed-currency total. The class exists to
-        prevent that. Check what the dunder enforces before bypassing it -- and
-        if it enforces something, either keep it or validate separately.
+  - code: |
+      total = np.zeros(3)
+      for row in rows:
+          total = total + row.vector
+    why: |
+      The operator is on a NumPy array, whose `__add__` is compiled and vectorised. The per-call dispatch is real but tiny beside the work it does. The genuine finding here is different -- the loop allocates a fresh array per row where `total += row.vector` would accumulate in place, which is C6.S2.
+  - code: |
+      total = Money(0, "GBP")
+      for line in lines:
+          total = total + line.amount
+    why: |
+      Looks exactly like the positive example below, and may not be repairable: if `Money.__add__` raises on mismatched currencies, summing the raw integers silently accepts a mixed-currency total. The class exists to prevent that. Check what the dunder enforces before bypassing it -- and if it enforces something, either keep it or validate separately.
   refactoring:
     summary: do the arithmetic on primitives inside the loop and wrap once at the end
     examples:
-      - title: accumulation that allocates per element
-        before: |
-          def invoice_total(lines):
-              total = Money(0)
-              for line in lines:
-                  total = total + line.amount      # Money.__add__ per iteration
-              return total
-        after: |
-          def invoice_total(lines):
-              return Money(sum(line.amount.cents for line in lines))
-        note: >
-          N dispatches and N allocations become one C-level sum and one
-          allocation. Available only because every `line.amount` is already known
-          to share the same units -- if it is not, this changes behaviour from
-          "raises" to "silently wrong", which is worse than slow.
-      - title: a comparison dunder on the per-element path
-        before: |
-          def earliest(events):
-              best = events[0]
-              for event in events[1:]:
-                  if event < best:                 # Event.__lt__ per iteration
-                      best = event
-              return best
-        after: |
-          def earliest(events):
-              return min(events, key=lambda e: e.timestamp)
-        note: >
-          `min` with a key does one attribute read and one primitive comparison
-          per element in C, instead of a Python `__lt__` call. It also slices
-          nothing -- the original's `events[1:]` copies the whole list. Two
-          savings in one edit, so pick the root cause that describes the larger
-          one and list the other as subsumed.
+    - title: accumulation that allocates per element
+      before: |
+        class Money:
+            __slots__ = ("cents",)
+
+            def __init__(self, cents):
+                self.cents = cents
+
+            def __add__(self, other):
+                return Money(self.cents + other.cents)
+
+            def __eq__(self, other):
+                return isinstance(other, Money) and self.cents == other.cents
+
+            def __hash__(self):
+                return hash(self.cents)
+
+
+        def before(amounts):
+            total = Money(0)
+            for amount in amounts:
+                total = total + amount
+            return total
+      after: |
+        class Money:
+            __slots__ = ("cents",)
+
+            def __init__(self, cents):
+                self.cents = cents
+
+            def __add__(self, other):
+                return Money(self.cents + other.cents)
+
+            def __eq__(self, other):
+                return isinstance(other, Money) and self.cents == other.cents
+
+            def __hash__(self):
+                return hash(self.cents)
+
+
+        def after(amounts):
+            cents = 0
+            for amount in amounts:
+                cents += amount.cents
+            return Money(cents)
+      note: |
+        N dispatches and N allocations become one C-level sum and one allocation. Available only because every `line.amount` is already known to share the same units -- if it is not, this changes behaviour from "raises" to "silently wrong", which is worse than slow.
+
+        Measured in `validation/taxonomy/C10S6_overload_accumulation.py`.
+    - title: a comparison dunder on the per-element path
+      before: |
+        def before(events):
+            best = events[0]
+            for event in events[1:]:
+                if event < best:
+                    best = event
+            return best.name
+      after: |
+        def after(events):
+            return min(events, key=lambda e: e.timestamp).name
+      note: |
+        `min` with a key does one attribute read and one primitive comparison per element in C, instead of a Python `__lt__` call. It also slices nothing -- the original's `events[1:]` copies the whole list. Two savings in one edit, so pick the root cause that describes the larger one and list the other as subsumed.
+
+        Measured in `validation/taxonomy/C10S6_comparison_dunder.py`.
+    - title: the same accumulation, unwrapped inside the loop
+      before: |
+        class Money:
+            __slots__ = ("cents",)
+
+            def __init__(self, cents):
+                self.cents = cents
+
+            def __add__(self, other):
+                return Money(self.cents + other.cents)
+
+
+        def before(items):
+            total = Money(0)
+            for m in items:
+                total = total + m
+            return total.cents
+      after: |
+        def after(items):
+            total = 0
+            for m in items:
+                total += m.cents
+            return total
+      note: |
+        A Python __add__ called per element.
+
+        Measured in `validation/taxonomy/C10S6_operator_overload.py`.
+    - title: a dunder delegating to an array operation
+      before: |
+        import numpy as np
+
+
+        class Vector:
+            __slots__ = ("data",)
+
+            def __init__(self, data):
+                self.data = data
+
+            def __add__(self, other):
+                return Vector(self.data + other.data)      # numpy does the work
+
+            def __eq__(self, other):
+                return isinstance(other, Vector) and bool(np.array_equal(self.data, other.data))
+
+
+        def before(vectors, width):
+            total = Vector(np.zeros(width))
+            for vector in vectors:
+                total = total + vector
+            return total
+      after: |
+        import numpy as np
+
+
+        class Vector:
+            __slots__ = ("data",)
+
+            def __init__(self, data):
+                self.data = data
+
+            def __add__(self, other):
+                return Vector(self.data + other.data)      # numpy does the work
+
+            def __eq__(self, other):
+                return isinstance(other, Vector) and bool(np.array_equal(self.data, other.data))
+
+
+        def after(vectors, width):
+            acc = np.zeros(width)
+            for vector in vectors:
+                acc = acc + vector.data
+            return Vector(acc)
+      note: |
+        A dunder that is a thin delegation.
+
+        The card's second `NOT a smell when` clause: when the operation is already
+        delegated to compiled code, the dunder is a wrapper over a C operation and the
+        cost is the call rather than the body. Same repair as the accumulation case,
+        and the difference between the two readings is what the *body* was
+        contributing.
+
+        Measured in `validation/taxonomy/C10S6_thin_delegating_dunder.py`.
   patch_shape: structural
   measurability: scales_with_input
-  min_workload_hint: >
-    thousands of iterations; each dispatch-plus-allocation is worth hundreds of
-    nanoseconds
-  similar: [C6.S1, C10.S1, C10.S2]
+  min_workload_hint: |
+    thousands of iterations; each dispatch-plus-allocation is worth hundreds of nanoseconds
+  similar:
+  - C6.S1
+  - C10.S1
+  - C10.S2

@@ -1,515 +1,626 @@
-# C9 -- Inefficient External Data Access
-#
-# Almost absent from competitive-programming corpora (0.9% of the published
-# LeetCode labelling) and common in real repositories, so this category is one
-# where a benchmark suite and a codebase disagree sharply about what matters.
-#
-# It is also the category static analysis reaches least. Deciding any of these
-# needs to know what crosses a process boundary, how many times, and whether the
-# calls are independent -- none of which is recoverable from syntax, because
-# `store.get(key)` and `dict.get(key)` look identical and differ by six orders of
-# magnitude. Expect to find these by reading the call path.
-#
-# The compensation is that the effects are the largest in the taxonomy. A saved
-# round trip is milliseconds, where everything else in this taxonomy trades in
-# nanoseconds, and the energy is spent in three places at once: the local CPU
-# waiting, the network interface, and the remote system doing the work.
-#
-# The four split by what is wrong with the traffic:
-#
-#     S1  too many operations, each too small        -> batch them
-#     S2  too much data per operation                -> ask for less
-#     S3  too many dependent round trips             -> join them
-#     S4  the operation is expensive at the far end  -> restructure the query
-
 - id: C9.S1
-  signals: [io_call_in_loop]
-  in_one_line: >
+  signals:
+  - io_call_in_loop
+  in_one_line: |
     many small independent external operations where one bulk operation would do
-  what_to_look_for: >
-    Every external operation has a fixed cost before any data moves: a syscall
-    boundary, a buffer flush, a protocol frame, a query parse, a network round
-    trip.  N small operations pay that N times where one bulk operation pays it
-    once and moves the same bytes, so the saving is N times the per-operation
-    overhead and is independent of how much data there is -- which is why
-    batching a thousand tiny writes saves more than batching two large ones.
-    Most candidates die on the first question, which is whether the call
-    actually leaves the process: `.get()`, `.read()`, `.write()` and `.execute()`
-    are ordinary in-process method names too, and `store.get(key)` differs from
-    `dict.get(key)` by six orders of magnitude with nothing in the syntax to say
-    which you have.  So read what the receiver is.  Then establish the
-    operations are *independent* and could run in any order, because a call
-    whose argument comes from the previous call's result cannot be batched at
-    all.  Name the bulk form -- `writelines`, one buffered `write`,
-    `executemany`, `bulk_create`, a batch endpoint, a single query with an `IN`
-    clause -- and name what batching costs, since one transaction that fails
-    loses everything where a thousand lose one, and one buffered write holds the
-    whole payload in memory.
+  what_to_look_for: |
+    Every external operation has a fixed cost before any data moves: a syscall boundary, a buffer flush, a protocol frame, a query parse, a network round trip.  N small operations pay that N times where one bulk operation pays it once and moves the same bytes, so the saving is N times the per-operation overhead and is independent of how much data there is -- which is why batching a thousand tiny writes saves more than batching two large ones. Most candidates die on the first question, which is whether the call actually leaves the process: `.get()`, `.read()`, `.write()` and `.execute()` are ordinary in-process method names too, and `store.get(key)` differs from `dict.get(key)` by six orders of magnitude with nothing in the syntax to say which you have.  So read what the receiver is.  Then establish the operations are *independent* and could run in any order, because a call whose argument comes from the previous call's result cannot be batched at all.  Name the bulk form -- `writelines`, one buffered `write`, `executemany`, `bulk_create`, a batch endpoint, a single query with an `IN` clause -- and name what batching costs, since one transaction that fails loses everything where a thousand lose one, and one buffered write holds the whole payload in memory.
   not_a_smell_when:
-    - >
-      the calls are dependent, so each one's argument comes from the previous
-      one's result
-    - >
-      per-item failure handling is required -- one bad row must not fail the batch
-    - >
-      the batch would have to hold more in memory than the process can afford
-    - >
-      streaming is deliberate, so that a consumer sees results as they arrive
-    - >
-      the "external" call is not external at all, which is the commonest reason to
-      reject
+  - |
+    the calls are dependent, so each one's argument comes from the previous one's result
+  - |
+    per-item failure handling is required -- one bad row must not fail the batch
+  - |
+    the batch would have to hold more in memory than the process can afford
+  - |
+    streaming is deliberate, so that a consumer sees results as they arrive
+  - |
+    the "external" call is not external at all, which is the commonest reason to reject
   counter_examples:
-    - code: |
-        for key in keys:
-            value = cache.get(key)
-            if value is not None:
-                results.append(value)
-      why: >
-        `cache` here is a plain dict. `.get()` in a loop is one of the commonest
-        expressions in Python, and the method name tells you nothing about whether
-        it leaves the process -- one ordinary pure-Python module that performs no
-        I/O at all contains eight of these. Establish what the receiver is before
-        anything else.
-    - code: |
-        for record in records:
-            try:
-                api.submit(record)
-            except Rejected as exc:
-                failed.append((record, exc))
-      why: >
-        Genuinely external and genuinely per-item, and the per-item error handling
-        is the reason. A batch submit reports one failure for the batch and the
-        code needs to know which record. Batching here loses information the
-        caller uses.
-    - code: |
-        for chunk in stream:
-            handle.write(chunk)
-      why: >
-        A write per chunk, and Python's buffered writer already accumulates these
-        and flushes when its buffer fills -- so the syscall count is already far
-        below the call count. Checking whether a lower layer already batches is
-        why the card asks what batching costs as well as what it saves.
+  - code: |
+      for key in keys:
+          value = cache.get(key)
+          if value is not None:
+              results.append(value)
+    why: |
+      `cache` here is a plain dict. `.get()` in a loop is one of the commonest expressions in Python, and the method name tells you nothing about whether it leaves the process -- one ordinary pure-Python module that performs no I/O at all contains eight of these. Establish what the receiver is before anything else.
+  - code: |
+      for record in records:
+          try:
+              api.submit(record)
+          except Rejected as exc:
+              failed.append((record, exc))
+    why: |
+      Genuinely external and genuinely per-item, and the per-item error handling is the reason. A batch submit reports one failure for the batch and the code needs to know which record. Batching here loses information the caller uses.
+  - code: |
+      for chunk in stream:
+          handle.write(chunk)
+    why: |
+      A write per chunk, and Python's buffered writer already accumulates these and flushes when its buffer fills -- so the syscall count is already far below the call count. Checking whether a lower layer already batches is why the card asks what batching costs as well as what it saves.
   refactoring:
     summary: combine the small operations into one bulk operation
     examples:
-      - title: a write per line
-        before: |
-          def log_all(path, entries):
-              with open(path, "w", encoding="utf-8") as handle:
-                  for entry in entries:
-                      handle.write(f"{entry}\n")
-        after: |
-          def log_all(path, entries):
-              text = "".join(f"{entry}\n" for entry in entries)
-              with open(path, "w", encoding="utf-8") as handle:
-                  handle.write(text)
-        note: >
-          A million `write` calls become one. Note what this trades: the whole
-          payload is now in memory, and a crash mid-loop previously left a partial
-          file where now it leaves an empty one. On a million entries the saving
-          is real; on a hundred, Python's own buffering had already dealt with it
-          and this is churn.
-      - title: one insert per row
-        before: |
-          def store_all(connection, rows):
-              for row in rows:
-                  connection.execute(
-                      "INSERT INTO events (id, at) VALUES (?, ?)", (row.id, row.at)
-                  )
-              connection.commit()
-        after: |
-          def store_all(connection, rows):
-              connection.executemany(
-                  "INSERT INTO events (id, at) VALUES (?, ?)",
-                  [(row.id, row.at) for row in rows],
-              )
-              connection.commit()
-        note: >
-          The statement is parsed and planned once instead of N times, and the
-          rows cross in one batch. The largest available effect in this category.
-          It also makes the whole insert atomic in a way the original was not
-          quite -- which is usually an improvement and is still a change.
-      - title: N lookups replaced by one query
-        before: |
-          def names_for(connection, ids):
-              return [connection.execute(
-                  "SELECT name FROM users WHERE id = ?", (i,)
-              ).fetchone()[0] for i in ids]
-        after: |
-          def names_for(connection, ids):
-              placeholders = ",".join("?" * len(ids))
-              rows = connection.execute(
-                  f"SELECT id, name FROM users WHERE id IN ({placeholders})",
-                  tuple(ids),
-              ).fetchall()
-              by_id = dict(rows)
-              return [by_id[i] for i in ids]
-        note: >
-          N round trips become one, and the index rebuilds the caller's ordering.
-          Note the repair is longer and has two new failure modes: a missing id now
-          raises `KeyError` instead of `TypeError`, and a very long `ids` can
-          exceed the driver's parameter limit. Chunking at a few hundred is the
-          production form.
+    - title: a write per line
+      before: |
+        import os
+
+
+        import tempfile
+
+
+        def before(lines):
+            handle, path = tempfile.mkstemp(suffix=".c9s1")
+            os.close(handle)
+            try:
+                with open(path, "w", encoding="utf-8") as out:
+                    for line in lines:
+                        out.write(line)
+                        out.flush()                 # one syscall per line
+                return os.path.getsize(path)
+            finally:
+                os.unlink(path)
+      after: |
+        import os
+
+
+        import tempfile
+
+
+        def after(lines):
+            handle, path = tempfile.mkstemp(suffix=".c9s1")
+            os.close(handle)
+            try:
+                with open(path, "w", encoding="utf-8") as out:
+                    out.writelines(lines)
+                return os.path.getsize(path)
+            finally:
+                os.unlink(path)
+      note: |
+        A million `write` calls become one. Note what this trades: the whole payload is now in memory, and a crash mid-loop previously left a partial file where now it leaves an empty one. On a million entries the saving is real; on a hundred, Python's own buffering had already dealt with it and this is churn.
+
+        Measured in `validation/taxonomy/C9S1_writelines.py`.
+    - title: one insert per row
+      before: |
+        import sqlite3
+
+
+        def _fresh():
+            connection = sqlite3.connect(":memory:")
+            connection.execute("CREATE TABLE events (id INTEGER, payload TEXT)")
+            return connection
+
+
+        def before(rows):
+            connection = _fresh()
+            for row in rows:
+                connection.execute("INSERT INTO events VALUES (?, ?)", row)
+            connection.commit()
+            return connection.execute("SELECT count(*) FROM events").fetchone()[0]
+      after: |
+        import sqlite3
+
+
+        def _fresh():
+            connection = sqlite3.connect(":memory:")
+            connection.execute("CREATE TABLE events (id INTEGER, payload TEXT)")
+            return connection
+
+
+        def after(rows):
+            connection = _fresh()
+            connection.executemany("INSERT INTO events VALUES (?, ?)", rows)
+            connection.commit()
+            return connection.execute("SELECT count(*) FROM events").fetchone()[0]
+      note: |
+        The statement is parsed and planned once instead of N times, and the rows cross in one batch. The largest available effect in this category. It also makes the whole insert atomic in a way the original was not quite -- which is usually an improvement and is still a change.
+
+        Measured in `validation/taxonomy/C9S1_executemany.py`.
+    - title: N lookups replaced by one query
+      before: |
+        def before(connection, limit):
+            """One query for the orders, then one more for each order's customer."""
+            orders = connection.execute(
+                "SELECT id, customer_id FROM orders ORDER BY id LIMIT ?", (limit,)
+            ).fetchall()
+            out = []
+            for order_id, customer_id in orders:
+                row = connection.execute(
+                    "SELECT name FROM customers WHERE id = ?", (customer_id,)
+                ).fetchone()
+                out.append((order_id, row[0]))
+            return out
+      after: |
+        def after(connection, limit):
+            """One query, joined at the source."""
+            return connection.execute(
+                "SELECT o.id, c.name FROM orders o "
+                "JOIN customers c ON c.id = o.customer_id "
+                "ORDER BY o.id LIMIT ?",
+                (limit,),
+            ).fetchall()
+      note: |
+        N round trips become one, and the index rebuilds the caller's ordering. Note the repair is longer and has two new failure modes: a missing id now raises `KeyError` instead of `TypeError`, and a very long `ids` can exceed the driver's parameter limit. Chunking at a few hundred is the production form.
+
+        Measured in `validation/taxonomy/C9S3_n_plus_one.py`.
+    - title: a flush after every write
+      before: |
+        import os, tempfile
+
+
+        _DIR = tempfile.mkdtemp()
+
+
+        def before(lines):
+            path = os.path.join(_DIR, "a.txt")
+            with open(path, "w") as f:
+                for line in lines:
+                    f.write(line)
+                    f.flush()
+            return os.path.getsize(path)
+      after: |
+        import os, tempfile
+
+
+        _DIR = tempfile.mkdtemp()
+
+
+        def after(lines):
+            path = os.path.join(_DIR, "b.txt")
+            with open(path, "w") as f:
+                f.write("".join(lines))
+            return os.path.getsize(path)
+      note: |
+        Many small writes against one batched write.
+
+        Measured in `validation/taxonomy/C9S1_fragmented_io.py`.
+    - title: the batching the buffer was already doing
+      before: |
+        import os
+
+
+        import tempfile
+
+
+        _DIR = tempfile.mkdtemp(prefix="c9s1-counter-")
+
+
+        def before(lines):
+            path = os.path.join(_DIR, "a.txt")
+            with open(path, "w", encoding="utf-8") as out:
+                for line in lines:
+                    out.write(line)                  # buffered; no flush
+            return os.path.getsize(path)
+      after: |
+        import os
+
+
+        import tempfile
+
+
+        _DIR = tempfile.mkdtemp(prefix="c9s1-counter-")
+
+
+        def after(lines):
+            path = os.path.join(_DIR, "b.txt")
+            with open(path, "w", encoding="utf-8") as out:
+                out.write("".join(lines))            # one string, then the same buffer
+            return os.path.getsize(path)
+      note: |
+        The file object was already
+        batching.
+
+        `C9S1_writelines` measures one write per line against one buffered write at
+        +95.8%, and `C9S1_fragmented_io` at +97%. Both of those call `flush()` in the
+        loop, which is what makes each line a syscall.
+
+        Without the flush there is no fragmentation to remove. A Python file object
+        buffers 8 KB by default, so a loop of `write()` calls already issues one syscall
+        per 8 KB; joining the lines first adds a full copy of the payload into a new
+        string and then hands the same bytes to the same buffer. The I/O is identical
+        and the repair is a memory allocation the size of the output.
+
+        Look for what actually crosses the boundary before batching: an unflushed file
+        object, a buffered socket, an ORM that defers until commit, and a client library
+        with its own queue are all already doing this, and the repair only moves the
+        copying.
+
+        Measured in `validation/taxonomy/C9S1_already_buffered.py`.
   patch_shape: structural
   measurability: scales_with_input
-  min_workload_hint: >
-    the effect is per operation avoided, so the case needs many items rather than
-    large ones -- and the external call has to be stubbed at a defensible cost, or
-    the number means nothing
-  notes: >
-    Measuring anything in this category needs a stub, because a case file cannot
-    make a real network call.  A stub that returns instantly makes every repair
-    here look worthless; an arbitrary `sleep` makes the figure meaningless.  The
-    defensible options are to stub at a latency you can justify from an observed
-    measurement and say so, or to report the operations avoided as a count and
-    leave the energy claim unmade.  A counted claim honestly stated is worth more
-    than a measured one built on an invented constant.
-  similar: [C8.S4, C9.S2, C9.S3, C10.S3, C11.S5]
-
+  min_workload_hint: |
+    the effect is per operation avoided, so the case needs many items rather than large ones -- and the external call has to be stubbed at a defensible cost, or the number means nothing
+  notes: |
+    Measuring anything in this category needs a stub, because a case file cannot make a real network call.  A stub that returns instantly makes every repair here look worthless; an arbitrary `sleep` makes the figure meaningless.  The defensible options are to stub at a latency you can justify from an observed measurement and say so, or to report the operations avoided as a count and leave the energy claim unmade.  A counted claim honestly stated is worth more than a measured one built on an invented constant.
+  similar:
+  - C8.S4
+  - C9.S2
+  - C9.S3
+  - C10.S3
+  - C11.S5
 - id: C9.S2
   signals: []
-  in_one_line: >
+  in_one_line: |
     more data pulled across a process boundary than the program ever consults
-  what_to_look_for: >
-    Data that crosses a process boundary is paid for at both ends and in
-    between: the remote system reads and serialises it, the transport carries
-    it, and the local process deserialises it into objects.  Deserialisation is
-    usually the largest share and the least visible, since turning a wide row
-    into Python objects allocates one object per field -- a `SELECT *` returning
-    forty columns where two are used allocates thirty-eight objects per row and
-    frees them unread.  So name what is fetched against what is consumed, as a
-    proportion: two columns of forty is a finding, thirty-eight of forty is not.
-    Two things have to hold and both need reading outside the unit.  The source
-    must be able to return less, which a `SELECT` or a range request can and a
-    fixed endpoint cannot.  And nothing downstream may need the rest -- the
-    commonest way to get this wrong is a *generic* consumer, a serialiser that
-    reflects over the row or a logger that dumps it, where every column is used
-    by code that names none of them.  Check the projection does not cost more
-    elsewhere, since selecting a subset can lose an index-only scan and a byte
-    range can defeat a cache holding the whole object.
+  what_to_look_for: |
+    Data that crosses a process boundary is paid for at both ends and in between: the remote system reads and serialises it, the transport carries it, and the local process deserialises it into objects.  Deserialisation is usually the largest share and the least visible, since turning a wide row into Python objects allocates one object per field -- a `SELECT *` returning forty columns where two are used allocates thirty-eight objects per row and frees them unread.  So name what is fetched against what is consumed, as a proportion: two columns of forty is a finding, thirty-eight of forty is not. Two things have to hold and both need reading outside the unit.  The source must be able to return less, which a `SELECT` or a range request can and a fixed endpoint cannot.  And nothing downstream may need the rest -- the commonest way to get this wrong is a *generic* consumer, a serialiser that reflects over the row or a logger that dumps it, where every column is used by code that names none of them.  Check the projection does not cost more elsewhere, since selecting a subset can lose an index-only scan and a byte range can defeat a cache holding the whole object.
   not_a_smell_when:
-    - >
-      the extra data is used somewhere the reader has not looked -- a serialiser,
-      a log line, a caller that forwards the object
-    - >
-      the source cannot return less: a fixed endpoint, a whole-file format, a
-      response shape you do not control
-    - >
-      the proportion saved is small
-    - >
-      projecting would change the query plan for the worse, or defeat a cache
-      holding the full object
-    - >
-      the full object is cached and reused, so fetching it once for everything is
-      the cheaper total
+  - |
+    the extra data is used somewhere the reader has not looked -- a serialiser, a log line, a caller that forwards the object
+  - |
+    the source cannot return less: a fixed endpoint, a whole-file format, a response shape you do not control
+  - |
+    the proportion saved is small
+  - |
+    projecting would change the query plan for the worse, or defeat a cache holding the full object
+  - |
+    the full object is cached and reused, so fetching it once for everything is the cheaper total
   counter_examples:
-    - code: |
-        rows = connection.execute("SELECT * FROM users").fetchall()
-        return [serialise(r) for r in rows]
-      why: >
-        `SELECT *` feeding a serialiser that reflects over every column. The
-        columns are all used -- by code that does not name any of them. This is the
-        commonest way to get C9.S2 wrong: the consumer is generic, so nothing in
-        the function mentions the fields it needs.
-    - code: |
-        content = path.read_text()
-        return hashlib.sha256(content.encode()).hexdigest()
-      why: >
-        The whole file is read for a hash, which looks like fetching more than is
-        needed -- and a hash needs every byte. The available repair is to stream
-        the file in blocks so peak memory is bounded, which is C6.S3; the *amount*
-        transferred is already minimal.
+  - code: |
+      rows = connection.execute("SELECT * FROM users").fetchall()
+      return [serialise(r) for r in rows]
+    why: |
+      `SELECT *` feeding a serialiser that reflects over every column. The columns are all used -- by code that does not name any of them. This is the commonest way to get C9.S2 wrong: the consumer is generic, so nothing in the function mentions the fields it needs.
+  - code: |
+      content = path.read_text()
+      return hashlib.sha256(content.encode()).hexdigest()
+    why: |
+      The whole file is read for a hash, which looks like fetching more than is needed -- and a hash needs every byte. The available repair is to stream the file in blocks so peak memory is bounded, which is C6.S3; the *amount* transferred is already minimal.
   refactoring:
     summary: request only the fields, rows or bytes the code consumes
     examples:
-      - title: projecting the columns actually used
-        before: |
-          def contact_list(connection):
-              rows = connection.execute("SELECT * FROM users").fetchall()
-              return [(r["name"], r["email"]) for r in rows]
-        after: |
-          def contact_list(connection):
-              rows = connection.execute("SELECT name, email FROM users").fetchall()
-              return [(r["name"], r["email"]) for r in rows]
-        note: >
-          Two columns instead of forty: less serialised at the far end, fewer
-          bytes on the wire, and two Python objects per row instead of forty. The
-          deserialisation is usually the largest share. Check the table's real
-          width before claiming a proportion -- and that no index-only scan is lost.
-      - title: bounding the rows at the source
-        before: |
-          def recent(connection, limit):
-              rows = connection.execute(
-                  "SELECT id, at FROM events ORDER BY at DESC"
-              ).fetchall()
-              return rows[:limit]
-        after: |
-          def recent(connection, limit):
-              return connection.execute(
-                  "SELECT id, at FROM events ORDER BY at DESC LIMIT ?", (limit,)
-              ).fetchall()
-        note: >
-          The unbounded query materialises the whole table locally and discards all
-          but `limit` rows. `LIMIT` also lets the database stop sorting early if
-          the ordering column is indexed, so the saving is at both ends. Same
-          principle as C3.S6, moved across the process boundary -- which is why it
-          belongs here.
-      - title: metadata without the payload
-        before: |
-          def sizes(bucket, keys):
-              return {k: len(bucket.download(k)) for k in keys}
-        after: |
-          def sizes(bucket, keys):
-              return {k: bucket.head(k).content_length for k in keys}
-        note: >
-          The original transfers every object in full to measure it. `head`
-          returns the metadata alone. The largest ratio in this category -- gigabytes
-          against a few hundred bytes -- and it only exists because the protocol
-          offers a metadata call, which is what "can the source return less"
-          is asking.
+    - title: projecting the columns actually used
+      before: |
+        def before(connection, limit):
+            rows = connection.execute("SELECT * FROM wide LIMIT ?", (limit,)).fetchall()
+            return sum(r[0] for r in rows)
+      after: |
+        def after(connection, limit):
+            rows = connection.execute("SELECT id FROM wide LIMIT ?", (limit,)).fetchall()
+            return sum(r[0] for r in rows)
+      note: |
+        Two columns instead of forty: less serialised at the far end, fewer bytes on the wire, and two Python objects per row instead of forty. The deserialisation is usually the largest share. Check the table's real width before claiming a proportion -- and that no index-only scan is lost.
+
+        Measured in `validation/taxonomy/C9S2_select_columns.py`.
+    - title: bounding the rows at the source
+      before: |
+        def before(n):
+            with open(_PATH) as f:
+                rows = f.read().splitlines()
+            return len(rows[:n])
+      after: |
+        def after(n):
+            out = []
+            with open(_PATH) as f:
+                for line in f:
+                    out.append(line.rstrip("\n"))
+                    if len(out) >= n:
+                        break
+            return len(out)
+      note: |
+        The unbounded query materialises the whole table locally and discards all but `limit` rows. `LIMIT` also lets the database stop sorting early if the ordering column is indexed, so the saving is at both ends. Same principle as C3.S6, moved across the process boundary -- which is why it belongs here.
+
+        Measured in `validation/taxonomy/C9S2_oversized_retrieval.py`.
+    - title: metadata without the payload
+      before: |
+        def before(paths):
+            total = 0
+            for path in paths:
+                with open(path, "rb") as handle:
+                    total += len(handle.read())
+            return total
+      after: |
+        import os
+
+
+        def after(paths):
+            total = 0
+            for path in paths:
+                total += os.path.getsize(path)
+            return total
+      note: |
+        The original transfers every object in full to measure it. `head` returns the metadata alone. The largest ratio in this category -- gigabytes against a few hundred bytes -- and it only exists because the protocol offers a metadata call, which is what "can the source return less" is asking.
+
+        Measured in `validation/taxonomy/C9S2_metadata_without_payload.py`.
+    - title: the consumer that reflects over every column it is given
+      before: |
+        def _serialise(row):
+            return sum(len(str(value)) for value in row)
+
+
+        def before(connection, limit):
+            rows = connection.execute("SELECT * FROM wide LIMIT ?", (limit,)).fetchall()
+            return sum(_serialise(r) for r in rows)
+      after: |
+        COLUMNS = 40
+
+
+        _NAMES = ", ".join(f"c{i}" for i in range(COLUMNS))
+
+
+        def _serialise(row):
+            return sum(len(str(value)) for value in row)
+
+
+        def after(connection, limit):
+            rows = connection.execute(
+                f"SELECT id, {_NAMES} FROM wide LIMIT ?", (limit,)).fetchall()
+            return sum(_serialise(r) for r in rows)
+      note: |
+        The consumer uses every column.
+
+        The card's first `NOT a smell when` clause and what it calls the commonest way
+        to get this wrong: the consumer is generic, so every column is used by code
+        that names none of them. Projecting here does not save a transfer, it breaks
+        the serialiser -- so `after` fetches the same columns and the only difference
+        is that it asks for them by name.
+
+        Expected to read as nothing, which is the answer that stops an agent projecting
+        a query it has not read the consumer of.
+
+        Measured in `validation/taxonomy/C9S2_generic_consumer.py`.
   patch_shape: expression
   measurability: scales_with_input
-  min_workload_hint: >
-    the effect is proportional to the bytes and objects avoided, so the case needs
-    realistically wide rows or large payloads; a two-column table shows nothing
-  similar: [C6.S3, C9.S1, C9.S4]
-
+  min_workload_hint: |
+    the effect is proportional to the bytes and objects avoided, so the case needs realistically wide rows or large payloads; a two-column table shows nothing
+  similar:
+  - C6.S3
+  - C9.S1
+  - C9.S4
 - id: C9.S3
-  signals: [io_call_in_loop]
-  in_one_line: >
+  signals:
+  - io_call_in_loop
+  in_one_line: |
     one fetch per row of an earlier fetch, where a join would have taken one trip
-  what_to_look_for: >
-    The N+1 pattern: one query returns N rows and each row then triggers another
-    query for its related data, so the total is N+1 round trips where a join or
-    a prefetch is one or two.  The cost is dominated by latency and per-query
-    overhead rather than by volume, which is why N+1 queries returning one row
-    each cost far more than one query returning N rows carrying the same bytes.
-    It is the commonest expensive mistake in ORM code and it is invisible at the
-    call site, because `order.customer` looks like an attribute read and is a
-    network round trip -- so the difficulty is establishing that the inner access
-    *is* a fetch, which means reading the model rather than the loop.  Confirm
-    the inner fetches vary with the outer row; identical parameters mean the same
-    data is being re-fetched, which is a caching problem instead.  Two things
-    make the repair worse than the pattern.  A traversal guarded by a branch that
-    fires for two of ten thousand rows costs two round trips where a prefetch
-    fetches ten thousand.  And a join across two one-to-many relations multiplies
-    rows and can return far more data than N+1 did, where the answer is separate
-    prefetch queries rather than a single join.  An identity map or a local cache
-    may also mean no round trip is happening at all.
+  what_to_look_for: |
+    The N+1 pattern: one query returns N rows and each row then triggers another query for its related data, so the total is N+1 round trips where a join or a prefetch is one or two.  The cost is dominated by latency and per-query overhead rather than by volume, which is why N+1 queries returning one row each cost far more than one query returning N rows carrying the same bytes. It is the commonest expensive mistake in ORM code and it is invisible at the call site, because `order.customer` looks like an attribute read and is a network round trip -- so the difficulty is establishing that the inner access *is* a fetch, which means reading the model rather than the loop.  Confirm the inner fetches vary with the outer row; identical parameters mean the same data is being re-fetched, which is a caching problem instead.  Two things make the repair worse than the pattern.  A traversal guarded by a branch that fires for two of ten thousand rows costs two round trips where a prefetch fetches ten thousand.  And a join across two one-to-many relations multiplies rows and can return far more data than N+1 did, where the answer is separate prefetch queries rather than a single join.  An identity map or a local cache may also mean no round trip is happening at all.
   not_a_smell_when:
-    - >
-      the inner data is only needed for a few of the outer rows, so N+1 fetches
-      fewer times than a join fetches rows
-    - >
-      the join would multiply rows across several one-to-many relations and return
-      more data than the round trips cost
-    - >
-      the data layer offers no way to express it -- a fixed endpoint per entity
-    - >
-      the inner fetch is served from an identity map or a local cache, so the
-      round trip is not happening
-    - >
-      N is reliably small and bounded
+  - |
+    the inner data is only needed for a few of the outer rows, so N+1 fetches fewer times than a join fetches rows
+  - |
+    the join would multiply rows across several one-to-many relations and return more data than the round trips cost
+  - |
+    the data layer offers no way to express it -- a fixed endpoint per entity
+  - |
+    the inner fetch is served from an identity map or a local cache, so the round trip is not happening
+  - |
+    N is reliably small and bounded
   counter_examples:
-    - code: |
-        for order in orders:
-            if order.needs_review:
-                notify(order.customer.email)
-      why: >
-        A relation traversal inside a loop, which is the N+1 shape -- and it fires
-        only for orders needing review, which may be two out of ten thousand.
-        `select_related("customer")` would fetch ten thousand customers to use two.
-        The repair can be worse than the pattern, and the deciding fact is the
-        branch's selectivity.
-    - code: |
-        for order in orders:
-            total += order.customer.discount
-      why: >
-        Identical in shape to the positive example, and if `orders` all belong to
-        the same customer, the ORM's identity map serves every traversal after the
-        first from memory -- one query, not N. Whether a round trip happens depends
-        on the session's state, which is why the card asks you to read the data
-        layer.
+  - code: |
+      for order in orders:
+          if order.needs_review:
+              notify(order.customer.email)
+    why: |
+      A relation traversal inside a loop, which is the N+1 shape -- and it fires only for orders needing review, which may be two out of ten thousand. `select_related("customer")` would fetch ten thousand customers to use two. The repair can be worse than the pattern, and the deciding fact is the branch's selectivity.
+  - code: |
+      for order in orders:
+          total += order.customer.discount
+    why: |
+      Identical in shape to the positive example, and if `orders` all belong to the same customer, the ORM's identity map serves every traversal after the first from memory -- one query, not N. Whether a round trip happens depends on the session's state, which is why the card asks you to read the data layer.
   refactoring:
     summary: fetch the related data in one query, or in one query per relation
     examples:
-      - title: the explicit form, with a keyed lookup
-        before: |
-          def summarise(connection, order_ids):
-              out = []
-              for order_id in order_ids:
-                  order = connection.execute(
-                      "SELECT id, customer_id FROM orders WHERE id = ?", (order_id,)
-                  ).fetchone()
-                  customer = connection.execute(
-                      "SELECT name FROM customers WHERE id = ?", (order["customer_id"],)
-                  ).fetchone()
-                  out.append((order["id"], customer["name"]))
-              return out
-        after: |
-          def summarise(connection, order_ids):
-              placeholders = ",".join("?" * len(order_ids))
-              rows = connection.execute(
-                  f"""SELECT o.id, c.name
-                        FROM orders o JOIN customers c ON c.id = o.customer_id
-                       WHERE o.id IN ({placeholders})""",
-                  tuple(order_ids),
-              ).fetchall()
-              return [(r["id"], r["name"]) for r in rows]
-        note: >
-          2N round trips become one. The join is safe here because `customer_id`
-          is many-to-one, so the row count does not multiply. Two things change:
-          an order with a missing customer disappears instead of raising, and the
-          result order now follows the database's rather than `order_ids`. Both
-          have to be checked.
-      - title: the ORM form, where the fetch is hidden in an attribute
-        before: |
-          def rows_for(queryset):
-              return [(o.id, o.customer.name) for o in queryset]
-        after: |
-          def rows_for(queryset):
-              return [(o.id, o.customer.name)
-                      for o in queryset.select_related("customer")]
-        note: >
-          One word, and it is the largest single improvement available in most
-          ORM code -- because `o.customer` is an attribute access that issues SQL,
-          and nothing at the call site says so. This is the form worth looking for
-          by reading models rather than loops.
-      - title: separate queries where a join would multiply
-        before: |
-          def report(orders):
-              return [(o.id, [i.sku for i in o.items], [n.text for n in o.notes])
-                      for o in orders]
-        after: |
-          def report(orders):
-              orders = orders.prefetch_related("items", "notes")
-              return [(o.id, [i.sku for i in o.items], [n.text for n in o.notes])
-                      for o in orders]
-        note: >
-          Two one-to-many relations, so a single join would return
-          items x notes rows per order -- potentially far more data than the N+1
-          version transferred. `prefetch_related` issues one query per relation
-          and joins in Python. Included because the reflex repair here is the
-          wrong one, and row multiplication across relations is what
-          catches it.
+    - title: the explicit form, with a keyed lookup
+      before: |
+        def before(connection, limit):
+            """One query for the orders, then one more for each order's customer."""
+            orders = connection.execute(
+                "SELECT id, customer_id FROM orders ORDER BY id LIMIT ?", (limit,)
+            ).fetchall()
+            out = []
+            for order_id, customer_id in orders:
+                row = connection.execute(
+                    "SELECT name FROM customers WHERE id = ?", (customer_id,)
+                ).fetchone()
+                out.append((order_id, row[0]))
+            return out
+      after: |
+        def after(connection, limit):
+            """One query, joined at the source."""
+            return connection.execute(
+                "SELECT o.id, c.name FROM orders o "
+                "JOIN customers c ON c.id = o.customer_id "
+                "ORDER BY o.id LIMIT ?",
+                (limit,),
+            ).fetchall()
+      note: |
+        2N round trips become one. The join is safe here because `customer_id` is many-to-one, so the row count does not multiply. Two things change: an order with a missing customer disappears instead of raising, and the result order now follows the database's rather than `order_ids`. Both have to be checked.
+
+        Measured in `validation/taxonomy/C9S3_n_plus_one.py`.
+    - title: the fetch hidden behind an attribute and a branch
+      before: |
+        def before(connection, orders):
+            total = 0
+            for order_id, customer_id, flagged in orders:
+                if flagged:
+                    row = connection.execute(
+                        "SELECT email FROM customers WHERE id = ?", (customer_id,)).fetchone()
+                    total += len(row[0])
+            return total
+      after: |
+        def after(connection, orders):
+            emails = dict(connection.execute("SELECT id, email FROM customers"))
+            total = 0
+            for order_id, customer_id, flagged in orders:
+                if flagged:
+                    total += len(emails[customer_id])
+            return total
+      note: |
+        The relation is read for two rows in
+        ten thousand.
+
+        The card's first `NOT a smell when` clause: an N+1 traversal guarded by a
+        branch that almost never fires costs two round trips, where prefetching fetches
+        everything. `before` is the guarded N+1 and `after` is the prefetch, so a
+        negative reading says the repair is worse than the pattern -- and the deciding
+        fact is the branch's selectivity, not the shape.
+
+        `most-need-it` flips that, so both sides of the card's claim are in one file.
+
+        Measured in `validation/taxonomy/C9S3_traversal_behind_a_branch.py`.
+    - title: separate queries where a join would multiply
+      before: |
+        def before(connection, limit):
+            """One query per relation, joined in Python -- `prefetch_related` style."""
+            items, notes = {}, {}
+            for order_id, sku in connection.execute(
+                    "SELECT order_id, sku FROM items WHERE order_id < ?", (limit,)):
+                items.setdefault(order_id, []).append(sku)
+            for order_id, body in connection.execute(
+                    "SELECT order_id, body FROM notes WHERE order_id < ?", (limit,)):
+                notes.setdefault(order_id, []).append(body)
+            total = 0
+            for (order_id,) in connection.execute(
+                    "SELECT id FROM orders WHERE id < ?", (limit,)):
+                total += len(items.get(order_id, ())) + len(notes.get(order_id, ()))
+            return total
+      after: |
+        def after(connection, limit):
+            """One join, which multiplies the two relations against each other."""
+            seen_items, seen_notes = set(), set()
+            for order_id, sku, body in connection.execute(
+                "SELECT o.id, i.sku, n.body FROM orders o "
+                "JOIN items i ON i.order_id = o.id "
+                "JOIN notes n ON n.order_id = o.id WHERE o.id < ?", (limit,)
+            ):
+                seen_items.add((order_id, sku))
+                seen_notes.add((order_id, body))
+            return len(seen_items) + len(seen_notes)
+      note: |
+        Two one-to-many relations, so a single join would return items x notes rows per order -- potentially far more data than the N+1 version transferred. `prefetch_related` issues one query per relation and joins in Python. Included because the reflex repair here is the wrong one, and row multiplication across relations is what catches it.
+
+        Measured in `validation/taxonomy/C9S3_join_multiplies_rows.py`.
   patch_shape: structural
   measurability: scales_with_input
-  min_workload_hint: >
-    the effect is N avoided round trips, so scale on N; the stub's per-call cost
-    has to be defensible, since it is what the whole figure rests on
-  similar: [C3.S4, C8.S4, C9.S1, C9.S4]
-
+  min_workload_hint: |
+    the effect is N avoided round trips, so scale on N; the stub's per-call cost has to be defensible, since it is what the whole figure rests on
+  similar:
+  - C3.S4
+  - C8.S4
+  - C9.S1
+  - C9.S4
 - id: C9.S4
-  in_one_line: >
+  in_one_line: |
     a query whose shape makes the engine do far more work than the answer needs
-  what_to_look_for: >
-    Some queries are expensive for the engine whatever the client does, and the
-    cost is paid entirely at the far end -- in CPU, in temporary storage, and in
-    energy on a machine this process is not measuring.  A missing join condition
-    produces a Cartesian product, so two ten-thousand-row tables become a
-    hundred million rows.  `UNION` sorts and deduplicates where `UNION ALL` does
-    not.  A predicate wrapped in a function -- `WHERE lower(email) = ?` --
-    cannot use an index on `email`, so a lookup becomes a full scan.  And a
-    query built by string interpolation is textually different on every
-    execution, so the plan cache never hits and every call re-parses and
-    re-plans.  Name the specific structure, then establish it is expensive
-    *here*, because row counts and indexes are facts about the database rather
-    than the code and a Cartesian product between two three-row tables is nine
-    rows.  Preserving the result is the hard part of each repair: `UNION ALL`
-    only when the inputs are provably disjoint, a rewritten predicate only when
-    it selects the same rows including at the edges of case, nulls and
-    collation.  `EXPLAIN` is the instrument for this root cause and a finding
-    without it is a guess -- the local energy meter cannot see any of this.
+  what_to_look_for: |
+    Some queries are expensive for the engine whatever the client does, and the cost is paid entirely at the far end -- in CPU, in temporary storage, and in energy on a machine this process is not measuring.  A missing join condition produces a Cartesian product, so two ten-thousand-row tables become a hundred million rows.  `UNION` sorts and deduplicates where `UNION ALL` does not.  A predicate wrapped in a function -- `WHERE lower(email) = ?` -- cannot use an index on `email`, so a lookup becomes a full scan.  And a query built by string interpolation is textually different on every execution, so the plan cache never hits and every call re-parses and re-plans.  Name the specific structure, then establish it is expensive *here*, because row counts and indexes are facts about the database rather than the code and a Cartesian product between two three-row tables is nine rows.  Preserving the result is the hard part of each repair: `UNION ALL` only when the inputs are provably disjoint, a rewritten predicate only when it selects the same rows including at the edges of case, nulls and collation.  `EXPLAIN` is the instrument for this root cause and a finding without it is a guess -- the local energy meter cannot see any of this.
   not_a_smell_when:
-    - >
-      the tables are small enough that the structure's cost is irrelevant
-    - >
-      `UNION`'s deduplication is needed because the inputs can overlap
-    - >
-      the function in the predicate is matched by a functional index, so the index
-      is still usable
-    - >
-      the interpolated value is a constant, so there is one distinct statement and
-      the plan cache works
-    - >
-      the engine's optimiser already rewrites it, which `EXPLAIN` will show
+  - |
+    the tables are small enough that the structure's cost is irrelevant
+  - |
+    `UNION`'s deduplication is needed because the inputs can overlap
+  - |
+    the function in the predicate is matched by a functional index, so the index is still usable
+  - |
+    the interpolated value is a constant, so there is one distinct statement and the plan cache works
+  - |
+    the engine's optimiser already rewrites it, which `EXPLAIN` will show
   counter_examples:
-    - code: |
-        query = f"SELECT * FROM {table_name} WHERE id = %s"
-        cursor.execute(query, (record_id,))
-      why: >
-        String interpolation into SQL, which is the shape -- and only the table
-        name is interpolated, from a fixed set, while the value is properly
-        parameterised. That yields one distinct statement per table and the plan
-        cache works. The finding needs the *varying* part to be in the text.
-    - code: |
-        SELECT a.id, b.id FROM regions a, regions b WHERE a.id < b.id
-      why: >
-        A comma join with no equality condition, which reads exactly like a
-        missing join predicate -- and it is a deliberate self-join producing every
-        unordered pair, which is what the query is for. The `WHERE` is the
-        condition; it is simply not an equality.
+  - code: |
+      query = f"SELECT * FROM {table_name} WHERE id = %s"
+      cursor.execute(query, (record_id,))
+    why: |
+      String interpolation into SQL, which is the shape -- and only the table name is interpolated, from a fixed set, while the value is properly parameterised. That yields one distinct statement per table and the plan cache works. The finding needs the *varying* part to be in the text.
+  - code: |
+      SELECT a.id, b.id FROM regions a, regions b WHERE a.id < b.id
+    why: |
+      A comma join with no equality condition, which reads exactly like a missing join predicate -- and it is a deliberate self-join producing every unordered pair, which is what the query is for. The `WHERE` is the condition; it is simply not an equality.
   refactoring:
     summary: restructure the query so the engine can execute it cheaply
     examples:
-      - title: a predicate that defeats the index
-        before: |
-          cursor.execute(
-              "SELECT id FROM users WHERE lower(email) = ?", (address.lower(),)
-          )
-        after: |
-          cursor.execute(
-              "SELECT id FROM users WHERE email = ?", (address,)
-          )
-          # requires emails stored normalised; otherwise add a functional index:
-          #   CREATE INDEX users_email_lower ON users (lower(email))
-        note: >
-          Wrapping the column in `lower()` makes the index on `email` unusable, so
-          the engine scans every row. The repair is only correct if the stored
-          values are already normalised -- otherwise it silently stops matching,
-          and the right fix is the functional index rather than the query. Confirm
-          with `EXPLAIN` either way.
-      - title: deduplication nobody asked for
-        before: |
-          SELECT id FROM active_users
-          UNION
-          SELECT id FROM archived_users
-        after: |
-          SELECT id FROM active_users
-          UNION ALL
-          SELECT id FROM archived_users
-        note: >
-          `UNION` sorts both inputs and removes duplicates; `UNION ALL` streams
-          them. Valid only because a user cannot be both active and archived --
-          state that invariant, because if it can be violated the repair returns
-          duplicates and the caller may not notice.
-      - title: a plan cache that never hits
-        before: |
-          for order_id in order_ids:
-              cursor.execute(f"SELECT total FROM orders WHERE id = {order_id}")
-        after: |
-          placeholders = ",".join(["%s"] * len(order_ids))
-          cursor.execute(
-              f"SELECT id, total FROM orders WHERE id IN ({placeholders})",
-              tuple(order_ids),
-          )
-        note: >
-          Two problems in one line and both are fixed together: every iteration
-          produced a textually distinct statement, so the engine re-parsed and
-          re-planned each one, and there were N round trips. It was also an
-          injection vector. The batching half is C9.S1 -- report whichever is
-          larger and subsume the other.
+    - title: a predicate that defeats the index
+      before: |
+        def before(connection, addresses):
+            """`lower()` on the column makes the index unusable: a full scan per lookup."""
+            out = []
+            for address in addresses:
+                row = connection.execute(
+                    "SELECT id FROM users WHERE lower(email) = ?", (address.lower(),)
+                ).fetchone()
+                out.append(row[0] if row else None)
+            return out
+      after: |
+        def after(connection, addresses):
+            """The same question asked of the column directly, so the index applies."""
+            out = []
+            for address in addresses:
+                row = connection.execute(
+                    "SELECT id FROM users WHERE email = ?", (address.lower(),)
+                ).fetchone()
+                out.append(row[0] if row else None)
+            return out
+      note: |
+        Wrapping the column in `lower()` makes the index on `email` unusable, so the engine scans every row. The repair is only correct if the stored values are already normalised -- otherwise it silently stops matching, and the right fix is the functional index rather than the query. Confirm with `EXPLAIN` either way.
+
+        Measured in `validation/taxonomy/C9S4_expensive_query.py`.
+    - title: deduplication nobody asked for
+      before: |
+        def before(connection, disjoint):
+            left, right = ("active", "archived") if disjoint else ("overlap_a", "overlap_b")
+            return len(connection.execute(
+                f"SELECT id FROM {left} UNION SELECT id FROM {right}").fetchall())
+      after: |
+        def after(connection, disjoint):
+            if disjoint:
+                return len(connection.execute(
+                    "SELECT id FROM active UNION ALL SELECT id FROM archived").fetchall())
+            return len(connection.execute(
+                "SELECT id FROM overlap_a UNION SELECT id FROM overlap_b").fetchall())
+      note: |
+        `UNION` sorts both inputs and removes duplicates; `UNION ALL` streams them. Valid only because a user cannot be both active and archived -- state that invariant, because if it can be violated the repair returns duplicates and the caller may not notice.
+
+        Measured in `validation/taxonomy/C9S4_union_all.py`.
+    - title: a plan cache that never hits
+      before: |
+        def before(connection, order_ids):
+            total = 0
+            for order_id in order_ids:
+                row = connection.execute(
+                    f"SELECT total FROM orders WHERE id = {order_id}"
+                ).fetchone()
+                total += row[0]
+            return total
+      after: |
+        def after(connection, order_ids):
+            total = 0
+            for order_id in order_ids:
+                row = connection.execute(
+                    "SELECT total FROM orders WHERE id = ?", (order_id,)
+                ).fetchone()
+                total += row[0]
+            return total
+      note: |
+        Two problems in one line and both are fixed together: every iteration produced a textually distinct statement, so the engine re-parsed and re-planned each one, and there were N round trips. It was also an injection vector. The batching half is C9.S1 -- report whichever is larger and subsume the other.
+
+        Measured in `validation/taxonomy/C9S4_unparameterised_statement.py`.
+    - title: a join with no predicate to join on
+      before: |
+        def before(connection, big):
+            a, b = ("big_a", "big_b") if big else ("tiny_a", "tiny_b")
+            rows = connection.execute(f"SELECT x.id, y.id FROM {a} x, {b} y").fetchall()
+            return sum(1 for xi, yi in rows if xi == yi)
+      after: |
+        def after(connection, big):
+            a, b = ("big_a", "big_b") if big else ("tiny_a", "tiny_b")
+            rows = connection.execute(
+                f"SELECT x.id, y.id FROM {a} x JOIN {b} y ON y.id = x.id").fetchall()
+            return len(rows)
+      note: |
+        A Cartesian product from a missing join
+        condition.
+
+        The card's first named structure, and it insists the finding needs the row
+        counts: a Cartesian product between two three-row tables is nine rows. So the
+        two cases are the same query against a table that makes it expensive and one
+        that makes it trivial, which is the difference between a finding and a shape.
+
+        Measured in `validation/taxonomy/C9S4_missing_join_predicate.py`.
   patch_shape: expression
   measurability: scales_with_input
-  min_workload_hint: >
-    the cost is at the far end, so a local energy measurement will not see most of
-    it; measure the query's own execution time and report `EXPLAIN` output rather
-    than a package-energy figure
-  notes: >
-    This is the one root cause in the taxonomy whose cost is mostly spent on
-    another machine, and the project's meter cannot see it.  Report it with the
-    instrument that can: `EXPLAIN` before and after, the row-count estimates, and
-    the query's measured execution time.  A finding here that quotes a local
-    energy figure is quoting the wrong number -- and an honest report of a
-    hundred-million-row Cartesian product needs no energy figure to be convincing.
-  similar: [C7.S1, C9.S2, C9.S3]
+  min_workload_hint: |
+    the cost is at the far end, so a local energy measurement will not see most of it; measure the query's own execution time and report `EXPLAIN` output rather than a package-energy figure
+  notes: |
+    This is the one root cause in the taxonomy whose cost is mostly spent on another machine, and the project's meter cannot see it.  Report it with the instrument that can: `EXPLAIN` before and after, the row-count estimates, and the query's measured execution time.  A finding here that quotes a local energy figure is quoting the wrong number -- and an honest report of a hundred-million-row Cartesian product needs no energy figure to be convincing.
+  similar:
+  - C7.S1
+  - C9.S2
+  - C9.S3

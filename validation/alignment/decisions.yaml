@@ -1,0 +1,893 @@
+# Which validated case file backs each repair example on each card.
+#
+# `examples` is the card's repair examples after alignment, in order. Each entry
+# names the validation case file the code is taken from, so every example a
+# model reads has been executed and measured rather than written by hand.
+#
+# `title` and `note` carry the teaching the card already had; only the code is
+# replaced. `new` marks a shape that was measured but never shown on the card.
+#
+# `gaps` lists repairs the card teaches that no case file covers, and that are
+# central enough to the root cause to be worth measuring. Each becomes a new
+# file under validation/taxonomy/.
+
+C1.S1:
+  examples:
+    - file: C1S1_dead_expensive_result
+      title: an expensive result nobody consumes
+    - file: C1S1_dead_loop
+      title: a loop that builds something and drops it
+    - file: C1S1_dead_code
+      title: a scratch value recomputed every iteration
+      new: true
+  gaps: []
+
+C1.S2:
+  examples:
+    - file: C1S2_redundant_assignment
+      title: a store that leaves the value it already had
+    - file: C1S2_idempotent_conversion
+      title: an idempotent conversion inside a loop
+    - file: C1S2_redundant_strip
+      title: a normalisation applied to already-normalised input
+      new: true
+  gaps: []
+
+C1.S3:
+  examples:
+    - file: C1S3_identical_arms
+      title: arms that do the same thing
+    - file: C1S3_empty_guard
+      title: a condition guarding nothing
+    - file: C1S3_bool_branch
+      title: a branch that only rebuilds the condition's own value
+      new: true
+  gaps: []
+
+C1.S4:
+  examples:
+    - file: C1S4_expensive_call_twice
+      title: an expensive call made twice
+    - file: C1S4_operand_chain
+      title: an operand chain re-derived on two lines
+    - file: C1S4_repeated_computation
+      title: the same derivation in the test and in the body
+      new: true
+  gaps: []
+
+C1.S5:
+  examples:
+    - file: C1S5_invariant_stage
+      title: a stage the next stage is invariant under
+    - file: C1S5_last_iteration_only
+      title: a loop where only the last iteration is read
+    - file: C1S5_resultless
+      title: a call whose result is dropped on the floor
+      new: true
+  gaps: []
+
+C1.S6:
+  examples:
+    - file: C1S6_setup_before_cache_check
+      title: expensive setup before the check that makes it unnecessary
+    - file: C1S6_buffer_for_rare_branch
+      title: a buffer allocated for a rarely-taken branch
+    - file: C1S6_unnecessary_init
+      title: a fallback built on every pass and used on almost none
+      new: true
+  gaps: []
+
+C1.S7:
+  examples:
+    - file: C1S7_single_use_temp
+      title: a temporary in a hot loop
+    - file: C1S7_return_through_name
+      title: a value that goes through a name on its way to being used
+  gaps: []
+
+C1.S8:
+  examples:
+    - file: C1S8_collect_with_live_heap
+      title: collecting on every iteration
+    - file: C1S8_log_argument
+      title: an expensive log argument evaluated regardless of level
+    - file: C1S8_runtime_management
+      title: the same collection against a heap that is nearly empty
+      new: true
+    - file: C1S8_guard_with_nothing_to_guard
+      title: the guard added where there was nothing to pre-compute
+      new: true
+  gaps: []
+
+C2.S1:
+  examples:
+    - file: C2S1_private_accessors
+      title: private accessors called from other methods of the same class
+    - file: C2S1_property_per_element
+      title: a property read once per element
+    - file: C2S1_method_delegation
+      title: a wrapper that forwards to one private call
+      new: true
+  gaps: []
+
+C2.S2:
+  examples:
+    - file: C2S2_static_method
+      title: a helper that never touches the instance
+    - file: C2S2_module_function
+      title: moving out of the class entirely
+    - file: C2S2_declaration_only
+      title: the declaration changed and the call site left alone
+      new: true
+  gaps: []
+
+C2.S3:
+  examples:
+    - file: C2S3_modularization
+      title: a chain of one-expression methods under a loop
+    - file: C2S3_bypass_on_bulk_path
+      title: keeping the layers and bypassing them here
+    - file: C2S3_heavy_bottom
+      title: the same layers over work that dominates them
+      new: true
+  gaps: []
+
+C3.S1:
+  examples:
+    - file: C3S1_index_iteration
+      title: an index used only to subscript
+    - file: C3S1_zip_versus_index
+      title: two sequences walked by a shared index
+    - file: C3S1_plain_append
+      title: an append loop with nothing else in the body
+    - file: C3S1_append_to_comprehension
+      title: an append loop that also filters
+      new: true
+    - file: C3S1_comprehension_cannot_stop
+      title: the comprehension that cannot stop early
+      new: true
+  gaps:
+    - file: C3S1_plain_append
+      why: >
+        The card's canonical example is a loop whose body is exactly one
+        append, and its note turns on that ("only holds because the body is
+        exactly one append"). Every measured file puts something else in the
+        body -- a filter, an early exit -- so the plain form the card teaches
+        was never measured.
+
+C3.S2:
+  examples:
+    - file: C3S2_set_rebuilt_per_iteration
+      title: a set rebuilt on every iteration
+    - file: C8S3_local_lookup_caching
+      title: an attribute chain resolved per iteration
+    - file: C3S2_sum_inside_comprehension
+      title: the invariant is inside a comprehension, and quadratic
+    - file: C3S7_delete_while_scanning
+      title: a call in a `while` condition, which cannot be hoisted
+    - file: C3S2_loop_invariant
+      title: a plain expression hoisted above the loop
+      new: true
+  gaps: []
+
+C3.S3:
+  examples:
+    - file: C3S3_regex_compiled_per_iteration
+      title: a compiled pattern
+    - file: C3S3_file_opened_per_iteration
+      title: a resource opened per iteration
+    - file: C3S3_object_reuse_with_reset
+      title: an object that can be reused if it is reset
+  gaps:
+    - file: C3S3_object_reuse_with_reset
+      why: >
+        Reuse-with-reset is the third repair the card teaches and carries its
+        own precondition -- the instance must not escape the iteration. No
+        case file measures it, so neither the saving nor the precondition has
+        ever been checked.
+
+C3.S4:
+  examples:
+    - file: C3S4_nested_scan
+      title: the inner loop is a linear search
+    - file: C3S4_triangular_traversal
+      title: a symmetric relation over one collection
+    - file: C3S4_genuinely_quadratic
+      title: the nesting that is not a lookup in disguise
+      new: true
+  gaps: []
+
+C3.S5:
+  examples:
+    - file: C3S5_all_short_circuits
+      title: a validation that keeps checking after it has failed
+    - file: C3S5_take_only_what_is_wanted
+      title: collecting only as many as are wanted
+    - file: C3S5_missing_early_exit
+      title: a search that runs on after it has found its answer
+      new: true
+  gaps: []
+
+C3.S6:
+  examples:
+    - file: C3S6_top_k_without_sorting
+      title: a full sort where only the top k is wanted
+    - file: C3S6_deduplicate_first
+      title: deduplicate before a per-element test, when duplicates are dense
+    - file: C9S2_oversized_retrieval
+      title: filtering that could happen at the source
+    - file: C3S6_unfiltered_bulk
+      title: a full sort where one element was wanted
+      new: true
+  gaps: []
+
+C3.S7:
+  examples:
+    - file: C3S7_mutation_in_loop
+      title: removal while iterating, which also skips elements
+    - file: C3S7_delete_while_scanning
+      title: a `while` loop whose counter is skipped on one path
+    - file: C3S7_iterating_a_snapshot
+      title: the snapshot that fixes correctness and leaves the cost
+      new: true
+  gaps: []
+
+C4.S1:
+  examples:
+    - file: C4S1_decisive_cheap_test
+      title: a call before a comparison that usually decides
+    - file: C4S1_expensive_subexpression
+      title: the expensive operand is a whole sub-expression
+    - file: C4S1_short_circuit_order
+      title: the order reversed, where the cheap test rejects nothing
+      new: true
+  gaps: []
+
+C4.S2:
+  examples:
+    - file: C4S2_implied_by_domain_fact
+      title: the second half of an `and` cannot fail
+    - file: C4S2_settled_by_prior_branch
+      title: a prior branch has already settled half the next condition
+    - file: C4S2_negated_elif
+      title: an `elif` that restates the negation of its `if`
+    - file: C4S2_guard_skips_scan
+      title: the determined test stands in front of a whole scan
+    - file: C4S2_redundant_condition
+      title: the same test nested inside itself
+      new: true
+  gaps:
+    - file: C4S2_implied_by_domain_fact
+      why: >
+        `ceiling < limit` implying `floor < limit` is the card's own account of
+        what makes this root cause invisible to static rules -- the fact comes
+        from arithmetic, not syntax. The only measured redundancy is
+        `C4S2_redundant_condition`, where the two tests are textually
+        identical, which is the case a rule *can* find.
+    - file: C4S2_negated_elif
+      why: >
+        `if x < 0 ... elif x >= 0` is the most common shape this root cause
+        takes and the one with a behaviour trap worth measuring: the original
+        returns None for NaN, so the repair is not equivalence-preserving on
+        every input. Nothing measured covers it.
+
+C4.S3:
+  examples:
+    - file: C4S3_guard_clauses
+      title: guard clauses instead of nesting
+    - file: C4S3_dispatch_table
+      title: a comparison chain that is really a table
+    - file: C4S3_match_statement
+      title: the same chain written as `match`
+      new: true
+  gaps: []
+
+C4.S4:
+  examples:
+    - file: C4S4_two_arms
+      title: the exclusivity is guaranteed by a precondition
+    - file: C4S4_many_arms_late_match
+      title: equality arms against distinct constants
+    - file: C4S4_missing_elif
+      title: exhaustive arms on one derived value
+      new: true
+  gaps: []
+
+C4.S5:
+  examples:
+    - file: C4S5_hoisted_type_decision
+      title: the answer is the same for every element
+    - file: C4S5_expensive_comparison
+      title: the types already share a method
+    - file: C4S5_heterogeneous_input
+      title: input that is genuinely mixed, where the check has to stay
+      new: true
+  gaps: []
+
+C4.S6:
+  examples:
+    - file: C4S6_exception_control_flow
+      title: a lookup that usually misses
+    - file: C4S6_exact_precheck
+      title: the raise comes from a converter called per element
+    - file: C4S6_no_cheap_precheck
+      title: the pre-check that duplicates the callee's own work
+      new: true
+  gaps: []
+
+C4.S7:
+  examples:
+    - file: C4S2_guard_skips_scan
+      title: an algebraic fact makes the whole scan unnecessary
+    - file: C4S7_algebraic_guard
+      title: a cheap property rules out the expensive check
+    - file: C4S7_guard_before_short_circuit
+      title: the fast path is in the callee and only needs asking for
+    - file: C4S7_edge_case_guard
+      title: the trivial input that skips everything
+      new: true
+  gaps: []
+
+C4.S8:
+  examples:
+    - file: C4S8_membership_and_get
+      title: a membership test followed by a second lookup
+    - file: C4S8_chained_comparison
+      title: a chained comparison, and the branches it makes redundant
+    - file: C4S8_non_idiomatic
+      title: a view built only to be searched
+      new: true
+  gaps: []
+
+C5.S1:
+  examples:
+    - file: C5S1_membership_list
+      title: the construction site is next to the loop
+    - file: C5S1_built_in_another_method
+      title: the construction site is in another method
+    - file: C5S1_pop_front_deque
+      title: the operation is not membership
+    - file: C5S1_set_built_per_probe
+      title: the set rebuilt for a single probe, which pays for nothing
+      new: true
+    - file: C5S1_heap_for_a_full_sort
+      title: a heap where the whole collection is wanted in order
+      new: true
+  gaps: []
+
+C5.S2:
+  examples:
+    - file: C5S2_missing_index
+      title: the scan is inside the loop that needs it
+    - file: C5S2_set_beside_the_list
+      title: the original collection is still needed
+    - file: C5S2_index_on_the_object
+      title: the index belongs to the object, not to the call
+  gaps: []
+
+C5.S3:
+  examples:
+    - file: C5S3_float_literal
+      title: a float literal on integer data
+    - file: C5S3_tuple_constant
+      title: a constant sequence rebuilt on every call
+    - file: C5S3_slots_versus_dict
+      title: instances that need no per-instance dictionary
+    - file: C5S3_set_never_probed
+      title: a set chosen where nothing is ever looked up
+      new: true
+  gaps: []
+
+C5.S4:
+  examples:
+    - file: C5S4_representation_change
+      title: the consumer already accepts an iterable
+    - file: C5S4_chain_of_intermediates
+      title: a chain of intermediates, none of them read twice
+    - file: C5S4_shape_chosen_too_early
+      title: the shape was chosen too early
+    - file: C5S4_conversion_direction_flips
+      title: the argument that did not need converting
+      new: true
+  gaps:
+    - file: C5S4_chain_of_intermediates
+      why: >
+        Collapsing `list(records)` then a comprehension then `sorted(set(...))`
+        into one expression is the card's central example and the shape most
+        often seen in real code. The measured files each remove a single
+        conversion; none measures a chain of three, where the saving is three
+        passes and three allocations rather than one.
+
+C6.S1:
+  examples:
+    - file: C3S3_object_reuse_with_reset
+      title: one instance reused instead of one per iteration
+    - file: C6S1_constructor_versus_literal
+      title: a constructor call where a literal would do
+    - file: C6S1_intermediate_container
+      title: an intermediate container nobody needed
+  gaps: []
+
+C6.S2:
+  examples:
+    - file: C6S2_concat_versus_extend
+      title: an element-at-a-time copy
+    - file: C6S2_sorted_versus_sort
+      title: sorting in place, once the ownership is established
+    - file: C6S2_unnecessary_copy
+      title: a defensive copy that nothing needed
+  gaps: []
+
+C6.S3:
+  examples:
+    - file: C6S3_stream_a_file
+      title: a file read whole when it is processed line by line
+    - file: C6S3_consumer_stops_early
+      title: a consumer that stops early
+    - file: C6S3_genexp_to_list
+      title: the reducer where materialising wins instead
+      new: true
+  gaps: []
+
+C6.S4:
+  examples:
+    - file: C6S4_cache_holds_whole_objects
+      title: a cache holding objects where identifiers would do
+    - file: C6S4_summary_instead_of_source
+      title: a derived summary instead of the source
+    - file: C6S4_oversized_retaining
+      title: whole rows retained where one field is read
+      new: true
+    - file: C6S4_fields_never_read
+      title: a copy of every field, of which one is read
+      new: true
+  gaps:
+    - file: C6S4_summary_instead_of_source
+      why: >
+        Retaining `sum(...)` instead of the rows is the card's second repair and
+        the only one that is a genuine trade -- it moves the work earlier and
+        makes it unconditional, so it is wrong when the consumer is often not
+        called. Every measured file retains a smaller item; none moves the
+        computation, so the trade has never been measured in either direction.
+
+C6.S5:
+  examples:
+    - file: C6S5_over_allocation
+      title: a fixed buffer for a variable workload
+    - file: C6S5_worst_case_bytearray
+      title: a worst-case array shape
+    - file: C6S5_presized_versus_grown
+      title: pre-sizing that the allocator was already doing
+      new: true
+  gaps: []
+
+C6.S6:
+  examples:
+    - file: C6S6_handles_without_with
+      title: a handle abandoned to the collector
+    - file: C6S6_leaked_handle
+      title: one handle per iteration
+    - file: C6S6_prompt_release
+      title: every handle held open until the end of the batch
+      new: true
+  gaps: []
+
+C6.S7:
+  examples:
+    - file: C6S7_default_is_the_cache
+      title: an accumulator that grows across calls
+    - file: C6S7_mutable_default
+      title: a shared scratch buffer behind a default argument
+    - file: C6S7_default_only_read
+      title: the default that is only ever read
+      new: true
+  gaps: []
+
+C7.S1:
+  examples:
+    - file: C7S1_binary_search
+      title: a linear scan over data that is already sorted
+    - file: C3S4_nested_scan
+      title: a quadratic pairwise search made linear by hashing
+    - file: C6S2_concat_versus_extend
+      title: quadratic accumulation hidden in an operator
+    - file: C7S1_algorithm_choice
+      title: a hand-written quadratic sort
+      new: true
+    - file: C7S1_hand_written_sort
+      title: a hand-written substring search
+      new: true
+    - file: C7S1_constants_beat_complexity
+      title: the better complexity that loses on small inputs
+      new: true
+  gaps: []
+
+C7.S2:
+  examples:
+    - file: C7S2_memoised_recursion
+      title: overlapping subproblems re-solved
+    - file: C7S2_reachable_states_only
+      title: a state the search forgot to record
+    - file: C7S2_bounded_enumeration
+      title: pruning a branch that cannot improve the answer
+  gaps: []
+
+C7.S3:
+  examples:
+    - file: C7S3_iterative_factorial
+      title: an accumulating recursion
+    - file: C7S3_branching_recursion
+      title: a recursion that branches, where the frame is not the cost
+  gaps: []
+
+C7.S4:
+  examples:
+    - file: C7S4_sort_then_slice
+      title: sort after taking, not before
+    - file: C7S4_filter_before_transform
+      title: filter before the expensive transform
+    - file: C10S1_primitive_loses_early_exit
+      title: early exit beats bulk work
+    - file: C7S4_deduplicate_before_mapping
+      title: deduplicate before the expensive transform
+      new: true
+  gaps: []
+
+C7.S5:
+  examples:
+    - file: C7S5_abs_never_negative
+      title: a wrapper that cannot change its argument
+    - file: C1S5_invariant_stage
+      title: the expensive step does not affect the answer at all
+    - file: C4S7_guard_before_short_circuit
+      title: a cheap pre-check settles the common case
+    - file: C7S5_monotonic_comparison
+      title: comparing through a strictly increasing function
+      new: true
+    - file: C7S5_only_half_is_needed
+      title: half the comparison decides the whole of it
+      new: true
+    - file: C7S5_unsimplified
+      title: a factor that can come out of the sum
+      new: true
+  gaps: []
+
+C8.S1:
+  examples:
+    - file: C8S1_memoization
+      title: a small key space behind a large call count
+    - file: C8S1_normalised_cache_key
+      title: normalising the key to double the hit rate
+    - file: C8S1_open_key_space
+      title: the key space that is open, where the cache only costs
+      new: true
+  gaps: []
+
+C8.S2:
+  examples:
+    - file: C8S2_derived_value_reuse
+      title: a compiled pattern at module scope
+    - file: C8S2_parsed_config_reused
+      title: configuration parsed once per process
+    - file: C8S2_struct_reused
+      title: a prepared struct for a hot binary format
+  gaps: []
+
+C8.S3:
+  examples:
+    - file: C8S3_local_lookup_caching
+      title: an attribute chain in a hot loop
+    - file: C8S3_bound_method_alias
+      title: a bound method resolved per iteration
+    - file: C8S3_property_in_the_chain
+      title: a property rather than a plain attribute in the chain
+      new: true
+    - file: C8S3_body_dominates
+      title: the loop body that dominates the lookup it repeats
+      new: true
+  gaps:
+    - file: C8S3_bound_method_alias
+      why: >
+        Aliasing `out.append` and `self._transform` to locals is the classic
+        Python form of this root cause and the only one whose cost is a bound
+        *method* object allocated per call rather than a dict probe. Every
+        measured file hoists a plain attribute chain, so the allocation half
+        of the claim has never been measured.
+
+C8.S4:
+  examples:
+    - file: C8S4_same_file_reread
+      title: a config file read per request
+    - file: C8S4_redundant_fetching
+      title: the same external read inside a loop
+    - file: C8S4_already_cached_below
+      title: the layer below was already caching it
+      new: true
+  gaps: []
+
+C9.S1:
+  examples:
+    - file: C9S1_writelines
+      title: a write per line
+    - file: C9S1_executemany
+      title: one insert per row
+    - file: C9S3_n_plus_one
+      title: N lookups replaced by one query
+    - file: C9S1_fragmented_io
+      title: a flush after every write
+      new: true
+    - file: C9S1_already_buffered
+      title: the batching the buffer was already doing
+      new: true
+  gaps: []
+
+C9.S2:
+  examples:
+    - file: C9S2_select_columns
+      title: projecting the columns actually used
+    - file: C9S2_oversized_retrieval
+      title: bounding the rows at the source
+    - file: C9S2_metadata_without_payload
+      title: metadata without the payload
+    - file: C9S2_generic_consumer
+      title: the consumer that reflects over every column it is given
+      new: true
+  gaps:
+    - file: C9S2_metadata_without_payload
+      why: >
+        Asking the source for a property instead of transferring the object to
+        compute it is the largest ratio in this category -- gigabytes against
+        a few hundred bytes -- and the only example whose saving is the
+        transfer rather than the parse. `os.path.getsize` against opening and
+        reading measures the same shape without needing a network service.
+
+C9.S3:
+  examples:
+    - file: C9S3_n_plus_one
+      title: the explicit form, with a keyed lookup
+    - file: C9S3_traversal_behind_a_branch
+      title: the fetch hidden behind an attribute and a branch
+    - file: C9S3_join_multiplies_rows
+      title: separate queries where a join would multiply
+  gaps: []
+
+C9.S4:
+  examples:
+    - file: C9S4_expensive_query
+      title: a predicate that defeats the index
+    - file: C9S4_union_all
+      title: deduplication nobody asked for
+    - file: C9S4_unparameterised_statement
+      title: a plan cache that never hits
+    - file: C9S4_missing_join_predicate
+      title: a join with no predicate to join on
+      new: true
+  gaps:
+    - file: C9S4_unparameterised_statement
+      why: >
+        Interpolating the id into the SQL text makes every iteration a
+        textually distinct statement, so the engine re-parses and re-plans each
+        one and the prepared-statement cache never hits. That is a different
+        cost from the other two measured files, which change what the engine
+        *does* rather than how often it has to decide what to do -- and it is
+        the one shape here that is also an injection vector.
+
+C10.S1:
+  examples:
+    - file: C10S1_manual_sum
+      title: a hand-written reduction the primitive already does
+    - file: C10S1_counter
+      title: a tally, where the primitive does exactly the needed work
+    - file: C10S1_substring_scan
+      title: a substring scan the standard library does in C
+    - file: C10S1_two_argument_builtin
+      title: a running extreme kept by hand
+      new: true
+    - file: C10S1_builtin_counts_everything
+      title: the primitive that counts what the loop was skipping
+      new: true
+    - file: C10S1_primitive_loses_early_exit
+      title: the primitive that must see all the data, against a loop that need not
+      new: true
+  gaps:
+    - file: C10S1_substring_scan
+      why: >
+        The card's point is that the repair keeps the Python loop -- what
+        mattered was moving the per-element work into C, not removing the
+        loop -- and the original's cost is a fresh string object allocated per
+        position. Every measured file replaces the loop itself, so the "same
+        loop, cheaper body" form the card teaches has never been measured.
+
+C10.S2:
+  examples:
+    - file: C10S2_regex_versus_startswith
+      title: a regex where a string method would do
+    - file: C10S2_map_builtin
+      title: map with a C-level callable
+    - file: C4S8_membership_and_get
+      title: a membership test followed by a second lookup
+    - file: C10S2_map_lambda
+      title: the same map with a Python callable, where it reverses
+      new: true
+    - file: C10S2_counter_versus_sorted
+      title: two primitives whose order of merit depends on the width
+      new: true
+    - file: C10S2_default_always_evaluated
+      title: the default argument that is built whether or not it is used
+      new: true
+  gaps:
+    - file: C10S2_regex_versus_startswith
+      why: >
+        A literal-prefix regex against `str.startswith` is the commonest
+        instance of this root cause in real code and the one with the clearest
+        precondition (no metacharacters beyond the anchor). Nothing measured
+        compares a regex against a string method at all.
+
+C10.S3:
+  examples:
+    - file: C10S3_append_to_extend
+      title: element-at-a-time transfer
+    - file: C10S3_slice_instead_of_index
+      title: an index-based loop where a slice does the work
+    - file: C10S3_vectorised
+      title: a Python loop over a NumPy array
+    - file: C10S3_bulk_primitive
+      title: an append loop the comprehension replaces
+      new: true
+  gaps:
+    - file: C10S3_slice_instead_of_index
+      why: >
+        Slicing is the batched primitive here, and it is the only one of the
+        three whose repair changes the return type -- a tuple or str input
+        comes back as itself rather than as a list, which is a behaviour change
+        the card has to warn about and no measurement has ever exercised.
+
+C10.S4:
+  examples:
+    - file: C10S4_aliased
+      title: the accumulator is an attribute
+    - file: C10S4_dict_entry_accumulator
+      title: the accumulator is a dict entry
+    - file: C10S4_plain_local
+      title: an unaliased local, where CPython already resizes in place
+      new: true
+    - file: C10S4_three_parts
+      title: three parts, where there is nothing to amortise
+      new: true
+  gaps: []
+
+C10.S5:
+  examples:
+    - file: C10S5_global_hoist
+      title: globals resolved on every iteration
+    - file: C10S5_three_globals_per_iteration
+      title: a module constant inside a tight loop
+    - file: C10S5_body_does_real_work
+      title: the body that dominates the lookup it repeats
+      new: true
+  gaps: []
+
+C10.S6:
+  examples:
+    - file: C10S6_overload_accumulation
+      title: accumulation that allocates per element
+    - file: C10S6_comparison_dunder
+      title: a comparison dunder on the per-element path
+    - file: C10S6_operator_overload
+      title: the same accumulation, unwrapped inside the loop
+      new: true
+    - file: C10S6_thin_delegating_dunder
+      title: a dunder delegating to an array operation
+      new: true
+  gaps:
+    - file: C10S6_comparison_dunder
+      why: >
+        Both measured files overload arithmetic. A comparison dunder is
+        reached by a different path -- `min`/`sorted` call it through the
+        comparison protocol rather than through an operator the loop writes --
+        and the repair is `min(key=...)` rather than unwrapping an
+        accumulator, so neither the cost nor the repair is covered.
+
+C11.S1:
+  examples:
+    - file: C11S1_lock_contention
+      title: expensive work moved out of the critical section
+    - file: C11S1_lock_removed
+      title: removing the lock rather than narrowing it
+    - file: C11S1_single_threaded
+      title: the lock on a path only one thread ever reaches
+      new: true
+  gaps: []
+
+C11.S2:
+  examples:
+    - file: C11S2_pooled_resource
+      title: one connection shared by every worker
+    - file: C11S2_drop_the_concurrency
+      title: the honest repair is to remove the concurrency
+    - file: C11S2_serial_bottleneck
+      title: the resource every worker queues behind
+      new: true
+  gaps: []
+
+C11.S3:
+  examples:
+    - file: C11S3_thread_per_request
+      title: a thread per request
+    - file: C11S3_leaked_busy_wait
+      title: a background loop with no way out
+    - file: C11S3_leaked_thread
+      title: a worker started and never joined
+      new: true
+  gaps: []
+
+C11.S4:
+  examples:
+    - file: C11S4_blocking_async
+      title: a synchronous client in a coroutine
+    - file: C11S4_cpu_bound_in_coroutine
+      title: a synchronous library with no async version
+    - file: C11S4_blocking_two_calls_down
+      title: the blocking call is two functions below the coroutine
+  gaps: []
+
+C11.S5:
+  examples:
+    - file: C11S5_missed_parallelism
+      title: I/O-bound work, where energy and time both fall
+    - file: C11S5_cpu_bound_processes
+      title: CPU-bound work, where only time falls
+    - file: C11S5_threads_for_cpu_bound
+      title: threads for CPU-bound work, which the GIL serialises
+      new: true
+    - file: C11S5_transfer_dominates
+      title: the pool whose transfer costs more than the work
+      new: true
+  gaps: []
+
+C12.S1:
+  examples:
+    - file: C12S1_stride_traversal
+      title: the loop can be reordered
+    - file: C12S1_fortran_order
+      title: the loop cannot be reordered, so change the layout
+    - file: C12S1_cache_resident
+      title: a buffer small enough that the order does not matter
+      new: true
+    - file: C12S1_transpose_costs_a_copy
+      title: the transpose whose copy costs more than the strides
+      new: true
+  gaps: []
+
+C12.S2:
+  examples:
+    - file: C12S2_sparse_access
+      title: the visiting order is free
+    - file: C12S2_hot_column_split
+      title: the same scattered subset is read many times
+    - file: C12S2_cache_resident_scatter
+      title: scattered access into a buffer that fits in cache
+      new: true
+  gaps: []
+
+C12.S3:
+  examples:
+    - file: C12S3_unpredictable_branch
+      title: branchless selection where the branch is a coin flip
+    - file: C12S3_sorted_then_many_passes
+      title: sorting to buy predictability across many passes
+    - file: C12S3_predictable_branch
+      title: the branch the predictor already gets right
+      new: true
+  gaps: []
+
+C12.S4:
+  examples:
+    - file: C12S4_ctypes_cold_before_hot
+      title: a cold buffer in front of the hot data
+    - file: C12S4_ctypes_padding
+      title: alignment padding from an interleaved order
+    - file: C12S4_declaration_order
+      title: the same fields, declared in a different order
+      new: true
+  gaps: []

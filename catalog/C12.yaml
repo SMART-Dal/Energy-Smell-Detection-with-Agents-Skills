@@ -1,491 +1,571 @@
-# C12 -- Poor Hardware Locality Usage
-#
-# The hardest category to report honestly, and the one where a plausible-looking
-# example is most likely to be measuring something else.
-#
-# In ordinary CPython the interpreter's own dispatch loop dominates cache and
-# branch behaviour completely: every element access goes through bytecode
-# dispatch, a boxed integer allocation and reference counting, and all of that
-# swamps a cache miss. So these root causes only mean anything where Python
-# touches contiguous memory through something that is *not* the interpreter --
-# NumPy, array.array, ctypes, Cython, a C extension.
-#
-# The trap, and the reason three of these four cards were rewritten: a
-# before/after pair that replaces a Python loop with a vectorised call will win
-# by a mile whatever the memory layout is, so it proves nothing about locality.
-# A fair example for this category holds the amount of work and the execution
-# engine constant and changes *only* the access order or the layout. If a root
-# cause has no honest Python demonstration, the card says so.
-#
-# This is also the only category where hardware performance counters
-# (`perf stat` cache-misses, branch-misses) carry usable signal; everywhere else
-# they measure the interpreter rather than the program.
-
 - id: C12.S1
   signals:
-    - column_major_traversal
-  in_one_line: >
+  - column_major_traversal
+  in_one_line: |
     a contiguous buffer traversed against the direction its memory is laid out in
-  what_to_look_for: >
-    A contiguous array is one flat block of memory, and its strides decide which
-    logical direction runs along it.  Walking a C-ordered array's row reads
-    consecutive bytes, so the prefetcher predicts the next cache line and it is
-    already there.  Walking a *column* steps by the row length each time, so
-    every element lands on a different line: the CPU fetches 64 bytes to use 8,
-    the prediction is wrong every time, and once the array exceeds last-level
-    cache each read goes to DRAM.  The arithmetic is identical; what changes is
-    how many bytes cross the memory bus, and bus traffic is one of the few
-    things in a Python program that is expensive in energy without looking
-    expensive in code -- this project measured the reordering at **+42.8%**.
-    Three things have to hold.  The data must be in a real buffer -- a NumPy
-    array, an `array.array`, a `memoryview`, a ctypes array -- because a list of
-    lists has separate heap rows at unrelated addresses and no layout to get
-    wrong.  The layout must be read rather than assumed, since a transpose, a
-    slice or an `asfortranarray` upstream changes it and `arr.T` is a view whose
-    order is the opposite of its base.  And the array must be too large for
-    cache, which means tens of megabytes on a typical server; below that
-    everything is resident and stride costs almost nothing.  If the algorithm
-    requires column-at-a-time processing, the repair is to change the *layout*
-    instead, which is only available where you control the array's creation.
+  what_to_look_for: |
+    A contiguous array is one flat block of memory, and its strides decide which logical direction runs along it.  Walking a C-ordered array's row reads consecutive bytes, so the prefetcher predicts the next cache line and it is already there.  Walking a *column* steps by the row length each time, so every element lands on a different line: the CPU fetches 64 bytes to use 8, the prediction is wrong every time, and once the array exceeds last-level cache each read goes to DRAM.  The arithmetic is identical; what changes is how many bytes cross the memory bus, and bus traffic is one of the few things in a Python program that is expensive in energy without looking expensive in code -- this project measured the reordering at **+42.8%**. Three things have to hold.  The data must be in a real buffer -- a NumPy array, an `array.array`, a `memoryview`, a ctypes array -- because a list of lists has separate heap rows at unrelated addresses and no layout to get wrong.  The layout must be read rather than assumed, since a transpose, a slice or an `asfortranarray` upstream changes it and `arr.T` is a view whose order is the opposite of its base.  And the array must be too large for cache, which means tens of megabytes on a typical server; below that everything is resident and stride costs almost nothing.  If the algorithm requires column-at-a-time processing, the repair is to change the *layout* instead, which is only available where you control the array's creation.
   not_a_smell_when:
-    - >
-      the traversal order is required by the algorithm and the layout is fixed by
-      a producer you do not control
-    - >
-      the array fits comfortably in cache, where stride costs almost nothing
-    - >
-      the data is a list of lists rather than a contiguous buffer, so there is no
-      layout to be wrong about
-    - >
-      the library already dispatches to a layout-aware kernel, as BLAS-backed
-      operations do, so the stride never reaches the hardware
-    - >
-      changing the layout would force a copy of the whole array, costing more
-      than the misses it avoids
+  - |
+    the traversal order is required by the algorithm and the layout is fixed by a producer you do not control
+  - |
+    the array fits comfortably in cache, where stride costs almost nothing
+  - |
+    the data is a list of lists rather than a contiguous buffer, so there is no layout to be wrong about
+  - |
+    the library already dispatches to a layout-aware kernel, as BLAS-backed operations do, so the stride never reaches the hardware
+  - |
+    changing the layout would force a copy of the whole array, costing more than the misses it avoids
   counter_examples:
-    - code: |
-        totals = matrix.sum(axis=0)
-      why: >
-        A column-wise reduction over a C-ordered array, and there is nothing to
-        repair. NumPy's reduction machinery chooses its own iteration order and
-        blocks the work to be cache-friendly regardless of which axis you asked
-        about. The stride only hurts when *your* loop is the thing doing the
-        stepping.
-    - code: |
-        for j in range(grid.shape[1]):
-            column = grid[:, j]
-            solve_in_place(column)
-      why: >
-        Column-wise access against a C-ordered array, so the pattern matches
-        exactly -- and the algorithm is column-wise, so the loop cannot be
-        reordered. The available repair is to store `grid` in Fortran order at
-        its point of creation, which is a different edit in a different function,
-        and is only worth it if nothing else traverses it row-wise.
-    - code: |
-        for i in range(len(rows)):
-            for j in range(len(rows[i])):
-                total += rows[i][j]
-      why: >
-        A list of lists. Each inner list is a separate object holding pointers to
-        boxed integers scattered across the heap, so there is no contiguous
-        buffer and no stride: swapping the loops changes nothing about locality.
-        Reporting C12 here means the question of what executes the loop was
-        skipped.
+  - code: |
+      totals = matrix.sum(axis=0)
+    why: |
+      A column-wise reduction over a C-ordered array, and there is nothing to repair. NumPy's reduction machinery chooses its own iteration order and blocks the work to be cache-friendly regardless of which axis you asked about. The stride only hurts when *your* loop is the thing doing the stepping.
+  - code: |
+      for j in range(grid.shape[1]):
+          column = grid[:, j]
+          solve_in_place(column)
+    why: |
+      Column-wise access against a C-ordered array, so the pattern matches exactly -- and the algorithm is column-wise, so the loop cannot be reordered. The available repair is to store `grid` in Fortran order at its point of creation, which is a different edit in a different function, and is only worth it if nothing else traverses it row-wise.
+  - code: |
+      for i in range(len(rows)):
+          for j in range(len(rows[i])):
+              total += rows[i][j]
+    why: |
+      A list of lists. Each inner list is a separate object holding pointers to boxed integers scattered across the heap, so there is no contiguous buffer and no stride: swapping the loops changes nothing about locality. Reporting C12 here means the question of what executes the loop was skipped.
   refactoring:
-    summary: >
-      traverse along the contiguous axis, or store the array in the layout the
-      traversal needs
+    summary: |
+      traverse along the contiguous axis, or store the array in the layout the traversal needs
     examples:
-      - title: the loop can be reordered
-        before: |
-          def column_maxima(matrix):
-              # matrix is C-ordered: rows are contiguous, columns are not.
-              out = np.empty(matrix.shape[1])
-              for j in range(matrix.shape[1]):
-                  best = matrix[0, j]
-                  for i in range(1, matrix.shape[0]):
-                      if matrix[i, j] > best:      # strides by one whole row
-                          best = matrix[i, j]
-                  out[j] = best
-              return out
-        after: |
-          def column_maxima(matrix):
-              out = matrix[0].copy()
-              for i in range(1, matrix.shape[0]):
-                  row = matrix[i]                  # contiguous
-                  for j in range(matrix.shape[1]):
-                      if row[j] > out[j]:
-                          out[j] = row[j]
-              return out
-        note: >
-          The same comparisons in the same number, and the same interpreter
-          overhead per element -- the only difference is the order the buffer is
-          read in, which is what makes this a fair test of the root cause. The
-          inner loop now walks consecutive addresses, so the prefetcher is right
-          every time. Note that `out.max(axis=0)` would beat both by a wide
-          margin, but claiming *that* as this root cause would be measuring
-          vectorisation, not stride.
-      - title: the loop cannot be reordered, so change the layout
-        before: |
-          def solve_columns(grid, solver):
-              # grid arrives C-ordered from np.zeros(...)
-              for j in range(grid.shape[1]):
-                  grid[:, j] = solver(grid[:, j])
-              return grid
-        after: |
-          def solve_columns(grid, solver):
-              # Ask for Fortran order where the grid is created, so the axis this
-              # loop walks is the contiguous one.
-              grid = np.asfortranarray(grid)
-              for j in range(grid.shape[1]):
-                  grid[:, j] = solver(grid[:, j])
-              return grid
-        note: >
-          When the algorithm dictates the direction, the layout is the only thing
-          left to move. `asfortranarray` copies, so this only pays when the array
-          is traversed column-wise many times -- and the real repair is usually
-          to create it in Fortran order upstream, which makes this `cross_unit`.
-          Check that nothing else reads it row-wise before claiming it.
+    - title: the loop can be reordered
+      before: |
+        def before(a):
+            total = 0.0
+            for j in range(a.shape[1]):
+                total += a[:, j].sum()
+            return float(total)
+      after: |
+        def after(a):
+            total = 0.0
+            for i in range(a.shape[0]):
+                total += a[i, :].sum()
+            return float(total)
+      note: |
+        The same comparisons in the same number, and the same interpreter overhead per element -- the only difference is the order the buffer is read in, which is what makes this a fair test of the root cause. The inner loop now walks consecutive addresses, so the prefetcher is right every time. Note that `out.max(axis=0)` would beat both by a wide margin, but claiming *that* as this root cause would be measuring vectorisation, not stride.
+
+        Measured in `validation/taxonomy/C12S1_stride_traversal.py`.
+    - title: the loop cannot be reordered, so change the layout
+      before: |
+        def before(matrix):
+            total = 0.0
+            for i in range(matrix.shape[0]):
+                total += float(matrix[i, :].sum())
+            return round(total, 3)
+      after: |
+        def after(matrix):
+            total = 0.0
+            for j in range(matrix.shape[1]):
+                total += float(matrix[:, j].sum())
+            return round(total, 3)
+      note: |
+        When the algorithm dictates the direction, the layout is the only thing left to move. `asfortranarray` copies, so this only pays when the array is traversed column-wise many times -- and the real repair is usually to create it in Fortran order upstream, which makes this `cross_unit`. Check that nothing else reads it row-wise before claiming it.
+
+        Measured in `validation/taxonomy/C12S1_fortran_order.py`.
+    - title: a buffer small enough that the order does not matter
+      before: |
+        def before(matrix):
+            total = 0.0
+            for j in range(matrix.shape[1]):
+                total += float(matrix[:, j].sum())
+            return round(total, 3)
+      after: |
+        def after(matrix):
+            total = 0.0
+            for i in range(matrix.shape[0]):
+                total += float(matrix[i, :].sum())
+            return round(total, 3)
+      note: |
+        The same stride on an array that fits in
+        cache.
+
+        The card's precondition, measured: this is a cache-miss effect, so below
+        last-level cache every line is resident and the stride costs almost nothing.
+        The other C12.S1 case uses an array far larger than cache and reads +42.8%; if
+        this one reads near zero, the card can say where the boundary is instead of
+        saying "large enough".
+
+        Measured in `validation/taxonomy/C12S1_cache_resident.py`.
+    - title: the transpose whose copy costs more than the strides
+      before: |
+        def before(matrix, passes):
+            total = 0.0
+            for _ in range(passes):
+                for j in range(matrix.shape[1]):
+                    total += float(matrix[:, j].sum())
+            return round(total, 3)
+      after: |
+        import numpy as np
+
+
+        def after(matrix, passes):
+            transposed = np.ascontiguousarray(matrix.T)     # one full copy, up front
+            total = 0.0
+            for _ in range(passes):
+                for i in range(transposed.shape[0]):
+                    total += float(transposed[i, :].sum())
+            return round(total, 3)
+      note: |
+        The transpose
+        that fixes the stride costs a full copy.
+
+        "Transposing the iteration order or the array layout would improve cache hits"
+        is the description, and `C12S1_stride_traversal` measures the traversal swap at
+        +42.8%. Reordering the *loops* is free.
+
+        Reordering the *array* is not. The column sums genuinely have to be column sums,
+        so the iteration order cannot change; the only edit left is
+        `np.ascontiguousarray(matrix.T)`, which reads every element once with the bad
+        stride and writes it back with a good one. Over a single pass that is the misses
+        the traversal would have taken, paid up front, plus an allocation the size of
+        the matrix.
+
+        Two repairs wear this root cause's name and they are priced differently. Walking
+        the axis that is already contiguous is free; making a different axis contiguous
+        is an O(n) copy, and it only pays when the copied layout is then traversed many
+        times.
+
+        Measured in `validation/taxonomy/C12S1_transpose_costs_a_copy.py`.
   patch_shape: structural
   measurability: scales_with_input
-  min_workload_hint: >
-    the array must exceed last-level cache -- tens of megabytes -- before misses
-    register at all; below that both variants are cache-resident and the
-    difference is nothing
-  notes: >
-    Measurement note: the honest way to confirm this one is `perf stat -e
-    cache-misses,LLC-load-misses` on the two variants, because the energy
-    difference is DRAM traffic.  This is the only category where those counters
-    measure the program rather than the interpreter.
-  similar: [C12.S2, C12.S4]
-
+  min_workload_hint: |
+    the array must exceed last-level cache -- tens of megabytes -- before misses register at all; below that both variants are cache-resident and the difference is nothing
+  notes: |
+    Measurement note: the honest way to confirm this one is `perf stat -e cache-misses,LLC-load-misses` on the two variants, because the energy difference is DRAM traffic.  This is the only category where those counters measure the program rather than the interpreter.
+  similar:
+  - C12.S2
+  - C12.S4
 - id: C12.S2
-  in_one_line: >
-    scattered reads into a large buffer, using one element of every cache line
-    fetched
-  what_to_look_for: >
-    A cache line is 64 bytes -- eight doubles -- so reading one element brings
-    the whole line in and a traversal using all eight gets seven free.  Scattered
-    access uses one and evicts the rest before they are wanted, so the memory bus
-    carries eight times the bytes the computation consumes.  Unlike a regular
-    stride there is no order to fix in the loop, because the addresses come from
-    the data: what can be changed is the *order the indices are visited*, so
-    nearby ones are handled together, or the *density of the structure*, so the
-    wanted elements sit next to each other.
-
-    Both repairs cost, and this is the card to be most sceptical about.  Sorting
-    n indices is n log n work, which is far more expensive per element than a
-    cache miss.  Measured here on a 20-million-element array read through 2
-    million scattered indices, sorting the indices first came out **125% worse**
-    -- a clean refutation of the reflex repair on a 0.4% floor.  So it pays only
-    when each index drives substantial work, or when the sorted order is reused
-    across many passes and the sort amortises.  The preconditions are that the
-    buffer is much larger than cache, since scattered access inside a resident
-    array is free; that the visiting order does not affect the result; and that
-    the access is genuinely scattered rather than sequential-with-gaps, because a
-    strided read like `arr[::4]` still walks forwards and the prefetcher handles
-    it.
+  in_one_line: |
+    scattered reads into a large buffer, using one element of every cache line fetched
+  what_to_look_for: |
+    A cache line is 64 bytes -- eight doubles -- so reading one element brings the whole line in and a traversal using all eight gets seven free.  Scattered access uses one and evicts the rest before they are wanted, so the memory bus carries eight times the bytes the computation consumes.  Unlike a regular stride there is no order to fix in the loop, because the addresses come from the data: what can be changed is the *order the indices are visited*, so nearby ones are handled together, or the *density of the structure*, so the wanted elements sit next to each other.
+    Both repairs cost, and this is the card to be most sceptical about.  Sorting n indices is n log n work, which is far more expensive per element than a cache miss.  Measured here on a 20-million-element array read through 2 million scattered indices, sorting the indices first came out **125% worse** -- a clean refutation of the reflex repair on a 0.4% floor.  So it pays only when each index drives substantial work, or when the sorted order is reused across many passes and the sort amortises.  The preconditions are that the buffer is much larger than cache, since scattered access inside a resident array is free; that the visiting order does not affect the result; and that the access is genuinely scattered rather than sequential-with-gaps, because a strided read like `arr[::4]` still walks forwards and the prefetcher handles it.
   not_a_smell_when:
-    - >
-      the access pattern is dictated by the data, and the order the elements are
-      visited in changes the result
-    - >
-      a compacted or sparse structure would cost more to build than the wasted
-      cache lines cost to fetch
-    - >
-      the buffer fits in cache, so every line is resident and nothing is wasted
-    - >
-      the indices are visited once, so neither sorting nor compacting can
-      amortise
+  - |
+    the access pattern is dictated by the data, and the order the elements are visited in changes the result
+  - |
+    a compacted or sparse structure would cost more to build than the wasted cache lines cost to fetch
+  - |
+    the buffer fits in cache, so every line is resident and nothing is wasted
+  - |
+    the indices are visited once, so neither sorting nor compacting can amortise
   counter_examples:
-    - code: |
-        for index in sorted(hot_indices):
-            total += values[index]
-      why: >
-        Already sorted. This is the repair, and reporting it as the smell means
-        the current order was not checked. Worth noting the mirror case too: if
-        `hot_indices` is short and `values` is small, the `sorted()` call is
-        itself the waste.
-    - code: |
-        for step in trajectory:
-            position = advance(position, step)
-            samples.append(field[position])
-      why: >
-        The access sequence is genuinely data-dependent -- each index comes from
-        the previous one -- so there is no order to impose and no subset known in
-        advance. Scattered access here is the algorithm, and the only repair
-        would be a different algorithm.
+  - code: |
+      for index in sorted(hot_indices):
+          total += values[index]
+    why: |
+      Already sorted. This is the repair, and reporting it as the smell means the current order was not checked. Worth noting the mirror case too: if `hot_indices` is short and `values` is small, the `sorted()` call is itself the waste.
+  - code: |
+      for step in trajectory:
+          position = advance(position, step)
+          samples.append(field[position])
+    why: |
+      The access sequence is genuinely data-dependent -- each index comes from the previous one -- so there is no order to impose and no subset known in advance. Scattered access here is the algorithm, and the only repair would be a different algorithm.
   refactoring:
     summary: sort or group the accesses so nearby indices are visited together
     examples:
-      - title: the visiting order is free
-        before: |
-          def gather(values, indices):
-              return sum(values[i] for i in indices)
-        after: |
-          def gather(values, indices):
-              return sum(values[i] for i in sorted(indices))
-        note: >
-          Addition is commutative, so the order is free and sorting makes the
-          reads walk forwards. Whether it pays is a race between n log n
-          comparisons in the interpreter and n avoided DRAM round trips, and on
-          a small array the sort loses outright -- measure rather than assume.
-          For floating-point sums, note that reordering changes the last bits of
-          the result, so the equivalence check needs a tolerance.
-      - title: the same scattered subset is read many times
-        before: |
-          def simulate(field, active, steps):
-              for _ in range(steps):
-                  for index in active:                # scattered, every step
-                      field[index] = decay(field[index])
-        after: |
-          def simulate(field, active, steps):
-              order = np.sort(np.asarray(active))     # once
-              compact = field[order]                  # contiguous copy
-              for _ in range(steps):
-                  for position in range(len(compact)):
-                      compact[position] = decay(compact[position])
-              field[order] = compact
-        note: >
-          One gather and one scatter buy `steps` passes over a dense buffer. The
-          copy is only worth it because it is amortised over many iterations --
-          with `steps == 1` it is strictly more work. This is the form that
-          actually pays in real code, and it spans the loop and its setup.
+    - title: the visiting order is free
+      before: |
+        def before(a, idx):
+            return float(a[idx].sum())
+      after: |
+        import numpy as np
+
+
+        def after(a, idx):
+            return float(a[np.sort(idx)].sum())
+      note: |
+        Addition is commutative, so the order is free and sorting makes the reads walk forwards. Whether it pays is a race between n log n comparisons in the interpreter and n avoided DRAM round trips, and on a small array the sort loses outright -- measure rather than assume. For floating-point sums, note that reordering changes the last bits of the result, so the equivalence check needs a tolerance.
+
+        Measured in `validation/taxonomy/C12S2_sparse_access.py`.
+    - title: the same scattered subset is read many times
+      before: |
+        def before(wide, _column, count):
+            """One field read out of a 64-byte record: one useful value per cache line."""
+            return round(float(wide["f0"][:count].sum()), 3)
+      after: |
+        def after(_wide, column, count):
+            """The same values, stored contiguously: eight useful values per line."""
+            return round(float(column[:count].sum()), 3)
+      note: |
+        One gather and one scatter buy `steps` passes over a dense buffer. The copy is only worth it because it is amortised over many iterations -- with `steps == 1` it is strictly more work. This is the form that actually pays in real code, and it spans the loop and its setup.
+
+        Measured in `validation/taxonomy/C12S2_hot_column_split.py`.
+    - title: scattered access into a buffer that fits in cache
+      before: |
+        def before(values, indices):
+            return float(values[indices].sum())
+      after: |
+        import numpy as np
+
+
+        def after(values, indices):
+            return float(values[np.sort(indices)].sum())
+      note: |
+        Scattered indices into a buffer that fits in
+        cache.
+
+        The card's first `NOT a smell when` clause: scattered access inside a resident
+        array is free, because every line is already there. The repair is the same sort
+        that lost by 126% on a 20-million-element array, and here it should lose by
+        more and for a different reason -- there were no misses to avoid at all.
+
+        Measured in `validation/taxonomy/C12S2_cache_resident_scatter.py`.
   patch_shape: statement_local
   measurability: scales_with_input
-  min_workload_hint: >
-    the buffer must be far larger than last-level cache, and the indices must be
-    reused or the per-index work substantial, or the sort dominates
-  similar: [C5.S3, C6.S4, C12.S1, C12.S4]
-
+  min_workload_hint: |
+    the buffer must be far larger than last-level cache, and the indices must be reused or the per-index work substantial, or the sort dominates
+  similar:
+  - C5.S3
+  - C6.S4
+  - C12.S1
+  - C12.S4
 - id: C12.S3
-  in_one_line: >
+  in_one_line: |
     a data-dependent branch in a compiled hot loop that the CPU cannot predict
-  what_to_look_for: >
-    A modern CPU speculates past a conditional branch and executes ahead on its
-    predicted outcome; when the prediction is wrong the pipeline is flushed and
-    the speculative work is discarded, having consumed energy for nothing.  A
-    branch on effectively random data is mispredicted about half the time.
-
-    In CPython none of that is reachable, and this is the first thing to settle.
-    The interpreter evaluates a conditional through indirect dispatches, boxed
-    comparisons and refcount updates, and that overhead is one to two orders of
-    magnitude larger than a misprediction penalty, so a data-dependent branch in
-    Python source contributes almost nothing to what the hardware predictor
-    sees.  Measured here, the branchless rewrite of an interpreted loop --
-    `total += x * (x > 0)` for `if x > 0: total += x` -- came out **34% worse**
-    on unpredictable data, because in the interpreter the arithmetic form pays a
-    comparison, a bool-to-int coercion and a multiply per element where the
-    branch simply skipped the work.  So an interpreted loop is not where this
-    root cause is found, and saying so is the correct outcome; the mechanism the
-    description names is real and lives one level down, in compiled code.
-
-    Where the loop *is* compiled -- Cython with bounds checking off, a C
-    extension, a numba kernel -- establish the branch is close to a coin toss
-    rather than merely data-dependent, since long runs of one outcome are
-    predicted correctly.  Then cost the repair: sorting to make a branch
-    predictable is n log n work to save n/2 mispredictions, which pays only when
-    the sorted data is traversed many times.  And confirm any branchless form is
-    genuinely branchless, since a conditional expression still compiles to a
-    branch where a multiply by a mask does not.
+  what_to_look_for: |
+    A modern CPU speculates past a conditional branch and executes ahead on its predicted outcome; when the prediction is wrong the pipeline is flushed and the speculative work is discarded, having consumed energy for nothing.  A branch on effectively random data is mispredicted about half the time.
+    In CPython none of that is reachable, and this is the first thing to settle. The interpreter evaluates a conditional through indirect dispatches, boxed comparisons and refcount updates, and that overhead is one to two orders of magnitude larger than a misprediction penalty, so a data-dependent branch in Python source contributes almost nothing to what the hardware predictor sees.  Measured here, the branchless rewrite of an interpreted loop -- `total += x * (x > 0)` for `if x > 0: total += x` -- came out **34% worse** on unpredictable data, because in the interpreter the arithmetic form pays a comparison, a bool-to-int coercion and a multiply per element where the branch simply skipped the work.  So an interpreted loop is not where this root cause is found, and saying so is the correct outcome; the mechanism the description names is real and lives one level down, in compiled code.
+    Where the loop *is* compiled -- Cython with bounds checking off, a C extension, a numba kernel -- establish the branch is close to a coin toss rather than merely data-dependent, since long runs of one outcome are predicted correctly.  Then cost the repair: sorting to make a branch predictable is n log n work to save n/2 mispredictions, which pays only when the sorted data is traversed many times.  And confirm any branchless form is genuinely branchless, since a conditional expression still compiles to a branch where a multiply by a mask does not.
   not_a_smell_when:
-    - >
-      the loop is interpreted Python, where bytecode dispatch swamps any
-      misprediction penalty -- which is almost always the case
-    - >
-      the branch is highly predictable in practice, taking mostly one outcome or
-      arriving in long runs
-    - >
-      sorting to make it predictable costs more than the mispredictions it avoids
-    - >
-      the branchless form computes both sides and one of them is expensive or has
-      a side effect
+  - |
+    the loop is interpreted Python, where bytecode dispatch swamps any misprediction penalty -- which is almost always the case
+  - |
+    the branch is highly predictable in practice, taking mostly one outcome or arriving in long runs
+  - |
+    sorting to make it predictable costs more than the mispredictions it avoids
+  - |
+    the branchless form computes both sides and one of them is expensive or has a side effect
   counter_examples:
-    - code: |
-        total = sum(v for v in values if v > threshold)
-      why: >
-        Interpreted Python, so this card does not apply however random
-        `threshold` makes the branch. The obvious "repair" --
-        `arr[arr > threshold].sum()` -- does win, by a lot, and it wins because
-        it left the interpreter, not because a branch became predictable.
-        Reporting that saving as C12.S3 attributes a vectorisation result to a
-        branch-prediction cause. **This was the card's own example until it was
-        measured properly.**
-    - code: |
-        for record in records:
-            if record.kind == "header":
-                flush(buffer)
-            buffer.append(record)
-      why: >
-        Data-dependent, but headers are rare and arrive in a regular pattern, so
-        the predictor learns it and is right nearly every time. Unpredictable
-        means close to a coin toss, not merely data-dependent.
+  - code: |
+      total = sum(v for v in values if v > threshold)
+    why: |
+      Interpreted Python, so this card does not apply however random `threshold` makes the branch. The obvious "repair" -- `arr[arr > threshold].sum()` -- does win, by a lot, and it wins because it left the interpreter, not because a branch became predictable. Reporting that saving as C12.S3 attributes a vectorisation result to a branch-prediction cause. **This was the card's own example until it was measured properly.**
+  - code: |
+      for record in records:
+          if record.kind == "header":
+              flush(buffer)
+          buffer.append(record)
+    why: |
+      Data-dependent, but headers are rare and arrive in a regular pattern, so the predictor learns it and is right nearly every time. Unpredictable means close to a coin toss, not merely data-dependent.
   refactoring:
     summary: make the branch predictable, or replace it with branchless arithmetic
     examples:
-      - title: branchless selection in a compiled kernel
-        before: |
-          # kernel.pyx -- compiled, so the branch reaches the hardware
-          def clamp_sum(double[:] values, double threshold):
-              cdef double total = 0.0
-              cdef Py_ssize_t i
-              for i in range(values.shape[0]):
-                  if values[i] > threshold:          # ~50% mispredicted
-                      total += values[i]
-              return total
-        after: |
-          # kernel.pyx -- the comparison becomes a multiplier, not a jump
-          def clamp_sum(double[:] values, double threshold):
-              cdef double total = 0.0
-              cdef Py_ssize_t i
-              for i in range(values.shape[0]):
-                  total += values[i] * (values[i] > threshold)
-              return total
-          # Equivalent for finite values; NaN and signed zero differ, and for
-          # floats the summation order is identical so the result is bit-exact.
-        note: >
-          Both forms do one comparison and one add per element, in the same
-          language, in the same loop -- the only difference is whether the
-          comparison controls a jump or feeds a multiply. That is what makes it a
-          fair test. It is also the whole card: there is no way to write this
-          comparison in interpreted Python and have the branch matter.
-      - title: sorting to buy predictability across many passes
-        before: |
-          # kernel.pyx
-          def repeated_filter_sum(double[:] values, double threshold, int passes):
-              cdef double total = 0.0
-              cdef Py_ssize_t i, p
-              for p in range(passes):
-                  for i in range(values.shape[0]):
-                      if values[i] > threshold:      # random order, every pass
-                          total += values[i]
-              return total
-        after: |
-          # Sort once in Python, then the compiled loop sees two long runs.
-          def repeated_filter_sum_sorted(values, threshold, passes):
-              ordered = np.sort(values)
-              return _kernel.repeated_filter_sum(ordered, threshold, passes)
-        note: >
-          One sort is amortised over `passes` traversals, and after it the branch
-          is false for a long run and then true for a long run, which any
-          predictor handles. With `passes == 1` the sort costs far more than the
-          mispredictions and the repair is a regression -- that ratio is the
-          whole decision. Sorting also changes the floating-point summation
-          order, so the equivalence check needs a tolerance.
+    - title: branchless selection where the branch is a coin flip
+      before: |
+        def before(xs):
+            total = 0
+            for x in xs:
+                if x > 0:
+                    total += x
+            return total
+      after: |
+        def after(xs):
+            total = 0
+            for x in xs:
+                total += x * (x > 0)
+            return total
+      note: |
+        A data-dependent branch in a tight loop.
+
+        The card claims branchless arithmetic wins when the branch cannot be predicted.
+        In CPython the interpreter overhead may swamp the effect entirely, which is
+        itself the finding: the claim may be true of C and false of Python.
+
+        Measured in `validation/taxonomy/C12S3_unpredictable_branch.py`.
+    - title: sorting to buy predictability across many passes
+      before: |
+        def before(values, passes):
+            total = 0
+            for _ in range(passes):
+                for x in values:
+                    if x > 0:
+                        total += x
+            return total
+      after: |
+        def after(values, passes):
+            ordered = sorted(values)
+            total = 0
+            for _ in range(passes):
+                for x in ordered:
+                    if x > 0:
+                        total += x
+            return total
+      note: |
+        One sort is amortised over `passes` traversals, and after it the branch is false for a long run and then true for a long run, which any predictor handles. With `passes == 1` the sort costs far more than the mispredictions and the repair is a regression -- that ratio is the whole decision. Sorting also changes the floating-point summation order, so the equivalence check needs a tolerance.
+
+        Measured in `validation/taxonomy/C12S3_sorted_then_many_passes.py`.
+    - title: the branch the predictor already gets right
+      before: |
+        def before(values):
+            total = 0
+            for x in values:
+                if x > 0:
+                    total += x
+            return total
+      after: |
+        def after(values):
+            total = 0
+            for x in values:
+                total += x * (x > 0)
+            return total
+      note: |
+        The branch is already predictable.
+
+        The card's second `NOT a smell when` clause: "unpredictable" means close to a
+        coin toss, not merely data-dependent. Here the condition takes long runs of one
+        outcome, which any predictor learns, so the branchless rewrite can only cost
+        its extra arithmetic. Same edit as the case that lost by 34%; this one says
+        whether the *predictability* was carrying any of that.
+
+        Measured in `validation/taxonomy/C12S3_predictable_branch.py`.
   patch_shape: structural
   measurability: scales_with_input
-  min_workload_hint: >
-    only measurable in compiled code, and confirm it with `perf stat -e
-    branch-misses` rather than energy alone -- an energy difference in a Python
-    driver is almost certainly measuring something else
-  notes: >
-    **This card cannot be honestly demonstrated in pure CPython, and the previous
-    version tried.**  Its example replaced a generator-expression sum with a
-    NumPy boolean-mask sum, which wins by leaving the interpreter; the branch had
-    nothing to do with it.  Both examples above are therefore in Cython, and both
-    hold the language and the work constant so that the branch is the only
-    variable.
-
-    In practice this root cause should almost never be claimed.  If you are
-    reading interpreted Python, the correct answer is that C12.S3 does not apply
-    -- and if a vectorised rewrite happens to save energy, report it under the
-    root cause that describes what actually changed.
-  similar: [C4.S1, C4.S3]
-
+  min_workload_hint: |
+    only measurable in compiled code, and confirm it with `perf stat -e branch-misses` rather than energy alone -- an energy difference in a Python driver is almost certainly measuring something else
+  notes: |
+    **This card cannot be honestly demonstrated in pure CPython, and the previous version tried.**  Its example replaced a generator-expression sum with a NumPy boolean-mask sum, which wins by leaving the interpreter; the branch had nothing to do with it.  Both examples above are therefore in Cython, and both hold the language and the work constant so that the branch is the only variable.
+    In practice this root cause should almost never be claimed.  If you are reading interpreted Python, the correct answer is that C12.S3 does not apply -- and if a vectorised rewrite happens to save energy, report it under the root cause that describes what actually changed.
+  similar:
+  - C4.S1
+  - C4.S3
 - id: C12.S4
-  in_one_line: >
+  in_one_line: |
     a declared struct whose field order puts cold data in front of hot data
-  what_to_look_for: >
-    In a compiled struct the fields sit at fixed offsets in declaration order
-    and the hardware brings in a whole cache line at a time, so declaring a
-    large cold buffer before a small hot one pushes the hot fields onto a
-    different line and every access pays an extra fetch.  Field order also
-    decides how much padding the compiler inserts for alignment.  None of this
-    is visible from ordinary Python, where an object's attributes live in a dict
-    or in slot pointers at addresses the interpreter chooses and the author has
-    no say -- even `__slots__` stores pointers to objects elsewhere on the heap,
-    so two slots are never adjacent in memory.  The root cause is reachable only
-    through a declared layout: a `ctypes.Structure` `_fields_` list, a `struct`
-    format string, a Cython `cdef struct`.  Then two things decide it.  Which
-    fields are hot, read from the code that uses the structure rather than
-    guessed from the names.  And whether the order is yours to choose at all,
-    since a wire format, a file header or a struct shared with a C library is
-    fixed and reordering it corrupts the data.  Expect this to be advisory more
-    often than not: measured on an idle host, a reordering of a declared struct
-    read **+0.6%**, which is within what any realistic workload could show.
+  what_to_look_for: |
+    In a compiled struct the fields sit at fixed offsets in declaration order and the hardware brings in a whole cache line at a time, so declaring a large cold buffer before a small hot one pushes the hot fields onto a different line and every access pays an extra fetch.  Field order also decides how much padding the compiler inserts for alignment.  None of this is visible from ordinary Python, where an object's attributes live in a dict or in slot pointers at addresses the interpreter chooses and the author has no say -- even `__slots__` stores pointers to objects elsewhere on the heap, so two slots are never adjacent in memory.  The root cause is reachable only through a declared layout: a `ctypes.Structure` `_fields_` list, a `struct` format string, a Cython `cdef struct`.  Then two things decide it.  Which fields are hot, read from the code that uses the structure rather than guessed from the names.  And whether the order is yours to choose at all, since a wire format, a file header or a struct shared with a C library is fixed and reordering it corrupts the data.  Expect this to be advisory more often than not: measured on an idle host, a reordering of a declared struct read **+0.6%**, which is within what any realistic workload could show.
   not_a_smell_when:
-    - >
-      the code is pure Python, where the author does not control layout at all
-    - >
-      the field order is fixed by an external format, a wire protocol or a C
-      library's own header
-    - >
-      only a handful of instances exist, so the layout is irrelevant
-    - >
-      the structure fits in one cache line whatever the order
+  - |
+    the code is pure Python, where the author does not control layout at all
+  - |
+    the field order is fixed by an external format, a wire protocol or a C library's own header
+  - |
+    only a handful of instances exist, so the layout is irrelevant
+  - |
+    the structure fits in one cache line whatever the order
   counter_examples:
-    - code: |
-        class Frame:
-            __slots__ = ("error_log", "samples")
-      why: >
-        A Python class with slots. The declaration order has no bearing on where
-        the values sit -- CPython allocates slot storage as an array of pointers
-        to objects elsewhere on the heap, so the two attributes are never
-        adjacent in memory regardless. Reducing this object's footprint is a real
-        finding, and it is C5.S3.
-    - code: |
-        class PacketHeader(ctypes.Structure):
-            _fields_ = [("version", ctypes.c_uint8),
-                        ("flags", ctypes.c_uint8),
-                        ("length", ctypes.c_uint16),
-                        ("checksum", ctypes.c_uint32)]
-      why: >
-        A declared layout, and the order is not ours to choose: it mirrors a wire
-        format, so reordering the fields would misparse every packet. The pattern
-        matches and the repair does not exist.
+  - code: |
+      class Frame:
+          __slots__ = ("error_log", "samples")
+    why: |
+      A Python class with slots. The declaration order has no bearing on where the values sit -- CPython allocates slot storage as an array of pointers to objects elsewhere on the heap, so the two attributes are never adjacent in memory regardless. Reducing this object's footprint is a real finding, and it is C5.S3.
+  - code: |
+      class PacketHeader(ctypes.Structure):
+          _fields_ = [("version", ctypes.c_uint8),
+                      ("flags", ctypes.c_uint8),
+                      ("length", ctypes.c_uint16),
+                      ("checksum", ctypes.c_uint32)]
+    why: |
+      A declared layout, and the order is not ours to choose: it mirrors a wire format, so reordering the fields would misparse every packet. The pattern matches and the repair does not exist.
   refactoring:
     summary: declare the hot fields first
     examples:
-      - title: a cold buffer in front of the hot data
-        before: |
-          class Frame(ctypes.Structure):
-              _fields_ = [("error_log", ctypes.c_char * 4096),
-                          ("samples", ctypes.c_double * 16)]
-        after: |
-          class Frame(ctypes.Structure):
-              _fields_ = [("samples", ctypes.c_double * 16),
-                          ("error_log", ctypes.c_char * 4096)]
-        note: >
-          `samples` is read on every frame and `error_log` almost never, but the
-          4 KB buffer in front of it means reaching `samples` touches a line 4 KB
-          into the structure. Reordering puts the hot 128 bytes at the base. Only
-          available because this layout is ours -- if it mirrors something a C
-          library defines, the repair does not exist.
-      - title: alignment padding from an interleaved order
-        before: |
-          class Sample(ctypes.Structure):
-              _fields_ = [("flag", ctypes.c_uint8),
-                          ("value", ctypes.c_double),
-                          ("kind", ctypes.c_uint8),
-                          ("weight", ctypes.c_double)]
-        after: |
-          class Sample(ctypes.Structure):
-              _fields_ = [("value", ctypes.c_double),
-                          ("weight", ctypes.c_double),
-                          ("flag", ctypes.c_uint8),
-                          ("kind", ctypes.c_uint8)]
-        note: >
-          The original alternates 1-byte and 8-byte fields, so the compiler pads
-          each small field out to the next 8-byte boundary: 32 bytes for 18 bytes
-          of data. Grouping by size gives 24. Fewer bytes per instance means more
-          instances per cache line, which is where the effect comes from -- and
-          `ctypes.sizeof` will tell you the numbers without measuring anything.
+    - title: a cold buffer in front of the hot data
+      before: |
+        import ctypes
+
+
+        FRAMES = 40_000
+
+
+        class Cold(ctypes.Structure):
+            _fields_ = [("error_log", ctypes.c_char * 4096),
+                        ("samples", ctypes.c_double * 4)]
+
+
+        def _build(kind, n):
+            array = (kind * n)()
+            for i in range(n):
+                array[i].samples[0] = float(i)
+            return array
+
+
+        _COLD_FIRST = _build(Cold, FRAMES)
+
+
+        def before(count):
+            total = 0.0
+            for i in range(count):
+                total += _COLD_FIRST[i].samples[0]
+            return total
+      after: |
+        import ctypes
+
+
+        FRAMES = 40_000
+
+
+        class Hot(ctypes.Structure):
+            _fields_ = [("samples", ctypes.c_double * 4),
+                        ("error_log", ctypes.c_char * 4096)]
+
+
+        def _build(kind, n):
+            array = (kind * n)()
+            for i in range(n):
+                array[i].samples[0] = float(i)
+            return array
+
+
+        _HOT_FIRST = _build(Hot, FRAMES)
+
+
+        def after(count):
+            total = 0.0
+            for i in range(count):
+                total += _HOT_FIRST[i].samples[0]
+            return total
+      note: |
+        `samples` is read on every frame and `error_log` almost never, but the 4 KB buffer in front of it means reaching `samples` touches a line 4 KB into the structure. Reordering puts the hot 128 bytes at the base. Only available because this layout is ours -- if it mirrors something a C library defines, the repair does not exist.
+
+        Measured in `validation/taxonomy/C12S4_ctypes_cold_before_hot.py`.
+    - title: alignment padding from an interleaved order
+      before: |
+        import ctypes
+
+
+        SAMPLES = 400_000
+
+
+        class Interleaved(ctypes.Structure):
+            _fields_ = [("flag", ctypes.c_uint8),
+                        ("value", ctypes.c_double),
+                        ("kind", ctypes.c_uint8),
+                        ("weight", ctypes.c_double)]
+
+
+        def _build(kind, n):
+            array = (kind * n)()
+            for i in range(n):
+                array[i].value = float(i)
+                array[i].weight = 1.0
+            return array
+
+
+        _INTERLEAVED = _build(Interleaved, SAMPLES)
+
+
+        def before(count):
+            total = 0.0
+            for i in range(count):
+                sample = _INTERLEAVED[i]
+                total += sample.value * sample.weight
+            return total
+      after: |
+        import ctypes
+
+
+        SAMPLES = 400_000
+
+
+        class Grouped(ctypes.Structure):
+            _fields_ = [("value", ctypes.c_double),
+                        ("weight", ctypes.c_double),
+                        ("flag", ctypes.c_uint8),
+                        ("kind", ctypes.c_uint8)]
+
+
+        def _build(kind, n):
+            array = (kind * n)()
+            for i in range(n):
+                array[i].value = float(i)
+                array[i].weight = 1.0
+            return array
+
+
+        _GROUPED = _build(Grouped, SAMPLES)
+
+
+        def after(count):
+            total = 0.0
+            for i in range(count):
+                sample = _GROUPED[i]
+                total += sample.value * sample.weight
+            return total
+      note: |
+        The original alternates 1-byte and 8-byte fields, so the compiler pads each small field out to the next 8-byte boundary: 32 bytes for 18 bytes of data. Grouping by size gives 24. Fewer bytes per instance means more instances per cache line, which is where the effect comes from -- and `ctypes.sizeof` will tell you the numbers without measuring anything.
+
+        Measured in `validation/taxonomy/C12S4_ctypes_padding.py`.
+    - title: the same fields, declared in a different order
+      before: |
+        COUNT = 400_000
+
+
+        class ColdFirst:
+            __slots__ = ("error_log", "retry_count", "audit_trail", "value")
+
+            def __init__(self, value):
+                self.error_log = None
+                self.retry_count = 0
+                self.audit_trail = None
+                self.value = value
+
+
+        _COLD_FIRST = [ColdFirst(i) for i in range(COUNT)]
+
+
+        def before(count):
+            total = 0
+            for row in _COLD_FIRST[:count]:
+                total += row.value
+            return total
+      after: |
+        COUNT = 400_000
+
+
+        class HotFirst:
+            __slots__ = ("value", "error_log", "retry_count", "audit_trail")
+
+            def __init__(self, value):
+                self.value = value
+                self.error_log = None
+                self.retry_count = 0
+                self.audit_trail = None
+
+
+        _HOT_FIRST = [HotFirst(i) for i in range(COUNT)]
+
+
+        def after(count):
+            total = 0
+            for row in _HOT_FIRST[:count]:
+                total += row.value
+            return total
+      note: |
+        The CPython half of the claim.
+
+        The previous version of this file was broken: `cases()` built a list of
+        `Before` instances and handed the same list to both variants, so `After` was
+        never instantiated and the two functions were byte-for-byte identical. It read
+        +0.6%, which was the measurement of nothing.
+
+        Fixed, it asks the question the card needs answered. In a language with struct
+        layout, declaration order decides addresses. In CPython a `__slots__` entry is a
+        pointer into the object header and the values live wherever the allocator put
+        them, so two slots declared next to each other are not adjacent in memory and
+        reordering them cannot change locality. Both instance arrays are now built at
+        import, outside every window, and each variant walks its own.
+
+        A reading near zero is the card being right to mark this advisory for pure
+        Python and to send the reader to `C12S4_ctypes_cold_before_hot` for the case
+        where a layout really is declared.
+
+        Measured in `validation/taxonomy/C12S4_declaration_order.py`.
   patch_shape: structural
   measurability: constant_small
-  notes: >
-    Effectively unreachable from pure Python, and retained for taxonomy coverage.
-    Expect to report it as advisory if it is ever reported at all -- with one
-    exception worth knowing: the padding form is not a measurement claim but an
-    arithmetic one, and `ctypes.sizeof` before and after settles it exactly.
-    Quote those two numbers instead of an energy figure.
-  similar: [C5.S3, C12.S1, C12.S2]
+  notes: |
+    Effectively unreachable from pure Python, and retained for taxonomy coverage. Expect to report it as advisory if it is ever reported at all -- with one exception worth knowing: the padding form is not a measurement claim but an arithmetic one, and `ctypes.sizeof` before and after settles it exactly. Quote those two numbers instead of an energy figure.
+  similar:
+  - C5.S3
+  - C12.S1
+  - C12.S2
