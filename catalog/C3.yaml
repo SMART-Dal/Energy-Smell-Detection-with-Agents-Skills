@@ -309,6 +309,38 @@
         right.
 
         Measured in `validation/taxonomy/C3S2_loop_invariant.py`.
+    - title: a `len()` in a `while` condition that nothing invalidates
+      before: |
+        def before(values):
+            total = 0
+            i = 0
+            while i < len(values):
+                total += values[i]
+                i += 1
+            return total
+      after: |
+        def after(values):
+            total = 0
+            i = 0
+            n = len(values)
+            while i < n:
+                total += values[i]
+                i += 1
+            return total
+      note: |
+        `len()` in a `while` condition.
+
+        The taxonomy's own first example for this root cause, which had no
+        implementation. The measured files hoist a set comprehension, a call and an
+        attribute chain; the one file with `len()` in a `while` condition is
+        `C3S7_delete_while_scanning`, where the loop deletes as it goes and the length
+        genuinely changes, so hoisting it there is a bug.
+
+        This is the case the taxonomy names: nothing mutates the list, so the length is
+        invariant and the hoist is legal. Having both measured is the point -- the two
+        are textually identical and only reading the body tells them apart.
+
+        Measured in `validation/taxonomy/C3S2_len_in_while_condition.py`.
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: |
@@ -467,6 +499,34 @@
         One allocation instead of N, available only because the instance is rendered to a string immediately and never escapes. If `out` collected the objects rather than their renderings, every entry would be the same object and the repair would be a bug. Reuse is available only when the object cannot escape the iteration that filled it.
 
         Measured in `validation/taxonomy/C3S3_object_reuse_with_reset.py`.
+    - title: a lambda rebuilt every iteration
+      before: |
+        def before(batches):
+            total = 0
+            for batch in batches:
+                key = lambda pair: pair[1]
+                total += max(batch, key=key)[0]
+            return total
+      after: |
+        def after(batches):
+            key = lambda pair: pair[1]
+            total = 0
+            for batch in batches:
+                total += max(batch, key=key)[0]
+            return total
+      note: |
+        A lambda rebuilt every iteration.
+
+        One of the three shapes the taxonomy names for this root cause, and the one
+        with no implementation. A `lambda` in a loop body is a `MAKE_FUNCTION` per
+        iteration: a fresh function object, with its own closure cell when it captures
+        anything, allocated and discarded each pass.
+
+        The other measured files hoist a compiled pattern and a file handle, where the
+        saving is a cache probe or a syscall. This one's saving is an allocation, which
+        is the smallest of the three and the one most likely to be written by accident.
+
+        Measured in `validation/taxonomy/C3S3_lambda_in_loop.py`.
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: |

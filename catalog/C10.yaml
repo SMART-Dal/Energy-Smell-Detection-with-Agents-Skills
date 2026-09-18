@@ -52,6 +52,36 @@
   refactoring:
     summary: replace the hand-written loop with the primitive that already does it
     examples:
+    - title: a running extreme over the whole collection
+      before: |
+        def before(values):
+            smallest = values[0]
+            largest = values[0]
+            for x in values:
+                if x < smallest:
+                    smallest = x
+                if x > largest:
+                    largest = x
+            return largest - smallest
+      after: |
+        def after(values):
+            return max(values) - min(values)
+      note: |
+        A hand-written min/max scan.
+
+        The taxonomy's own first example for this root cause, which had no
+        implementation: "writing a manual min/max scan with a loop and comparison when
+        the built-in min()/max() does the same in C".
+
+        Two C traversals beat one interpreted traversal, because the interpreted one
+        pays dispatch and reference counting per element and the builtins pay neither.
+
+        The original uses two independent `if`s rather than the `if/elif` the card
+        shows. With `elif` a new minimum can never also update the maximum, which is a
+        bug on the first element and would make the two variants disagree rather than
+        measure the same work.
+
+        Measured in `validation/taxonomy/C10S1_manual_extremes.py`.
     - title: a hand-written reduction the primitive already does
       before: |
         def before(xs):
@@ -107,7 +137,7 @@
         The original allocates a fresh slice per position -- one string object per character of the corpus -- and recomputes `len(pattern)` each time. `str.find` scans in C with no allocation at all. The repair keeps a Python loop, which is the point: what mattered was moving the per-element work into C, not eliminating the loop.
 
         Measured in `validation/taxonomy/C10S1_substring_scan.py`.
-    - title: a running extreme kept by hand
+    - title: the two-argument form of the same builtin
       before: |
         def before(values):
             best = float("-inf")

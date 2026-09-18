@@ -168,6 +168,9 @@ C3.S2:
     - file: C3S2_loop_invariant
       title: a plain expression hoisted above the loop
       new: true
+    - file: C3S2_len_in_while_condition
+      title: a `len()` in a `while` condition that nothing invalidates
+      new: true
   gaps: []
 
 C3.S3:
@@ -178,6 +181,9 @@ C3.S3:
       title: a resource opened per iteration
     - file: C3S3_object_reuse_with_reset
       title: an object that can be reused if it is reset
+    - file: C3S3_lambda_in_loop
+      title: a lambda rebuilt every iteration
+      new: true
   gaps:
     - file: C3S3_object_reuse_with_reset
       why: >
@@ -337,6 +343,9 @@ C4.S8:
     - file: C4S8_non_idiomatic
       title: a view built only to be searched
       new: true
+    - file: C4S8_len_versus_truthiness
+      title: a length compared to zero where truthiness would do
+      new: true
   gaps: []
 
 C5.S1:
@@ -352,6 +361,9 @@ C5.S1:
       new: true
     - file: C5S1_heap_for_a_full_sort
       title: a heap where the whole collection is wanted in order
+      new: true
+    - file: C5S1_dicts_versus_namedtuples
+      title: records as dicts where the field read is the hot operation
       new: true
   gaps: []
 
@@ -375,6 +387,9 @@ C5.S3:
       title: instances that need no per-instance dictionary
     - file: C5S3_set_never_probed
       title: a set chosen where nothing is ever looked up
+      new: true
+    - file: C5S3_character_code
+      title: a one-character string where a character code would do
       new: true
   gaps: []
 
@@ -406,6 +421,9 @@ C6.S1:
       title: a constructor call where a literal would do
     - file: C6S1_intermediate_container
       title: an intermediate container nobody needed
+    - file: C6S1_list_cleared_not_rebuilt
+      title: a scratch list cleared rather than rebuilt
+      new: true
   gaps: []
 
 C6.S2:
@@ -416,6 +434,9 @@ C6.S2:
       title: sorting in place, once the ownership is established
     - file: C6S2_unnecessary_copy
       title: a defensive copy that nothing needed
+    - file: C6S2_tuple_swap
+      title: a three-step swap where a tuple assignment does
+      new: true
   gaps: []
 
 C6.S3:
@@ -499,6 +520,9 @@ C7.S1:
       new: true
     - file: C7S1_constants_beat_complexity
       title: the better complexity that loses on small inputs
+      new: true
+    - file: C7S1_bubble_versus_builtin
+      title: a hand-written sort against the builtin one
       new: true
   gaps: []
 
@@ -674,14 +698,17 @@ C9.S4:
 
 C10.S1:
   examples:
+    - file: C10S1_manual_extremes
+      title: a running extreme over the whole collection
     - file: C10S1_manual_sum
       title: a hand-written reduction the primitive already does
+      new: true
     - file: C10S1_counter
       title: a tally, where the primitive does exactly the needed work
     - file: C10S1_substring_scan
       title: a substring scan the standard library does in C
     - file: C10S1_two_argument_builtin
-      title: a running extreme kept by hand
+      title: the two-argument form of the same builtin
       new: true
     - file: C10S1_builtin_counts_everything
       title: the primitive that counts what the loop was skipping

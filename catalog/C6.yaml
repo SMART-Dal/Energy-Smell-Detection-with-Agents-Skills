@@ -108,6 +108,43 @@
         One list of N integers is never built. Note the caveat from C6.S3: for a *short* pipeline the materialised list can measure ahead of the generator, because resumption costs more per element than the allocation saves. Measure rather than assume -- the object count is not the whole story.
 
         Measured in `validation/taxonomy/C6S1_intermediate_container.py`.
+    - title: a scratch list cleared rather than rebuilt
+      before: |
+        def before(rows):
+            total = 0
+            for row in rows:
+                scratch = []
+                for i in range(row % 8):
+                    scratch.append(row + i)
+                total += len(scratch)
+            return total
+      after: |
+        def after(rows):
+            total = 0
+            scratch = []
+            for row in rows:
+                scratch.clear()
+                for i in range(row % 8):
+                    scratch.append(row + i)
+                total += len(scratch)
+            return total
+      note: |
+        One list cleared rather than a new one per pass.
+
+        The taxonomy's own example for this root cause, which had no implementation:
+        "creating a new empty list inside every loop iteration to collect temporary
+        results, when a single list created before the loop and cleared with .clear()
+        each iteration would avoid repeated allocation".
+
+        The other measured file reuses a user-defined instance. This one reuses a
+        builtin container, where the allocation is smaller and the `.clear()` is not
+        free -- so it is the weaker version of the claim and worth having its own
+        number rather than borrowing the object one's.
+
+        The precondition is the same and is what makes reuse legal: the scratch list
+        never escapes the iteration that filled it.
+
+        Measured in `validation/taxonomy/C6S1_list_cleared_not_rebuilt.py`.
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: |
@@ -199,6 +236,41 @@
         Read-only traversal, no mutation anywhere, so the copy is a full pass and an allocation buying nothing. The one thing to check is whether `rows` may be a generator that something else also consumes -- then the copy is not defensive but load-bearing.
 
         Measured in `validation/taxonomy/C6S2_unnecessary_copy.py`.
+    - title: a three-step swap where a tuple assignment does
+      before: |
+        def before(values):
+            total = 0
+            a, b = 0, 1
+            for value in values:
+                tmp = a
+                a = b
+                b = tmp
+                total += a + value
+            return total
+      after: |
+        def after(values):
+            total = 0
+            a, b = 0, 1
+            for value in values:
+                a, b = b, a
+                total += a + value
+            return total
+      note: |
+        A three-step swap where a tuple assignment does.
+
+        The taxonomy's own second example for this root cause, which had no
+        implementation: `tmp = a; a = b; b = tmp` against `a, b = b, a`.
+
+        The tuple form builds and unpacks a two-element tuple, which CPython special-
+        cases into a stack rotation with no tuple at all; the three-statement form is
+        three stores and a name that exists only to hold a reference for one bytecode.
+
+        Included as the small end of this root cause. The other measured files copy
+        whole containers, where the saving scales with the data. This one is a fixed
+        few instructions per swap however large the values are, so it can only show up
+        on a very hot path -- which is the honest thing for the card to say.
+
+        Measured in `validation/taxonomy/C6S2_tuple_swap.py`.
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: |

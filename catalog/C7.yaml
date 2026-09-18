@@ -293,6 +293,41 @@
         the whole comparison.
 
         Measured in `validation/taxonomy/C7S1_constants_beat_complexity.py`.
+    - title: a hand-written sort against the builtin one
+      before: |
+        def _bubble_sorted(values):
+            a = list(values)
+            n = len(a)
+            for i in range(n):
+                swapped = False
+                for j in range(0, n - i - 1):
+                    if a[j] > a[j + 1]:
+                        a[j], a[j + 1] = a[j + 1], a[j]
+                        swapped = True
+                if not swapped:
+                    break
+            return a
+
+
+        def before(values):
+            return _bubble_sorted(values)
+      after: |
+        def after(values):
+            return sorted(values)
+      note: |
+        A bubble sort against `sorted()`.
+
+        The taxonomy's own first example, which had no implementation: the measured
+        file for this root cause compares bubble against a *hand-written* merge sort,
+        which holds the language constant and isolates the complexity. That is the
+        right experiment for "is O(n log n) better than O(n^2)", and it is not the
+        comparison the taxonomy names.
+
+        This one names it. `sorted()` is Timsort in C, so the repair changes both the
+        complexity and the language the inner loop runs in, and the reading is the sum
+        of the two. That is what a reader following the card will actually write.
+
+        Measured in `validation/taxonomy/C7S1_bubble_versus_builtin.py`.
   patch_shape: structural
   measurability: scales_with_input
   min_workload_hint: |

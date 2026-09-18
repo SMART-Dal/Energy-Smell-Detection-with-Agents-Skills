@@ -168,6 +168,44 @@
         the hot path actually perform -- is what separates the two.
 
         Measured in `validation/taxonomy/C5S1_heap_for_a_full_sort.py`.
+    - title: records as dicts where the field read is the hot operation
+      before: |
+        def before(rows):
+            total = 0
+            for row in rows:
+                total += row["id"] + row["score"]
+            return total
+      after: |
+        from collections import namedtuple
+
+
+        Record = namedtuple("Record", ("id", "name", "score"))
+
+
+        def after(rows):
+            records = [Record(r["id"], r["name"], r["score"]) for r in rows]
+            total = 0
+            for record in records:
+                total += record.id + record.score
+            return total
+      note: |
+        Records as dicts, read as fields.
+
+        The taxonomy's own second example for this root cause, which had no
+        implementation: "storing records as dicts of dicts when a list of namedtuples
+        would provide faster attribute access and lower memory overhead".
+
+        The other measured files in this root cause change the container to change the
+        cost of *membership* or of *popping*. This one changes it to change the cost of
+        a field read: a dict lookup hashes the key string and probes a table, where a
+        namedtuple field is a fixed index into a tuple resolved at class creation.
+
+        The memory half of the claim is the larger one and is not what the window
+        measures: a namedtuple carries no per-instance dict, so a million records is
+        tens of megabytes rather than hundreds. The reading here is the access cost
+        alone, and the card should say so rather than claim both.
+
+        Measured in `validation/taxonomy/C5S1_dicts_versus_namedtuples.py`.
   patch_shape: expression
   measurability: scales_with_input
   min_workload_hint: |
@@ -418,6 +456,41 @@
         never probed and never collides is buying neither of a set's two properties.
 
         Measured in `validation/taxonomy/C5S3_set_never_probed.py`.
+    - title: a one-character string where a character code would do
+      before: |
+        def before(text, targets):
+            hits = 0
+            for character in text:
+                for target in targets:
+                    if character == target:
+                        hits += 1
+            return hits
+      after: |
+        def after(text, targets):
+            codes = [ord(t) for t in targets]
+            hits = 0
+            for code in map(ord, text):
+                for target in codes:
+                    if code == target:
+                        hits += 1
+            return hits
+      note: |
+        A one-character string where an int does.
+
+        The taxonomy's own first example for this root cause, which had no
+        implementation: "storing a single-character value as a full string object where
+        a character code would suffice in a tight numerical loop".
+
+        Every one-character string is a full `str` object with a header, a length and
+        an encoding kind, and comparing two of them enters the string compare path. An
+        `int` from `ord()` compares as a machine word. CPython interns single
+        characters, so the allocation is not the cost here -- the comparison path is.
+
+        The repair moves the conversion to the boundary: `after` pays one `ord()` per
+        element to buy integer comparisons for the whole loop, which is why it needs
+        the comparisons to outnumber the conversions to pay at all.
+
+        Measured in `validation/taxonomy/C5S3_character_code.py`.
   patch_shape: structural
   measurability: scales_with_input
   min_workload_hint: |
