@@ -209,6 +209,15 @@ def main() -> int:
     a_rows = load(args.first)
     b_rows = load(args.second)
     shared = sorted(set(a_rows) & set(b_rows))
+    # Two runs that share a seed differ only where they were actually
+    # re-measured; comparing the seeded rows would compare a file with itself
+    # and bury the handful of rows the comparison is about.
+    moved = [c for c in shared
+             if json.dumps(a_rows[c].get("per_case")) != json.dumps(b_rows[c].get("per_case"))]
+    if moved and len(moved) < len(shared) // 2:
+        print(f"note: {len(shared) - len(moved)} rows are identical in both "
+              f"(a shared seed); comparing the {len(moved)} that were re-measured")
+        shared = moved
     if not shared:
         raise SystemExit("the two runs have no case files in common")
 
