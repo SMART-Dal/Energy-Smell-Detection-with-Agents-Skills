@@ -1,18 +1,19 @@
-# Verifying a smell
+# Verifying a saving
 
-A smell is a claim that a specific refactoring saves energy. This is how the
+A finding is a claim that a specific refactoring saves energy. This is how the
 claim gets tested. Read this before writing your first case file.
 
-The rule: **no finding is reported as a smell until its repair has been measured
-on this machine.** The only exception is a root cause whose card says *advisory
-only* — its repair is one bytecode instruction and provably cannot clear any
-noise floor, so it is reported as unmeasured rather than measured badly.
+The rule: **no finding is reported until its repair has been measured on this
+machine.** The only exception is a root cause whose card
+says *advisory only* — its repair is one bytecode instruction and provably
+cannot clear any noise floor, so it is reported as unmeasured rather than
+measured badly.
 
 ---
 
 ## The case file
 
-One file per candidate smell. Three things are required:
+One file per candidate repair. Three things are required:
 
 ```python
 """C10.S4 in src/render.py::Report.render — string built with += in a loop."""
@@ -52,8 +53,8 @@ next sample. A case that returns a shared list is the most common way to get a
 nonsense result.
 
 **`after` must differ by the repair alone.** If you also rename a variable,
-inline a helper, or fix a second smell, the measurement no longer attributes to
-one root cause and the finding is unusable. One case file, one root cause.
+inline a helper, or fix a second thing, the measurement no longer attributes
+to one root cause and the finding is unusable. One case file, one repair.
 
 Module-level code runs once at import, outside all measurement, so expensive
 fixtures can live there.
@@ -122,10 +123,10 @@ nobody cares about. A loss only counts against the verdict when it is worth
 more than 1% of the *largest* case's per-call cost. The report prints both
 numbers so you can see which kind you are looking at.
 
-Sizing depends on the root cause. If the card says the effect *scales with
-calls* rather than with input, the large case should call the unit many times
-over a small input, not once over a large one. The card's workload hint says
-which.
+Sizing depends on what the repair does. When the effect grows with the number
+of *calls* rather than with input size — removing per-call overhead, say — the
+large case should call the unit many times over a small input, rather than once
+over a large one. The card's workload hint says which.
 
 **The shape of the large case can matter as much as its size.** Two cases of
 the same repair, on the same host: a string accumulator fed 200 000 short parts
@@ -192,7 +193,7 @@ something else is running. Nothing measured in that state means anything.
 
 1. **Equivalence.** For every case: same return value, same argument state
    afterwards, same stdout, same exception type. A mismatch is fatal — it means
-   the repair is wrong, not that the smell is absent. Fix `after` and re-run.
+   the repair is wrong, not that the waste is absent. Fix `after` and re-run.
 2. **Scaling.** Times one call of `before`, picks a repeat count so each
    measured window lasts about a second. Shorter windows lose badly: sweeping
    the null canary on the development host gave ±8.1% at a quarter second and
@@ -214,14 +215,14 @@ something else is running. Nothing measured in that state means anything.
 |---|---|---|
 | `confirmed` | every case that moved, moved the right way, clearing the noise floor | report it, with the numbers |
 | `mixed` | saves energy on some cases, costs it on others — both clearing the floor | report under `mixed`, and name **both** cases. It is a trade-off, and which side wins depends on the input the code sees |
-| `regressed` | every case that moved measurably, got worse | not a smell. Report under `regressed`, and say which cases |
-| `negligible` | measured on a clean floor, and nothing moved more than the noise | **not a smell.** Report under `negligible` |
+| `regressed` | every case that moved measurably, got worse | no saving here. Report under `regressed`, and say which cases |
+| `negligible` | measured on a clean floor, and nothing moved more than the noise | **no saving here.** Report under `negligible` |
 | `inconclusive` | the host's noise floor was too high to resolve an effect this size | report as inconclusive. **Do not** report it as negligible — that is a different claim |
 | `not_equivalent` | `after` behaves differently from `before` | your repair is broken. Fix it and re-run; do not report either way |
 | `advisory` | card says advisory only; never measured | report as advisory, no numbers |
 | `blocked` | no runnable case file could be built | report as blocked, and say what was missing |
 
-Every verdict stays in the output. A run that proposes ten smells and reports
+Every verdict stays in the output. A run that proposes ten repairs and reports
 three as `negligible` is more informative than one that quietly drops them.
 
 The difference between `negligible` and `inconclusive` matters more than it
@@ -260,7 +261,7 @@ C10.S4 used to say what every style guide says: growing a string with `+=` in a
 loop is quadratic, so collect the parts and join them. Measured, the textbook
 example got *slower* — 62 ms against 56 ms at 400 000 iterations. CPython
 resizes a string in place when nothing else refers to it, so the classic
-example was already linear. The real smell turned out to be about aliasing:
+example was already linear. The real waste turned out to be about aliasing:
 through an attribute, where the optimisation cannot fire, the same repair saves
 94.8% ± 0.1%.
 

@@ -1,12 +1,13 @@
 # Verifying a saving
 
-A finding is a claim that a specific refactoring saves energy. This is how
-the claim gets tested. Read this before writing your first case file.
+A finding is a claim that a specific refactoring saves energy. This is how the
+claim gets tested. Read this before writing your first case file.
 
 The rule: **no finding is reported until its repair has been measured on this
-machine.** The only exception is a repair worth a fixed and very small amount
-per execution — a single bytecode instruction, say — which provably cannot clear
-any noise floor, and is reported as unmeasured rather than measured badly.
+machine.** The only exception is a repair worth a fixed and
+very small amount per execution — a single bytecode instruction, say — which
+provably cannot clear any noise floor, and is reported as unmeasured rather
+than measured badly.
 
 ---
 
@@ -52,8 +53,8 @@ next sample. A case that returns a shared list is the most common way to get a
 nonsense result.
 
 **`after` must differ by the repair alone.** If you also rename a variable,
-inline a helper, or fix a second thing, the measurement no longer attributes to
-one change and the finding is unusable. One case file, one repair.
+inline a helper, or fix a second thing, the measurement no longer attributes
+to one reason and the finding is unusable. One case file, one repair.
 
 Module-level code runs once at import, outside all measurement, so expensive
 fixtures can live there.
@@ -204,59 +205,64 @@ something else is running. Nothing measured in that state means anything.
 4. **The canary.** One case measured against *itself*, `before` versus
    `before`. The true answer is zero, so whatever it reads is contamination,
    and it is the floor every real effect has to clear.
-5. **Statistics.** Savings are computed per repetition and averaged, with a 95%
-   confidence interval. Energy and wall-clock time are reported separately.
+5. **Statistics.** The energy difference is computed per repetition and
+   averaged, with a 95% confidence interval. Energy decides the verdict;
+   wall-clock time is measured and reported but never decides anything.
 
 ## Verdicts
 
 | Verdict | What it means | What to do |
 |---|---|---|
-| `confirmed` | equivalent everywhere; the large case saves significantly and clears the noise floor; nothing regresses significantly | report it, with the numbers |
-| `mixed` | saves energy on some cases, costs it on others — both clearing the floor | report under `mixed`, and name **both** cases |
+| `confirmed` | every case that moved, moved the right way, clearing the noise floor | report it, with the numbers |
+| `mixed` | saves energy on some cases, costs it on others — both clearing the floor | report under `mixed`, and name **both** cases. It is a trade-off, and which side wins depends on the input the code sees |
 | `regressed` | every case that moved measurably, got worse | no saving here. Report under `regressed`, and say which cases |
 | `negligible` | measured on a clean floor, and nothing moved more than the noise | **no saving here.** Report under `negligible` |
 | `inconclusive` | the host's noise floor was too high to resolve an effect this size | report as inconclusive. **Do not** report it as negligible — that is a different claim |
 | `not_equivalent` | `after` behaves differently from `before` | your repair is broken. Fix it and re-run; do not report either way |
-| `advisory` | the repair is too small to measure at any input size; never measured | report as advisory, no numbers |
 | `blocked` | no runnable case file could be built | report as blocked, and say what was missing |
 
-Every verdict stays in the output. A run that proposes
-ten repairs and reports three as `negligible` is more informative than one that quietly
-drops them.
+Every verdict stays in the output. A run that proposes ten repairs and reports
+three as `negligible` is more informative than one that quietly drops them.
 
 The difference between `negligible` and `inconclusive` matters more than it
-looks. `negligible` says the
-repair does nothing. `inconclusive` says this machine could not tell. Reporting
-the second as the first turns a busy host into a false conclusion.
+looks. `negligible` says the repair does nothing, on a machine quiet enough to
+tell — that is evidence. `inconclusive` says this machine could not tell, which
+is a fact about the host and says nothing about the code. Reporting the second
+as the first writes a busy host down as evidence against the repair.
+
+`mixed` is not a softer `regressed`. It means both effects are real: the repair
+genuinely pays on one input and genuinely costs on another, so the report must
+carry both numbers and let the reader decide which input their code has.
 
 ## What the numbers mean
 
-The meter reports CPU package + DRAM energy over the workload window. On a
-many-core host most of that is idle power from cores doing nothing — this
-machine idles at 47.3 W and one busy Python thread takes it to 55.4 W.
+The meter reports whole-machine CPU package energy over the workload window,
+with nothing subtracted. On a many-core host much of that is idle power from
+cores doing nothing, so only a fraction of any reading is work you caused.
 
 That does not dilute the result the way it looks like it should, because the
 window is not a fixed length: a variant that finishes sooner accrues less idle
 power too. What the figure cannot do is separate a change in power draw from a
-change in duration. Energy and time are therefore reported separately, and when
-energy improves while wall-clock time does not, you have found something more
-interesting than a performance bug — say so explicitly in the report.
+change in duration.
 
-## When you are sure and wrong
+**Every verdict is decided on energy alone.** Time and power are reported
+beside it, and are worth reading — when energy improves while wall-clock time
+does not, you have found something more interesting than a performance bug, and
+should say so — but no rule reads them. A result carries the measured joules
+and seconds for each variant rather than a percentage, because the percentage
+is a view of those numbers and storing it beside them lets the two disagree.
+
+## When received wisdom is wrong
 
 It happens, and measurement is how you find out.
 
-Every style guide says the same thing: growing a string with `+=` in a
-loop is quadratic, so collect the parts and join them. Measured, the textbook
-example got *slower* — 62 ms against 56 ms at 400 000 iterations. CPython
-resizes a string in place when nothing else refers to it, so the classic
-example was already linear. The real effect turned out to be about aliasing:
-through an attribute, where the optimisation cannot fire, the same repair saves
-94.8% ± 0.1%.
-
-That is not a curiosity about strings. It is what most confident performance
-advice looks like once it is measured on the actual code.
+Every style guide says growing a string with `+=` in a loop is quadratic, so
+collect the parts and join them. Measured, the textbook example got *slower* —
+62 ms against 56 ms at 400 000 iterations. CPython resizes a string in place
+when nothing else refers to it, so the classic example was already linear. The
+real waste turned out to be about aliasing: through an attribute, where the
+optimisation cannot fire, the same repair saves 94.8% ± 0.1%.
 
 If a repair you were confident about comes back `negligible`, that is a result.
-Report it, and say what you measured. Do not quietly drop it and look for a
-different claim until one sticks.
+Report it, and say what you measured. Do not quietly drop it and try a
+different one until something sticks.

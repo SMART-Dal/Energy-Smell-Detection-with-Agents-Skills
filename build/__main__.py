@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -46,7 +47,7 @@ DIST_DIR = PROJECT_ROOT / "dist"
 TOKENS = {
     "{{CATEGORY_INDEX}}": lambda arm, rendered: rendered["categories"],
     "{{ROOT_CAUSE_INDEX}}": lambda arm, rendered: rendered["root_causes"],
-    "{{STEP_SELECT}}": lambda arm, rendered: arm.step_select,
+    "{{SCANNER_HINT}}": lambda arm, rendered: arm.scanner_hint,
     "{{STEP_EVIDENCE}}": lambda arm, rendered: arm.step_evidence,
     "{{STEP_SWEEP}}": lambda arm, rendered: arm.step_sweep,
 }
@@ -133,10 +134,18 @@ def _render_arm(
     }
     template_root = TEMPLATE_DIR / arm.templates
     for source in sorted(template_root.rglob("*.md")):
+        relative = source.relative_to(template_root)
+        if relative.as_posix() in arm.omit_templates:
+            continue
         text = source.read_text()
+        # The arm's words go in first: one of them carries the category
+        # section, which itself contains a token filled in the pass below.
+        for word, fill in arm.words.items():
+            text = text.replace("{{" + word + "}}", fill)
         for token, fill in TOKENS.items():
             text = text.replace(token, fill(arm, rendered))
-        files[root / source.relative_to(template_root)] = text
+        _assert_filled(arm, relative, text)
+        files[root / relative] = text
 
     for source in sorted(SOURCE_SCRIPTS.rglob("*.py")):
         relative = source.relative_to(SOURCE_SCRIPTS)
@@ -149,6 +158,19 @@ def _render_arm(
             taxonomy, catalog, impact
         )
     return files
+
+
+def _assert_filled(arm: Arm, relative: Path, text: str) -> None:
+    """No `{{TOKEN}}` may survive into a shipped file.
+
+    A slot left unfilled would ship as literal braces in one arm and as prose
+    in another, which is exactly the kind of difference the arms must not have.
+    """
+    leftover = sorted(set(re.findall(r"\{\{[A-Z_]+\}\}", text)))
+    if leftover:
+        raise SystemExit(
+            f"{arm.name}: {relative} still contains {', '.join(leftover)}"
+        )
 
 
 def _excluded(relative: Path, arm: Arm) -> bool:

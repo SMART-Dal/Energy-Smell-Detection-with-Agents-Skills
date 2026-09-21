@@ -146,20 +146,20 @@ right.
 structure. "Inefficient string handling" is not a reason; "`self.buf` is grown
 with `+=` across `rows`" is.
 
-**`hotness`** is where you record what you learned in step 2. Several root
-causes are only smells on a hot path, and this is the field a reader checks
-when a finding looks marginal.
+**`hotness`** is where you record what you learned in step 2. Most of these
+patterns only waste anything on a hot path, and this is the field a reader
+checks when a finding looks marginal.
 
 **`found_by`** records how you came to suspect it: `reading`, `rules`, `both`,
 `sweep` for the index pass at the end of step 2, or `cards` for a root cause
 that first appeared while you were reading a card in step 3. It is the
-difference between an analysis you did and a list you were handed, it is
+difference between an analysis you did and a list you were handed, and it is
 measured across runs, so record it honestly — including the cases where you
 missed something.
 
 **`evidence`** lists any deterministic observation that pointed here, named
-exactly as it was reported to you. Leave it `[]` when you found the smell by
-reading, which is the normal case.
+exactly as it was reported to you. Leave it `[]` when you found it by reading,
+which is the normal case.
 
 **`also_considered`** names the similar cards you opened and did not file this
 under. Not a requirement to prove one card excludes another — these overlap on
@@ -189,8 +189,8 @@ there is no way to tell whether you read the code or the labels.
 
 ## REPORT.md
 
-Rendered from the JSON, grouped by file. For each finding: the root cause and
-its name, one paragraph of `why`, the repair as a diff, and the measured
+Rendered from the JSON, grouped by file. For each finding: the root cause and its name,
+one paragraph of `why`, the repair as a diff, and the measured
 result. Then a short section for `mixed`, `regressed`, `negligible` and
 `inconclusive`, and one line for
 anything `advisory` or `blocked`.
@@ -200,7 +200,7 @@ Open with a summary the reader can act on:
 ```markdown
 # Energy smells — acme-parser @ a1b2c3d
 
-15 units examined, 4 smells confirmed, 1 mixed, 1 regressed, 2 negligible,
+15 units examined, 4 repairs confirmed, 1 mixed, 1 regressed, 2 negligible,
 1 inconclusive, 1 advisory.
 Host noise floor 1.6%; every confirmed saving clears it.
 
@@ -214,5 +214,5 @@ resolve better than 1.6%, and the reader has no way to know that unless you
 say it.
 
 Close with the subsumption record: which repairs made which other candidates go
-away. It is short, and it is the part that says which root causes were doing
-the real work.
+away. It is short, and it is the part that says which repairs were doing the
+real work.
