@@ -134,14 +134,13 @@ outward in both directions:
 Then write two sentences: what it computes, and what would dominate its cost on
 a large input.
 
-Reading outward is not politeness about context. Some waste sits in a line — a
-conversion, a lookup, a concatenation — and you can see it where it is. The
-expensive kind usually sits in the *arrangement*: a value computed in one place
+Read outward because the expensive waste is not in any one line. Some waste
+is — a conversion, a lookup, a concatenation — and you can see it where it
+sits. The larger kind is in the *arrangement*: a value computed in one place
 and thrown away in another; a shape chosen early that every later step has to
 compensate for; six functions doing what a different split does in two; a
-result recomputed on each of three paths that each look reasonable alone. None
-of that is visible from any single statement, and no amount of care about
-individual lines will find it. That is what you are reading outward for.
+result recomputed on each of three paths that each look reasonable alone. No
+single statement shows any of it.
 
 **2b. Say what is wasteful, and be specific.** For each thing you find, name
 the lines and say in one or two sentences what work is being done that the

@@ -23,9 +23,8 @@ Three consequences you have to hold onto:
 
 - **No repair, no finding.** If you cannot write the actual edit for this code,
   you have not found anything — you have recognised a pattern.
-- **No measurement, no claim.** Step 4 is not optional. This taxonomy has
-  sixty-five plausible-sounding labels, which is more than enough to justify
-  anything after the fact. A claim nobody tested is worth nothing.
+- **No measurement, no claim.** Step 4 is not optional. A claim nobody tested
+  is worth nothing.
 - **Report the failures too.** A repair you built, measured, and found saves
   nothing is a result. It goes in the report.
 
@@ -35,7 +34,7 @@ Attribute each repair to one root cause: the one whose definition describes the
 waste your edit removes. That is a rule about *attribution*, not about counting,
 and it is not a demand that you find a uniquely correct label.
 
-The cards overlap. Two of them will often both describe what you repaired, and
+The cards overlap. Two of them might both describe what you repaired, and
 when that happens either attribution is fine — say which you chose and that it
 was close. What is not fine is filing a repair under a root cause whose
 definition it does not match, because then the label is doing no work at all.
@@ -149,14 +148,13 @@ outward in both directions:
 Then write two sentences: what it computes, and what would dominate its cost on
 a large input.
 
-Reading outward is not politeness about context. Some waste sits in a line — a
-conversion, a lookup, a concatenation — and you can see it where it is. The
-expensive kind usually sits in the *arrangement*: a value computed in one place
+Read outward because the expensive waste is not in any one line. Some waste
+is — a conversion, a lookup, a concatenation — and you can see it where it
+sits. The larger kind is in the *arrangement*: a value computed in one place
 and thrown away in another; a shape chosen early that every later step has to
 compensate for; six functions doing what a different split does in two; a
-result recomputed on each of three paths that each look reasonable alone. None
-of that is visible from any single statement, and no amount of care about
-individual lines will find it. That is what you are reading outward for.
+result recomputed on each of three paths that each look reasonable alone. No
+single statement shows any of it.
 
 **2b. Say what looks wasteful, in your own words, before opening any card.**
 No IDs yet. Just: which work here does not need to happen, is done more often
@@ -176,8 +174,7 @@ whether one is worth a closer look.
 verdicts.
 
 Open the categories your reading pointed you at, and open others if the code
-suggests them. Nothing restricts which categories you may consider, and a
-category you were not steered toward is not thereby excluded.
+suggests them. Nothing restricts which you may consider.
 
 **2d. Sweep the full index for what you have not named.**
 
@@ -256,8 +253,8 @@ happened.
 The list may also **grow** here. Opening one card and following its similar
 list is one of the better ways to find a root cause nobody suspected. When that
 happens, add it with `found_by: "cards"` and hold it to exactly the same
-checks. Step 2's cap does not apply to this step: narrowing is not the goal,
-and a rejection carrying a reason is as much a result as an acceptance.
+checks. Step 2's cap does not apply here — a rejection with a reason is as
+much a result as an acceptance.
 
 **Each card ends with the same five checks**, in a line apiece. What each one
 is actually asking:
@@ -276,10 +273,10 @@ is actually asking:
    file it there and say so.
 5. **Say how often the code runs, and how large its inputs get.**
 
-The fifth rejects more candidates than the other four put together, and it
-costs nothing here. A real pattern on a path that runs eleven times per process
-is not a finding, and establishing that now is much cheaper than establishing
-it after you have built a case file.
+The fifth rejects more candidates than the other four together, and it costs
+nothing here. A real pattern on a path that runs eleven times per process is
+not a finding, and it is much cheaper to establish that now than after you have
+built a case file.
 
 ```jsonc
 [
@@ -402,9 +399,9 @@ A **unit** is a function or a method. That is the granularity at which units are
 ranked, cleared and reported, and at which a repair is measured — a case file
 calls something, and this is the something.
 
-It is not a boundary on anything else. Read as far as you need in either
-direction. Repair across as many units as the root cause requires. And when the
-waste exists only in the arrangement — two methods of a class that each look
+That is all it bounds. Read as far as you need in either direction, and
+repair across as many units as the root cause requires. When the waste exists
+only in the arrangement — two methods of a class that each look
 reasonable and are wrong together, a helper whose shape forces its four callers
 to compensate — report it against the unit where you would make the edit, and
 name the rest in `spans_units`.
