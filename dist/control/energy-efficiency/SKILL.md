@@ -66,18 +66,15 @@ variables, tidies an unrelated branch, or fixes a second problem cannot be
 attributed to one reason, and the measurement stops meaning anything. The
 second problem is a second finding, or it is nothing.
 
-## Two things that are not energy waste
+## What is not energy waste
 
 **Style.** Unreadable, undocumented, poorly named, badly typed code is not
 energy waste. If the repair does not change what the machine does, it
 is out of scope here.
 
-**Cold code.** A wasteful pattern in a function called once at import time
-wastes
-nothing measurable, however ugly it is. Before accepting anything, ask where
-this unit sits in the program's actual work. If the answer is "it runs a fixed
-handful of times whatever the input", stop there and record why — that is a
-cheaper and more honest rejection than measuring it later.
+Everything else that wastes work is in scope. Record how hot the code is,
+because it tells a reader how much the saving is worth — but a real repair on a
+cold path is still a real repair, and the measurement will say what it came to.
 
 ## Energy is not time
 
@@ -188,58 +185,40 @@ you are at the cap, keep the ones you would actually spend an hour repairing.
 
 ### 3. Decide — *in:* `suspicions[]` · *out:* the same list, each one accepted or rejected
 
-Not everything wasteful is worth repairing, and this is where that gets
-settled. Read the unit a second time, now with the repair in mind: what the
-edit would have to be is usually what tells you whether your first reading of
-the waste was right.
+Read the unit a second time, now with the repair in mind. What the edit would
+have to be is usually what tells you whether your first reading was right.
 
-Each suspicion carries forward as the same object, with its values corrected
-wherever the second reading taught you better, plus the verdict. You may change
-any of them:
+Every suspicion ends this step **accepted** or **rejected**, and nothing is
+edited in place. If the second reading changes your mind, reject the suspicion
+and add a new one saying what you now think. That keeps what you first thought
+on the record, which is the part worth reading later.
 
-- **`lines`** — the second reading made clear the real site is somewhere else.
-  The membership test you flagged is a symptom; the line the repair changes is
-  where the container is built.
-- **`why`** — rewritten against the code, instead of your first impression.
+The list may also **grow** here: reading a second time to write a repair is one
+of the better ways to notice something you missed. Step 2's cap does not apply,
+and a rejection with a reason is as much a result as an acceptance.
 
-Record the change and the reason for it, so the report shows the reading
-happened.
+**For each suspicion:**
 
-The list may also **grow** here.
-Reading a second time to write a repair is one of the better ways to notice
-something you missed.
-Step 2's cap does not apply here — a rejection with a reason is as much a
-result as an acceptance.
-
-**Work through these checks for each suspicion:**
-
-1. **Say what the machine does here that it need not do**, in your own words,
-   naming the lines. If you cannot say it without borrowing someone else's
-   words, you have matched a shape rather than found something.
-1. **Write the repair for *this* code**, as an edit rather than a rewrite of
-   the unit. No repair, no finding — and the repair is also where you discover
-   that your reading of the code was not quite right.
-1. **Check the repair preserves behaviour** on every input, including the edge
-   cases and whatever the callers rely on.
+1. **Does it apply here?** Does your account of the waste still hold on a second
+   reading, or was it the shape of the code rather than what it does?
+1. **Can you write the repair for *this* code**, as an edit rather than a
+   rewrite of the unit? No repair, no finding.
+1. **Does the repair preserve behaviour** on every input, including the edge
+   cases and whatever the callers rely on?
 1. **State the mechanism** — what work stops happening, and why that costs
-   less — rather than appealing to a rule of thumb. "Built-ins are faster" is
-   not a mechanism, and it is wrong often enough to matter.
-1. **Say how often the code runs, and how large its inputs get.**
+   less. "Built-ins are faster" is not a mechanism, and it is wrong often
+   enough to matter.
+1. **Say how often the code runs, and how large its inputs get.** Recorded, not
+   a bar to clear: it tells a reader what the saving is worth, and it tells you
+   how to size the case file in step 4.
 
-The last one rejects more candidates than the rest together, and it costs
-nothing here. A real pattern on a path that runs eleven times per process is
-not a finding, and it is much cheaper to establish that now than after you have
-built a case file.
-
-Record every rejection with the check that decided it.
+Accept if all of them hold. Otherwise reject, and name the one that decided it.
 
 ```jsonc
 [
   {
     "lines": [31], "verdict": "accepted",
     "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-    "changed_from": {"lines": [58]},
-    "why_changed": "the repair changes where the container is built, not where it is searched",
     "hotness": "one call per request; `routes` is 400-2000 entries",
     "repair_sketch": "build `self.blocked` as a set",
     "spans_units": ["src/router.py::Router.__init__"],
@@ -247,7 +226,7 @@ Record every rejection with the check that decided it.
   },
   {
     "lines": [58], "verdict": "rejected",
-    "why_rejected": "the hotness check — `handle` runs once per process, over the static route table",
+    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added the line 31 suspicion instead.",
     "found_by": "reading"
   }
 ]

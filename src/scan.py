@@ -24,8 +24,8 @@ Two different questions, deliberately kept apart:
   default  answers "what did the rules notice?".  It reports *facts* -- "a
            string is grown with += inside a loop at line 45" -- one entry per
            rule per unit, tagged with every root cause that fact could
-           indicate, ordered by what that repair measured in our own
-           benchmarks rather than by how many times the rule fired.
+           indicate, in a pre-computed order that is a suggestion and
+           nothing more.
 
 Nothing here ever says a smell is present.  Whether a fact is a smell depends
 on what the code is for, how hot it is, and what the author was required to do,
@@ -63,13 +63,14 @@ rather than beside the target, because the target is often somebody else's
 repository and a scan should not leave anything in it."""
 
 DEPTH_WEIGHT = 25
-"""How much one level of loop nesting adds when ordering units, in saving-points.
+"""How much one level of loop nesting adds when ordering units.
 
-A unit's rank is the measured worth of its findings plus this per level of loop
-nesting, so one level counts for about as much as a finding whose repair
-measured 25%. Both are guesses -- the nesting is syntax, the percentage is a
-mean over benchmark shapes -- and the ordering only has to be roughly right for
-the reader to start in a sensible place."""
+A unit's rank is what its findings measured elsewhere plus this per level of
+loop nesting. Both halves are guesses -- the nesting is syntax, the measurement
+is a mean over benchmark shapes that are not this code -- and the ordering only
+has to be roughly right for the reader to start in a sensible place. Neither
+number is printed, for the same reason: an ordering is a suggestion, and a
+number beside a finding reads as a verdict on it."""
 
 
 def _report_rule_errors() -> None:
@@ -216,7 +217,8 @@ def _write_detail(report: dict, out: Path, target: Path) -> Path:
         "",
         "Each fact names the root causes it could be. Their cards are at",
         "reference/root-causes/<ID>.md -- open one before accepting or rejecting",
-        "anything; the percentage is a ranking, not a reason.",
+        "anything. The order is pre-computed and is a suggestion, not a",
+        "judgement about this code: read in whatever order you think right.",
     ]
     body += [_render_unit(unit) for unit in report["units"]]
     body += ["", "-" * WIDTH, _CAVEATS]
@@ -260,7 +262,6 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
             "corroborated_by": list(finding.corroborated_by),
             "count": finding.count,
             "lines": list(finding.lines),
-            "worth": impact_of(finding.root_causes, table),
             "messages": [
                 {"text": text, "lines": list(lines)} for text, lines in finding.messages
             ],
@@ -273,8 +274,12 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
         "line": item.unit.lineno,
         "end_line": item.unit.end_lineno,
         "hotness": _hotness_dict(item),
+        # Orders the list and is not reported. What a repair measured on our
+        # benchmark shapes is a fact about that code, not a prediction for
+        # this one, and printing it beside a finding invites it to be read as
+        # a prediction -- which is the one thing the reader is here to judge.
         "score": (
-            sum(f["worth"] for f in findings)
+            sum(impact_of(f.root_causes, table) for f in grouped)
             + DEPTH_WEIGHT * item.reached_at_depth
         ),
         "findings": findings,
@@ -345,12 +350,11 @@ _CAVEATS = """What this output is and is not:
     these shapes is the right thing to write somewhere, so the question is
     always whether it is right *here* -- which depends on what the code is
     for and how often it runs, neither of which a rule can see.
-  - The percentage is what this repair saved *elsewhere*: the mean across
-    our own benchmark shapes for that root cause, with shapes where it did
-    not pay counted as zero. It is a prior, not a prediction for this code.
-    It orders the list and decides nothing. A 5% repair in a loop that runs
-    a billion times beats a 90% one that runs twice, and only you can see
-    which is which.
+  - The order is pre-computed from what these repairs measured on other
+    code. It is a starting point and not a claim about this code: a small
+    repair in a loop that runs a billion times beats a large one that runs
+    twice, and only you can see which is which here. Read in whatever
+    order you think right.
   - The rules only recognise shapes somebody thought to describe in
     advance. Waste with no fixed shape leaves no trace here at all. What
     this output does not mention is not thereby absent, and no part of the
@@ -409,15 +413,11 @@ def _headline(finding: dict) -> str:
 
 
 def _tally(unit: dict) -> str:
-    """"8 finding(s) at 31 place(s), best measured 73%; 2 more not shown"."""
+    """"8 finding(s) at 31 place(s); 2 more not shown"."""
     places = sum(f["count"] for f in unit["findings"])
-    best = max((f["worth"] for f in unit["findings"]), default=0.0)
     held = len(unit["over_budget"])
     tail = f"; {held} more not shown" if held else ""
-    return (
-        f"{len(unit['findings'])} finding(s) at {places} place(s), "
-        f"best measured {best:.0f}%{tail}"
-    )
+    return f"{len(unit['findings'])} finding(s) at {places} place(s){tail}"
 
 
 def _render_unit(unit: dict) -> str:
@@ -439,7 +439,7 @@ def _render_unit(unit: dict) -> str:
         occurs = "" if finding["count"] == 1 else f"  x{finding['count']}"
         lines += [
             "",
-            f"  {finding['worth']:>5.0f}%  {finding['kind']}{occurs}",
+            f"  {finding['kind']}{occurs}",
         ]
         if finding["corroborated_by"]:
             agree = ", ".join(finding["corroborated_by"])

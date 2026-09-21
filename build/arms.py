@@ -148,33 +148,23 @@ Full index, with one line per root cause: `$SKILL/reference/README.md`.
 """,
     "CONTEXT_POINTER": """   That is what the cards' exception sections are for, and skipping them is
    the fastest way to produce confident nonsense.""",
-    "DECIDE_CARD_CHECKS": """1. **Apply `NOT a smell when` and `Looks the same, is not`.** These are the
-   cases where the pattern is present and correct, and they are the most
-   valuable thing on the card. If one fits, reject and record which.
-""",
-    "DECIDE_CHANGEABLE": """- **`root_cause`** — a card in the `Similar root causes` list fitted better.
-  Open those; that is what they are there for.
-- **`lines`** — the card made clear the real site is somewhere else. The
-  membership test you flagged is a symptom; the line the repair changes is
-  where the container is built.
-- **`why`** — rewritten against the card, instead of your first impression.
-""",
-    "DECIDE_GROWTH": """Opening one card and following its similar list is one of the better ways to
-find a root cause nobody suspected. When that happens, add it with
-`found_by: "cards"` and hold it to exactly the same checks.""",
-    "DECIDE_PREAMBLE": """Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion.
-
-**Read the whole card**, not the section whose heading matches your question.
-The description at the top, `What to look for`, the exceptions, the
-near-misses, the repair examples — all of it is evidence about whether this is
-the right root cause. The near-misses decide the hard cases, and the repair
-examples are where you find out what the edit actually involves, which is
-usually not what the name suggested.
-""",
+    "DECIDE_APPLIES": """Does the card's definition describe what this code
+   does — not something adjacent? Apply `NOT a smell when` and `Looks the same,
+   is not`; if one of them fits, reject and name it. If a card in
+   `Similar root causes` fits better, reject this one and add that.""",
+    "DECIDE_GROWTH": """The list may also **grow** here: following a card's similar list is one of the
+better ways to find a root cause nobody suspected. Step 2's cap does not apply,
+and a rejection with a reason is as much a result as an acceptance.""",
+    "DECIDE_MOVE": """Every suspicion ends this step **accepted** or **rejected**, and nothing is
+edited in place. If the card says a suspicion belongs somewhere else, reject it
+and add a new one for the root cause that fits, with `found_by: "cards"`. That
+keeps what you first thought on the record, which is the part worth reading
+later.""",
+    "DECIDE_PREAMBLE": """Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the
+whole card. The exceptions and the near-misses decide the hard cases, and the
+repair examples are where you find out what the edit actually involves.""",
     "DECIDE_ROWS": """    "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
     "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-    "changed_from": {"root_cause": "C5.S2", "lines": [58]},
-    "why_changed": "nothing needs the list's order, so the container's type changes rather than an index being added beside it",
     "hotness": "one call per request; `routes` is 400-2000 entries",
     "repair_sketch": "build `self.blocked` as a set",
     "patch_shape": "expression",
@@ -182,9 +172,9 @@ usually not what the name suggested.
     "found_by": "reading"
   },
   {
-    "root_cause": "C3.S4", "lines": [58], "verdict": "rejected",
-    "why_rejected": "the hotness check — `handle` runs once per process, over the static route table",
-    "found_by": "rules"
+    "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
+    "why_rejected": "`NOT a smell when` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added C5.S1 instead.",
+    "found_by": "reading"
   }""",
     "EVIDENCE_AGAINST": 'the taxonomy',
     "EVIDENCE_FIELDS": """
@@ -323,23 +313,19 @@ explains why the edit saves energy.
     "CASE_FILE_EXAMPLE": 'case_render_concat',
     "CATEGORY_SECTION": '',
     "CONTEXT_POINTER": '   Ask what the author was required to do before deciding they were wrong.',
-    "DECIDE_CARD_CHECKS": '',
-    "DECIDE_CHANGEABLE": """- **`lines`** — the second reading made clear the real site is somewhere else.
-  The membership test you flagged is a symptom; the line the repair changes is
-  where the container is built.
-- **`why`** — rewritten against the code, instead of your first impression.
-""",
-    "DECIDE_GROWTH": """Reading a second time to write a repair is one of the better ways to notice
-something you missed.""",
-    "DECIDE_PREAMBLE": """Not everything wasteful is worth repairing, and this is where that gets
-settled. Read the unit a second time, now with the repair in mind: what the
-edit would have to be is usually what tells you whether your first reading of
-the waste was right.
-""",
+    "DECIDE_APPLIES": """Does your account of the waste still hold on a second
+   reading, or was it the shape of the code rather than what it does?""",
+    "DECIDE_GROWTH": """The list may also **grow** here: reading a second time to write a repair is one
+of the better ways to notice something you missed. Step 2's cap does not apply,
+and a rejection with a reason is as much a result as an acceptance.""",
+    "DECIDE_MOVE": """Every suspicion ends this step **accepted** or **rejected**, and nothing is
+edited in place. If the second reading changes your mind, reject the suspicion
+and add a new one saying what you now think. That keeps what you first thought
+on the record, which is the part worth reading later.""",
+    "DECIDE_PREAMBLE": """Read the unit a second time, now with the repair in mind. What the edit would
+have to be is usually what tells you whether your first reading was right.""",
     "DECIDE_ROWS": """    "lines": [31], "verdict": "accepted",
     "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-    "changed_from": {"lines": [58]},
-    "why_changed": "the repair changes where the container is built, not where it is searched",
     "hotness": "one call per request; `routes` is 400-2000 entries",
     "repair_sketch": "build `self.blocked` as a set",
     "spans_units": ["src/router.py::Router.__init__"],
@@ -347,7 +333,7 @@ the waste was right.
   },
   {
     "lines": [58], "verdict": "rejected",
-    "why_rejected": "the hotness check — `handle` runs once per process, over the static route table",
+    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added the line 31 suspicion instead.",
     "found_by": "reading"
   }""",
     "EVIDENCE_AGAINST": 'the repair',
@@ -445,7 +431,7 @@ _SCANNER_EVIDENCE = """\
 **2d. Now, and only now, run the rules.**
 
 ```bash
-python $SKILL/scripts/scan.py <path>              # index: which units, how much
+python $SKILL/scripts/scan.py <path>              # index: which units, what was seen
 python $SKILL/scripts/scan.py <path> --unit NAME  # one unit's findings in full
 ```
 
@@ -461,28 +447,18 @@ rules and reports **facts** — "a string is grown with `+=` inside a loop at li
 point at. Two labels on one fact means the shape alone does not say which; it is
 one thing to look at, not two.
 
-Each fact carries one number: **what this repair measured elsewhere.** It is the
-mean energy saved across our own benchmark shapes for that root cause, with
-shapes where the repair did not pay counted as zero. So 0% does not mean
-unmeasured — it means measured and it did not reliably pay.
-
-That number orders the list and decides nothing else. It is a prior from other
-code, not a prediction for this code: a 5% repair inside a loop that runs a
-billion times beats a 90% one that runs twice, and which is which is exactly the
-part you can see and the rule cannot.
-
-There is no confidence score, deliberately. Every one of these shapes is the
-right thing to write somewhere, so none of them is graded as more or less likely
-to be a real smell — that judgement is yours, made against this code, and a
-label claiming to have made it for you would only be in the way.
+The list comes in a pre-computed order, based on what these repairs measured on
+other code. It is a starting point and nothing more — read in whatever order you
+think right. There is no confidence score and no per-finding number, because
+either would be a judgement about this code that the rule is in no position to
+make.
 
 Two things follow from what a rule is, and they point in opposite directions.
 
-**It reports shapes, so some of what it reports is wrong.** Every pattern here
-is the right thing to write somewhere. Whether it is right *in this code*
-depends on what the code is for, what the author was constrained by, and how
-often it runs — three things you can read and the rule cannot. Expect false
-positives and say so when you find one.
+**It reports shapes, so some of what it reports is wrong here.** Whether a
+pattern is waste depends on what the code is for, what the author was
+constrained by, and how often it runs — none of which a rule can see. Be
+careful, and spend your time on the ones you can show are real.
 
 **It only knows shapes somebody described in advance, so it misses the rest.**
 Waste that lives in the arrangement of a program has no fixed syntax and leaves
@@ -495,7 +471,7 @@ So reconcile it against the list you already wrote, and keep your own judgement:
 - **it saw something you did not** — read that code again and decide for
   yourself. Being pointed at a line is not being told it is wrong;
 - **it flags something you judged fine** — you may well be right. Keep your
-  judgement and record why;
+  judgement and move on;
 - **it is silent where you are suspicious** — that means nothing at all. Keep
   the suspicion and carry it forward.
 

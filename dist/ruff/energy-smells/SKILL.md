@@ -72,18 +72,15 @@ variables, tidies an unrelated branch, or fixes a second problem cannot be
 attributed to one root cause, and the measurement stops meaning anything. The
 second problem is a second finding, or it is nothing.
 
-## Two things that are not energy smells
+## What is not energy smells
 
 **Style.** Unreadable, undocumented, poorly named, badly typed code is not
 an energy smell. If the repair does not change what the machine does, it
 is out of scope here.
 
-**Cold code.** A wasteful pattern in a function called once at import time
-wastes
-nothing measurable, however ugly it is. Before accepting anything, ask where
-this unit sits in the program's actual work. If the answer is "it runs a fixed
-handful of times whatever the input", stop there and record why — that is a
-cheaper and more honest rejection than measuring it later.
+Everything else that wastes work is in scope. Record how hot the code is,
+because it tells a reader how much the saving is worth — but a real repair on a
+cold path is still a real repair, and the measurement will say what it came to.
 
 ## Energy is not time
 
@@ -187,7 +184,7 @@ suggests them. Nothing restricts which you may consider.
 **2d. Now, and only now, run the rules.**
 
 ```bash
-python $SKILL/scripts/scan.py <path>              # index: which units, how much
+python $SKILL/scripts/scan.py <path>              # index: which units, what was seen
 python $SKILL/scripts/scan.py <path> --unit NAME  # one unit's findings in full
 ```
 
@@ -203,28 +200,18 @@ rules and reports **facts** — "a string is grown with `+=` inside a loop at li
 point at. Two labels on one fact means the shape alone does not say which; it is
 one thing to look at, not two.
 
-Each fact carries one number: **what this repair measured elsewhere.** It is the
-mean energy saved across our own benchmark shapes for that root cause, with
-shapes where the repair did not pay counted as zero. So 0% does not mean
-unmeasured — it means measured and it did not reliably pay.
-
-That number orders the list and decides nothing else. It is a prior from other
-code, not a prediction for this code: a 5% repair inside a loop that runs a
-billion times beats a 90% one that runs twice, and which is which is exactly the
-part you can see and the rule cannot.
-
-There is no confidence score, deliberately. Every one of these shapes is the
-right thing to write somewhere, so none of them is graded as more or less likely
-to be a real smell — that judgement is yours, made against this code, and a
-label claiming to have made it for you would only be in the way.
+The list comes in a pre-computed order, based on what these repairs measured on
+other code. It is a starting point and nothing more — read in whatever order you
+think right. There is no confidence score and no per-finding number, because
+either would be a judgement about this code that the rule is in no position to
+make.
 
 Two things follow from what a rule is, and they point in opposite directions.
 
-**It reports shapes, so some of what it reports is wrong.** Every pattern here
-is the right thing to write somewhere. Whether it is right *in this code*
-depends on what the code is for, what the author was constrained by, and how
-often it runs — three things you can read and the rule cannot. Expect false
-positives and say so when you find one.
+**It reports shapes, so some of what it reports is wrong here.** Whether a
+pattern is waste depends on what the code is for, what the author was
+constrained by, and how often it runs — none of which a rule can see. Be
+careful, and spend your time on the ones you can show are real.
 
 **It only knows shapes somebody described in advance, so it misses the rest.**
 Waste that lives in the arrangement of a program has no fixed syntax and leaves
@@ -237,7 +224,7 @@ So reconcile it against the list you already wrote, and keep your own judgement:
 - **it saw something you did not** — read that code again and decide for
   yourself. Being pointed at a line is not being told it is wrong;
 - **it flags something you judged fine** — you may well be right. Keep your
-  judgement and record why;
+  judgement and move on;
 - **it is silent where you are suspicious** — that means nothing at all. Keep
   the suspicion and carry it forward.
 
@@ -294,68 +281,44 @@ you are at the cap, keep the ones you would actually spend an hour repairing.
 
 ### 3. Decide — *in:* `suspicions[]` · *out:* the same list, each one accepted or rejected
 
-Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion.
+Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the
+whole card. The exceptions and the near-misses decide the hard cases, and the
+repair examples are where you find out what the edit actually involves.
 
-**Read the whole card**, not the section whose heading matches your question.
-The description at the top, `What to look for`, the exceptions, the
-near-misses, the repair examples — all of it is evidence about whether this is
-the right root cause. The near-misses decide the hard cases, and the repair
-examples are where you find out what the edit actually involves, which is
-usually not what the name suggested.
+Every suspicion ends this step **accepted** or **rejected**, and nothing is
+edited in place. If the card says a suspicion belongs somewhere else, reject it
+and add a new one for the root cause that fits, with `found_by: "cards"`. That
+keeps what you first thought on the record, which is the part worth reading
+later.
 
-Each suspicion carries forward as the same object, with its values corrected
-wherever the second reading taught you better, plus the verdict. You may change
-any of them:
+The list may also **grow** here: following a card's similar list is one of the
+better ways to find a root cause nobody suspected. Step 2's cap does not apply,
+and a rejection with a reason is as much a result as an acceptance.
 
-- **`root_cause`** — a card in the `Similar root causes` list fitted better.
-  Open those; that is what they are there for.
-- **`lines`** — the card made clear the real site is somewhere else. The
-  membership test you flagged is a symptom; the line the repair changes is
-  where the container is built.
-- **`why`** — rewritten against the card, instead of your first impression.
+**For each suspicion:**
 
-Record the change and the reason for it, so the report shows the reading
-happened.
-
-The list may also **grow** here.
-Opening one card and following its similar list is one of the better ways to
-find a root cause nobody suspected. When that happens, add it with
-`found_by: "cards"` and hold it to exactly the same checks.
-Step 2's cap does not apply here — a rejection with a reason is as much a
-result as an acceptance.
-
-**Work through these checks for each suspicion:**
-
-1. **Say what the machine does here that it need not do**, in your own words,
-   naming the lines. If you cannot say it without borrowing someone else's
-   words, you have matched a shape rather than found something.
-1. **Apply `NOT a smell when` and `Looks the same, is not`.** These are the
-   cases where the pattern is present and correct, and they are the most
-   valuable thing on the card. If one fits, reject and record which.
-1. **Write the repair for *this* code**, as an edit rather than a rewrite of
-   the unit. No repair, no finding — and the repair is also where you discover
-   that your reading of the code was not quite right.
-1. **Check the repair preserves behaviour** on every input, including the edge
-   cases and whatever the callers rely on.
+1. **Does it apply here?** Does the card's definition describe what this code
+   does — not something adjacent? Apply `NOT a smell when` and `Looks the same,
+   is not`; if one of them fits, reject and name it. If a card in
+   `Similar root causes` fits better, reject this one and add that.
+1. **Can you write the repair for *this* code**, as an edit rather than a
+   rewrite of the unit? No repair, no finding.
+1. **Does the repair preserve behaviour** on every input, including the edge
+   cases and whatever the callers rely on?
 1. **State the mechanism** — what work stops happening, and why that costs
-   less — rather than appealing to a rule of thumb. "Built-ins are faster" is
-   not a mechanism, and it is wrong often enough to matter.
-1. **Say how often the code runs, and how large its inputs get.**
+   less. "Built-ins are faster" is not a mechanism, and it is wrong often
+   enough to matter.
+1. **Say how often the code runs, and how large its inputs get.** Recorded, not
+   a bar to clear: it tells a reader what the saving is worth, and it tells you
+   how to size the case file in step 4.
 
-The last one rejects more candidates than the rest together, and it costs
-nothing here. A real pattern on a path that runs eleven times per process is
-not a finding, and it is much cheaper to establish that now than after you have
-built a case file.
-
-Record every rejection with the check that decided it.
+Accept if all of them hold. Otherwise reject, and name the one that decided it.
 
 ```jsonc
 [
   {
     "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
     "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-    "changed_from": {"root_cause": "C5.S2", "lines": [58]},
-    "why_changed": "nothing needs the list's order, so the container's type changes rather than an index being added beside it",
     "hotness": "one call per request; `routes` is 400-2000 entries",
     "repair_sketch": "build `self.blocked` as a set",
     "patch_shape": "expression",
@@ -363,9 +326,9 @@ Record every rejection with the check that decided it.
     "found_by": "reading"
   },
   {
-    "root_cause": "C3.S4", "lines": [58], "verdict": "rejected",
-    "why_rejected": "the hotness check — `handle` runs once per process, over the static route table",
-    "found_by": "rules"
+    "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
+    "why_rejected": "`NOT a smell when` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added C5.S1 instead.",
+    "found_by": "reading"
   }
 ]
 ```
