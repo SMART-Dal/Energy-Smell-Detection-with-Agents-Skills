@@ -171,11 +171,9 @@ picked, and it only works if you do it first and record it.
   ],
   "suspicions": [
     {"lines": [47],    "confidence": "high",
-     "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
-     "found_by": "reading"},
+     "why": "`self.buf` is grown with += once per row; nothing reads it in the loop"},
     {"lines": [44,45], "confidence": "medium",
-     "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
-     "found_by": "reading"}
+     "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row"}
   ]
 }
 ```
@@ -221,13 +219,11 @@ Accept if all of them hold. Otherwise reject, and name the one that decided it.
     "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
     "hotness": "one call per request; `routes` is 400-2000 entries",
     "repair_sketch": "build `self.blocked` as a set",
-    "spans_units": ["src/router.py::Router.__init__"],
-    "found_by": "reading"
+    "spans_units": ["src/router.py::Router.__init__"]
   },
   {
     "lines": [58], "verdict": "rejected",
-    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added the line 31 suspicion instead.",
-    "found_by": "reading"
+    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added the line 31 suspicion instead."
   }
 ]
 ```

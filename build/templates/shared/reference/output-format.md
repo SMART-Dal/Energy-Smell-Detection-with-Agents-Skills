@@ -36,8 +36,7 @@ right.
 {{FINDING_ID_FIELDS}}
       "why": "`self.buf` is grown with += across `rows` and is never read inside the loop, so the accumulation is O(n^2) in the total output length.",
       "hotness": "called once per HTTP response; `rows` is typically 5k-50k long",
-      "found_by": "{{FOUND_BY_EXAMPLE}}",
-{{EVIDENCE_FIELDS}}
+{{FOUND_BY_ROW}}{{EVIDENCE_FIELDS}}
       "subsumed": [
 {{SUBSUMED_ROW}}
       ],

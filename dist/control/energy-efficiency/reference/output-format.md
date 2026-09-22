@@ -36,7 +36,6 @@ right.
 
       "why": "`self.buf` is grown with += across `rows` and is never read inside the loop, so the accumulation is O(n^2) in the total output length.",
       "hotness": "called once per HTTP response; `rows` is typically 5k-50k long",
-      "found_by": "reading",
 
       "subsumed": [
         {"what": "the per-row temporary list", "why": "it only existed to feed the +=; the repair removed it"}
@@ -137,10 +136,6 @@ with `+=` across `rows`" is.
 **`hotness`** is where you record what you learned in step 2. Most of these
 patterns only waste anything on a hot path, and this is the field a reader
 checks when a finding looks marginal.
-
-**`found_by`** records how you came to suspect it. With no tool in the loop it
-is `reading` throughout, and it is kept so a reader can tell an analysis you
-did from a list you were handed.
 
 **`subsumed`** lists candidates that disappeared when this repair landed —
 checked in step 4, after applying it and re-deciding what was left. Each needs

@@ -195,7 +195,6 @@ repair examples are where you find out what the edit actually involves.""",
 """,
     "FINDING_RULE": """> A finding is a **repair**: a concrete edit to *this* code, attributed to a
 > root cause whose definition the edit matches, and measured.""",
-    "FOUND_BY_EXAMPLE": 'both',
     "FOUND_BY_FIELD_RULES": """**`found_by`** records how you came to suspect it: `reading`, `rules`, `both`,
 `sweep` for the index pass at the end of step 2, or `cards` for a root cause
 that first appeared while you were reading a card in step 3. It is the
@@ -217,6 +216,8 @@ purpose — but a record of where you looked. Leave it out if you opened none.
 `"reading"` from 2a–2b, `"rules"` from a tool, `"both"`, or `"sweep"` from the
 index pass. It is the difference between an analysis you did and a list you
 were handed.
+""",
+    "FOUND_BY_ROW": """      "found_by": "both",
 """,
     "NEGLIGIBLE_VALUE": 'they are evidence about the taxonomy, not failures to hide.',
     "ONE_BASIS": 'one root cause',
@@ -328,13 +329,11 @@ have to be is usually what tells you whether your first reading was right.""",
     "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
     "hotness": "one call per request; `routes` is 400-2000 entries",
     "repair_sketch": "build `self.blocked` as a set",
-    "spans_units": ["src/router.py::Router.__init__"],
-    "found_by": "reading"
+    "spans_units": ["src/router.py::Router.__init__"]
   },
   {
     "lines": [58], "verdict": "rejected",
-    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added the line 31 suspicion instead.",
-    "found_by": "reading"
+    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added the line 31 suspicion instead."
   }""",
     "EVIDENCE_AGAINST": 'the repair',
     "EVIDENCE_FIELDS": '',
@@ -342,13 +341,9 @@ have to be is usually what tells you whether your first reading was right.""",
     "FINDING_ID_FIELDS": '',
     "FINDING_RULE": """> A finding is a **repair**: a concrete edit to *this* code, with a stated
 > reason why the edit saves energy, and measured.""",
-    "FOUND_BY_EXAMPLE": 'reading',
-    "FOUND_BY_FIELD_RULES": """**`found_by`** records how you came to suspect it. With no tool in the loop it
-is `reading` throughout, and it is kept so a reader can tell an analysis you
-did from a list you were handed.
-
-""",
+    "FOUND_BY_FIELD_RULES": '',
     "FOUND_BY_NOTE": '',
+    "FOUND_BY_ROW": '',
     "NEGLIGIBLE_VALUE": 'a repair that turned out not to help is a result, not a failure to hide.',
     "ONE_BASIS": 'one reason',
     "PATCH_BOUND": """The edit should be as small as removing the waste allows. That bounds its
@@ -376,11 +371,9 @@ goes in the output as `own_hypotheses`.""",
     "SUBJECT_SINGULAR": 'energy waste',
     "SUBSUMED_ROW": """        {"what": "the per-row temporary list", "why": "it only existed to feed the +=; the repair removed it"}""",
     "SUSPICION_ROWS": """    {"lines": [47],    "confidence": "high",
-     "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
-     "found_by": "reading"},
+     "why": "`self.buf` is grown with += once per row; nothing reads it in the loop"},
     {"lines": [44,45], "confidence": "medium",
-     "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
-     "found_by": "reading"}""",
+     "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row"}""",
     "TITLE": 'Energy Efficiency Analysis',
     "UNIT_SUSPICIONS": """      "suspicions": [
         {"lines": [47],    "confidence": "high"},
