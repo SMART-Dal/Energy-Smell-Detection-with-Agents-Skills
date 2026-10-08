@@ -44,10 +44,6 @@ So the card has to survive being taken literally.
           ...
         note: >
           ...
-  patch_shape: expression | statement_local | signature | structural | cross_unit
-  measurability: scales_with_input | scales_with_calls | constant_small
-  min_workload_hint: >
-    ...
   similar: [C3.S6, C4.S1]
   notes: >
     ...
@@ -163,27 +159,16 @@ once on either side is enough, and a card can end up listing a neighbour it does
 not itself name. That is intended — a neighbour reachable in one direction only
 is a dead end for whichever reader arrives from the wrong side.
 
-### `patch_shape`
+### Retired: `patch_shape`, `measurability`, `min_workload_hint`
 
-What the repair *changes*. Not a limit on how much code may be read.
-
-- `expression` — one expression, nothing else
-- `statement_local` — a few adjacent statements
-- `signature` — the signature or decorators; body untouched
-- `structural` — control flow or data structures reorganised. **May span the
-  methods of one class or one call chain** — building an index in `__init__`
-  and reading it in a method is one structural repair
-- `cross_unit` — has to change call sites outside the code being repaired
-
-### `measurability`
-
-- `scales_with_input` — the effect grows with data size
-- `scales_with_calls` — it grows with call count, so the largest case must call
-  the unit many times over a small input
-- `constant_small` — a fixed tiny cost per execution that no workload can lift
-  above a noise floor. Rendered as **advisory only**: reported, never measured.
-  Use it honestly; it is the difference between an unmeasurable claim and a
-  claim measured badly.
+Older entries still carry these three keys. The build accepts and ignores them
+(`build/catalog.py` `RETIRED_KEYS`); they can be deleted when an entry is next
+rewritten, and new entries should not add them. They told the agent how large
+an edit to make, whether a root cause could be measured at all, and how to size
+a workload — each one steering it toward an action rather than letting the
+measurement say what a repair was worth. The `advisory` status that
+`measurability: constant_small` produced is gone with them: every root cause
+has a repair, and every repair is measured like any other.
 
 ---
 
@@ -217,10 +202,9 @@ the shapes that paid** into `refactoring.examples` -- an example the agent is
 told to copy should be one that worked.
 
 **None of them pay.** Do not reject the root cause and do not write it down as
-refuted. Say plainly that the repair did not pay in the shapes tried, that it
+disproved. Say plainly that the repair did not pay in the shapes tried, that it
 may still pay in ones we did not, and leave the judgement with the agent for
-its own context. Mark it advisory if the mechanism says the effect is
-constant-small; otherwise let the agent decide and measure. The definition
+its own context, and let the agent decide and measure. The definition
 stands either way -- read it and it makes sense, and Python may simply not be
 where the mechanism shows.
 
@@ -262,7 +246,7 @@ prose item under `not_a_smell_when` is therefore written as a folded block:
       value other code depends on
 ```
 
-`in_one_line`, `what_to_look_for`, `why`, `note` and `min_workload_hint` use
+`in_one_line`, `what_to_look_for`, `why` and `note` use
 `>` for the same reason. `code`, `before` and `after` use `|`, which preserves
 newlines.
 

@@ -224,8 +224,6 @@ def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, floa
                 "name": node.name,
                 "category": entry.category_id,
                 "category_name": taxonomy[entry.category_id].name,
-                "measurability": entry.measurability.value,
-                "advisory_only": entry.is_advisory_only,
                 "repair": entry.refactoring.summary if entry.refactoring else "",
                 "card": f"reference/root-causes/{node.id}.md",
                 "impact": impact.get(node.id, 0.0),
@@ -265,7 +263,6 @@ def _report(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
     edges = sum(len(e.similar) for e in entries) // 2
     exceptions = sum(len(e.not_a_smell_when) for e in entries)
     near_misses = sum(len(e.counter_examples) for e in entries)
-    advisory = sum(1 for e in entries if e.is_advisory_only)
     signals = catalog.signal_index()
 
     routed = {rc for ids in signals.values() for rc in ids}
@@ -274,7 +271,6 @@ def _report(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
           f"{len(taxonomy.root_causes)} root causes")
     print(f"  {edges} similarity edges, {exceptions} context exceptions, "
           f"{near_misses} near-misses")
-    print(f"  {advisory} advisory-only root causes (repair too small to measure)")
     print(f"  {len(signals)} static signals routing to {len(routed)} root causes "
           f"({len(taxonomy.root_causes) - len(routed)} have none)")
     # The shipped protocol tells the reader that 0% means "measured and it did

@@ -40,8 +40,6 @@ class RootCause:
     name: str
     category: str
     category_name: str
-    measurability: str
-    advisory_only: bool
     repair: str
     card: str
     impact: float = 0.0

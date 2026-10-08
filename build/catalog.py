@@ -34,7 +34,6 @@ Nothing that ships imports it.  See `CARD_SPEC.md` for how to write an entry.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
@@ -43,59 +42,6 @@ import yaml
 from .taxonomy import load_taxonomy
 
 CATALOG_DIR = Path(__file__).resolve().parent.parent / "catalog"
-
-
-class PatchShape(str, Enum):
-    """How large an edit the canonical repair is.
-
-    This bounds what the repair *changes*.  It says nothing about how much code
-    may be read while deciding, and nothing about where the waste is allowed to
-    live -- a repair that has to move a computation between two methods of one
-    class is `structural`, not forbidden.
-
-    Its real job is comparison: two root causes whose repairs are the same edit
-    at the same shape are operationally the same finding, which is how taxonomy
-    overlap gets measured instead of argued about.
-    """
-
-    EXPRESSION = "expression"
-    """Rewrite one expression in place."""
-
-    STATEMENT_LOCAL = "statement_local"
-    """Change a few adjacent statements, e.g. hoist one line out of a loop."""
-
-    SIGNATURE = "signature"
-    """Change the unit's signature or decorators."""
-
-    STRUCTURAL = "structural"
-    """Reorganise control flow or data structures.
-
-    May span the methods of one class, or one call chain, as long as the
-    behaviour seen at the entry point is unchanged.  Adding an index in
-    `__init__` and reading it in a method is one structural repair, not two.
-    """
-
-    CROSS_UNIT = "cross_unit"
-    """Requires editing call sites outside the code being repaired."""
-
-
-class Measurability(str, Enum):
-    """How large an effect the repair can be expected to produce.
-
-    Some root causes are real but cost a single bytecode instruction, and no
-    amount of repetition lifts them above measurement noise.  Declaring that
-    here lets the tool report them honestly as advisory instead of pretending
-    an unmeasurable effect was measured.
-    """
-
-    SCALES_WITH_INPUT = "scales_with_input"
-    """Effect grows with data size: reliably measurable on a big enough driver."""
-
-    SCALES_WITH_CALLS = "scales_with_calls"
-    """Effect grows with call count: measurable if the unit is called enough."""
-
-    CONSTANT_SMALL = "constant_small"
-    """Fixed, tiny cost per execution: advisory only, do not expect to measure."""
 
 
 @dataclass(frozen=True)
@@ -204,19 +150,11 @@ class CatalogEntry:
     reader arrives from the wrong side.
     """
 
-    patch_shape: PatchShape = PatchShape.STATEMENT_LOCAL
-    measurability: Measurability = Measurability.SCALES_WITH_INPUT
-    min_workload_hint: str = ""
     notes: str = ""
 
     @property
     def category_id(self) -> str:
         return self.id.split(".")[0]
-
-    @property
-    def is_advisory_only(self) -> bool:
-        """Whether measurement can realistically confirm this root cause."""
-        return self.measurability is Measurability.CONSTANT_SMALL
 
 
 @dataclass
@@ -252,9 +190,17 @@ class Catalog:
 
 ENTRY_KEYS = {
     "id", "in_one_line", "signals", "what_to_look_for", "not_a_smell_when",
-    "counter_examples", "refactoring", "similar", "patch_shape",
-    "measurability", "min_workload_hint", "notes",
-}
+    "counter_examples", "refactoring", "similar", "notes",
+} | {"patch_shape", "measurability", "min_workload_hint"}
+
+RETIRED_KEYS = {"patch_shape", "measurability", "min_workload_hint"}
+"""Still present in the catalog, deliberately ignored.
+
+They told the agent how large an edit should be, whether a root cause could be
+measured at all, and how to size a workload -- each one steering it toward an
+action instead of letting the measurement say what a repair was worth. Nothing
+reads them any more; they stay in the YAML until the root causes are rewritten,
+and can be deleted from it then."""
 """Every key an entry may carry.
 
 Checked rather than ignored, because a misspelled key used to vanish silently
@@ -320,9 +266,6 @@ def _entry_from_dict(raw: dict) -> CatalogEntry:
         ),
         refactoring=refactoring,
         similar=tuple(raw.get("similar", ())),
-        patch_shape=PatchShape(raw.get("patch_shape", "statement_local")),
-        measurability=Measurability(raw.get("measurability", "scales_with_input")),
-        min_workload_hint=raw.get("min_workload_hint", "").strip(),
         notes=raw.get("notes", "").strip(),
     )
 
@@ -407,8 +350,8 @@ def _validate(catalog: Catalog, *, strict: bool) -> None:
         for target in entry.similar:
             if target not in known:
                 problems.append(f"{entry.id} points at unknown root cause {target}")
-        if entry.refactoring is None and not entry.is_advisory_only:
-            problems.append(f"{entry.id} has no refactoring but is not advisory-only")
+        if entry.refactoring is None:
+            problems.append(f"{entry.id} has no refactoring: every root cause needs a repair to measure")
 
     if strict:
         missing = known - set(catalog.entries)

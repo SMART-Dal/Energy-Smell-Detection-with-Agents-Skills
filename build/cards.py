@@ -25,7 +25,7 @@ spreadsheet stay the single source of truth.
 
 from __future__ import annotations
 
-from .catalog import Catalog, CatalogEntry
+from .catalog import Catalog
 from .taxonomy import Taxonomy
 
 CATEGORY_PATH = "reference/categories/{id}.md"
@@ -93,8 +93,8 @@ def render_category(category_id: str, taxonomy: Taxonomy, catalog: Catalog) -> s
         "",
         "## Root causes in this category",
         "",
-        "| ID | Name | Looks for | The repair | Measurable? |",
-        "|---|---|---|---|---|",
+        "| ID | Name | Looks for | The repair |",
+        "|---|---|---|---|",
     ]
     for node in children:
         entry = catalog.entries.get(node.id)
@@ -102,7 +102,7 @@ def render_category(category_id: str, taxonomy: Taxonomy, catalog: Catalog) -> s
         looks_for = entry.in_one_line if entry else "—"
         lines.append(
             f"| **{node.id}** | {_cell(node.name)} | {_cell(looks_for)} "
-            f"| {_cell(repair)} | {_measurability_flag(entry)} |"
+            f"| {_cell(repair)} |"
         )
 
     lines += [
@@ -197,9 +197,6 @@ def render_root_cause(
             if example.note:
                 lines += [example.note, ""]
         lines += [
-            f"**Patch shape: `{entry.patch_shape.value}`** — "
-            f"{_patch_shape_note(entry)}",
-            "",
             "The examples are illustrations, not the permitted cases; the repair "
             "you write will not look like any of them.",
             "",
@@ -223,10 +220,6 @@ def render_root_cause(
             ]
         lines.append("")
 
-    lines += ["## Verifying it", "", _verification_note(entry), ""]
-    if entry.min_workload_hint:
-        lines += [f"Workload hint: {entry.min_workload_hint}", ""]
-
     if entry.notes:
         lines += ["## Notes", "", _paragraphs(entry.notes), ""]
 
@@ -246,54 +239,6 @@ def render_root_cause(
 
 
 # -- helpers ---------------------------------------------------------------
-
-
-def _verification_note(entry: CatalogEntry) -> str:
-    if entry.is_advisory_only:
-        return (
-            "**Advisory only.** The repair costs a fixed and very small amount "
-            "per execution — typically a single bytecode instruction — so no "
-            "workload size will lift it above a realistic noise floor. Report a "
-            "genuine instance as `advisory`; do not build a case file for it, "
-            "and never claim it was measured."
-        )
-    if entry.measurability.value == "scales_with_calls":
-        return (
-            "The effect grows with the number of **calls**, not with input size. "
-            "The case file's largest case must therefore call the unit many "
-            "times over a small input, rather than call it once over a large one."
-        )
-    return (
-        "The effect grows with **input size**, so it is measurable given a large "
-        "enough case. Make the largest case big enough that one call takes "
-        "milliseconds, not microseconds."
-    )
-
-
-def _patch_shape_note(entry: CatalogEntry) -> str:
-    return {
-        "expression": "rewrite one expression in place and change nothing else.",
-        "statement_local": "change a few adjacent statements and nothing else.",
-        "signature": "change the signature or decorators; leave the body alone.",
-        "structural": "reorganise control flow or data structures. This may span "
-                      "the methods of one class or one call chain — adding an "
-                      "index in one place and reading it in another is a single "
-                      "repair — as long as behaviour at the entry point is "
-                      "unchanged.",
-        "cross_unit": "this one has to change call sites outside the code being "
-                      "repaired, which makes it harder to attribute — name every "
-                      "place you edited.",
-    }[entry.patch_shape.value]
-
-
-def _measurability_flag(entry: CatalogEntry | None) -> str:
-    if entry is None:
-        return "—"
-    return {
-        "scales_with_input": "yes, scales with input",
-        "scales_with_calls": "yes, scales with call count",
-        "constant_small": "**no — advisory only**",
-    }[entry.measurability.value]
 
 
 def _paragraphs(text: str) -> str:
