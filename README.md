@@ -68,6 +68,7 @@ calls a network.
 | `build/` | renders cards, compiles the routing table, emits the five arms. `CARD_SPEC.md` says how to write an entry |
 | `dist/` | **the deliverables** — generated, never edited |
 | `validation/` | measures the taxonomy's own claims (see below) |
+| `tools/` | our side of an agent run: re-measure, decide what to apply, report — never shipped |
 | `tests/rules/` | one folder per analyzer: what it must flag, and what it must not |
 | `eval/` | protocol for cold-agent runs |
 
@@ -82,8 +83,10 @@ python3 -m venv .venv && .venv/bin/pip install pandas openpyxl pyyaml ruff
 ```bash
 python dist/full/energy-smells/scripts/scan.py PATH --units   # ranked reading list
 python dist/full/energy-smells/scripts/scan.py PATH [--top N] [--json]
-python src/verify.py CASE_FILE [--json]
-python src/verify.py --calibrate
+python src/verify.py --calibrate                               # this host's noise floor
+python src/verify.py SUBMISSIONS.jsonl --repo PATH             # an agent's repairs
+python src/verify.py SUBMISSIONS.jsonl --repo PATH --no-record --json   # re-measure, ours
+python src/verify.py CASE_FILE.py [--json]                     # a validation sample
 ```
 
 `scan.py` answers two questions and keeps them apart. `--units` ranks every
@@ -93,11 +96,76 @@ groups facts under the root causes they point at, never a verdict. Hotness count
 the loops a unit is *reached* through as well as the ones it contains, so a
 helper called from inside someone else's nested loop outranks the loop itself.
 
-`verify.py` takes a case file defining `before`, `after` and `cases()`, checks
-behaviour is preserved, sizes each case so its measured window lasts about a
-second, and measures the two variants interleaved in one process. Run
-`--calibrate` first: it measures identical code against itself, and the width of
-that interval is what this host can resolve.
+`verify.py` measures one repair against the code it replaces: it checks
+behaviour is preserved, sizes each case so its measured window is long enough,
+and measures the two versions alternately, window by window, on one thread.
+
+It takes its pair from either of two sources, and the four stages after loading
+are the same code. A **submission** (`.jsonl`) is what an agent produces: it
+names a unit as `path::qualname` and gives the replacement source, and `before`
+is read from the repository, never from the submission — which is what stops a
+baseline being shaped to flatter the result. A pristine copy and a patched copy
+of the repository are imported side by side in one worker process under their
+real package names, nothing renamed and no import rewritten. A **case file**
+(`.py`) defines `before`, `after` and `cases()` itself, and is how our own
+validation samples are written.
+
+Submissions are measured one way, by the agent and when we re-measure them: 1 s
+windows, 5 pairs, the noise floor calibrated once per session — about a minute
+a repair. The agent's run writes each result back into its line as
+`agent_measurement`; a measured result is final, and editing a measured line
+makes it `invalid`. Validation case files keep the settings every recorded
+result used (3 s windows, 9 pairs, a canary per case), so those results stay
+comparable. `--calibrate` measures two copies of identical code against each
+other; the width of that interval is what this host can resolve.
+
+## Asking for an analysis
+
+The skill works on a **target**, an optional **number of units**, and a cap on
+how many repairs it measures — all taken from the request:
+
+| Ask for | It examines | It measures |
+|---|---|---|
+| "Find energy smells in this repository" | every unit, hottest first | the 15 most promising repairs |
+| "… in `src/render/`" or "… in `src/render.py`" | every unit there | the 15 most promising |
+| "… in `src/render.py::Report.render`" | that one method | its repairs |
+| "… examine 10 units" | the 10 hottest units | the 15 most promising |
+| "… and measure every repair" | as above | all of them |
+
+A number limits units only, never suspicions or root causes; the agent may
+change which units those are as it goes, but never examines more.
+Accepted suspicions beyond the measured 15 are recorded as `deferred`: still
+findings, with no saving claimed. Name a single function as
+`path/to/file.py::qualname` — a method as `Class.method` — the same form every
+result uses; a loose name ("the render function") also works, and the agent
+records what it resolved it to.
+
+Time is roughly 3–4 minutes of agent work per unit plus about a minute per
+measured repair, so "examine 10 units" is around 45–55 minutes. With no number,
+every unit in the target is examined, which on a large repository runs to
+hours: give a number for anything bigger than a few dozen functions.
+
+## An agent run, and our side of it
+
+The agent never edits the repository. It leaves two files:
+
+- `findings.jsonl` — its work, one line per step per unit: what it selected,
+  what it suspected and why, what it accepted, and what became of each;
+- `submissions.jsonl` — one repair per line, each carrying the measurement
+  `verify.py` wrote into it.
+
+```bash
+python tools/review.py REPO RUN_DIR            # re-measure, decide, write the report
+python tools/review.py REPO RUN_DIR --apply    # ...and write the applied repairs into REPO
+```
+
+`review.py` re-measures every submission on a fresh copy, on an idle machine,
+writes `results.jsonl` and `REPORT.md` into `RUN_DIR`, and decides
+what to apply. Every repair was written against the original code, so at most
+one per function can be: among a function's `confirmed` repairs, the one with
+the highest mean saving across its five cases — they share their inputs, so the
+means compare — and every other repair is recorded with the reason it was not
+applied. Nothing that is not `confirmed` is applied; `mixed` included.
 
 ## Validating the taxonomy
 
@@ -106,9 +174,13 @@ that interval is what this host can resolve.
 ```bash
 python validation/preflight.py               # is this host fit to measure on?
 python validation/generate_sample_cases.py   # convert data/manual_sampling
-python validation/run.py samples             # 84 hand-written before/after pairs
+python validation/run.py samples             # 84 of the 92 hand-written pairs
 python validation/run.py taxonomy            # cases per contested root cause
 ```
+
+`data/manual_sampling/` holds 92 hand-written pairs; 84 of them convert into
+runnable cases, which is the count the sample run reports.
+`build/SAMPLE_NUANCES.md` reads the full 92.
 
 Results land in `validation/results/*.jsonl`. Run `preflight.py` first: it asks
 three questions and stops at the first failure — identical code reads ~0%, a
@@ -117,16 +189,21 @@ matters because a rig that answers "saving" in both directions is broken in a wa
 the null canary alone cannot see.
 
 `validation/RESULTS.md` records what has been measured and what has not. The
-short version, from an idle host: **all 65 root causes now have a measurement
-on a floor low enough to believe** — median per-case canary 1.07%, and 5 of 69
-readings above 3%. Forty-nine confirmed, eight refuted, twelve regressed, and
-the twelve are not one thing: five are a card's own precondition being
-demonstrated, four are genuine, and three were case files that did not exercise
-their own root cause.
+short version, from an idle host: **all 65 root causes are measured**, across
+230 cases — 146 confirmed, 43 mixed, 32 regressed, 5 negligible, 3
+inconclusive, 1 timeout. Median per-case canary 1.73%, with 50 of 229 readings
+above 3%.
 
-`verify.py` reports `inconclusive` rather than `refuted` when the canary is too
-high to resolve an effect, because "the repair does nothing" and "this machine
-could not tell" are opposite claims. Nothing in this run needed it.
+A regressed or mixed case is not a refutation of the taxonomy. The published
+taxonomy is the reference; our measurements are 3-4 cases per root cause on one
+host, and which direction a repair pays in can turn on the loop body rather
+than the input size — `sum(x for x in l)` favours the comprehension while
+`sum(x * 2 for x in l)` favours the generator, on the same machine. What a
+regression changes is the advice beside the card, not the card.
+
+`verify.py` reports `inconclusive` rather than `negligible` when the canary is
+too high to resolve an effect, because "the repair does nothing" and "this
+machine could not tell" are opposite claims.
 
 Analyzer precision has its own suite, which is not shipped:
 
