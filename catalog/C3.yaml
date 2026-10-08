@@ -705,7 +705,7 @@
         def after(records):
             return all(record.check() for record in records)
       note: |
-        `all` stops at the first false. On data where the third of ten thousand records fails, this is a 99.97% saving; on data where everything passes it is zero. The value is entirely in the input distribution, so the case file has to make the failure position realistic.
+        `all` stops at the first false. On data where the third of ten thousand records fails, this is a 99.97% saving; on data where everything passes it is zero. The value is entirely in the input distribution, so the submission has to make the failure position realistic.
 
         Measured in `validation/taxonomy/C3S5_all_short_circuits.py`.
     - title: collecting only as many as are wanted
@@ -746,7 +746,7 @@
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: |
-    the driver's data decides everything: the answer must arrive early on the large case, and the case file should say why that is representative
+    the driver's data decides everything: the answer must arrive early on the large case, and the submission should say why that is representative
   similar:
   - C3.S6
   - C7.S2
@@ -817,7 +817,7 @@
         def after(values):
             return {x for x in set(values) if _expensive(x)}
       note: |
-        One million elements drawn from a hundred distinct values: the extra `set()` pass replaces 999 900 redundant modulo operations with a hashing pass that was going to happen anyway for the result set. On unique data this is strictly worse, so the duplicate ratio is the whole decision and the case file must state it.
+        One million elements drawn from a hundred distinct values: the extra `set()` pass replaces 999 900 redundant modulo operations with a hashing pass that was going to happen anyway for the result set. On unique data this is strictly worse, so the duplicate ratio is the whole decision and the submission must state it.
 
         Measured in `validation/taxonomy/C3S6_deduplicate_first.py`.
     - title: filtering that could happen at the source
@@ -853,7 +853,7 @@
   patch_shape: structural
   measurability: scales_with_input
   min_workload_hint: |
-    the selectivity is the effect: the case must discard most of the collection, and the case file should say what fraction and why that is representative
+    the selectivity is the effect: the case must discard most of the collection, and the submission should say what fraction and why that is representative
   notes: |
     The deduplicate-first form has a sibling worth knowing about, on C10.S1: handing a whole collection to a bulk primitive when only a slice is wanted is the same waste in the opposite direction.  `Counter(values)` followed by a filter to odd keys tallies every even value for nothing, and a hand loop that skips them beats it.  Reducing first applies to primitives too.
   similar:

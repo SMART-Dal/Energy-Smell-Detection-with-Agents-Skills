@@ -331,7 +331,7 @@
   patch_shape: structural
   measurability: scales_with_input
   min_workload_hint: |
-    the input must be large enough that the complexity difference dominates the constant factors, and the case file should include a small case too, to show where the crossover is
+    the input must be large enough that the complexity difference dominates the constant factors, and the submission should include a small case too, to show where the crossover is
   notes: |
     The single most over-applied label in the taxonomy.  The discipline that prevents it is naming both algorithms.  "It has nested loops" is not this root cause; "it is a linear scan where binary search applies" is.
   similar:
@@ -746,7 +746,7 @@
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: |
-    the cheap step must remove most of the data; state the selectivity in the case file and make it representative rather than convenient
+    the cheap step must remove most of the data; state the selectivity in the submission and make it representative rather than convenient
   similar:
   - C3.S6
   - C4.S1

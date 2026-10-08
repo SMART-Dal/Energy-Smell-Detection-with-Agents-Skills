@@ -171,7 +171,7 @@
   min_workload_hint: |
     the case must run several threads that genuinely contend, and must report energy and time separately -- narrowing a section can leave total energy unchanged while cutting wall time, which is a real and reportable outcome
   notes: |
-    Measuring contention needs a case file that starts threads, which makes the result sensitive to the host's core count and to whatever else is running. Interpret a small effect cautiously here, and prefer to report the structural argument -- what was serialised and no longer is -- alongside whatever the meter says.
+    Measuring contention needs a submission that starts threads, which makes the result sensitive to the host's core count and to whatever else is running. Interpret a small effect cautiously here, and prefer to report the structural argument -- what was serialised and no longer is -- alongside whatever the meter says.
   similar:
   - C11.S2
   - C11.S4

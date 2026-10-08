@@ -269,7 +269,7 @@
   patch_shape: statement_local
   measurability: scales_with_input
   min_workload_hint: |
-    only the guarding form is measurable; when the determined test stands in front of one cheap statement, report it as advisory rather than building a case file
+    only the guarding form is measurable; when the determined test stands in front of one cheap statement, report it as advisory rather than building a submission
   notes: |
     The published example for this root cause is `if items: if items:`, which nobody writes.  The interesting form, and the one the description's own wording points at, is a test made redundant by a *fact about the domain* rather than by textual duplication.  The project's sample set has four: `floor <= ceil`, `abs(x) >= 0`, an `elif` restating a negation, and four range branches collapsing to `low <= x <= high`.  None is findable syntactically, and every one is ordinary code somebody wrote on purpose.
   similar:
@@ -745,7 +745,7 @@
   in_one_line: |
     an exception used as ordinary control flow, on a path where it is raised often
   what_to_look_for: |
-    Entering a `try` costs nothing measurable in modern CPython, because the handler is recorded in a table rather than pushed at run time.  Raising is what costs: instantiating the exception, capturing a traceback frame by frame, unwinding, and matching the handler.  So the price is the raise rate times the cost of a raise, which makes `try`/`except` idiomatic and fast when the exception is rare and waste only when it is the common case.  The smell is therefore not the syntax -- it is a property of the *data*, so a finding here needs a defensible statement of how often the exception actually fires, and a case file that never raises is measuring the wrong thing rather than refuting the claim.  Check the `try` is inside the loop rather than around it, and that the replacement check is both cheaper and exact: `except (KeyError, ValueError)` covers two failures where `.get()` covers one, and a repair that silently changes which failures are tolerated is not behaviour-preserving.  Some raises have no cheap pre-check at all -- a file that can vanish between the test and the open, an `int()` on arbitrary text -- and those stay as they are.
+    Entering a `try` costs nothing measurable in modern CPython, because the handler is recorded in a table rather than pushed at run time.  Raising is what costs: instantiating the exception, capturing a traceback frame by frame, unwinding, and matching the handler.  So the price is the raise rate times the cost of a raise, which makes `try`/`except` idiomatic and fast when the exception is rare and waste only when it is the common case.  The smell is therefore not the syntax -- it is a property of the *data*, so a finding here needs a defensible statement of how often the exception actually fires, and a submission that never raises is measuring the wrong thing rather than refuting the claim.  Check the `try` is inside the loop rather than around it, and that the replacement check is both cheaper and exact: `except (KeyError, ValueError)` covers two failures where `.get()` covers one, and a repair that silently changes which failures are tolerated is not behaviour-preserving.  Some raises have no cheap pre-check at all -- a file that can vanish between the test and the open, an `int()` on arbitrary text -- and those stay as they are.
   not_a_smell_when:
   - |
     the exception is genuinely rare, where EAFP is both idiomatic and faster than testing first
@@ -869,7 +869,7 @@
   min_workload_hint: |
     drive it with inputs that actually raise, at a rate you can defend as representative; with no raises the repair shows nothing and the claim is correctly rejected
   notes: |
-    The smell is not `try`/`except` -- it is `try`/`except` where the exception is the common case.  Whether that holds is a property of the *data*, so this root cause cannot be confirmed without a driver whose inputs raise at a realistic rate.  A case file that never raises is measuring the wrong thing rather than refuting the claim.
+    The smell is not `try`/`except` -- it is `try`/`except` where the exception is the common case.  Whether that holds is a property of the *data*, so this root cause cannot be confirmed without a driver whose inputs raise at a realistic rate.  A submission that never raises is measuring the wrong thing rather than refuting the claim.
   similar:
   - C4.S1
   - C4.S7
@@ -1125,7 +1125,7 @@
   min_workload_hint: |
     needs a very hot path; each instance is worth a few bytecodes, so only a case that calls the unit millions of times over trivial input will show it
   notes: |
-    Most instances of this root cause are honestly advisory.  Report them, and do not manufacture a case file that measures a difference nobody will ever observe -- a claim measured badly is worse than a claim reported as unmeasured.
+    Most instances of this root cause are honestly advisory.  Report them, and do not manufacture a submission that measures a difference nobody will ever observe -- a claim measured badly is worse than a claim reported as unmeasured.
   similar:
   - C4.S1
   - C10.S2

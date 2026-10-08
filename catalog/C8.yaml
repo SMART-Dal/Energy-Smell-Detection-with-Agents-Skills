@@ -537,9 +537,9 @@
   patch_shape: structural
   measurability: scales_with_calls
   min_workload_hint: |
-    the effect is per avoided round trip and does not need a large input; the case file must stub the external call at roughly its real cost, and say so if it could not
+    the effect is per avoided round trip and does not need a large input; the submission must stub the external call at roughly its real cost, and say so if it could not
   notes: |
-    Measuring this one honestly is harder than measuring the saving.  A case file cannot make a network call, so the external cost has to be stubbed -- and a stub that returns instantly makes the repair look worthless, while a stub with an arbitrary `sleep` makes the number meaningless.  The defensible approach is to stub at a cost you can justify from an observed latency and to state that figure in the finding, or to report the round trips avoided as a count rather than as an energy figure.
+    Measuring this one honestly is harder than measuring the saving.  A submission cannot make a network call, so the external cost has to be stubbed -- and a stub that returns instantly makes the repair look worthless, while a stub with an arbitrary `sleep` makes the number meaningless.  The defensible approach is to stub at a cost you can justify from an observed latency and to state that figure in the finding, or to report the round trips avoided as a count rather than as an energy figure.
   similar:
   - C8.S1
   - C9.S1

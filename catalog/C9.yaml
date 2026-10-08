@@ -230,7 +230,7 @@
   min_workload_hint: |
     the effect is per operation avoided, so the case needs many items rather than large ones -- and the external call has to be stubbed at a defensible cost, or the number means nothing
   notes: |
-    Measuring anything in this category needs a stub, because a case file cannot make a real network call.  A stub that returns instantly makes every repair here look worthless; an arbitrary `sleep` makes the figure meaningless.  The defensible options are to stub at a latency you can justify from an observed measurement and say so, or to report the operations avoided as a count and leave the energy claim unmade.  A counted claim honestly stated is worth more than a measured one built on an invented constant.
+    Measuring anything in this category needs a stub, because a submission cannot make a real network call.  A stub that returns instantly makes every repair here look worthless; an arbitrary `sleep` makes the figure meaningless.  The defensible options are to stub at a latency you can justify from an observed measurement and say so, or to report the operations avoided as a count and leave the energy claim unmade.  A counted claim honestly stated is worth more than a measured one built on an invented constant.
   similar:
   - C8.S4
   - C9.S2

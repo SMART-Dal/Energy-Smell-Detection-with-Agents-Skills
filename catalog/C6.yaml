@@ -178,7 +178,7 @@
       def top_three(scores):
           return sorted(scores, reverse=True)[:3]
     why: |
-      The obvious repair is `scores.sort(reverse=True)`, and it mutates the caller's list. The function looks pure and would stop being pure. The repair is only available once you have checked every call site, and the verifier has an explicit opt-in for exactly this case -- `EQUIVALENCE = "returns_only"` with the reason stated -- rather than letting it pass silently.
+      The obvious repair is `scores.sort(reverse=True)`, and it mutates the caller's list. The function looks pure and would stop being pure. The repair is only available once you have checked every call site, and the verifier has an explicit opt-in for exactly this case -- `"equivalence": "returns_only"` with the reason stated -- rather than letting it pass silently.
   - code: |
       def apply_defaults(config):
           merged = dict(DEFAULTS)
@@ -215,7 +215,7 @@
             values.sort()
             return values
       note: |
-        Available only if `values` is this object's own list and no caller depends on its order. State that check in the finding, and declare `EQUIVALENCE = "returns_only"` in the case file with the reason -- because the return value is identical and the argument state is not.
+        Available only if `values` is this object's own list and no caller depends on its order. State that check in the finding, and set `"equivalence": "returns_only"` in the submission with the reason -- because the return value is identical and the argument state is not.
 
         Measured in `validation/taxonomy/C6S2_sorted_versus_sort.py`.
     - title: a defensive copy that nothing needed
@@ -276,7 +276,7 @@
   min_workload_hint: |
     a large container or a hot loop; the effect is one pass plus one allocation per copy avoided
   notes: |
-    The commonest instances of this root cause trade an allocation for a mutation, which is a behaviour change even when the returned value is identical.  Whether it is acceptable is a fact about the call sites rather than about the function, so the finding has to say which call sites were checked, and the case file has to declare the relaxation rather than let the difference pass unnoticed.
+    The commonest instances of this root cause trade an allocation for a mutation, which is a behaviour change even when the returned value is identical.  Whether it is acceptable is a fact about the call sites rather than about the function, so the finding has to say which call sites were checked, and the submission has to declare the relaxation rather than let the difference pass unnoticed.
   similar:
   - C3.S7
   - C5.S4
@@ -519,7 +519,7 @@
   patch_shape: structural
   measurability: scales_with_input
   min_workload_hint: |
-    many retained items, and a driver that also *traverses* what it retained -- the collector-time half is spread over the process and will not appear in a one-second window, so what a case file can show is the allocation and the traversal
+    many retained items, and a driver that also *traverses* what it retained -- the collector-time half is spread over the process and will not appear in a one-second window, so what a submission can show is the allocation and the traversal
   notes: |
     This was classified as advisory, on the argument that retention costs collector time and footprint and that a paired A/B harness sees neither. Measured, that was too pessimistic: keeping 50 000 whole records where one field is used, and then summing that field, is **+28.8% +-4.2** on a 1.4% floor.  The collector-time half is genuinely unobservable in a one-second window, but the allocation and the traversal of the retained data are not, and those are usually the larger share anyway.  Report the measured number *and* the retained volume -- "N objects held for the process lifetime where N identifiers would do" -- because the second is the part the measurement cannot reach.
   similar:
@@ -909,9 +909,9 @@
   patch_shape: statement_local
   measurability: scales_with_calls
   min_workload_hint: |
-    the effect appears only across many calls, since the container grows per call; a case file that calls the unit once measures nothing
+    the effect appears only across many calls, since the container grows per call; a submission whose largest case calls the unit once measures nothing
   notes: |
-    Measuring this needs care.  `before` and `after` are not equivalent by construction -- that is the finding -- so the verifier will report `not_equivalent` unless the case file compares two variants that both behave correctly and differ only in how they get there.  The honest presentation is a correctness finding whose energy consequence is unbounded growth, with the growth rate stated rather than an energy figure.
+    Measuring this needs care.  `before` and `after` are not equivalent by construction -- that is the finding -- so the verifier will report `not_equivalent` unless the submission compares two variants that both behave correctly and differ only in how they get there.  The honest presentation is a correctness finding whose energy consequence is unbounded growth, with the growth rate stated rather than an energy figure.
   similar:
   - C6.S4
   - C6.S6
