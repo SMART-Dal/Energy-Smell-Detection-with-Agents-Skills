@@ -132,6 +132,8 @@ def render_root_cause(
     node = taxonomy[root_cause_id]
     entry = catalog[root_cause_id]
     category = taxonomy[entry.category_id]
+    if entry.uses_new_card:
+        return _render_measured_card(node, entry, category, taxonomy, catalog)
 
     lines = [
         f"# {node.id} — {node.name}",
@@ -235,6 +237,72 @@ def render_root_cause(
         "Record which one decided it, whichever way it went.",
         "",
     ]
+    return "\n".join(lines)
+
+
+# -- the card built from measured samples -----------------------------------
+#
+# Six parts: the reference's definition and example, what to look for, the
+# measured repairs, near-misses, and similar root causes. How to read them --
+# that the repairs are ideas rather than templates, what each result line asks
+# for, that a near-miss means the repair would be wrong -- is said once, in
+# SKILL.md's step 3, rather than on every card.
+
+
+def _render_measured_card(node, entry, category, taxonomy: Taxonomy,
+                          catalog: Catalog) -> str:
+    from .samples import decision, measured, title_of   # reads the case files
+
+    lines = [
+        f"# {node.id} — {node.name}",
+        "",
+        f"*Level 2 card. Category [{category.id} {category.name}]"
+        f"(../categories/{category.id}.md).*",
+        "",
+        "## Definition",
+        "",
+        node.description,
+        "",
+    ]
+    if node.example:
+        lines += ["## Example from the reference", "", node.example, ""]
+    lines += ["## What to look for", "", _paragraphs(entry.look_for), ""]
+
+    lines += ["## Repair", ""]
+    if entry.refactoring and entry.refactoring.summary:
+        lines += [entry.refactoring.summary[0].upper() + entry.refactoring.summary[1:]
+                  .rstrip(".") + ".", ""]
+    for position, sample in enumerate(entry.repairs, 1):
+        result = measured(sample.case)
+        lines += [
+            f"### {position}. {title_of(sample.case)}",
+            "",
+            "Before:", "", "```python", result.before.rstrip(), "```", "",
+            "After:", "", "```python", result.after.rstrip(), "```", "",
+            decision(result), "",
+        ]
+        if sample.note:
+            lines += [_paragraphs(sample.note), ""]
+
+    if entry.not_this:
+        lines += ["## Looks like it, but is not", ""]
+        for item in entry.not_this:
+            lines += [
+                f"### {item.title}", "",
+                "```python", item.code, "```", "",
+                "The tempting repair:", "",
+                "```python", item.tempting, "```", "",
+                f"**Why not:** {item.why}", "",
+            ]
+
+    if entry.similar:
+        lines += ["## Similar root causes", ""]
+        for neighbour_id in entry.similar:
+            neighbour = taxonomy[neighbour_id]
+            lines.append(f"- **[{neighbour.id} {neighbour.name}]"
+                         f"(../root-causes/{neighbour.id}.md)** — "
+                         f"{catalog[neighbour_id].in_one_line}")
+        lines.append("")
     return "\n".join(lines)
 
 

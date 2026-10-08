@@ -1,222 +1,178 @@
 # Writing a catalog entry
 
-`catalog/C*.yaml` is the source for every level-2 knowledge card. One entry per
-root cause, rendered by `build/cards.py`. This file says what an entry has to
-contain and why each part exists.
-
-Read `catalog/C5.yaml` first — it is the worked example, and the standard.
+`catalog/C*.yaml` is the source for every level-2 card. One entry per root
+cause, rendered by `build/cards.py`. This file says what an entry contains,
+where each part comes from, and what may be written by hand.
 
 ---
 
 ## The audience
 
-A coding agent that has just read an unfamiliar function and formed a rough
-suspicion. It opens this card to decide whether the suspicion is *this* root
-cause, and if so, what exactly to change. It will not have measured anything
-yet, it cannot ask anyone, and it will believe what the card says.
+A coding agent that has read an unfamiliar function and formed a rough
+suspicion. It opens the card to decide whether the suspicion is *this* root
+cause and what the repair looks like. It cannot ask anyone, and it will believe
+what the card says -- so nothing on a card may be a guess.
 
-So the card has to survive being taken literally.
+## The card
+
+| section | comes from |
+|---|---|
+| Definition, Example from the reference | the taxonomy spreadsheet, verbatim |
+| What to look for | `look_for` -- written |
+| Repair: the one-line summary | `refactoring.summary` -- written once, also in the category table |
+| Repair: each sample's title | `validation/alignment/decisions.yaml`, else the case file's docstring |
+| Repair: before / after | the case file under `validation/taxonomy/`, extracted with its helpers |
+| Repair: the **Measured** line | the latest run in `validation/results/taxonomy.jsonl` |
+| Repair: the note under a sample | `repairs[].note` -- carried over from the old card |
+| Looks like it, but is not | `not_this` -- written, each with a checkable `source` |
+| Similar root causes | `similar` ids; each neighbour's own `in_one_line` |
+
+How to read a card -- that the repairs are ideas rather than templates, what
+each **Measured** action means, that a matching pattern does not guarantee a
+saving -- is said once in SKILL.md's step 3, never on a card.
 
 ## Fields
 
 ```yaml
-- id: C7.S4
-  in_one_line: >
-    ...
-  signals: [sort_then_slice, filter_after_transform]   # analyzer kinds, optional
-  what_to_look_for: >
-    ...
-  not_a_smell_when:
-    - >
-      ...
-  counter_examples:
-    - code: |
-        ...
-      why: >
-        ...
+- id: C3.S7
+  signals:
+  - mutation_during_iteration
+  in_one_line: |
+    a collection edited while it is being walked
+  look_for: |
+    ...three or four lines...
   refactoring:
-    summary: one line, imperative
-    examples:
-      - title: ...
-        before: |
-          ...
-        after: |
-          ...
-        note: >
-          ...
-  similar: [C3.S6, C4.S1]
-  notes: >
-    ...
+    summary: build the items to keep into a new collection instead of editing the one being walked
+  repairs:
+  - case: C3S7_mutation_in_loop
+    note: |
+      ...
+  - case: C3S7_delete_while_scanning
+  excluded:
+  - case: C3S7_iterating_a_snapshot
+    reason: |
+      its after applies C7.S1's repair, not this one's
+  not_this:
+  - title: a work list that is meant to grow
+    source: rule:mutation_during_iteration/work_list
+    code: |
+      ...
+    tempting: |
+      ...
+    why: |
+      ...
+  similar:
+  - C6.S2
 ```
 
-Any key not on that list is a build error. A misspelled one used to be ignored
-silently and take a whole section of a card with it.
+Any other key is a build error.
 
-### `in_one_line` — what this root cause hunts for
+### `in_one_line` -- what this root cause hunts for
 
-One clause, lower case, no full stop. Written as a thing to look for rather
-than as a definition: "an inner loop that searches, where a lookup would turn
-n*m into n+m", not "inefficient nested iteration".
+One clause, lower case, no full stop, written as a thing to look for. It renders
+in the category table, the full index, and every card that lists this one as
+similar.
 
-It is written once and rendered in three places — the category card's table,
-the full index the agent sweeps at the end of step 2, and every *other* card
-that lists this one under `similar`. That is what keeps those three consistent,
-and it means each card describes its neighbours in the neighbours' own words.
+### `look_for` -- what to look for
 
-Precise enough to recognise something by; not enough to decide anything from.
+Three or four lines: what the waste looks like in code, and what the machine
+does that it need not. Written **only** from
 
-### `what_to_look_for` — the symptom and its cost, together
+- this root cause's case files (`validation/taxonomy/<C>S<n>_*.py`: the
+  `before` functions and the docstrings),
+- the positives of this entry's rules: the functions named in `EXPECTED` in
+  `tests/rules/<signal>/test_main.py`, for each of the entry's `signals` that
+  has a directory there,
+- the entry's previous `what_to_look_for` and `notes`.
 
-One passage, five to twelve sentences. It has to do two jobs at once:
+Say what the root cause *is*. What it is not belongs in `not_this`. No claim the
+sources do not make, and no numbers.
 
-- **the cost, mechanically.** What gets allocated, copied, hashed, dispatched,
-  re-entered, or paid per element, and how that scales. Not "this is slower" —
-  *why* it is slower. Without this a card teaches a shape to match, and an agent
-  that has only learned shapes cannot tell a smell from its near-miss.
-- **the symptom, in general terms.** What the redundancy looks like, what
-  usually decides the case, and what most often makes the pattern correct as
-  written. Name the one or two checks that reject most candidates, and say what
-  each turns on.
+### `repairs` -- every sample, in order
 
-**Write it as prose, not as a checklist.** This field replaced a numbered
-`how_to_tell` whose every step had to hold, and the numbering was the problem:
-under a definitive heading, a list of steps reads as the set of permitted cases,
-and an agent that has learned the enumerated shapes rejects everything else. The
-expensive instances of most of these root causes are the ones nobody enumerated.
+One item per case file of this root cause, already listed. Only `note` is
+authored, and it is carried over verbatim from the old card. Edit a note only
+to:
 
-Concrete shapes belong in `refactoring.examples`, where they read as
-illustrations. Facts belong here — `in` is linear on a list and a probe on a
-set, a `for` loop evaluates its iterable once, a log call's arguments are built
-before the level is checked. Carry every fact the old steps carried; drop only
-the framing that made them a gate.
+- shorten it to one or two sentences, keeping the fact that is specific to
+  this sample;
+- delete it when it only restates what the before/after shows;
+- remove anything the **Measured** line contradicts (it says the repair saves,
+  and the sample cost more), any measured number, and any mention of advisory
+  status, patch shape, measurability, workload hints, subsumption or case
+  files.
 
-Cite a measurement if there is one, with the number and what it was measured
-on. `validation/results/` and `SAMPLE_NUANCES.md` are the only sources.
+Never add a claim a note did not make.
 
-### `not_a_smell_when` — contexts where the pattern is correct
+### `excluded` -- a sample that repairs another root cause
 
-Where the pattern is present and is the right call. Every pattern in this
-taxonomy is right somewhere; this is where that goes.
+When a case file's `after` applies a *different* root cause's repair -- its
+docstring says so, or the change is plainly that root cause's -- move it from
+`repairs` to `excluded`, with a one-line `reason` naming the other root cause.
+A sample is never excluded for costing more: that is what **Try both
+directions** is for. The build checks that every case file is either shown or
+excluded.
 
-Aim for four or five. Include at least one about *size* (too small to matter),
-one about *semantics* (the repair would change behaviour), and one about
-*boundaries* (an API, a caller, a format fixes the choice).
+### `not_this` -- looks like it, but is not
 
-### `counter_examples` — looks the same, is not
+At most five. Each is code that has this root cause's pattern where applying
+this card's repair would be wrong, because it changes what the code does --
+results, errors, order, laziness, side effects, memory bounds, concurrency --
+or undoes something the author did on purpose. Each has:
 
-Runnable code that matches the pattern and is correct as written, plus the one
-difference that makes it so.
+- `title` -- what makes this one different, lower case;
+- `code` -- the code as found;
+- `tempting` -- this card's repair applied to it, as an agent would write it;
+- `why` -- one or two sentences: what the tempting repair breaks;
+- `source` -- where it comes from, checked by the build:
+  - `catalog` -- the entry's previous `not_a_smell_when` or `counter_examples`;
+  - `rule:<rule>/<function>` -- a negative in that rule's fixtures
+    (`tests/rules/<rule>/test_cases.py`, not in `EXPECTED`);
+  - `known` -- documented Python behaviour, which `why` names. Use sparingly.
 
-**This is the highest-value field on the card.** A second positive example
-teaches nothing a first one did not; what decides a hard case is the near-miss.
-C10.S4 is the proof: three examples of `s += x` in a loop would all have been
-wrong, because what separates the smell from the non-smell is the assignment
-target — `out +=` against `self.buf +=`.
+Not a near-miss:
 
-One or two per root cause. Prefer near-misses that a competent reader would
-actually get wrong, especially ones this project has measured. Do not invent
-measurements; if you cite a number, it must come from `SAMPLE_NUANCES.md` or
-`validation/results/`.
+- a validation sample from `validation/taxonomy/`;
+- anything a measured repair on the same card contradicts (a shape a sample
+  confirmed is not "not a smell");
+- "the input is small" or "the code is not hot" -- that is for the
+  measurement, not the card;
+- a rule negative that differs trivially (another variable, no loop, already
+  repaired, a different type) -- those test the rule, they teach nothing;
+- a shape that is simply another root cause -- that is what `similar` is for.
 
-### `refactoring.examples` — one to three before/after pairs
+Fewer than five is fine; none is fine when no source has a good one.
 
-One is enough when the repair genuinely is one expression. Most root causes need
-two or three, and they must show **different things**, not the same edit twice:
+### `similar` -- where else to look
 
-1. **the plain case** — the repair at its simplest, so the shape is clear;
-2. **the real case** — the same repair where the waste and the fix are in
-   different places: different methods, a caller and a callee, a value shaped
-   wrongly three functions earlier. This is what code actually looks like, and
-   a card that only shows one-liners teaches an agent to only find one-liners;
-3. **a different form of the same root cause** — when the root cause covers more
-   than one shape, show the second one.
+A list of root cause ids, rendered with each neighbour's own `in_one_line`.
+`load_catalog` mirrors every edge, and a card may end up with at most five.
 
-Each example takes a `title` (a short phrase, lower case) and a `note` (one to
-three sentences: what changed, why it costs less, and what you had to check
-before making the edit).
+### Retired keys
 
-The `before` must be code someone would plausibly write. Do not write
-`if items: if items:` — nobody writes that, and a card whose example is a
-strawman gets pattern-matched against nothing.
-
-### `similar` — where else to look
-
-A bare list of root cause IDs. The renderer fills each one in with that card's
-own `in_one_line`, so there is no prose to write and none to keep in sync.
-
-This is not a discrimination test, and it deliberately no longer carries one.
-Two agents that repair the same waste and file it under two overlapping root
-causes have both done the job, as long as each repair matches the definition it
-was filed under — so the paragraphs that used to defend each distinction were
-defending something the project does not need. What a reader actually needs is
-a way out of a card that nearly fits.
-
-Two to four each, and include cross-category ones: those are the neighbours a
-reader will never open by accident.
-
-**The relation is symmetric.** `load_catalog` mirrors every edge, so writing it
-once on either side is enough, and a card can end up listing a neighbour it does
-not itself name. That is intended — a neighbour reachable in one direction only
-is a dead end for whichever reader arrives from the wrong side.
-
-### Retired: `patch_shape`, `measurability`, `min_workload_hint`
-
-Older entries still carry these three keys. The build accepts and ignores them
-(`build/catalog.py` `RETIRED_KEYS`); they can be deleted when an entry is next
-rewritten, and new entries should not add them. They told the agent how large
-an edit to make, whether a root cause could be measured at all, and how to size
-a workload — each one steering it toward an action rather than letting the
-measurement say what a repair was worth. The `advisory` status that
-`measurability: constant_small` produced is gone with them: every root cause
-has a repair, and every repair is measured like any other.
+`what_to_look_for`, `not_a_smell_when`, `counter_examples`, `notes` and
+`refactoring.examples` belong to the old card. An entry with `repairs` must not
+carry them. `patch_shape`, `measurability` and `min_workload_hint` are
+accepted and ignored (`RETIRED_KEYS`), and are no longer written.
 
 ---
 
 ## What measurement may and may not change
 
-The taxonomy is the reference. Its 65 root causes come from a literature
-review, and `description` and `example` render verbatim from the spreadsheet.
-**Nothing measured here revises them, and no authored field may argue that one
-of them is wrong.** A repair that fails to pay, on one host, in the shapes we
-happened to try, is a fact about those shapes -- not evidence that the root
-cause is imaginary.
+The taxonomy is the reference. Its 65 root causes come from a peer-reviewed
+literature review, and the definition and example render verbatim. **Nothing
+measured here revises them, and no authored field may argue that one of them is
+wrong.** A repair that cost more on one host, in the shapes we tried, is a fact
+about those shapes.
 
-What measurement is for is the authored half: saying where a root cause pays,
-how much, and where it does not, so an agent knows what to expect before it
-spends a measurement of its own.
-
-Every root cause has three case files under `validation/taxonomy/`, deliberately
-different in shape, each with large / normal / edge cases and, where the card
-makes a conditional claim, a case that puts the condition on the wrong side.
-Write the results in according to what they show:
-
-**All three pay.** Put the derivation in `what_to_look_for` -- what the size
-tracks, roughly how big it gets, what the numbers were. That is the most useful
-thing a card can carry, because it lets the agent size a candidate before
-building anything.
-
-**Some pay and some do not.** Say in `what_to_look_for` what to expect in
-general and what decides it. Put the shapes that did not pay into
-`not_a_smell_when` and `counter_examples`, with the readings. And put **only
-the shapes that paid** into `refactoring.examples` -- an example the agent is
-told to copy should be one that worked.
-
-**None of them pay.** Do not reject the root cause and do not write it down as
-disproved. Say plainly that the repair did not pay in the shapes tried, that it
-may still pay in ones we did not, and leave the judgement with the agent for
-its own context, and let the agent decide and measure. The definition
-stands either way -- read it and it makes sense, and Python may simply not be
-where the mechanism shows.
-
-Phrase all of this as *where to expect it to work*, never as a correction. "The
-description names X; measured here it costs more, because ..." is right. "The
-description is wrong about X" is not.
+So the cards never hide a regressed sample and never explain it away. Its
+**Measured** line says what happened and tells the agent to try both
+directions; the definition stands either way.
 
 ## House rules
 
-**Consistency inside a card.** If you change the repair, re-read
-`in_one_line`, `what_to_look_for`, the exceptions and the near-misses and make
-them agree. A card whose symptoms describe one thing and whose repair shows
+**Consistency inside a card.** `in_one_line`, `look_for`, the notes and the
+near-misses must agree with each other and with the measured repairs. A card whose symptoms describe one thing and whose repair shows
 another is worse than either half alone. Changing `in_one_line` reaches further
 than the card it sits on, since every neighbour renders it.
 
@@ -227,28 +183,22 @@ is not. **Never invent a root cause, never widen one to cover something the
 description excludes, and never write a card that argues its own description is
 mistaken.**
 
-**No fabricated numbers.** Cite a measurement only if it appears in
-`SAMPLE_NUANCES.md` or `validation/RESULTS.md`. Everything else is mechanism, not
-measurement.
+**No fabricated numbers.** The result line under each repair carries the
+measurement; authored text carries none. Complexity (`O(n*m)`) is mechanism and
+is fine.
 
 **Voice.** Plain declarative sentences. Say what to do and why. No hedging
 adverbs, no "simply", no exclamation marks. British spelling.
 
-## YAML gotchas
+## YAML
 
-A plain scalar cannot contain `": "` — YAML reads it as a mapping key. Every
-prose item under `not_a_smell_when` is therefore written as a folded block:
+`code`, `tempting`, `look_for`, `note`, `why` and `reason` are block scalars
+(`|`). A plain scalar cannot contain `": "` -- YAML reads it as a mapping key.
 
-```yaml
-  not_a_smell_when:
-    - >
-      the type is fixed by an API boundary: a caller's argument, or a return
-      value other code depends on
-```
+Check an entry without building `dist/`:
 
-`in_one_line`, `what_to_look_for`, `why` and `note` use
-`>` for the same reason. `code`, `before` and `after` use `|`, which preserves
-newlines.
+    .venv/bin/python <preview.py> --check C3.S7     # problems only
+    .venv/bin/python <preview.py> C3.S7             # problems and the rendered card
 
-After editing, run `python -m build` from the project root. It validates the
-catalog against the taxonomy and will tell you what is wrong.
+`python -m build` validates the whole catalog against the taxonomy and writes
+`dist/`.

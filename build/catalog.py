@@ -91,6 +91,36 @@ class CounterExample:
 
 
 @dataclass(frozen=True)
+class RepairSample:
+    """A measured sample shown as a repair.
+
+    Only the note is authored. The code comes from the case file, the title from
+    `validation/alignment/decisions.yaml` (or the case file's docstring), and
+    the verdict from the latest results -- see `samples.py`.
+    """
+
+    case: str
+    """Stem of the case file under `validation/taxonomy/`."""
+    note: str = ""
+    """Carried over from the old card's example note; trimmed, never invented."""
+
+
+@dataclass(frozen=True)
+class NotThis:
+    """Code that matches the pattern, the repair it invites, and why that is wrong."""
+
+    title: str
+    code: str
+    tempting: str
+    why: str
+    source: str
+    """Where it comes from, so it can be checked: `catalog` (the old card's
+    `not_a_smell_when` or `counter_examples`), `rule:<rule>/<function>` (a
+    negative in that rule's test fixtures), or `known` (documented Python
+    behaviour, which `why` names)."""
+
+
+@dataclass(frozen=True)
 class CatalogEntry:
     """Everything we know about how to recognise and repair one root cause."""
 
@@ -152,6 +182,27 @@ class CatalogEntry:
 
     notes: str = ""
 
+    look_for: str = ""
+    """What to look for: three or four lines summarising the measured samples.
+
+    Written from the samples and the rule fixtures, in the card's own terms,
+    and only about what the root cause is -- what it is not lives in
+    `not_this`."""
+
+    repairs: tuple[RepairSample, ...] = ()
+    """Every measured sample that repairs this root cause, in the order shown."""
+
+    not_this: tuple[NotThis, ...] = ()
+    """Up to five near-misses: the pattern is there and the repair would be wrong."""
+
+    excluded: tuple[tuple[str, str], ...] = ()
+    """(case stem, reason): samples filed under this root cause that repair another one."""
+
+    @property
+    def uses_new_card(self) -> bool:
+        """The card is rendered from measured samples rather than authored examples."""
+        return bool(self.repairs)
+
     @property
     def category_id(self) -> str:
         return self.id.split(".")[0]
@@ -191,6 +242,7 @@ class Catalog:
 ENTRY_KEYS = {
     "id", "in_one_line", "signals", "what_to_look_for", "not_a_smell_when",
     "counter_examples", "refactoring", "similar", "notes",
+    "look_for", "repairs", "not_this", "excluded",
 } | {"patch_shape", "measurability", "min_workload_hint"}
 
 RETIRED_KEYS = {"patch_shape", "measurability", "min_workload_hint"}
@@ -267,6 +319,18 @@ def _entry_from_dict(raw: dict) -> CatalogEntry:
         refactoring=refactoring,
         similar=tuple(raw.get("similar", ())),
         notes=raw.get("notes", "").strip(),
+        look_for=raw.get("look_for", "").strip(),
+        repairs=tuple(
+            RepairSample(case=r["case"], note=(r.get("note") or "").strip())
+            for r in raw.get("repairs", ())
+        ),
+        not_this=tuple(
+            NotThis(title=n["title"].strip(), code=n["code"].rstrip(),
+                    tempting=n["tempting"].rstrip(), why=n["why"].strip(),
+                    source=n.get("source", "").strip())
+            for n in raw.get("not_this", ())
+        ),
+        excluded=tuple((x["case"], x["reason"].strip()) for x in raw.get("excluded", ())),
     )
 
 
@@ -309,6 +373,63 @@ def load_catalog(strict: bool = True) -> Catalog:
     return catalog
 
 
+MAX_NOT_THIS = 5
+
+
+def _new_card_problems(entry: CatalogEntry) -> list[str]:
+    """A card built from measured samples carries none of the old authored prose."""
+    from .samples import case_files, measured, rule_negative   # reads the case files
+
+    problems = []
+    if not entry.look_for:
+        problems.append(f"{entry.id} has repairs but no `look_for`")
+    left_over = [name for name, value in (
+        ("what_to_look_for", entry.what_to_look_for),
+        ("not_a_smell_when", entry.not_a_smell_when),
+        ("counter_examples", entry.counter_examples),
+        ("refactoring.examples", entry.refactoring.examples if entry.refactoring else ()),
+        ("notes", entry.notes),
+    ) if value]
+    if left_over:
+        problems.append(f"{entry.id} mixes the new card with old fields: {left_over}")
+
+    # Every sample filed under this root cause is shown or excluded with a
+    # reason; none disappears because nobody listed it.
+    shown = [sample.case for sample in entry.repairs]
+    dropped = [case for case, _ in entry.excluded]
+    listed = shown + dropped
+    duplicates = sorted({case for case in listed if listed.count(case) > 1})
+    if duplicates:
+        problems.append(f"{entry.id} lists these samples twice: {duplicates}")
+    missing = sorted(set(case_files(entry.id)) - set(listed))
+    stray = sorted(set(listed) - set(case_files(entry.id)))
+    if missing:
+        problems.append(f"{entry.id} neither shows nor excludes: {missing}")
+    if stray:
+        problems.append(f"{entry.id} lists samples that are not its case files: {stray}")
+    for case in shown:
+        try:
+            measured(case)
+        except (FileNotFoundError, KeyError, SyntaxError) as exc:
+            problems.append(f"{entry.id} repair {case}: {exc}")
+
+    if len(entry.not_this) > MAX_NOT_THIS:
+        problems.append(f"{entry.id} has {len(entry.not_this)} `not_this` entries; "
+                        f"at most {MAX_NOT_THIS}")
+    for item in entry.not_this:
+        source = item.source
+        if source in ("catalog", "known"):
+            continue
+        if source.startswith("rule:"):
+            problem = rule_negative(source[len("rule:"):])
+            if problem:
+                problems.append(f"{entry.id} near-miss {item.title!r}: {problem}")
+            continue
+        problems.append(f"{entry.id} near-miss {item.title!r} has source {source!r}; "
+                        f"expected catalog, known, or rule:<rule>/<function>")
+    return problems
+
+
 MAX_SIMILAR = 5
 """How many `similar` entries one card may end up with after mirroring.
 
@@ -330,7 +451,7 @@ def _validate(catalog: Catalog, *, strict: bool) -> None:
     for entry in catalog.entries.values():
         if not entry.in_one_line:
             problems.append(f"{entry.id} has no in_one_line")
-        if not entry.what_to_look_for:
+        if not entry.what_to_look_for and not entry.uses_new_card:
             problems.append(f"{entry.id} has no what_to_look_for")
         if entry.id in entry.similar:
             problems.append(f"{entry.id} lists itself as similar")
@@ -352,6 +473,8 @@ def _validate(catalog: Catalog, *, strict: bool) -> None:
                 problems.append(f"{entry.id} points at unknown root cause {target}")
         if entry.refactoring is None:
             problems.append(f"{entry.id} has no refactoring: every root cause needs a repair to measure")
+        if entry.uses_new_card:
+            problems.extend(_new_card_problems(entry))
 
     if strict:
         missing = known - set(catalog.entries)
