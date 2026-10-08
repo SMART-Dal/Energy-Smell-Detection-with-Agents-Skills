@@ -16,7 +16,7 @@ short workload.
 
 Two warmups run before the first sample, and they warm different things. The
 machine warmup (`burn_cpu`) spends `warmup_seconds` on arithmetic unrelated to
-the case, so the pinned core is at a steady clock and temperature rather than
+the case, so the core is at a steady clock and temperature rather than
 ramping through the first windows. The code warmup then calls each variant a
 few times so neither pays a one-off interpreter cost. Neither is measured.
 """
@@ -26,7 +26,6 @@ from __future__ import annotations
 import gc
 import json
 import math
-import os
 import random
 import sys
 import time
@@ -100,8 +99,10 @@ def main(argv: list[str]) -> int:
     case = next(c for c in case_file.cases if c.label == spec["label"])
 
     repeats = spec["repeats"]
+    mutates = bool(spec.get("mutates"))
     variants = [(label, case_file.variant(attr)) for label, attr in spec["variants"]]
-    pool = build_pool(case, repeats if spec.get("mutates") else 1)
+    pool_size = repeats if mutates else 1
+    pool = build_pool(case, pool_size)
 
     # Warm the machine first: bring the clock and temperature to a steady
     # state before anything is measured, so the climb out of idle is not
@@ -120,6 +121,13 @@ def main(argv: list[str]) -> int:
         # between the variants instead of charged to whichever runs second.
         ordered = variants if rep % 2 == 0 else variants[::-1]
         for label, function in ordered:
+            # A unit that mutates its input gets a fresh pool before every
+            # window, outside the measured region. Both variants used to share
+            # one pool built once, so whichever ran second -- and every window
+            # after the first -- measured inputs already sorted, emptied or
+            # filled by the window before it.
+            if mutates:
+                pool = build_pool(case, pool_size)
             gc.collect()
             sample = meter.sample(lambda: run_window(function, pool, repeats))
             samples.append({
