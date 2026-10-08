@@ -18,7 +18,7 @@ every case to a full window before measuring it, however small the case is.
 **Warm the machine before believing it.** An idle core runs at a low clock and
 a low temperature, and the first seconds of any workload are spent climbing to
 a steady state. The runner burns `WARMUP_SECONDS` of unrelated arithmetic on
-the pinned core before the first window opens, so that climb is not charged to
+the machine before the first window opens, so that climb is not charged to
 whichever variant happens to be measured first.
 
 **Calibrate against a null canary rather than trusting a fixed threshold.**
@@ -48,8 +48,10 @@ not do is separate a change in power draw from a change in duration.
 
 Subtracting a calibrated idle baseline to recover "attributable" energy was
 tried and rejected: it amplifies relative noise badly enough to make real
-effects stop being significant. The reported number is the raw package + DRAM
-total over the window, deliberately.
+effects stop being significant. The reported number is the raw total over the
+window, deliberately. Which domains that covers is whatever the host exposes
+and is recorded beside every verdict -- on the development host, the two CPU
+packages and no DRAM counter.
 
 Time is recorded separately, so the cases where energy and duration diverge --
 the ones that distinguish an energy effect from a performance one -- stay
@@ -84,7 +86,7 @@ A core that has been idle sits at a low clock and a low temperature, and a
 frequency governor takes seconds to settle once work arrives. Measuring across
 that ramp charges it to whichever variant went first, which is exactly the kind
 of systematic error alternating the pair cannot cancel. The runner busies the
-pinned core for this long, after pinning and before any window, so every sample
+core it runs on for this long, before any window, so every sample
 is taken from a machine already at a steady state.
 
 Ten seconds is a floor that comfortably outlasts a governor ramp on ordinary
@@ -147,7 +149,7 @@ def compare_case(
     conditions.
     """
     samples = _execute({
-        "case_file": str(case_path.resolve()),
+        "case_file": str(Path(case_path).resolve()),
         "label": label,
         "variants": [list(v) for v in variants],
         "repeats": repeats,

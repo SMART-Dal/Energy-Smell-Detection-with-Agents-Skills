@@ -114,10 +114,10 @@ def _compare(*, before, after, same_value=None, compare_args: bool = True) -> st
         )
     if compare_args and not _same(_snapshot(before_args), _snapshot(after_args)):
         return (
-            "the arguments end up in different states: `before` and `after` do "
-            "not mutate their inputs the same way. If that is deliberate and "
-            "the call sites do not depend on it, say so with "
-            "`EQUIVALENCE = \"returns_only\"`."
+            "the arguments end up in different states: `before` and `after` "
+            "do not mutate their inputs the same way. If that is deliberate "
+            "and no call site depends on the mutation, relax equivalence to "
+            "`returns_only` and give the reason."
         )
     if before_stdout != after_stdout:
         return f"different stdout: {_short(before_stdout)} vs {_short(after_stdout)}"
@@ -218,3 +218,126 @@ def _describe(kind: str, value) -> str:
 def _short(value, limit: int = 120) -> str:
     text = repr(value)
     return text if len(text) <= limit else text[:limit] + "..."
+
+
+# -- comparing two copies of the code ----------------------------------------
+#
+# A submitted repair runs against two copies of the repository, so its two
+# results are instances of two copies of every class and never compare equal
+# as live objects. Each side renders what it produced into JSON, and the
+# renderings are compared. The rules below exist so that two results the
+# in-process check would call equal render the same:
+#
+#   * memory addresses are stripped, since two objects never share one;
+#   * each side's repository copy and scratch directory are replaced by a
+#     placeholder, since a result that names a file it wrote names a
+#     different directory on each side;
+#   * an integral float renders as an int, as `1 == 1.0` is true in-process;
+#   * sets and dict items are ordered by their rendering, not by hashing;
+#   * an object without `__eq__` renders as its class and attributes, which is
+#     the structural comparison `_same` falls back to.
+#
+# Two renderings exist. The tagged one keeps a list distinct from a tuple and
+# is what the default check compares. The plain one is what a submission's own
+# `equivalent(before, after)` receives: lists, dicts, numbers and strings.
+
+import base64 as _base64
+import json as _json
+import math as _math
+import re as _re
+from pathlib import PurePath as _PurePath
+
+_ADDRESS = _re.compile(r" at 0x[0-9a-fA-F]+")
+_MAX_DEPTH = 8
+
+
+def render(value, *, plain: bool = False, replace: tuple = ()):
+    """`value` as JSON-serialisable data, comparable across processes."""
+    return _render(value, plain, tuple(replace), 0, set())
+
+
+def render_json(value, *, plain: bool = False, replace: tuple = ()) -> str:
+    """The rendering as one canonical string, so equality is string equality."""
+    return _json.dumps(render(value, plain=plain, replace=replace),
+                       sort_keys=True, separators=(",", ":"))
+
+
+def normalise_text(text: str, replace: tuple) -> str:
+    """Placeholders for the per-side paths, then no memory addresses."""
+    for old, new in replace:
+        text = text.replace(old, new)
+    return _ADDRESS.sub(" at 0x<ADDR>", text)
+
+
+def _render(value, plain, replace, depth, seen):
+    if value is None or isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if _math.isnan(value):
+            return "nan" if plain else {"float": "nan"}
+        if _math.isinf(value):
+            text = "inf" if value > 0 else "-inf"
+            return text if plain else {"float": text}
+        if value.is_integer() and abs(value) < 2 ** 53:
+            return int(value)
+        return value
+    if isinstance(value, complex):
+        return [value.real, value.imag] if plain else {"complex": [value.real, value.imag]}
+    if isinstance(value, str):
+        return normalise_text(value, replace)
+    if isinstance(value, (bytes, bytearray)):
+        encoded = _base64.b64encode(bytes(value)).decode("ascii")
+        return encoded if plain else {type(value).__name__: encoded}
+    if isinstance(value, _PurePath):
+        text = normalise_text(str(value), replace)
+        return text if plain else {"path": text}
+
+    if depth >= _MAX_DEPTH:
+        return "<deep>"
+    if id(value) in seen:
+        return "<cycle>"
+    seen = seen | {id(value)}
+    deeper = depth + 1
+
+    if isinstance(value, (list, tuple)):
+        items = [_render(v, plain, replace, deeper, seen) for v in value]
+        return items if plain else {type(value).__name__: items}
+    if isinstance(value, (set, frozenset)):
+        items = sorted((_render(v, plain, replace, deeper, seen) for v in value),
+                       key=lambda v: _json.dumps(v, sort_keys=True))
+        return items if plain else {type(value).__name__: items}
+    if isinstance(value, dict):
+        pairs = sorted(
+            ((_render(k, plain, replace, deeper, seen), _render(v, plain, replace, deeper, seen))
+             for k, v in value.items()),
+            key=lambda kv: _json.dumps(kv[0], sort_keys=True),
+        )
+        if plain:
+            return {k if isinstance(k, str) else _json.dumps(k, sort_keys=True): v
+                    for k, v in pairs}
+        return {"dict": [list(kv) for kv in pairs]}
+
+    tolist = getattr(value, "tolist", None)
+    if callable(tolist) and hasattr(value, "shape"):
+        try:
+            data = _render(tolist(), plain, replace, deeper, seen)
+            return data if plain else {"array": data, "dtype": str(getattr(value, "dtype", ""))}
+        except Exception:  # noqa: BLE001
+            pass
+
+    attributes = getattr(value, "__dict__", None)
+    slots = getattr(type(value), "__slots__", None)
+    if attributes is not None or slots:
+        fields = dict(attributes or {})
+        for name in ([slots] if isinstance(slots, str) else (slots or ())):
+            if hasattr(value, name):
+                fields[name] = getattr(value, name)
+        rendered = {k: _render(v, plain, replace, deeper, seen) for k, v in sorted(fields.items())}
+        name = type(value).__qualname__
+        if plain:
+            return {"__class__": name, **rendered}
+        return {"object": name, "attrs": rendered}
+
+    return normalise_text(repr(value), replace)

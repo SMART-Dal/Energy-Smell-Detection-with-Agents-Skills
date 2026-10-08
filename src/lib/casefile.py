@@ -1,8 +1,12 @@
 """Loading and validating a case file.
 
-A case file is the whole interface between the agent and the verifier:
+A case file is how our own validation samples are written -- the 230 under
+`validation/taxonomy/` and the samples converted from `data/manual_sampling/`.
+An agent never writes one: it submits a repair against a real repository
+(`submission.py`), and `before` is read from that repository instead. A case
+file supplies all three parts itself:
 
-    before(*args)   the pattern as it appears in the repository
+    before(*args)   the pattern
     after(*args)    the canonical repair, and no other change
     cases()         [(label, thunk)] -- thunk returns a fresh args tuple
 
@@ -20,9 +24,9 @@ Both are opt-in, both must carry a reason, and both are reported in the verdict
 so that nobody can quietly weaken the check and call the result confirmed. See
 `RELAXATIONS` for what each one is honestly for, and what it is not.
 
-Validation is strict and the messages say what to fix. A malformed case file is
-the most likely thing to go wrong in the whole pipeline: it is the one artefact
-written from scratch each time, by a model, under no schema.
+Validation is strict and the messages say what to fix: a case file is written
+by hand, and a malformed one should fail loudly rather than measure something
+other than what its author meant.
 """
 
 from __future__ import annotations

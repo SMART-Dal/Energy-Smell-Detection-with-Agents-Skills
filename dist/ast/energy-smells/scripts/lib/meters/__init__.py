@@ -49,7 +49,7 @@ def describe(name: str = "auto") -> dict:
     """What a meter will actually cover on this host, measured not assumed.
 
     A RAPL domain the current user cannot read is skipped silently by both
-    real meters, which quietly narrows a reading from "package + DRAM" to
+    real meters, which quietly narrows a reading from what was requested to
     whatever happened to be readable.
 
     For a one-off check from a shell, not for use inside a measurement run:
