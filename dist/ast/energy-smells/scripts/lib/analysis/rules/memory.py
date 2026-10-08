@@ -6,7 +6,7 @@ import ast
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
-from ..context import COMPREHENSION_NODES, LOOP_NODES, UnitContext
+from ..context import LOOP_NODES, UnitContext
 
 MUTABLE_DEFAULTS = (ast.List, ast.Dict, ast.Set,
                     # A comprehension in a default runs once at definition time

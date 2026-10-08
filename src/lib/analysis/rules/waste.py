@@ -27,8 +27,8 @@ import builtins
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
-from ..context import (COMPREHENSION_NODES, LOOP_NODES, OPAQUE_NODES,
-                       PURE_BUILTINS, PURE_METHODS, UnitContext)
+from ..context import (COMPREHENSION_NODES, OPAQUE_NODES,
+                       UnitContext)
 
 # Interpreter housekeeping: correct to call, ruinous to call repeatedly.
 RUNTIME_MANAGEMENT = {
@@ -982,7 +982,7 @@ def redundant_bool_branch(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         # -> return x > k
 
     Two jumps and two constant loads for something the comparison already
-    produced. Tiny per execution, which is why it is advisory.
+    produced. Tiny per execution; the measurement says whether it matters.
 
     The message names the `return` that goes with the branch, because the
     early-return spelling reads as though only the `if` were being replaced:

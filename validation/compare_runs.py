@@ -130,7 +130,7 @@ def plot_measurements(a_tag, b_tag, a_rows, b_rows, shared, out: Path) -> Path:
     fig.suptitle(f"Does a second run measure the same thing?   "
                  f"{a_tag} vs {b_tag}, per case file", fontsize=13)
     fig.tight_layout(rect=(0, 0.07, 1, 0.96))
-    path = out / f"compare_energy_time.png"
+    path = out / "compare_energy_time.png"
     fig.savefig(path, dpi=140)
     plt.close(fig)
     return path
@@ -192,7 +192,7 @@ def plot_verdicts(a_tag, b_tag, a_rows, b_rows, shared, out: Path) -> Path:
     fig.suptitle(f"Does a second run reach the same conclusion?   "
                  f"{a_tag} vs {b_tag}", fontsize=13)
     fig.tight_layout(rect=(0, 0, 1, 0.95))
-    path = out / f"compare_verdicts.png"
+    path = out / "compare_verdicts.png"
     fig.savefig(path, dpi=140)
     plt.close(fig)
     return path

@@ -62,7 +62,7 @@ off-by-one -- stay rejected, because there the two sides do different things.
 
 def main() -> int:
     sys.path.insert(0, str(OUT))
-    from _sample import SampleError, build  # noqa: PLC0415
+    from _sample import build  # noqa: PLC0415
 
     OUT.mkdir(parents=True, exist_ok=True)
     written, skipped = 0, []
