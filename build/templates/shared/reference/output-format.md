@@ -1,180 +1,124 @@
 # Output format
 
-A run produces two files in the target repository's working directory:
+A run leaves two files in the directory it was started in. They are your
+record of the work, not edits to the code:
 
-- **`findings.json`** — the record. Everything downstream reads this.
-- **`REPORT.md`** — the same content in prose, rendered *from* the JSON.
+- **`findings.jsonl`** — what you did, one JSON line per step per unit,
+  appended as you go.
+- **`submissions.jsonl`** — the repairs, one per line. The script measures each
+  and writes the result into it.
 
-Write the JSON first, then the report from it. If the two disagree, the JSON is
-right.
+Nothing else is written. Your summary at the end of the run is your final
+message, not a file.
 
 ---
 
-## findings.json
+## findings.jsonl
+
+One JSON object per line, tagged with the step that produced it, in the order
+you produced them. Shown expanded here; each is written on a single line.
+
+```jsonc
+{"step": 1, "target": "src/", "unit_limit": 10, "units_considered": 128,
+ "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"]}
+```
 
 ```jsonc
 {
-  "schema_version": 2,
-
-  "target": {
-    "path": "/home/me/repos/acme-parser",
-    "commit": "a1b2c3d",                  // null if not a git checkout
-    "files_scanned": 120,
-    "units_examined": 15
-  },
-
-  "config": {
-    "agent": "claude-code",
-    "model": "claude-opus-5",
-    "noise_floor_pct": 1.6                // from `verify.py --calibrate`
-  },
-
-  "findings": [
-    {
-      "unit": "src/render.py::Report.render",
-      "line": 42,
-{{FINDING_ID_FIELDS}}
-      "why": "`self.buf` is grown with += across `rows` and is never read inside the loop, so the accumulation is O(n^2) in the total output length.",
-      "hotness": "called once per HTTP response; `rows` is typically 5k-50k long",
-{{FOUND_BY_ROW}}{{EVIDENCE_FIELDS}}
-      "subsumed": [
-{{SUBSUMED_ROW}}
-      ],
-
-      "spans_units": ["src/render.py::Report.render"],
-
-      "repair": {
-        "summary": "collect the parts in a list and join once after the loop",
-{{PATCH_SHAPE_ROW}}        "diff": "-    self.buf += _row(r)\n+    parts.append(_row(r))"
-      },
-
-      "verification": {
-        "status": "confirmed",
-        "case_file": "cases/{{CASE_FILE_EXAMPLE}}.py",
-        "cases_checked": 2,
-        // No case is promoted to the top of the row. `status` says whether
-        // every case improved, some did, or none did; `per_case` carries what
-        // each one measured, in joules and seconds. No percentage is stored --
-        // it is a view of those numbers, and keeping a derived figure beside
-        // its inputs lets the two disagree.
-        "noise_floor_pct": 1.6,
-        // Which case the floor was measured on. Provenance for that one
-        // number, not a headline.
-        "canary_case": "large",
-        "equivalence_relaxed": [],
-        "per_case": [
-          // Each case is judged on its own: significant, and clearing the
-          // floor. Compare the joules yourself to see which input matters.
-          {"label": "small", "repeats": 9500, "clamped": false,
-           "before_energy_j": 151.0300, "after_energy_j": 137.2900,
-           "before_time_s": 3.0400, "after_time_s": 2.7700,
-           // Not a saving: half-width of the 95% interval on the paired
-           // per-repetition comparison. `significant` needs it.
-           "energy_ci_pct": 1.2, "significant": true},
-          {"label": "large", "repeats": 40, "clamped": false,
-           "before_energy_j": 148.2100, "after_energy_j": 109.8200,
-           "before_time_s": 3.0100, "after_time_s": 2.2300,
-           "energy_ci_pct": 3.0, "significant": true}
-        ]
-      }
-    }
+  "step": 2,
+  "unit": "src/render.py::Report.render",
+  "what_it_does": "renders one HTML table from a list of row dicts",
+  "cost_driver": "one pass per row, and string building across all rows",
+  "own_hypotheses": [
+    "the output string is rebuilt on every row",
+    "`self.columns` is re-derived inside the row loop and never changes"
   ],
-
-  "negligible": [
-    // Same object shape. Candidates that were accepted at step 3, repaired,
-    // measured, and moved nothing more than the noise on a clean floor. Keep
-    // them: {{NEGLIGIBLE_VALUE}}
-  ],
-
-  "mixed": [
-    // Same object shape. The repair pays on some inputs and costs on others.
-    // Report both, and say which input each applies to.
-  ],
-
-  "regressed": [
-    // Same object shape. Worse everywhere it measurably moved.
-  ],
-
-  "inconclusive": [
-    // Same object shape. Measured, but the host could not resolve an effect
-    // this size. A different claim from `negligible` — do not merge the two.
-    // `negligible` is evidence about the code; this is a fact about the host.
-  ],
-
-  "units_examined": [
-    {
-      "unit": "src/parse.py::tokenize",
-      "what_it_does": "splits a header into fields",
-      "own_hypotheses": ["nothing here scales — the loop is bounded by a 16-byte header"],
-      "suspicions": [],
-      "cleared_because": "no work here is proportional to input size"
-    },
-    {
-      "unit": "src/render.py::Report.render",
-      "what_it_does": "renders one HTML table from a list of row dicts",
-      "own_hypotheses": ["the output string is rebuilt on every row"],
-{{UNIT_SUSPICIONS}}
-    }
+  "suspicions": [
+{{SUSPICION_ROWS}}
   ]
 }
 ```
 
+```jsonc
+{"step": 2, "unit": "src/parse.py::tokenize",
+ "what_it_does": "splits a header into fields",
+ "cost_driver": "one pass over a header of at most 16 bytes",
+ "own_hypotheses": ["nothing here scales — the loop is bounded by the header"],
+ "suspicions": [],
+ "cleared_because": "no work here is proportional to input size"}
+```
+
+Step 3 and step 4 records are shown in `SKILL.md`, at those steps: one per unit
+with suspicions, listing `decisions` and `outcomes` by `label`.
+
 ### Field rules
+
+**`label`** names a suspicion within its unit — `a`, `b`, `c` — and is how steps
+3 and 4 refer to it. A suspicion added in step 3 gets a label of its own.
 
 **`why`** must be specific to this code. Name the variable, the line, the
 structure. "Inefficient string handling" is not a reason; "`self.buf` is grown
 with `+=` across `rows`" is.
 
-**`hotness`** is where you record what you learned in step 2. Most of these
-patterns only waste anything on a hot path, and this is the field a reader
-checks when a finding looks marginal.
+**`hotness`**, on a step-3 decision, is how often the code runs and how large
+its inputs get. It is what a reader checks when a saving looks marginal, and
+what you size the five cases from.
 
-{{FOUND_BY_FIELD_RULES}}**`subsumed`** lists candidates that disappeared when this repair landed —
-checked in step 4, after applying it and re-deciding what was left. Each needs
-a reason. Do not put anything here that you did not actually re-check.
+**`own_hypotheses`** is what you thought {{BEFORE_NAMING}}. Without it there is
+no way to tell whether you read the code or the labels.
 
-**`spans_units`** names every unit the repair edits. One entry for most
-findings; more when the waste lived in the arrangement rather than in a line.
+{{FOUND_BY_FIELD_RULES}}**`unit_limit`**, in step 1, is the number of units you were asked to
+examine, or `null` when you were not given one and examine the whole target.
 
-**`verification.status`** is copied verbatim from `verify.py`. Never write
-`confirmed` yourself.
+**`outcomes`**, in step 4, gives every accepted suspicion exactly one of:
+`submission` (an `id` in `submissions.jsonl`), `same_repair_as` (the `id` of
+the submission that already makes this edit), `blocked` (why no repair could
+be measured), or `deferred` (accepted, but outside the repairs chosen for
+measurement). A deferred suspicion is still a finding.
 
-**`verification.equivalence_relaxed`** is copied verbatim too. If it is
-non-empty, the report must say so next to the number: the saving was measured
-under a weakened definition of "same behaviour", and a reader who does not know
-that is being misled.
-
-**`units_examined`** covers every unit you looked at, cleared or not, with the
-hypotheses you formed {{BEFORE_NAMING}}. Without it, a run that examined
-three functions and one that examined three hundred are indistinguishable, and
-there is no way to tell whether you read the code or the labels.
+Every unit from step 1 has a step-2 record, and every suspicion is accounted
+for: rejected in step 3, or given an outcome in step 4. A run that examined
+three functions and one that examined three hundred have to be
+distinguishable, and so do a suspicion you dropped and one you forgot.
 
 ---
 
-## REPORT.md
+## submissions.jsonl
 
-Rendered from the JSON, grouped by file. For each finding: {{REPORT_HEADING_FIELDS}}
-one paragraph of `why`, the repair as a diff, and the measured
-result. Then a short section for `mixed`, `regressed`, `negligible` and
-`inconclusive`, and one line for
-anything `advisory` or `blocked`.
+The fields are in `$SKILL/reference/verifying.md`. Three rules connect it to the
+findings:
 
-Open with a summary the reader can act on:
+- every `submission` in a step-4 record names a line here, and every line here
+  is named by exactly one;
+- every line ends with the `agent_measurement` the script wrote. Never write
+  or edit it, and never write a verdict anywhere yourself;
+- every measured repair stays, whatever its verdict.
 
-```markdown
-# {{REPORT_TITLE}} — acme-parser @ a1b2c3d
+What the script writes into a line:
 
-15 units examined, 4 repairs confirmed, 1 mixed, 1 regressed, 2 negligible,
-1 inconclusive{{REPORT_ADVISORY}}.
-Host noise floor 1.6%; every confirmed saving clears it.
-
-{{REPORT_TABLE}}
+```jsonc
+"agent_measurement": {
+  "status": "confirmed",
+  "reason": "25.9% +-3.0% energy saved on 'many-rows', clearing the 1.4% noise floor. ...",
+  "profile": "fast",
+  "noise_floor_pct": 1.4,
+  "noise_floor_from": "session calibration",
+  "equivalence_relaxed": [],      // weakenings of the check; repeat them wherever the saving is quoted
+  "stubbed": [],                  // uninstalled packages stood in for while loading; normally empty
+  "per_case": [
+    {"label": "typical", "repeats": 9500, "clamped": false,
+     "before_energy_j": 51.03, "after_energy_j": 47.29,
+     "before_time_s": 1.04, "after_time_s": 0.96,
+     "energy_ci_pct": 1.2, "significant": true}
+    // ... one row per case, all five
+  ],
+  "submission_hash": "3f2a9c01d4e5b6a7"
+  // abridged: a few more fields record provenance -- the meter, its coverage, the canary case
+}
 ```
 
-State the noise floor. A saving of 2% means nothing on a host that cannot
-resolve better than 1.6%, and the reader has no way to know that unless you
-say it.
-
-Close with the subsumption record: which repairs made which other candidates go
-away. It is short, and it is the part that says which repairs were doing the
-real work.
+`per_case` carries joules and seconds for each version on every case, and no
+percentage: the joules are the result, and a percentage stored beside them is a
+second copy that can disagree. `energy_ci_pct` is not a saving — it is the
+half-width of the 95% interval on the paired comparison, which `significant`
+is judged from.

@@ -17,16 +17,18 @@ what `$SKILL` is once, at the start, and use it throughout.
 ## What counts as a finding
 
 > A finding is a **repair**: a concrete edit to *this* code, attributed to a
-> root cause whose definition the edit matches, and measured.
+> root cause whose definition the edit matches. That it saves energy is a
+> separate claim, and only a measurement makes it.
 
 Three consequences you have to hold onto:
 
 - **No repair, no finding.** If you cannot write the actual edit for this code,
   you have not found anything — you have recognised a pattern.
-- **No measurement, no claim.** Step 4 is not optional. A claim nobody tested
-  is worth nothing.
+- **No measurement, no claim.** A repair is said to save energy only once it
+  has been measured. One left unmeasured is still a finding — with no claim
+  attached to it.
 - **Report the failures too.** A repair you built, measured, and found saves
-  nothing is a result. It goes in the report.
+  nothing is a result. It stays in `submissions.jsonl`, with its verdict.
 
 ## One repair, one root cause
 
@@ -39,40 +41,57 @@ that happens either attribution is fine — say which you chose and that it was
 close. What is not fine is filing a repair under a root cause whose definition
 it does not match, because then the label is doing no work at all.
 
+One unit can have several repairs, and they can overlap: fixing how a function
+searches can make a redundant conversion and a needless copy disappear too,
+because they only existed to serve the search. The rule is the same either
+way — **every accepted suspicion gets its own repair, written against the
+original code, and its own measurement.** That is what says what each one is
+worth on its own.
 
-Repairs overlap too, and more consequentially. Fixing how a function searches
-can make a redundant conversion, a needless copy and a hoistable lookup all
-disappear at once, because they only existed to serve the search. When that
-happens:
+- Two suspicions that would get **exactly the same edit** are one repair:
+  submit it once, and record the other as `same_repair_as`.
+- Two that get **different edits to the same code** are two repairs: submit
+  both, and list each in the other's `related`.
+- Do **not** widen a repair to cover a second suspicion, and do not split one
+  edit into several submissions to raise the count.
 
-- report **one** finding, for the repair you actually made;
-- list the other candidates under `subsumed`, and say they went away;
-- do **not** widen the repair to cover extra candidates, and do not split one
-  edit into several findings to raise the count.
-
-Two agents that report three and seven candidates for the same function have
-not necessarily disagreed. What they must both do is say which candidates
-turned into repairs, and which were absorbed by another repair.
+Since each repair is written against the original, at most one per function
+can ever be applied. Choosing it is not part of your job: submit every repair,
+measured, and the measurements decide.
 
 ## How much you may change
 
-Each card names a patch shape. It bounds the **size** of the edit, never its
-location, and never how much code you may read to decide.
+The edit should be as small as removing the waste allows. That bounds its
+**size**, never its location, and never how much code you may read to decide.
 
-So you may edit more than one function when that is where the waste lives. A
-value shaped wrongly by its producer and compensated for by three consumers is
-one repair, made in the producer. A list built in `__init__` and searched in a
-method is one repair, made in `__init__`. Moving work between a caller and a
-callee, or changing a helper's signature and its call sites, is allowed when
-that is what removes the waste. Name every unit you touched in
-`spans_units`.
+**What must survive is the unit's contract**: the same return value, the same
+effect on its arguments, the same output, the same exception type. That is what
+gets checked, and it is the whole of what callers are entitled to.
+
+Anything **only the unit depends on** is implementation detail: a helper
+nothing else calls, state nothing else reads. You may change a helper's
+signature, its return shape or its behaviour, if that is what removes the
+waste. A list built in `__init__` and searched only in this method is one
+repair, made in both. A value shaped wrongly by a producer and compensated for
+by its consumers is one repair, made in all of them — when nothing but the unit
+reaches them.
+
+Two obligations come with reaching outside the unit:
+
+- **Give every function you change its own entry** in the submission, named
+  `path::qualname`, in whichever file it lives.
+- **Establish that nothing else depends on what you changed** — no other
+  caller of a changed function, no other reader of changed state — and say how
+  in `sole_caller_evidence`. Anything else that depends on it is not
+  implementation detail: the change reaches it too, and the check on this unit
+  would not notice.
 
 What you may not do is bring anything else along. A patch that also renames
 variables, tidies an unrelated branch, or fixes a second problem cannot be
 attributed to one root cause, and the measurement stops meaning anything. The
 second problem is a second finding, or it is nothing.
 
-## What is not energy smells
+## What is not an energy smell
 
 **Style.** Unreadable, undocumented, poorly named, badly typed code is not
 an energy smell. If the repair does not change what the machine does, it
@@ -94,14 +113,27 @@ you can find.
 
 ## Procedure
 
-Five steps, in order, one unit at a time. Each step states what it takes in and
-what it must produce. Produce it before moving on: every step after the second
-one is a check on what the second one wrote down, and a check you run against
-nothing checks nothing.
+Five steps, in order. Steps 2 and 3 go one unit at a time — read and suspect,
+decide, then the next unit. Step 4 starts once every unit has been through step
+3, and takes all of them at once. Each step states what it takes in and what it
+must produce. Produce it before moving on, and append it to `findings.jsonl` as
+one JSON line tagged with its step — as you go, not reconstructed at the end.
+Every step after the second one is a check on what the second one wrote down,
+and a check you run against nothing checks nothing.
 
-### 1. Select — *in:* a path · *out:* the units you will examine, in order
+### 1. Select — *in:* a target · *out:* the units you will examine, in order
 
-Choose the units yourself.
+**The target** is what you were asked to look at: the whole repository, a
+directory, a file, or a single unit. Choose units only from inside it; read
+outside it as far as you need. A unit named loosely — "the render function" —
+is yours to pin down: find it, and record the exact `path::qualname` it
+resolved to. If more than one function matches, all of them are the target.
+
+**How many:** every unit in the target, unless you were asked for a number of
+units — then at most that many, the hottest first. You may change which units
+those are at any point, if something you read later shows you a hotter one; just
+do not go over the number. It limits units and nothing else: within a unit,
+record every suspicion you have.
 
 Read the repository first: its entry points, what its tests exercise, what its
 README says it is for. Then pick the units where energy is actually spent, in
@@ -113,20 +145,22 @@ this order of priority:
 3. **the repository's own hot path** — what it benchmarks, what its main entry
    point spends its time in.
 
-**Order them by how much energy you expect a repair to save**: how often the
-unit runs, multiplied by how much work one run does. Examine at least 10 units,
-or all of them if the target has fewer.
+**Order them by how much energy you expect a repair to save** — how often the
+unit runs, multiplied by how much work one run does — and work from the top.
+With a number to keep to, the units you examine have to be the ones where most
+of the energy goes.
 
 ```jsonc
-{
-  "units_considered": 128,
-  "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"]
-}
+{"step": 1, "target": "src/", "unit_limit": 10, "units_considered": 128,
+ "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"]}
 ```
 
-Keep this list. Every unit on it appears in the final report, including the
-ones you clear — a run that examined three functions and one that examined
-three hundred have to be distinguishable.
+If you change the list, append another step-1 record with the list as it now
+stands; the last one is the list you examined.
+
+Keep this list. Every unit on it gets a step-2 record, including the ones you
+clear — a run that examined three functions and one that examined three
+hundred have to be distinguishable.
 
 ### 2. Read and suspect — *in:* one unit · *out:* one record, with `suspicions[]`
 
@@ -199,6 +233,7 @@ did it wrong.
 
 ```jsonc
 {
+  "step": 2,
   "unit": "src/render.py::Report.render",
   "what_it_does": "renders one HTML table from a list of row dicts",
   "cost_driver": "one pass per row, and string building across all rows",
@@ -207,25 +242,28 @@ did it wrong.
     "`self.columns` is re-derived inside the row loop and never changes"
   ],
   "suspicions": [
-    {"root_cause": "C10.S4", "lines": [47],    "confidence": "high",
+    {"label": "a", "root_cause": "C10.S4", "lines": [47],    "confidence": "high",
      "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
-     "found_by": "both"},
-    {"root_cause": "C3.S2",  "lines": [44,45], "confidence": "medium",
+     "found_by": "reading"},
+    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45], "confidence": "medium",
      "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
-     "found_by": "reading"}
+     "found_by": "sweep"}
   ]
 }
 ```
 
+Give each suspicion a `label` — `a`, `b`, `c` — unique within the unit. Steps 3
+and 4 refer to it. A unit with nothing suspicious gets the same record with
+`"suspicions": []` and a `cleared_because`.
+
 `found_by` says how you came to suspect it, and is recorded honestly:
-`"reading"` from 2a–2b, `"rules"` from a tool, `"both"`, or `"sweep"` from the
-index pass. It is the difference between an analysis you did and a list you
-were handed.
+`"reading"` from 2a–2b, or `"sweep"` from the index pass. It is the difference
+between an analysis you did and a list you were handed.
 
 **At most 12 suspicions per unit.** The cap makes you rank rather than list. If
 you are at the cap, keep the ones you would actually spend an hour repairing.
 
-### 3. Decide — *in:* `suspicions[]` · *out:* the same list, each one accepted or rejected
+### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
 
 Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the
 whole card. The exceptions and the near-misses decide the hard cases, and the
@@ -233,9 +271,9 @@ repair examples are where you find out what the edit actually involves.
 
 Every suspicion ends this step **accepted** or **rejected**, and nothing is
 edited in place. If the card says a suspicion belongs somewhere else, reject it
-and add a new one for the root cause that fits, with `found_by: "cards"`. That
-keeps what you first thought on the record, which is the part worth reading
-later.
+and add a new one, with a new label, for the root cause that fits, with
+`found_by: "cards"`. That keeps what you first thought on the record, which is
+the part worth reading later.
 
 The list may also **grow** here: following a card's similar list is one of the
 better ways to find a root cause nobody suspected. Step 2's cap does not apply,
@@ -256,78 +294,121 @@ and a rejection with a reason is as much a result as an acceptance.
    enough to matter.
 1. **Say how often the code runs, and how large its inputs get.** Recorded, not
    a bar to clear: it tells a reader what the saving is worth, and it tells you
-   how to size the case file in step 4.
+   how to size the cases in step 4.
 
 Accept if all of them hold. Otherwise reject, and name the one that decided it.
 
 ```jsonc
-[
+{"step": 3, "unit": "src/router.py::Router.allowed", "decisions": [
   {
-    "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
-    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-    "hotness": "one call per request; `routes` is 400-2000 entries",
-    "repair_sketch": "build `self.blocked` as a set",
-    "patch_shape": "expression",
-    "spans_units": ["src/router.py::Router.__init__"],
+    "label": "a", "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
+    "why_rejected": "`NOT a smell when` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added `c` instead.",
     "found_by": "reading"
   },
   {
-    "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
-    "why_rejected": "`NOT a smell when` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added C5.S1 instead.",
-    "found_by": "reading"
+    "label": "c", "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
+    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31 and read nowhere else",
+    "hotness": "one call per request; `blocked` is 400-2000 entries",
+    "repair_sketch": "build `self.blocked` as a set",
+    "found_by": "cards"
   }
-]
+]}
 ```
 
-### 4. Repair and measure — *in:* accepted candidates · *out:* a verdict each
+### 4. Repair and measure — *in:* every accepted suspicion · *out:* `submissions.jsonl`, measured, and one record per unit
 
-**Order them before you start.**
-Sort by how much of the code the repair moves: `cross_unit` and `structural`
-first, then `signature`, then `statement_local`, then `expression`.
-Big repairs dissolve small ones — a search rewritten from scratch takes the
-redundant conversion inside it with it — so doing the small ones first means
-measuring work that was about to disappear anyway.
+Start this step once every unit has been through step 3, and work from their
+step-3 records.
 
-Then, one candidate at a time:
+**You do not edit the repository.** You describe each repair; the script
+applies it to a copy and reads `before` from the repository as it stands. That
+is what makes the baseline something you could not have shaped to suit the
+result. Work in a scratch copy of your own if it helps you think, but the
+repository you were pointed at stays untouched.
 
-1. **Write the repair** as you would commit it.
-2. **Write the case file and measure it.** Read `$SKILL/reference/verifying.md`
-   before your first one. The part that matters most is that `before` is this
-   repository's function copied, not a small illustration of the pattern: a
-   repair worth 30% of a five-line sketch can be worth 2% of the real function,
-   and the sketch will not tell you which you have.
+Read `$SKILL/reference/verifying.md` before your first submission.
+
+1. **Choose what to measure.** Measuring takes about a minute a repair, so at
+   most **15** repairs are measured — the ones you expect to save the most
+   energy, across all units — unless you were asked to measure all of them, or
+   a different number. Every other accepted suspicion is still a finding:
+   record it as `deferred` in step 4's record.
+
+2. **For each unit with a repair to measure, write its inputs once.**
+   `checks()` holds the edge inputs — empty, one element, odd types — and is
+   only used to confirm behaviour is preserved. `cases()` holds exactly **five** inputs that make the unit behave
+   differently, including the one each repair is most likely to lose on. Every
+   submission for a unit uses that unit's text, so their savings are measured on
+   the same inputs and can be compared.
+
+3. **For each chosen suspicion, write the smallest repair of the original
+   code** that removes its waste, as one line in `submissions.jsonl`. Every
+   repair is written against the code as it is now, never on top of another —
+   so the order does not matter, and nothing you submit changes what the next
+   one is written against.
+   - **The same edit as one you already wrote** for this unit: do not submit it
+     again. Record it in step 4 as `same_repair_as`, naming that submission.
+   - **A different edit to the same code**: submit it, and list each in the
+     other's `related`.
+
+4. **Measure the whole file, once.**
 
    ```bash
-   python $SKILL/scripts/verify.py cases/case_C10S4.py
+   python $SKILL/scripts/verify.py submissions.jsonl --repo .
    ```
 
-3. **If it is confirmed, apply it** to the working copy.
-4. **Then go back to step 3 with what is left.** Re-read the repaired unit,
-   then re-open the cards for every remaining accepted
-   candidate.
-   This is a real re-decision, not a formality:
-   - candidates that no longer apply are `subsumed` by the repair that removed
-     them. Record them there and **do not measure them** — the code they
-     described is gone;
-   - candidates that still apply keep their place in the queue, and their
-     `lines` may have moved;
-   - a candidate can also be *created* by a repair. Add it and decide it.
+   Every line is measured in turn, about a minute each, and its result is
+   written into the line as `agent_measurement`: the verdict, and the joules
+   and seconds of every case. Never write or edit it yourself.
 
-Repeat until the queue is empty.
+5. **Then fix only what is broken, and run the same command again.** It
+   measures only the lines that need it.
 
-Root causes marked **advisory only** on their card are exempt from measurement:
-their repair is worth a single bytecode instruction and cannot clear any noise
-floor. Report them as `advisory`, and do not build a case file.
+   | Result | What you do |
+   |---|---|
+   | `not_equivalent` | the repair changes behaviour: fix that line |
+   | `invalid` | the line is malformed, or its inputs fail to build: fix it as the message says |
+   | `error` | the environment could not run it; the next run tries again. Twice the same: record `blocked` |
+   | `inconclusive` | the host was too noisy; the next run measures it again |
+   | `confirmed` `mixed` `regressed` `negligible` | **final.** Do not touch the line |
 
-### 5. Report — *in:* verdicts · *out:* `findings.json` + `REPORT.md`
+   A measured result is never revised. Editing a measured line to get a better
+   number makes it `invalid`, and the result it had stays on record. If you
+   think a genuinely different repair would do better, that is a new line,
+   listed in `related` — both are kept. A suspicion whose repair you cannot make
+   behave identically, or whose unit you cannot build inputs for, is `blocked`.
 
-Write the JSON first and the report from it.
-`$SKILL/reference/output-format.md` has the exact schema.
+6. **Record what happened to every accepted suspicion**, one record per unit:
 
-The report has to carry the negative results as well as the positive ones: what
-was negligible, what the host could not resolve, what each repair subsumed, and
-every unit you cleared. A run that only lists what it found cannot be
-distinguished from a run that only looked where it expected to find something.
+   ```jsonc
+   {"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
+     {"label": "a", "submission": "C10S4-render-concat"},
+     {"label": "b", "same_repair_as": "C10S4-render-concat"},
+     {"label": "c", "blocked": "every input needs a live database connection"},
+     {"label": "d", "deferred": "outside the 15 repairs measured"}
+   ]}
+   ```
+
+Every measured repair stays in `submissions.jsonl`, whatever its verdict.
+`negligible`, `regressed` and `mixed` are results, and a file that kept only
+the wins could not be told apart from one that hid its losses.
+
+### 5. Finish — *in:* both files · *out:* both files complete, and a short summary
+
+Before you stop, check:
+
+- every unit chosen in step 1 has a step-2 record, cleared or not;
+- every suspicion accepted in step 3 has an outcome in a step-4 record;
+- every line of `submissions.jsonl` carries the `agent_measurement` the script
+  wrote, and nothing is left `inconclusive` or `error` that a run could still
+  settle.
+
+Then end with a short summary for whoever asked: for each submission, the unit,
+its root cause, the verdict, and what it saved across its five inputs. Lead
+with what was confirmed, say plainly what was not, and say how many accepted
+suspicions were deferred unmeasured.
+
+`$SKILL/reference/output-format.md` has the exact shape of both files.
 
 ---
 
@@ -363,8 +444,11 @@ Failure modes, in the order they actually happen:
 1. **Repeating what you have read about Python performance.** Much of it is
    out of date, and some of it was never true. Every claim here gets measured,
    and the ones you are most certain about are the ones worth measuring first.
-1. **Splitting one repair into several findings.** One edit, one finding,
-   one root cause; the rest are `subsumed`.
+1. **Submitting one edit twice.** One edit is one repair, attributed to
+   one root cause; another suspicion it also fixes is `same_repair_as`.
+1. **Building one repair on top of another.** Every repair is written against
+   the original code. One written against your previous repair is measured
+   against code that does not exist.
 1. **Ignoring context.** Almost every pattern that looks wasteful is the right
    call somewhere. A bare `except` in a retry loop, a materialised list that
    gets indexed twice, a wrapper that is public API.
@@ -375,6 +459,9 @@ Failure modes, in the order they actually happen:
 1. **Rewriting the unit.** A patch that changes everything cannot be attributed
    to one root cause, and cannot be measured against one. Change what removes
    the waste and stop.
+1. **Changing more than the unit without checking what else depends on it.**
+   The check watches the unit's contract, so another caller or another reader
+   of the changed state breaks silently.
 
 ## Scope
 
@@ -382,12 +469,12 @@ Python. Root cause IDs are exactly the 65 on the cards — never invent one, and
 never report a bare category as a finding.
 
 A **unit** is a function or a method. That is the granularity at which units are
-ranked, cleared and reported, and at which a repair is measured — a case file
-calls something, and this is the something.
+ranked, cleared and reported, and at which a repair is measured — the cases
+call something, and this is the something.
 
 That is all it bounds. Read as far as you need in either direction, and
 repair across as many units as the waste requires. When the waste exists
 only in the arrangement — two methods of a class that each look
-reasonable and are wrong together, a helper whose shape forces its four callers
-to compensate — report it against the unit where you would make the edit, and
-name the rest in `spans_units`.
+reasonable and are wrong together, a helper whose shape forces the code around
+it to compensate — report it against the unit whose behaviour the repair must
+preserve, and give every function you change its own entry in the submission.

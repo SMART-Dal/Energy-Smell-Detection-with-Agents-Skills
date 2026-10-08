@@ -112,17 +112,6 @@ class Arm:
 # instructions rather than the evidence.
 
 _TAXONOMY_WORDS = {
-    "ADVISORY_NOTE": """Root causes marked **advisory only** on their card are exempt from measurement:
-their repair is worth a single bytecode instruction and cannot clear any noise
-floor. Report them as `advisory`, and do not build a case file.
-
-""",
-    "ADVISORY_ROW": """| `advisory` | card says advisory only; never measured | report as advisory, no numbers |
-""",
-    "ADVISORY_RULE": """The only exception is a root cause whose card
-says *advisory only* — its repair is one bytecode instruction and provably
-cannot clear any noise floor, so it is reported as unmeasured rather than
-measured badly.""",
     "ATTRIBUTION_HEADING": 'One repair, one root cause',
     "ATTRIBUTION_RULE": """Attribute each repair to one root cause: the one whose definition describes the
 waste your edit removes. That is a rule about *attribution*, not about counting,
@@ -135,8 +124,6 @@ it does not match, because then the label is doing no work at all.
 
 """,
     "BEFORE_NAMING": 'before opening any card',
-    "CASE_DOCSTRING": 'C10.S4 in src/render.py::Report.render — string built with += in a loop.',
-    "CASE_FILE_EXAMPLE": 'case_C10S4',
     "CATEGORY_SECTION": """---
 
 ## Categories
@@ -157,58 +144,46 @@ better ways to find a root cause nobody suspected. Step 2's cap does not apply,
 and a rejection with a reason is as much a result as an acceptance.""",
     "DECIDE_MOVE": """Every suspicion ends this step **accepted** or **rejected**, and nothing is
 edited in place. If the card says a suspicion belongs somewhere else, reject it
-and add a new one for the root cause that fits, with `found_by: "cards"`. That
-keeps what you first thought on the record, which is the part worth reading
-later.""",
+and add a new one, with a new label, for the root cause that fits, with
+`found_by: "cards"`. That keeps what you first thought on the record, which is
+the part worth reading later.""",
     "DECIDE_PREAMBLE": """Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the
 whole card. The exceptions and the near-misses decide the hard cases, and the
 repair examples are where you find out what the edit actually involves.""",
-    "DECIDE_ROWS": """    "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
-    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-    "hotness": "one call per request; `routes` is 400-2000 entries",
-    "repair_sketch": "build `self.blocked` as a set",
-    "patch_shape": "expression",
-    "spans_units": ["src/router.py::Router.__init__"],
+    "DECIDE_ROWS": """    "label": "a", "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
+    "why_rejected": "`NOT a smell when` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added `c` instead.",
     "found_by": "reading"
   },
   {
-    "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
-    "why_rejected": "`NOT a smell when` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added C5.S1 instead.",
-    "found_by": "reading"
+    "label": "c", "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
+    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31 and read nowhere else",
+    "hotness": "one call per request; `blocked` is 400-2000 entries",
+    "repair_sketch": "build `self.blocked` as a set",
+    "found_by": "cards"
   }""",
     "EVIDENCE_AGAINST": 'the taxonomy',
-    "EVIDENCE_FIELDS": """
-      "evidence": ["string_concat_in_loop"],
-
-      "also_considered": [
-        {"id": "C10.S1", "why": "no repeated type conversion; the parts are already strings"}
-      ],
-""",
     "FAILURE_MODES_CARDS": """1. **Deciding from the label.** "Nested loops, so it must be an algorithmic
    complexity problem." Open the card; most of them are narrower than the name.
 1. **One label dominating.** If a third of your findings share a root cause,
    you are pattern-matching. Re-derive them from the code.
 """,
-    "FINDING_ID_FIELDS": """      "root_cause": "C10.S4",
-      "name": "Inefficient String Concatenation",
-      "category": "C10",
-""",
     "FINDING_RULE": """> A finding is a **repair**: a concrete edit to *this* code, attributed to a
-> root cause whose definition the edit matches, and measured.""",
-    "FOUND_BY_FIELD_RULES": """**`found_by`** records how you came to suspect it: `reading`, `rules`, `both`,
-`sweep` for the index pass at the end of step 2, or `cards` for a root cause
-that first appeared while you were reading a card in step 3. It is the
-difference between an analysis you did and a list you were handed, and it is
-measured across runs, so record it honestly — including the cases where you
-missed something.
+> root cause whose definition the edit matches. That it saves energy is a
+> separate claim, and only a measurement makes it.""",
+    "FOUND_BY_FIELD_RULES": """**`found_by`**, on every suspicion, records how you came to suspect it:
+`reading`, `rules`, `both`, `sweep` for the index pass at the end of step 2, or
+`cards` for a root cause that first appeared while you were reading a card in
+step 3. It is the difference between an analysis you did and a list you were
+handed, and it is measured across runs, so record it honestly — including the
+cases where you missed something.
 
-**`evidence`** lists any deterministic observation that pointed here, named
-exactly as it was reported to you. Leave it `[]` when you found it by reading,
-which is the normal case.
+**`evidence`**, optional on a step-3 decision, lists any deterministic
+observation that pointed there, named exactly as it was reported to you. Leave
+it out when you found it by reading, which is the normal case.
 
-**`also_considered`** names the similar cards you opened and did not file this
-under. Not a requirement to prove one card excludes another — these overlap on
-purpose — but a record of where you looked. Leave it out if you opened none.
+**`also_considered`**, optional on a step-3 decision, names the similar cards
+you opened and did not file this under. Not a requirement to prove one card
+excludes another — these overlap on purpose — but a record of where you looked.
 
 """,
     "FOUND_BY_NOTE": """
@@ -217,34 +192,21 @@ purpose — but a record of where you looked. Leave it out if you opened none.
 index pass. It is the difference between an analysis you did and a list you
 were handed.
 """,
-    "FOUND_BY_ROW": """      "found_by": "both",
-""",
-    "NEGLIGIBLE_VALUE": 'they are evidence about the taxonomy, not failures to hide.',
+    "NOTES_EXAMPLE": 'C10.S4. Sizes taken from the fixtures in tests/; `_row` left as the real helper.',
     "ONE_BASIS": 'one root cause',
-    "PATCH_BOUND": """Each card names a patch shape. It bounds the **size** of the edit, never its
-location, and never how much code you may read to decide.""",
-    "PATCH_SHAPE_ROW": """        "patch_shape": "statement_local",
+    "REPAIR_BASIS": 'its root cause',
+    "ROOT_CAUSE_FIELD": """  "root_cause": "C10.S4",
 """,
-    "REDECIDE": """re-open the cards for every remaining accepted
-   candidate.""",
-    "REPAIR_ORDER": """Sort by how much of the code the repair moves: `cross_unit` and `structural`
-first, then `signature`, then `statement_local`, then `expression`.""",
-    "REPORT_ADVISORY": ', 1 advisory',
-    "REPORT_HEADING_FIELDS": 'the root cause and its name,',
-    "REPORT_TABLE": """| Unit | Root cause | Energy saved |
-|---|---|---|
-| `src/render.py::Report.render` | C10.S4 Inefficient String Concatenation | 25.9% ± 3.0% |""",
-    "REPORT_TITLE": 'Energy smells',
+    "ROOT_CAUSE_ROW": """| `root_cause` | the root cause the repair removes, as it appears on its card |
+""",
     "SCOPE_IDS": """Python. Root cause IDs are exactly the 65 on the cards — never invent one, and
 never report a bare category as a finding.""",
-    "SIZING_HINT": " The card's workload hint says which.",
     "SKILL_DESCRIPTION": 'Find energy smells in Python code using the Watts This Smell taxonomy (12 categories, 65 root causes), and prove each one by measuring a refactoring that removes it. Use when asked to analyse code or a repository for energy smells, energy waste, power consumption, or energy inefficiency.',
     "SKILL_NAME": 'energy-smells',
     "STEP_2B": """**2b. Say what looks wasteful, in your own words, before opening any card.**
 No IDs yet. Just: which work here does not need to happen, is done more often
 than necessary, or is done in a more expensive way than the result requires?
 Write this down — it goes in the output as `own_hypotheses`.""",
-    "STEP_DECIDE": '',
     "STEP_TAXONOMY_MATCH": """**2c. Now match against the taxonomy, at the shallow level only.** Read the
 category index at the bottom of this file. Open
 `$SKILL/reference/categories/<ID>.md` for any category that might apply — each
@@ -260,25 +222,14 @@ suggests them. Nothing restricts which you may consider.
 """,
     "SUBJECT": 'energy smells',
     "SUBJECT_SINGULAR": 'an energy smell',
-    "SUBSUMED_ROW": """        {"id": "C6.S1", "why": "the per-row temporary only existed to feed the +=; the repair removed it"}""",
-    "SUSPICION_ROWS": """    {"root_cause": "C10.S4", "lines": [47],    "confidence": "high",
+    "SUBMISSION_ID_EXAMPLE": 'C10S4-render-concat',
+    "SUSPICION_ROWS": """    {"label": "a", "root_cause": "C10.S4", "lines": [47],    "confidence": "high",
      "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
      "found_by": "both"},
-    {"root_cause": "C3.S2",  "lines": [44,45], "confidence": "medium",
+    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45], "confidence": "medium",
      "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
      "found_by": "reading"}""",
     "TITLE": 'Energy Smell Identification',
-    "UNIT_SUSPICIONS": """      "suspicions": [
-        {"root_cause": "C10.S4", "confidence": "high",   "found_by": "both"},
-        {"root_cause": "C3.S2",  "confidence": "medium", "found_by": "reading"},
-        {"root_cause": "C6.S1",  "confidence": "low",    "found_by": "rules"},
-        {"root_cause": "C5.S4",  "confidence": "low",    "found_by": "sweep"}
-      ],
-      "dropped": [
-        {"root_cause": "C5.S4", "at_step": 3, "why": "the conversion feeds a second use, so nothing is redundant"},
-        {"root_cause": "C6.S1", "at_step": 4, "why": "subsumed by the C10.S4 repair"}
-      ],
-      "found": ["C10.S4"]""",
     "WHEN_WRONG": """## When the card is wrong
 
 It happens, and measurement is how you find out.
@@ -298,20 +249,12 @@ drop it and try a different root cause until one sticks.
 }
 
 _CONTROL_WORDS = {
-    "ADVISORY_NOTE": '',
-    "ADVISORY_ROW": '',
-    "ADVISORY_RULE": """The only exception is a repair worth a fixed and
-very small amount per execution — a single bytecode instruction, say — which
-provably cannot clear any noise floor, and is reported as unmeasured rather
-than measured badly.""",
     "ATTRIBUTION_HEADING": 'One repair, one reason',
     "ATTRIBUTION_RULE": """Attribute each repair to a single reason: the thing about the code that
 explains why the edit saves energy.
 
 """,
     "BEFORE_NAMING": 'before naming anything',
-    "CASE_DOCSTRING": 'src/render.py::Report.render — string built with += in a loop.',
-    "CASE_FILE_EXAMPLE": 'case_render_concat',
     "CATEGORY_SECTION": '',
     "CONTEXT_POINTER": '   Ask what the author was required to do before deciding they were wrong.',
     "DECIDE_APPLIES": """Does your account of the waste still hold on a second
@@ -321,69 +264,47 @@ of the better ways to notice something you missed. Step 2's cap does not apply,
 and a rejection with a reason is as much a result as an acceptance.""",
     "DECIDE_MOVE": """Every suspicion ends this step **accepted** or **rejected**, and nothing is
 edited in place. If the second reading changes your mind, reject the suspicion
-and add a new one saying what you now think. That keeps what you first thought
-on the record, which is the part worth reading later.""",
+and add a new one, with a new label, saying what you now think. That keeps what
+you first thought on the record, which is the part worth reading later.""",
     "DECIDE_PREAMBLE": """Read the unit a second time, now with the repair in mind. What the edit would
 have to be is usually what tells you whether your first reading was right.""",
-    "DECIDE_ROWS": """    "lines": [31], "verdict": "accepted",
-    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31",
-    "hotness": "one call per request; `routes` is 400-2000 entries",
-    "repair_sketch": "build `self.blocked` as a set",
-    "spans_units": ["src/router.py::Router.__init__"]
+    "DECIDE_ROWS": """    "label": "a", "lines": [58], "verdict": "rejected",
+    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added `c` instead."
   },
   {
-    "lines": [58], "verdict": "rejected",
-    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added the line 31 suspicion instead."
+    "label": "c", "lines": [31], "verdict": "accepted",
+    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31 and read nowhere else",
+    "hotness": "one call per request; `blocked` is 400-2000 entries",
+    "repair_sketch": "build `self.blocked` as a set"
   }""",
     "EVIDENCE_AGAINST": 'the repair',
-    "EVIDENCE_FIELDS": '',
     "FAILURE_MODES_CARDS": '',
-    "FINDING_ID_FIELDS": '',
     "FINDING_RULE": """> A finding is a **repair**: a concrete edit to *this* code, with a stated
-> reason why the edit saves energy, and measured.""",
+> reason why the edit saves energy. That it does is a separate claim, and only
+> a measurement makes it.""",
     "FOUND_BY_FIELD_RULES": '',
     "FOUND_BY_NOTE": '',
-    "FOUND_BY_ROW": '',
-    "NEGLIGIBLE_VALUE": 'a repair that turned out not to help is a result, not a failure to hide.',
+    "NOTES_EXAMPLE": 'Sizes taken from the fixtures in tests/; `_row` left as the real helper.',
     "ONE_BASIS": 'one reason',
-    "PATCH_BOUND": """The edit should be as small as removing the waste allows. That bounds its
-**size**, never its location, and never how much code you may read to decide.""",
-    "PATCH_SHAPE_ROW": '',
-    "REDECIDE": 're-decide every remaining accepted candidate.',
-    "REPAIR_ORDER": 'Sort by how much of the code the repair moves, largest first.',
-    "REPORT_ADVISORY": '',
-    "REPORT_HEADING_FIELDS": 'the lines,',
-    "REPORT_TABLE": """| Unit | What was repaired | Energy saved |
-|---|---|---|
-| `src/render.py::Report.render` | string built with `+=` in a loop | 25.9% ± 3.0% |""",
-    "REPORT_TITLE": 'Energy efficiency',
+    "REPAIR_BASIS": 'what it repairs',
+    "ROOT_CAUSE_FIELD": '',
+    "ROOT_CAUSE_ROW": '',
     "SCOPE_IDS": 'Python. A finding is a repair with a reason, not a label.',
-    "SIZING_HINT": '',
     "SKILL_DESCRIPTION": 'Find places where Python code wastes energy, refactor them, and prove the saving by measuring it. Use when asked to analyse code or a repository for energy waste, energy efficiency, power consumption, or wasteful computation.',
     "SKILL_NAME": 'energy-efficiency',
     "STEP_2B": """**2b. Say what looks wasteful, in your own words, before naming it.** Just:
 which work here does not need to happen, is done more often than necessary, or
 is done in a more expensive way than the result requires? Write this down — it
 goes in the output as `own_hypotheses`.""",
-    "STEP_DECIDE": '',
     "STEP_TAXONOMY_MATCH": '',
     "SUBJECT": 'energy waste',
     "SUBJECT_SINGULAR": 'energy waste',
-    "SUBSUMED_ROW": """        {"what": "the per-row temporary list", "why": "it only existed to feed the +=; the repair removed it"}""",
-    "SUSPICION_ROWS": """    {"lines": [47],    "confidence": "high",
+    "SUBMISSION_ID_EXAMPLE": 'render-concat',
+    "SUSPICION_ROWS": """    {"label": "a", "lines": [47],    "confidence": "high",
      "why": "`self.buf` is grown with += once per row; nothing reads it in the loop"},
-    {"lines": [44,45], "confidence": "medium",
+    {"label": "b", "lines": [44,45], "confidence": "medium",
      "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row"}""",
     "TITLE": 'Energy Efficiency Analysis',
-    "UNIT_SUSPICIONS": """      "suspicions": [
-        {"lines": [47],    "confidence": "high"},
-        {"lines": [44,45], "confidence": "medium"},
-        {"lines": [51],    "confidence": "low"}
-      ],
-      "dropped": [
-        {"lines": [51], "at_step": 3, "why": "the conversion feeds a second use, so nothing is redundant"}
-      ],
-      "found": [47]""",
     "WHEN_WRONG": """## When received wisdom is wrong
 
 It happens, and measurement is how you find out.
@@ -398,6 +319,38 @@ optimisation cannot fire, the same repair saves 94.8% ± 0.1%.
 If a repair you were confident about comes back `negligible`, that is a result.
 Report it, and say what you measured. Do not quietly drop it and try a
 different one until something sticks.
+""",
+}
+
+
+# The knowledge arm ships the taxonomy and no scanner, so nothing in it may
+# mention rules, a tool's findings, or evidence "reported to you" -- that would
+# tell the agent a fuller condition exists. These three slots are the only
+# places the taxonomy words did.
+_TAXONOMY_READING_WORDS = {
+    **_TAXONOMY_WORDS,
+    "SUSPICION_ROWS": """    {"label": "a", "root_cause": "C10.S4", "lines": [47],    "confidence": "high",
+     "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
+     "found_by": "reading"},
+    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45], "confidence": "medium",
+     "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
+     "found_by": "sweep"}""",
+    "FOUND_BY_NOTE": """
+`found_by` says how you came to suspect it, and is recorded honestly:
+`"reading"` from 2a–2b, or `"sweep"` from the index pass. It is the difference
+between an analysis you did and a list you were handed.
+""",
+    "FOUND_BY_FIELD_RULES": """**`found_by`**, on every suspicion, records how you came to suspect it:
+`reading`, `sweep` for the index pass at the end of step 2, or `cards` for a
+root cause that first appeared while you were reading a card in step 3. It is
+the difference between an analysis you did and a list you were handed, and it
+is measured across runs, so record it honestly — including the cases where you
+missed something.
+
+**`also_considered`**, optional on a step-3 decision, names the similar cards
+you opened and did not file this under. Not a requirement to prove one card
+excludes another — these overlap on purpose — but a record of where you looked.
+
 """,
 }
 
@@ -544,7 +497,7 @@ KNOWLEDGE_ONLY = Arm(
     name="knowledge",
     directory="knowledge/energy-smells",
     question="How well does the agent do on the taxonomy alone?",
-    words=_TAXONOMY_WORDS,
+    words=_TAXONOMY_READING_WORDS,
     step_evidence="",
     step_sweep=_sweep("d"),
     excluded=("scan.py", "lib/analysis", "lib/signals.py"),

@@ -1,163 +1,196 @@
 # Verifying a saving
 
-A finding is a claim that a specific refactoring saves energy. This is how the
-claim gets tested. Read this before writing your first case file.
+A repair comes with a claim: that this refactoring saves energy. This is how
+the claim gets tested. Read this before writing your first submission.
 
-The rule: **no finding is reported until its repair has been measured on this
-machine.** The only exception is a repair worth a fixed and
-very small amount per execution — a single bytecode instruction, say — which
-provably cannot clear any noise floor, and is reported as unmeasured rather
-than measured badly.
+The rule: **no repair is reported as saving anything until it has been
+measured on this machine.**
+
+You do not edit the repository. You describe the repair; the script applies it
+to a copy, and `before` is whatever the repository already contains.
 
 ---
 
-## The case file
+## The submission
 
-One file per candidate repair. Three things are required:
+One JSON object per line of `submissions.jsonl`, one line per repair:
+
+```jsonc
+{
+  "id": "render-concat",
+  "unit": "src/render.py::Report.render",
+  "changed": {
+    "src/render.py::Report.render": "def render(self):\n    return \"\".join(_row(r) for r in self.rows)"
+  },
+  "related": [],
+  "cases_source": "def checks():\n    ...\n\ndef cases():\n    ...",
+  "notes": "Sizes taken from the fixtures in tests/; `_row` left as the real helper."
+}
+```
+
+| Field | What it holds |
+|---|---|
+| `id` | a name for this repair, unique in the file |
+| `unit` | the function or method whose behaviour must be preserved, as `path::qualname` |
+| `changed` | `path::qualname` → the full replacement source of that function |
+| `related` | ids of other repairs of the same code, if any |
+| `sole_caller_evidence` | required when `changed` holds more than the unit: how you know nothing else calls or reads what you changed |
+| `equivalence` | optional; see below |
+| `cases_source` | Python source defining `checks()` and `cases()` |
+| `notes` | optional, a few sentences a reader would otherwise have to guess |
+| `agent_measurement` | written by the script. Never write or edit it |
+
+`changed` holds **source text, not a diff and not an AST**: the whole function
+as you would commit it, decorators and `def` line included, written at column
+zero even when it is a method. Each entry replaces exactly that function and
+nothing around it.
+
+## You do not supply `before`
+
+`before` is the function already in the repository, loaded from the file you
+named. You cannot simplify it or substitute an illustration of the pattern,
+because you never write it. A repair worth 30% of a five-line sketch and 2% of
+the real function always measures against the real function.
+
+The rest is real too: the helpers are the real helpers, the constants the real
+constants, the imports the real imports. So the replacement must differ from
+the repository by **the repair alone**. If it also renames a variable, inlines
+a helper or fixes a second thing, the measurement no longer attributes to
+one reason and the result is unusable.
+
+## Changing more than the unit
+
+The unit's **contract** is what has to survive: the same return value, the
+same effect on its arguments, the same output, the same exception type.
+Anything only the unit depends on — a helper nothing else calls, state nothing
+else reads — is implementation detail, and may change.
+
+Give each changed function its own entry in `changed`, in whatever file it
+lives, and fill in `sole_caller_evidence`: the search you ran, or the call sites
+and attribute reads you checked. The check watches the unit's contract only, so
+anything else broken by the change would pass every check here. A submission
+that changes more than the unit without this is rejected.
+
+## Several repairs in one unit
+
+Each repair is written against the original code and measured against it, on
+its own. There is no order to take them in, and no repair is built on another.
+
+- **The same edit** for two suspicions is one repair. Submit it once; the other
+  suspicion is `same_repair_as` it.
+- **Different edits to the same code** are separate repairs. Submit each, and
+  list each in the other's `related`.
+- **Every submission for one unit uses the same `cases_source`**, so their
+  savings are measured on identical inputs. The script rejects a file where
+  they differ.
+
+## `cases_source`
+
+Python source defining two functions. Each returns `(label, thunk)` pairs, and
+the thunk returns a **tuple of arguments** for the unit.
 
 ```python
-"""src/render.py::Report.render — string built with += in a loop."""
+from src.render import Report    # the repository's own modules, by their real names
 
-def _row(i):
-    return f"<td>{i}</td>"
+def _rows(n, *, wide=False):
+    columns = 12 if wide else 3
+    return [{f"c{j}": i * j for j in range(columns)} for i in range(n)]
 
-
-def before(rows):
-    out = ""
-    for r in rows:
-        out += _row(r)
-    return out
-
-
-def after(rows):
-    return "".join(_row(r) for r in rows)
-
-
-def cases():
+def checks():                     # behaviour only, never measured
     return [
-        ("empty",  lambda: ([],)),
-        ("single", lambda: ([0],)),
-        ("large",  lambda: (list(range(200_000)),)),
+        ("empty",      lambda: (Report([]),)),
+        ("one-row",    lambda: (Report(_rows(1)),)),
+        ("none-value", lambda: (Report([{"c0": None}]),)),
+    ]
+
+def cases():                      # exactly five, each measured
+    return [
+        ("typical",    lambda: (Report(_rows(200)),)),
+        ("many-rows",  lambda: (Report(_rows(50_000)),)),
+        ("wide-rows",  lambda: (Report(_rows(5_000, wide=True)),)),
+        ("long-text",  lambda: (Report([{"c0": "x" * 4_000}] * 2_000),)),
+        ("worst-case", lambda: (Report(_rows(20)),)),   # where joining costs most
     ]
 ```
 
-| Name | Contract |
-|---|---|
-| `before(*args)` | the code as it is in the repository |
-| `after(*args)`  | the same code with the repair applied, **and no other change** |
-| `cases()`       | `list[tuple[str, callable]]` — a label and a thunk returning a fresh args tuple |
+**`checks()` is for behaviour.** The edge inputs — empty, one element, `None`,
+an odd type — are run through both versions and compared, and never measured.
+On an empty list a repair can easily cost more than the code it replaces — by
+nanojoules, on an input that costs nothing either way — and measuring that
+would only make a good repair look like a trade-off.
 
-**Thunks, not values.** The thunk is called again for every repetition, outside
-the measured window, so a `before` that mutates its input cannot poison the
-next sample. A case that returns a shared list is the most common way to get a
-nonsense result.
+**`cases()` is for energy: exactly five inputs, each making the unit behave
+differently.** Not five sizes of the same input — five behaviours: the paths
+the code takes, how often a lookup hits, how many duplicates there are, how
+long one element is against how many there are. Include the input each repair
+is *most likely to lose on*, because the verdict needs to see it. Every case
+counts on its own, and one that measurably loses makes the result `mixed`.
 
-**`after` must differ by the repair alone.** If you also rename a variable,
-inline a helper, or fix a second thing, the measurement no longer attributes
-to one reason and the finding is unusable. One case file, one repair.
+**Thunks, not values.** The thunk is called again before every measured
+window, outside it, so a unit that mutates its input cannot poison the next
+one.
 
-Module-level code runs once at import, outside all measurement, so expensive
-fixtures can live there.
+**A method takes its instance as the first argument.** `Report.render` is
+called as a plain function, so the thunk builds the `Report` and passes it.
 
-## `before` must be the real function
+**A coroutine is run, a generator is drained.** An `async def` unit is run to
+completion on an event loop of its own, and a generator's output is collected
+and compared as what it yielded — so a repair that turns a list into a
+generator counts as returning something different.
 
-This is the part that goes wrong most often, and it invalidates everything
-downstream when it does.
+**Anything the unit writes to disk goes under `WORKDIR`**, a directory the
+script gives each side.
 
-`before` is not an illustration of the pattern. It is **this repository's
-function, copied**, with as little removed as you can manage. Keep:
+**Build the inputs; do not fake library objects.** If the unit needs an object
+the environment cannot construct, record the suspicion as `blocked` and say
+why. A faked object measures something nobody runs.
 
-- the surrounding work in the same function, even the parts your repair does
-  not touch — they are what the saving has to be large enough to show up
-  against, and a repair worth 30% of a one-line function may be worth 2% of the
-  real one;
-- the real data shapes: if the loop runs over dicts with eleven keys, do not
-  hand it a list of ints;
-- the helper calls, brought along as real code. Only stub what genuinely cannot
-  run here — a network call, a live database — and when you stub one, make it
-  cost roughly what the original cost, or say in the docstring that you could
-  not.
+`cases_source` may also define `equivalent()`; see below. Module-level code in
+it runs once per side, outside all measurement.
 
-Trim only what makes the file unable to run: imports of the application's own
-configuration, framework decorators, logging setup. If trimming starts to
-change what the function spends its time on, stop — measure the smaller
-enclosing unit instead, or say the candidate is `blocked`.
+## Choosing the five
 
-A simplified `before` produces a real number about a function nobody wrote. It
-will usually be a *larger* saving than the truth, because you have deleted
-exactly the surrounding work that dilutes it.
+Sizes should come from the repository, not from convenience. If its tests,
+fixtures or documentation say what a normal input looks like, start from that.
+If nothing says, pick something you can defend in one sentence and put the
+sentence in `notes`.
 
-The same applies to `after`: it is the repair as you would actually commit it.
-If the repair only works because the toy version dropped an edge case, that is
-something you need to discover here rather than after the report.
+You do **not** need outer loops to make a short case measurable. The script
+times one call and repeats it until the window is long enough — a 40 µs case
+is simply run tens of thousands of times. Write each case at its natural size.
 
-## Choosing cases
+When the effect grows with the number of *calls* rather than with input size —
+removing per-call overhead, say — give the unit many calls over a small input
+rather than one over a large one.
 
-Three is usually right:
-
-- **an edge case** — empty, one element, or whatever the boundary is;
-- **a small case** — a realistic-but-modest input;
-- **a large case** — big enough that one call takes milliseconds, not
-  microseconds.
-
-Sizes should come from the repository, not from convenience. If its own tests,
-fixtures or documentation say what a normal input looks like, use that for the
-small case and scale it for the large one. If nothing says, pick something you
-can defend in one sentence and put that sentence in the docstring.
-
-You do **not** need to add outer loops to make short cases measurable. The
-script times one call and picks a repeat count so every measured window lasts
-about a second — a 40 µs edge case simply gets run twenty-five thousand times.
-Write the case at its natural size.
-
-Two things the cases must be able to show:
-
-- that the saving is **real on the largest case** — this is what confirms;
-- that the repair **does not make realistic small inputs worse**. A repair that
-  wins on 200 000 elements and loses on 2 000 is a trade-off, not a fix.
-
-Losses are judged in absolute terms, not as percentages. Joining an empty list
-costs 1.3 µs where returning `""` costs 0.4, so a good repair routinely
-measures three times worse on an empty case — a true statement about a quantity
-nobody cares about. A loss only counts against the verdict when it is worth
-more than 1% of the *largest* case's per-call cost. The report prints both
-numbers so you can see which kind you are looking at.
-
-Sizing depends on what the repair does. When the effect grows with the number
-of *calls* rather than with input size — removing per-call overhead, say — the
-large case should call the unit many times over a small input, rather than once
-over a large one.
-
-**The shape of the large case can matter as much as its size.** Two cases of
-the same repair, on the same host: a string accumulator fed 200 000 short parts
-measured +18.4%, and the same accumulator fed 2 000 parts ten times the total
-length measured +1.2%. Same total bytes moved, same code, and one case would
-have reported a real effect while the other reported nothing. So when the
-mechanism suggests a variable — a count against a length, a hit rate, a
-duplicate ratio — vary that variable across your cases rather than only the
-overall size, and say in the docstring which one the repair actually tracks.
+**The shape of a case can matter as much as its size.** Two cases of one
+repair, on one host: a string accumulator fed 200 000 short parts measured
++18.4%, and the same accumulator fed 2 000 parts ten times the total length
+measured +1.2%. Same total bytes, same code, opposite conclusions. When the
+mechanism depends on a variable — a count against a length, a hit rate, a
+duplicate ratio — vary that variable across the five, and say in `notes` which
+one the repair tracks.
 
 ## When "identical" is stricter than "the same answer"
 
-By default `after` has to match `before` on the return value, the state of the
-arguments afterwards, stdout, and the exception type. Two escape hatches exist
-for the cases where that is genuinely too strict. Both are declared in the case
-file, both are printed in the verdict, and both must be repeated in your report.
+By default the replacement must match the original on the return value, the
+state of the arguments afterwards, stdout, and the exception type. Two escape
+hatches exist for when that is genuinely too strict. Both are recorded in the
+result, and both must be repeated wherever the saving is quoted.
 
 **The repair stops mutating the caller's data** — `lst.sort()` becomes
 `sorted(lst)`, `a.extend(b)` becomes `a + b`. The answer is the same; the side
 effect is not.
 
-```python
-EQUIVALENCE = "returns_only"
+```jsonc
+"equivalence": "returns_only"
 ```
 
-Only use it when you have checked the call sites and none of them relies on the
-mutation. That check is the claim you are making, so put it in the docstring.
+Use it only when you have checked the call sites and none of them relies on
+the mutation, and say so in `notes`.
 
-**The result is the same answer in a different form** — floats where the
-original produced ints, an unordered collection, a tolerance on a numeric
-result.
+**The result is the same answer in a different form** — an unordered
+collection, a tolerance on a float. Define `equivalent()` in `cases_source`:
 
 ```python
 def equivalent(before, after):
@@ -165,9 +198,12 @@ def equivalent(before, after):
     return sorted(before) == sorted(after)
 ```
 
-The docstring is required, because a comparison that always returns `True`
-would otherwise turn a broken repair into a confirmed finding, and nothing in
-the output would show it.
+It receives the two results as plain data — lists, dicts, numbers and
+strings — because each version's objects are instances of its own copy of the
+code and would never compare equal as they are. A set or tuple arrives as a
+list, an object as a dict of its attributes. The docstring is required, because a
+comparison that always returns `True` would turn a broken repair into a
+confirmed one with nothing in the output to show it.
 
 Neither hatch covers a repair that computes something different. Returning
 indices where the original returned values, or being off by one, is a bug in
@@ -176,81 +212,96 @@ your repair — fix it.
 ## Running it
 
 ```bash
-python $SKILL/scripts/verify.py cases/case_render_concat.py          # human-readable
-python $SKILL/scripts/verify.py cases/case_render_concat.py --json   # for findings.json
-python $SKILL/scripts/verify.py --calibrate                  # host noise floor
+python $SKILL/scripts/verify.py --calibrate                    # optional, see below
+python $SKILL/scripts/verify.py submissions.jsonl --repo .     # the whole file
 ```
 
-Run `--calibrate` once per session before trusting anything. It measures a
-workload against an identical copy of itself; the answer must be
-*insignificant*. The width of that interval is this host's resolution limit,
-and it is the bar every real effect has to clear.
+`--calibrate` measures two copies of identical code against each other, the
+way repairs are measured. The answer must come back
+*insignificant*; its width is this host's resolution limit, and the bar every
+real effect has to clear. It is kept for the session, and taken automatically
+if you forget. If it comes back significant, something else is using the
+machine, and nothing measured until it stops means anything.
 
-If calibration comes back significant, the machine is too noisy right now —
-something else is running. Nothing measured in that state means anything.
+The second command goes through the file once, about a minute per repair, and
+writes each result into its line. Run it again after fixing broken lines and it
+measures only what needs it: a line never measured, a line that was
+`not_equivalent`, `invalid` or `error` and has since been fixed, and anything
+`inconclusive` or `error`, which is simply tried again.
+
+A line with a measured result — `confirmed`, `mixed`, `regressed`,
+`negligible` — is final and is never measured again. If it has been edited
+since, the script reports it `invalid` and leaves the result it had exactly as
+it was. A different repair is a new line.
 
 ## What the script does
 
-1. **Equivalence.** For every case: same return value, same argument state
-   afterwards, same stdout, same exception type. A mismatch is fatal — it means
-   the repair is wrong, not that the waste is absent. Fix `after` and re-run.
-2. **Scaling.** Times one call of `before`, picks a repeat count so each
-   measured window lasts about a second. Shorter windows lose badly: sweeping
-   the null canary on the development host gave ±8.1% at a quarter second and
-   ±0.6% at one second.
-3. **Paired measurement.** Both variants alternate inside one process, nine
-   paired repetitions, order flipped each repetition. Paired samples must sit
-   close together in time because the dominant noise source is drift in the
-   machine's idle power.
-4. **The canary.** One case measured against *itself*, `before` versus
-   `before`. The true answer is zero, so whatever it reads is contamination,
-   and it is the floor every real effect has to clear.
-5. **Statistics.** The energy difference is computed per repetition and
-   averaged, with a 95% confidence interval. Energy decides the verdict;
-   wall-clock time is measured and reported but never decides anything.
+1. **Stages** two fresh copies of the repository: one untouched, one with your
+   replacements spliced into the files they name. Nothing is renamed and no
+   import is rewritten.
+2. **Loads** both copies side by side in one Python process, each under its
+   real package names: one copy's modules are set aside while the other's are
+   in use, so every import the unit makes resolves to its own copy. If the
+   environment lacks a package the unit's module imports but the unit itself
+   never uses, a stand-in is supplied, and the result says so; if the unit uses
+   it while running, the result is `error`.
+3. **Equivalence.** Every input from `checks()` and `cases()` goes through both
+   versions: same return value, same argument state afterwards, same stdout,
+   same exception type. A mismatch is fatal — the repair is wrong, not the
+   waste absent.
+4. **Sizing.** Times one call of each version and picks a repeat count so the
+   faster one fills about a second. Both run that same count.
+5. **Paired measurement.** The two versions take turns on one thread, one
+   measured window each, five pairs per case, the order flipped every pair —
+   so each pair of readings is taken back to back, on the same core, close
+   enough that the machine's own drift affects both alike.
+6. **Statistics.** The energy difference is computed per pair and averaged,
+   with a 95% confidence interval. Energy decides the verdict; wall-clock time
+   is measured and reported but never decides anything.
 
 ## Verdicts
 
 | Verdict | What it means | What to do |
 |---|---|---|
-| `confirmed` | every case that moved, moved the right way, clearing the noise floor | report it, with the numbers |
-| `mixed` | saves energy on some cases, costs it on others — both clearing the floor | report under `mixed`, and name **both** cases. It is a trade-off, and which side wins depends on the input the code sees |
-| `regressed` | every case that moved measurably, got worse | no saving here. Report under `regressed`, and say which cases |
-| `negligible` | measured on a clean floor, and nothing moved more than the noise | **no saving here.** Report under `negligible` |
-| `inconclusive` | the host's noise floor was too high to resolve an effect this size | report as inconclusive. **Do not** report it as negligible — that is a different claim |
-| `not_equivalent` | `after` behaves differently from `before` | your repair is broken. Fix it and re-run; do not report either way |
-| `blocked` | no runnable case file could be built | report as blocked, and say what was missing |
+| `confirmed` | every case that moved, moved the right way, clearing the noise floor | nothing — final |
+| `mixed` | saves energy on some cases, costs it on others — both clearing the floor | nothing — final. A trade-off: which side wins depends on the input |
+| `regressed` | every case that moved measurably, got worse | nothing — final |
+| `negligible` | measured on a clean floor, and nothing moved more than the noise | nothing — final |
+| `inconclusive` | the host's noise was too high to resolve an effect this size | nothing; the next run measures it again. It is **not** `negligible` |
+| `not_equivalent` | the replacement behaves differently from the original | fix the repair and run again |
+| `invalid` | the line is malformed, its `cases_source` fails, or a measured line was edited | fix it as the message says |
+| `error` | the environment failed: an import, the meter, a library the unit needs | the next run tries again; failing twice the same way, record `blocked` |
 
-Every verdict stays in the output. A run that proposes ten repairs and reports
-three as `negligible` is more informative than one that quietly drops them.
+Every verdict stays. A file that proposes ten repairs and has three come back
+`negligible` says more than one that quietly dropped them.
 
-The difference between `negligible` and `inconclusive` matters more than it
-looks. `negligible` says the repair does nothing, on a machine quiet enough to
-tell — that is evidence. `inconclusive` says this machine could not tell, which
-is a fact about the host and says nothing about the code. Reporting the second
-as the first writes a busy host down as evidence against the repair.
+`negligible` and `inconclusive` are different claims. `negligible` says the
+repair does nothing, on a machine quiet enough to tell — that is evidence.
+`inconclusive` says this machine could not tell, which is a fact about the host
+and says nothing about the code. Reporting the second as the first writes a
+busy host down as evidence against the repair.
 
-`mixed` is not a softer `regressed`. It means both effects are real: the repair
-genuinely pays on one input and genuinely costs on another, so the report must
-carry both numbers and let the reader decide which input their code has.
+`mixed` is not a softer `regressed`. Both effects are real: the repair pays on
+one input and costs on another, and which one the code actually sees decides
+whether it is worth having.
 
 ## What the numbers mean
 
-The meter reports whole-machine CPU package energy over the workload window,
-with nothing subtracted. On a many-core host much of that is idle power from
-cores doing nothing, so only a fraction of any reading is work you caused.
+The meter reports whole-machine CPU package energy over each window, with
+nothing subtracted. On a many-core host much of that is idle power from cores
+doing nothing, so only a fraction of any reading is work you caused.
 
 That does not dilute the result the way it looks like it should, because the
-window is not a fixed length: a variant that finishes sooner accrues less idle
+window is not a fixed length: a version that finishes sooner accrues less idle
 power too. What the figure cannot do is separate a change in power draw from a
 change in duration.
 
-**Every verdict is decided on energy alone.** Time and power are reported
+**Every verdict is decided on energy alone.** Time and power are recorded
 beside it, and are worth reading — when energy improves while wall-clock time
-does not, you have found something more interesting than a performance bug, and
-should say so — but no rule reads them. A result carries the measured joules
-and seconds for each variant rather than a percentage, because the percentage
-is a view of those numbers and storing it beside them lets the two disagree.
+does not, you have found something more interesting than a performance bug,
+and should say so — but no rule reads them. A result carries the joules and
+seconds of each version rather than a percentage, because the percentage is a
+view of those numbers, and storing it beside them lets the two disagree.
 
 ## When received wisdom is wrong
 
@@ -266,3 +317,4 @@ optimisation cannot fire, the same repair saves 94.8% ± 0.1%.
 If a repair you were confident about comes back `negligible`, that is a result.
 Report it, and say what you measured. Do not quietly drop it and try a
 different one until something sticks.
+
