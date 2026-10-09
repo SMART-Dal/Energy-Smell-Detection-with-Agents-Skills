@@ -1,4 +1,4 @@
-"""C11.S5 Missed Parallelism -- the repair that is a regression.
+"""C11.S5 Missed Parallelism -- a whole matrix sent to every task of a process pool.
 
 The card's own counter-example, from this project's sample set: a matrix
 multiply parallelised per row with the whole right-hand matrix sent to every

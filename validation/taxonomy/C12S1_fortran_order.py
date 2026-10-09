@@ -1,5 +1,4 @@
-"""C12.S1 Column-Major Traversal -- the mirror image, on a Fortran-ordered
-array.
+"""C12.S1 Column-Major Traversal -- a row walk over a Fortran-ordered array.
 
 The card says to read `arr.flags` rather than assume, because a transpose or an
 `asfortranarray` upstream flips which axis is contiguous. Here the *column*

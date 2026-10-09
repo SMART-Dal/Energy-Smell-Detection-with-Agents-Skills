@@ -1,4 +1,4 @@
-"""C1.S7 Unnecessary Variable -- marked advisory, and this checks that.
+"""C1.S7 Unnecessary Variable -- a temporary in a hot loop.
 
 `advisory_only` is a claim in its own right: that the repair is real but too
 small for any workload to lift above the noise floor. If a saving shows up

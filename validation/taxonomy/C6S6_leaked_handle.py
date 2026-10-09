@@ -1,4 +1,4 @@
-"""C6.S6 Leaked Resource Handles -- advisory; open() without a context manager."""
+"""C6.S6 Leaked Resource Handles -- open() without a context manager."""
 
 import tempfile, os
 

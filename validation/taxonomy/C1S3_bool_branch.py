@@ -1,4 +1,4 @@
-"""C1.S3 Redundant Control Flow -- also marked advisory, also checked.
+"""C1.S3 Redundant Control Flow -- a branch that only rebuilds the condition's own value.
 
 `if c: return True else: return False` collapses to `return c`. The analyzer
 grades this DEFINITE, which is a strong word for something the card says is

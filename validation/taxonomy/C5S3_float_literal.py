@@ -1,4 +1,4 @@
-"""C5.S3 Over-Provisioned Data Type -- and a test of `float_literal_on_int_data`.
+"""C5.S3 Over-Provisioned Data Type -- a float literal on integer data.
 
 From Javad's ImproperDataStructure/MultiplyByFactor. An integer multiply keeps
 small-int caching and avoids boxing a float per element; `3.0` gives up both

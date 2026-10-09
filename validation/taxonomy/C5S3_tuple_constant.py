@@ -1,4 +1,4 @@
-"""C5.S3 -- and a test of `constant_sequence_literal`.
+"""C5.S3 -- a constant sequence rebuilt on every iteration.
 
 From Javad's ImproperDataStructure/AssignType. A constant tuple is stored whole
 in the code object; a list literal is rebuilt with one store per element every

@@ -1,5 +1,4 @@
-"""C10.S1 Manual Implementation Of Built-ins -- the hand loop wins, because it
-stops.
+"""C10.S1 Manual Implementation Of Built-ins -- the primitive that must see all the data, against a loop that need not.
 
 From the project's own sample set. `''.join(a) == ''.join(b)` hands the whole
 job to C and materialises both sequences; the element-wise loop returns at the

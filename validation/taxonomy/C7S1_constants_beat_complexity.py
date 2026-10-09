@@ -1,5 +1,4 @@
-"""C7.S1 Suboptimal Algorithm Choice -- the better complexity
-loses at the size this code actually sees.
+"""C7.S1 Suboptimal Algorithm Choice -- insertion sort replaced by merge sort.
 
 `C7S1_algorithm_choice` compares the same two algorithms at n = 1500 and merge
 sort wins outright. Nothing about the code changes here; only n does.

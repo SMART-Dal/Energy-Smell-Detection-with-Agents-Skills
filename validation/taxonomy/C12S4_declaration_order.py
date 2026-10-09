@@ -1,4 +1,4 @@
-"""C12.S4 Inefficient Array Declaration Order -- the CPython half of the claim.
+"""C12.S4 Inefficient Array Declaration Order -- the same fields, declared in a different order.
 
 The previous version of this file was broken: `cases()` built a list of
 `Before` instances and handed the same list to both variants, so `After` was

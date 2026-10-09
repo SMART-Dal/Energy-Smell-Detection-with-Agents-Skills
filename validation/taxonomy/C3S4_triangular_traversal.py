@@ -1,4 +1,4 @@
-"""C3.S4 Inefficient Nested Iteration -- the symmetric form, which can lose.
+"""C3.S4 Inefficient Nested Iteration -- a symmetric relation over one collection.
 
 The card's second repair example and its own counter-example in one file. When
 the per-pair work is expensive -- `math.gcd` here -- halving the pairs halves

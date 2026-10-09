@@ -1,4 +1,4 @@
-"""C6.S7 Leaking Mutable Default Arguments -- what the standard repair costs.
+"""C6.S7 Leaking Mutable Default Arguments -- a shared scratch buffer behind a default argument.
 
 The previous version of this file had `acc=None` and the `if acc is None`
 guard in *both* variants: two byte-identical helpers behind two different

@@ -1,4 +1,4 @@
-"""C10.S1 -- the same claim, but where the builtin is `collections.Counter`.
+"""C10.S1 -- a tally, where the primitive does exactly the needed work.
 
 Javad's OveruseOfLoops/OccurenceOfOddItems1 sample runs this comparison in the
 *opposite* direction: it treats the hand-written dict loop as the improvement

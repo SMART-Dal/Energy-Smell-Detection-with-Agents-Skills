@@ -1,4 +1,4 @@
-"""C4.S2 Redundant Conditional Evaluation -- advisory; a test already known."""
+"""C4.S2 Redundant Conditional Evaluation -- the same test nested inside itself."""
 
 def before(xs, k):
     out = []

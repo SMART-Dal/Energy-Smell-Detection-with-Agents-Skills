@@ -1,5 +1,4 @@
-"""C4.S4 Independent Sequential Conditions -- two arms, which the card calls
-close to advisory.
+"""C4.S4 Independent Sequential Conditions -- the exclusivity is guaranteed by a precondition.
 
 The adversarial end of the same claim: with two arms the chain saves at most
 half a comparison per pass. If this reads near zero while the twelve-arm case

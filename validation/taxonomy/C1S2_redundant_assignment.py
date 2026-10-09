@@ -1,4 +1,4 @@
-"""C1.S2 Redundant Assignment -- advisory; assigning a value already held.
+"""C1.S2 Redundant Assignment -- assigning a value already held.
 
 Advisory means the repair is real but too small to measure. This checks that.
 """

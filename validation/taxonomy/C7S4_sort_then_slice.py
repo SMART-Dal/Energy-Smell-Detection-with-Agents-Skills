@@ -1,4 +1,4 @@
-"""C7.S4 Inefficient Operation Ordering -- and a test of `sort_then_slice`.
+"""C7.S4 Inefficient Operation Ordering -- a full sort to take the k smallest.
 
 From Javad's BuiltInBehavior/SumTopK, whose own refactoring is not
 behaviour-preserving (it sorts the caller's list in place). The repair that

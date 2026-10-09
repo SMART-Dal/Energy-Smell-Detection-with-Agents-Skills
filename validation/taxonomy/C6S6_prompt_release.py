@@ -1,5 +1,4 @@
-"""C6.S6 Unmanaged Resource Lifecycle -- when the handle is released, not
-whether.
+"""C6.S6 Unmanaged Resource Lifecycle -- every handle held open until the end of the batch.
 
 Both variants close every handle, so this isolates the one thing a paired
 comparison can see: `before` holds all of them open until the end of the call,

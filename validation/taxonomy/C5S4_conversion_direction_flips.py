@@ -1,4 +1,4 @@
-"""C5.S4 Unnecessary Representation Change -- the same edit, opposite verdicts.
+"""C5.S4 Unnecessary Representation Change -- the argument that did not need converting.
 
 The card's headline near-miss, from two of the project's own samples.
 `set.intersection` iterates its argument and probes the receiver, so a list

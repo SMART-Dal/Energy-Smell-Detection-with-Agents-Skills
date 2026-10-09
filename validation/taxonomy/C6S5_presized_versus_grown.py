@@ -1,4 +1,4 @@
-"""C6.S5 Over-Allocation -- and the direction the card warns about.
+"""C6.S5 Over-Allocation -- pre-sizing that the allocator was already doing.
 
 "Check that shrinking it does not simply move the cost": a container that grows
 dynamically reallocates and copies, and doing that repeatedly can cost more

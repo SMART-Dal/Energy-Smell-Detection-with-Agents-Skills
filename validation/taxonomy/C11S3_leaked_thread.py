@@ -1,4 +1,4 @@
-"""C11.S3 Leaked Background Threads -- advisory; a worker with no shutdown path."""
+"""C11.S3 Leaked Background Threads -- the same joined workers, declared as daemon threads."""
 
 import threading
 

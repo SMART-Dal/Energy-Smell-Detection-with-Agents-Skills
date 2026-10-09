@@ -1,4 +1,4 @@
-"""C10.S5 Inefficient Scope Lookup -- and a test of my own new analyzer.
+"""C10.S5 Inefficient Scope Lookup -- globals resolved on every iteration.
 
 `global_lookup_in_loop` was added in this pass and has never been measured. It
 claims that binding a repeatedly-read global to a local above the loop saves

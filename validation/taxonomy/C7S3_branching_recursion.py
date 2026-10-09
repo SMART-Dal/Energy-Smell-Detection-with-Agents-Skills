@@ -1,4 +1,4 @@
-"""C7.S3 Unnecessary Recursion -- the branching case, where the repair loses.
+"""C7.S3 Unnecessary Recursion -- a recursion with two self-calls per frame.
 
 The card's first `NOT a smell when` clause: a recursion with two self-calls is
 a tree walk, and replacing it with an explicit stack reimplements the call

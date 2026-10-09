@@ -1,4 +1,4 @@
-"""C6.S3 Eager Materialisation -- against a consumer that reduces.
+"""C6.S3 Eager Materialisation -- a list comprehension handed straight to `sum`.
 
 The card says materialising a list where a generator would do wastes memory
 and time. Javad's ImproperDataStructure/SumMap1 claims the reverse for `sum`:
