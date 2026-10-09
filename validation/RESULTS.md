@@ -10,9 +10,8 @@ fact about that shape on that host.
 
 What these suites are for is the *authored* half of each card: where a root
 cause pays, how much, where it does not, and what an agent should expect before
-it spends a measurement of its own. Every number below feeds `what_to_look_for`,
-`NOT a smell when`, `Looks the same, is not` or the repair examples. None of it
-feeds the description or the example, which are rendered verbatim from the
+it spends a measurement of its own. Every result below feeds the **Measured**
+line under a card's repair. None of it feeds the description or the example, which are rendered verbatim from the
 published taxonomy and are not ours to edit.
 
 Where a repair did not pay anywhere we tried, the card says so and leaves the

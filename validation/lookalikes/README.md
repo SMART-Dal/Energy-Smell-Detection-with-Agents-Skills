@@ -11,9 +11,10 @@ behaviour, which is stronger than a percentage anyway.
 
 ## What they are for
 
-**1. The `Looks the same, is not` section of each root-cause card.** Every file
-carries the pattern, the repair, the input that separates them, and the rule the
-reader should apply instead. That prose is the card text.
+**1. The `Looks like it, but is not` section of each root-cause card.** Every
+file carries the pattern, the repair, the input that separates them, and the
+rule the reader should apply instead. The build reads the title, `before` and
+`after` from the file; the card's one-line `why` summarises the docstring.
 
 **2. Negative fixtures for the analyzer rules.** `tests/rules/<rule>/test_cases.py`
 already works this way: a unit that is not named in `EXPECTED` must come back

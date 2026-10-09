@@ -101,13 +101,19 @@ keeps the decision driven by the code in front of it.
 
 Level 2 is where the work is. Each card carries:
 
-- the taxonomy's own description and example;
-- **`Applies only when`** — preconditions;
-- **`NOT a smell when`** — context exceptions (179 of them across the catalog).
-  This field does the most work in practice and is the answer to "one rule does
-  not fit every case";
-- **canonical repair** with before/after examples;
-- **discriminators** against neighbouring root causes.
+- the taxonomy's own definition and example, verbatim;
+- **What to look for** — three or four lines drawn from our samples and the
+  rules' positive fixtures;
+- **Repair** — every measured sample of this root cause, before and after,
+  each ending with what it measured and what to do about it (apply the after,
+  try both directions, report without measuring, or measure);
+- **Looks like it, but is not** — up to five near-misses where the repair
+  would change behaviour, most of them the behaviour-checked specimens in
+  `validation/lookalikes/`;
+- **Similar root causes**, in each neighbour's own one-line description.
+
+`build/CARD_SPEC.md` says where each part comes from; everything but the
+written lines is read from the case files and the results at build time.
 
 Depth is a hypothesis, not a conviction. If evaluation shows the category level
 adds nothing, collapse to two levels; if 65 cards is too coarse a fan-out at
@@ -331,7 +337,7 @@ between two different agents on the same repo.
 
 **Carried over from v2 and still valid**
 
-- 65 catalog entries, 40 discriminators, 179 `not_a_smell_when` clauses
+- 65 catalog entries: 228 measured repairs shown from the case files, 120 near-misses (33 of them behaviour-checked specimens from `validation/lookalikes/`)
 - 27 AST analyzers + a Ruff adapter, validated on 179 files of pandas source
 - Findings ranked by the measured saving of their repair, averaged over our own
   benchmark shapes — the one axis, replacing the hand-assigned strength grades
