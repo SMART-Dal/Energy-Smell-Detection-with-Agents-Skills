@@ -1,961 +1,401 @@
 - id: C3.S1
   signals:
-  - index_based_iteration
-  - append_only_loop
-  - ruff_PERF401
-  - ruff_PERF403
-  - ruff_PERF102
+    - index_based_iteration
+    - append_only_loop
+    - ruff_PERF401
+    - ruff_PERF403
+    - ruff_PERF102
   in_one_line: |
     a loop written in a form that does more interpreter work per element than it needs to
-  what_to_look_for: |
-    Iteration forms differ in how much ceremony surrounds each element.  `for i in range(len(xs))` with `xs[i]` builds an index object, does a bounds-checked subscript and rebinds a name each pass, where `for x in xs` asks the iterator for the next pointer.  A comprehension goes further, using a dedicated append bytecode with no attribute lookup and no call, where an explicit `.append()` loop resolves the method every iteration. None of this changes what the loop computes, so the effect is a per-element constant factor of tens of nanoseconds and needs thousands of elements before it is visible.  Two things decide most candidates.  What the index is used for: `zip` is the repair when it walks a second sequence and `enumerate` when it is used arithmetically, and neither is obviously an improvement when both are needed.  And what else the body does: a `continue`, a `break`, a side effect or a second append all block a comprehension.  Watch the result type too, since a slice returns the input's type and a comprehension always returns a list.
-  not_a_smell_when:
-  - |
-    the index is needed for something other than the subscript, so the direct form would lose information
-  - |
-    the loop body has a side effect, an early exit or a `continue` that a comprehension cannot express
-  - |
-    the loop is short enough that a per-element constant factor is invisible
-  - |
-    the explicit form is substantially clearer and the path is not hot
-  - |
-    the source is lazy and a comprehension would materialise it
-  counter_examples:
-  - code: |
-      for i in range(len(rows)):
-          if rows[i].id != expected[i].id:
-              raise Mismatch(i)
-    why: |
-      `range(len(...))` with a subscript, which is the shape the rule looks for -- and the index is used to walk two sequences and to report the position. The repair is `zip` plus `enumerate`, not `for row in rows`, and it is not obviously an improvement once both are needed.
-  - code: |
-      results = []
-      for record in records:
-          if record.skip:
-              continue
-          results.append(transform(record))
-          if len(results) >= limit:
-              break
-      return results
-    why: |
-      An `append` loop, and neither the `continue` nor the `break` survives a comprehension. The `break` in particular is doing real work -- the comprehension would transform every record. Read the whole body before proposing this repair.
+  look_for: |
+    A loop whose form does more interpreter work per element than the job needs. `for i in range(len(xs))` with `xs[i]` builds an index object and a bounds-checked subscript every pass where `for x in xs` takes the next element from the iterator; two sequences on one index are `zip`, an index carried out of the loop is `enumerate`, a stride is a slice, a reverse walk is `reversed`. An `.append()` loop resolves the method and makes a call every iteration where a comprehension uses a dedicated bytecode, and an `if` around the append becomes its filter.
   refactoring:
     summary: use the iteration construct with the least per-element overhead
-    examples:
-    - title: an index used only to subscript
-      before: |
-        def before(xs):
-            return [xs[i] * 2 for i in range(len(xs))]
-      after: |
-        def after(xs):
-            return [x * 2 for x in xs]
+  repairs:
+    - case: C3S1_index_iteration
       note: |
-        The original builds a `range`, boxes each index and does a bounds-checked subscript per element; the repair asks the list's iterator for the next pointer. Same result, same order, one fewer object per element.
-
-        Measured in `validation/taxonomy/C3S1_index_iteration.py`.
-    - title: two sequences walked by a shared index
-      before: |
-        def before(first, second):
-            return sum([abs(first[i] - second[i]) for i in range(len(first))])
-      after: |
-        def after(first, second):
-            return sum([abs(a - b) for a, b in zip(first, second)])
+        The original builds a `range`, boxes each index and does a bounds-checked subscript per element; the repair asks the list's iterator for the next pointer.
+    - case: C3S1_zip_versus_index
       note: |
-        `zip` advances both iterators in C. Note the behaviour change to check: `zip` stops at the shorter sequence where the original raises `IndexError` if `second` is shorter -- if that error was load-bearing, use `zip(..., strict=True)`.
-
-        Measured in `validation/taxonomy/C3S1_zip_versus_index.py`.
-    - title: an append loop with nothing else in the body
-      before: |
-        def _parse(line):
-            return line.count(",") + len(line)
-
-
-        def before(lines):
-            records = []
-            for line in lines:
-                records.append(_parse(line))
-            return records
-      after: |
-        def _parse(line):
-            return line.count(",") + len(line)
-
-
-        def after(lines):
-            return [_parse(line) for line in lines]
+        `zip` advances both iterators in C. It stops at the shorter sequence where the original raises `IndexError` if `second` is shorter; if that error was load-bearing, use `zip(..., strict=True)`.
+    - case: C3S1_plain_append
       note: |
-        The explicit loop resolves `records.append` on every iteration and makes a call; the comprehension uses a dedicated bytecode. This only holds because the body is exactly one append -- see the second counter-example.
-
-        Measured in `validation/taxonomy/C3S1_plain_append.py`.
-    - title: an append loop that also filters
-      before: |
-        def _parse(line):
-            return line.count(",") + len(line)
-
-
-        def before(lines, minimum):
-            records = []
-            for line in lines:
-                value = _parse(line)
-                if value >= minimum:
-                    records.append(value)
-            return records
-      after: |
-        def _parse(line):
-            return line.count(",") + len(line)
-
-
-        def after(lines, minimum):
-            return [v for v in (_parse(line) for line in lines) if v >= minimum]
+        The explicit loop resolves `records.append` on every iteration and makes a call; the comprehension uses a dedicated bytecode. This only holds because the body is exactly one append.
+    - case: C3S1_append_to_comprehension
       note: |
-        An append loop with nothing else in
-        the body.
-
-        The card's third example, and it stresses that this only holds because the body
-        is exactly one append: a `continue`, a `break` or a side effect blocks it. The
-        `with-filter` case keeps the repair available -- a comprehension can carry an
-        `if` -- so the two readings say what the filter costs rather than whether the
-        repair exists.
-
-        Measured in `validation/taxonomy/C3S1_append_to_comprehension.py`.
-    - title: the comprehension that cannot stop early
-      before: |
-        def before(records, limit):
+        A comprehension can carry an `if`, so the filter keeps the repair available; a `continue`, a `break` or a side effect in the body would block it.
+    - case: C3S1_comprehension_cannot_stop
+      note: |
+        The `break` is a second statement in the body, and a comprehension has nowhere to put it. Written as a comprehension plus a slice, the loop runs to the end of the input and the slice throws away what it did not need.
+  not_this:
+    - title: the list being appended to belongs to the caller
+      source: rule:append_only_loop/populate_queue
+      code: |
+        def populate_queue(shared_queue, new_items):
+            for item in new_items:
+                shared_queue.append(item.data)
+      tempting: |
+        def populate_queue(shared_queue, new_items):
+            shared_queue = [item.data for item in new_items]
+      why: |
+        The comprehension builds a fresh local list and rebinds the name, so the caller is left holding the list it passed in, without the new items.
+    - title: the filter reads the list being built
+      source: rule:append_only_loop/reads_the_list_it_builds
+      code: |
+        def reads_the_list_it_builds(xs):
             out = []
-            for record in records:
-                out.append(record * 2 + 1)
-                if len(out) >= limit:
-                    break
+            for x in xs:
+                if x not in out:
+                    out.append(x)
             return out
-      after: |
-        def after(records, limit):
-            return [record * 2 + 1 for record in records][:limit]
-      note: |
-        A comprehension
-        cannot stop.
-
-        An `append` loop with one statement in the body is the shape, and
-        `C3S1_index_iteration` measures the comprehension at +28.8%. The body here is
-        one `append` too -- the `break` is the second statement, and a comprehension has
-        nowhere to put it.
-
-        Written as a comprehension plus a slice, the loop runs to the end of the input
-        and the slice throws away what it did not need. Where the limit is a hundredth
-        of the collection, that is a hundred times the work in exchange for the faster
-        per-element construct.
-
-        The description's own wording is the test: an iteration form is only
-        interchangeable when the alternative *does the same iterations*. A `break`, a
-        `continue` with side effects, or an early `return` all remove that guarantee.
-
-        Measured in `validation/taxonomy/C3S1_comprehension_cannot_stop.py`.
-  patch_shape: statement_local
-  measurability: scales_with_input
-  min_workload_hint: |
-    thousands of elements at least; the effect is tens of nanoseconds per element
-  notes: |
-    This card must not be read as "always use a comprehension".  Two measured results bound it.  `map` beats a comprehension only when the callable is a C builtin -- `list(map(float, xs))` measured +46.8% while `map(lambda x: x*2, xs)` measured 24.6% *behind* the comprehension.  And a list comprehension measured 22% *ahead* of a generator expression for a short pipeline consumed once by `sum`, because generator resumption costs more per element than the allocation saves at that size.  Neither construct is categorically better; see C10.S2 and C6.S3.
+      tempting: |
+        def reads_the_list_it_builds(xs):
+            out = []
+            out = [x for x in xs if x not in out]
+            return out
+      why: |
+        While the comprehension runs, `out` is still the empty list, so `x not in out` is always true and the duplicates the loop dropped are kept.
   similar:
-  - C10.S1
-  - C10.S3
+    - C10.S1
+    - C10.S3
 - id: C3.S2
   signals:
-  - loop_invariant_expression
+    - loop_invariant_expression
   in_one_line: |
     an expression recomputed every iteration whose answer never changes
-  what_to_look_for: |
-    An expression whose operands do not change inside the loop produces the same value every pass, so the loop pays N times for one answer and the repair computes it once above.  The saving is (N-1) times whatever that expression costs, which makes a heavy invariant in a long loop one of the larger effects available -- and invariants are often not cheap: a `len()` in a `while` condition, an attribute chain, a dictionary lookup, a call that builds a set.  Most candidates die on one of two checks.  Whether the operands really are stable: a method call on an object the loop also mutates is not invariant, and a `while position < len(queue)` over a queue the body appends to is the algorithm rather than a mistake.  And whether the expression is evaluated per iteration at all -- a `for` loop evaluates its iterable exactly once before the first pass, so `for i in range(len(xs))` does not recompute `len(xs)`, which is the commonest false positive here. Purity matters too, since a call that logs or advances an iterator must run each time however constant its value.
-  not_a_smell_when:
-  - |
-    an operand is rebound or mutated inside the loop, directly or through a call, so the value genuinely differs per iteration
-  - |
-    the expression has a side effect that must happen each time
-  - |
-    it sits in a `for` loop's iterable clause, which is evaluated once already
-  - |
-    the expression is a bare name or a constant, where there is nothing to hoist
-  - |
-    hoisting would keep a large object alive well past its last use
-  counter_examples:
-  - code: |
-      while position < len(queue):
-          queue.extend(children_of(queue[position]))
-          position += 1
-    why: |
-      `len(queue)` in a `while` condition, recomputed every iteration -- and it must be, because the body appends to `queue`. Hoisting it turns a breadth-first traversal into one that stops at the initial frontier. The recomputation is the algorithm.
-  - code: |
-      for row in rows:
-          total += rate_for(row.region)
-    why: |
-      `rate_for` is called every iteration with what may look like an invariant argument, and it is not: `row.region` changes per row. Check what the expression actually reads rather than how repetitive it looks.
-  - code: |
-      for i in range(len(values)):
-          process(values[i])
-    why: |
-      `len(values)` appears inside the loop statement, but a `for` loop evaluates its iterable exactly once before the first iteration. Nothing is recomputed. This is the commonest false positive for the rule, and it is the one thing always worth checking before hoisting anything.
-  - code: |
-      denominator = sum(map(math.exp, values))
-      return [math.exp(x) / denominator for x in values]
-    why: |
-      Nothing here is loop-invariant: `denominator` is already hoisted, and `math.exp(x)` depends on `x`. The waste is a *repeated* computation -- `exp` runs twice per element, once for the sum and once for the result -- so the repair fuses the two passes rather than moving anything. That is C1.S4. Compare it with the line below, which looks almost identical and is this root cause.
+  look_for: |
+    An expression inside a loop whose operands nothing in the loop changes, so every pass pays again for the same answer. Look for a set built from parameters, `len()` or a call in a `while` condition, a subscript into a config or module-level table, an attribute chain or string method on an outside value, and `sum()` in a comprehension's body, which runs once per element and makes a linear-looking function quadratic. It is invariant only when nothing in the body, a call included, can change what it reads.
   refactoring:
     summary: hoist the invariant expression to just above the loop
-    examples:
-    - title: a set rebuilt on every iteration
-      before: |
-        def before(values, k):
-            result = []
-            for x in values:
-                allowed = {i for i in range(1, k, 2)}
-                if x in allowed:
-                    result.append(x)
-            return result
-      after: |
-        def after(values, k):
-            allowed = {i for i in range(1, k, 2)}
-            result = []
-            for x in values:
-                if x in allowed:
-                    result.append(x)
-            return result
+  repairs:
+    - case: C3S2_set_rebuilt_per_iteration
       note: |
-        The set depends only on `k`, which the loop never touches, so it is built once instead of once per element. This is the large form of the root cause: what was hoisted is O(k) work, so the saving is len(values) * k rather than a few bytecodes.
-
-        Measured in `validation/taxonomy/C3S2_set_rebuilt_per_iteration.py`.
-    - title: an attribute chain resolved per iteration
-      before: |
-        def before(xs, config):
-            out = 0
-            for x in xs:
-                if x < config.limits.maximum:
-                    out += x
-            return out
-      after: |
-        def after(xs, config):
-            maximum = config.limits.maximum
-            out = 0
-            for x in xs:
-                if x < maximum:
-                    out += x
-            return out
+        The set depends only on `k`, which the loop never touches, so it is built once instead of once per element. What was hoisted is O(k) work, so the saving is len(values) * k rather than a few bytecodes.
+    - case: C3S2_sum_inside_comprehension
       note: |
-        Three dict lookups and possibly three descriptor invocations per row become one array index. Valid only if nothing in the loop -- including `self.accept` -- can rebind any link in that chain, which you have to check by reading `accept`.
-
-        Measured in `validation/taxonomy/C8S3_local_lookup_caching.py`.
-    - title: the invariant is inside a comprehension, and quadratic
-      before: |
-        import math
-
-
-        def before(values):
-            exponentials = [math.exp(v) for v in values]
-            return round(sum(x / sum(exponentials) for x in exponentials), 6)
-      after: |
-        import math
-
-
-        def after(values):
-            exponentials = [math.exp(v) for v in values]
-            total = sum(exponentials)
-            return round(sum(x / total for x in exponentials), 6)
+        A comprehension's body runs once per element, so `sum(exponentials)` is a full pass per element and the function is quadratic where it reads as linear. The iterable is evaluated once; it is the body that repeats.
+    - case: C3S2_loop_invariant
+    - case: C3S2_len_in_while_condition
       note: |
-        A comprehension's body runs once per element, so `sum(exponentials)` is a full pass per element and the function is quadratic where it reads as linear. One line makes it linear again. Worth knowing because the same rule that clears `for i in range(len(xs))` -- an iterable is evaluated once -- does not clear this: it is the *body* that repeats, and a comprehension has one. Two versions of this function from the project's sample set differ only in where `sum` sits, and one of them is C1.S4 instead.
-
-        Measured in `validation/taxonomy/C3S2_sum_inside_comprehension.py`.
-    - title: a call in a `while` condition, which cannot be hoisted
-      before: |
-        def before(values):
+        Nothing in the body mutates the list, so the length is invariant and the hoist is legal. A loop that deletes as it goes is textually identical, and only reading the body tells them apart.
+  not_this:
+    - source: lookalike:C3S2_lookalike
+      why: |
+        `len(out)` reads the list the loop is appending to, so hoisting it computes the capacity once against an empty list and every later row is checked against the wrong threshold.
+    - title: the body deletes from the list whose length the condition reads
+      source: rule:loop_invariant_expression/compact
+      code: |
+        def compact(values):
             i = 0
             while i < len(values):
                 if values[i] is None:
-                    del values[i]                 # shifts the tail; no increment after
+                    del values[i]
                 else:
                     i += 1
             return values
-      after: |
-        def after(values):
-            values[:] = [v for v in values if v is not None]
-            return values
-      note: |
-        `del` inside a `while`,
-        rebuilt instead.
-
-        The card is explicit that this is a correctness finding with an energy
-        consequence, and that a `before` which skips elements is not equivalent to its
-        repair by construction. So `before` here is the *fixed* incremental version --
-        it does not increment after deleting, so it visits everything -- and the
-        measurement isolates the quadratic `del` rather than the bug. The bug is real
-        and belongs in the report; it is just not what a paired comparison can measure.
-
-        Measured in `validation/taxonomy/C3S7_delete_while_scanning.py`.
-    - title: a plain expression hoisted above the loop
-      before: |
-        def before(rows, config):
-            out = []
-            for row in rows:
-                limit = len(config) * 2
-                out.append(row + limit)
-            return out
-      after: |
-        def after(rows, config):
-            limit = len(config) * 2
-            out = []
-            for row in rows:
-                out.append(row + limit)
-            return out
-      note: |
-        Hoisting work that cannot change.
-
-        The analyzer behind this (`loop_invariant_expression`) is the one with no
-        linter equivalent, so it carries a lot of the suite's weight and needs to be
-        right.
-
-        Measured in `validation/taxonomy/C3S2_loop_invariant.py`.
-    - title: a `len()` in a `while` condition that nothing invalidates
-      before: |
-        def before(values):
-            total = 0
-            i = 0
-            while i < len(values):
-                total += values[i]
-                i += 1
-            return total
-      after: |
-        def after(values):
-            total = 0
+      tempting: |
+        def compact(values):
             i = 0
             n = len(values)
             while i < n:
-                total += values[i]
-                i += 1
-            return total
-      note: |
-        `len()` in a `while` condition.
-
-        The taxonomy's own first example for this root cause, which had no
-        implementation. The measured files hoist a set comprehension, a call and an
-        attribute chain; the one file with `len()` in a `while` condition is
-        `C3S7_delete_while_scanning`, where the loop deletes as it goes and the length
-        genuinely changes, so hoisting it there is a bug.
-
-        This is the case the taxonomy names: nothing mutates the list, so the length is
-        invariant and the hoist is legal. Having both measured is the point -- the two
-        are textually identical and only reading the body tells them apart.
-
-        Measured in `validation/taxonomy/C3S2_len_in_while_condition.py`.
-  patch_shape: statement_local
-  measurability: scales_with_input
-  min_workload_hint: |
-    the saving is (iterations - 1) times the expression's own cost, so size the case on both -- a heavy invariant needs fewer iterations to show
-  similar:
-  - C1.S4
-  - C3.S3
-  - C4.S5
-  - C8.S3
-  - C10.S5
-- id: C3.S3
-  signals:
-  - regex_in_loop
-  in_one_line: |
-    an object or resource created once per iteration that the whole loop could share
-  what_to_look_for: |
-    Creating an object costs an allocation, an `__init__` and eventually a collection; creating an expensive one -- a compiled pattern, a connection, a `Decimal` context, a lambda -- costs considerably more, and doing it inside a loop pays that per iteration for something the loop could have shared. For resources it is worse than arithmetic waste: opening a file or a connection per pass adds a syscall and a handshake to every iteration and can exhaust a pool, so those are worth far more than the allocation count suggests.  The repair is available exactly when the object carries no per-iteration state.  Two things block it.  Dependence on the loop variable -- `re.compile` on a fixed pattern hoists, one built from the current row does not.  And escape: a list that is accumulated into and reset each pass can be hoisted and cleared, but one that is stored or returned cannot, because every iteration would then share the same object.  For a resource, also ask whether the lifetime is safe to extend past a timeout or a lock's intended scope.
-  not_a_smell_when:
-  - |
-    the object depends on the loop variable, so a shared one would be wrong
-  - |
-    the object accumulates state that must not leak between iterations, and the hoisted version is stored or returned rather than cleared
-  - |
-    the resource must not be held for the whole loop -- a lock that would serialise everything, a connection that would time out
-  - |
-    the creation is trivial and the loop is short
-  - |
-    the module-level alternative would run expensive work at import time on a path that may never need it
-  counter_examples:
-  - code: |
-      for pattern in patterns:
-          matcher = re.compile(pattern)
-          results.append(matcher.findall(text))
-    why: |
-      `re.compile` inside a loop, which is the canonical shape -- and the pattern *is* the loop variable, so there is nothing to hoist. The real repair here, if any, is to compile the patterns once outside the function, which is C8.S2.
-  - code: |
-      for group in groups:
-          members = []
-          for user in group.users:
-              members.append(user.name)
-          result[group.id] = members
-    why: |
-      A list created per iteration, and each one is stored in `result`. Hoisting it and clearing would leave every key pointing at the same list. The pattern matches and the repair is a bug. Note `re.compile` also has an internal cache, so even the hoistable case is smaller than it looks.
-  refactoring:
-    summary: create the object once before the loop and reuse it
-    examples:
-    - title: a compiled pattern
-      before: |
-        import re
-
-
-        def before(lines):
-            found = []
-            for line in lines:
-                match = re.search(r"id=(\d+)", line)
-                if match:
-                    found.append(int(match.group(1)))
-            return found
-      after: |
-        import re
-
-
-        _ID = re.compile(r"id=(\d+)")
-
-
-        def after(lines):
-            found = []
-            for line in lines:
-                match = _ID.search(line)
-                if match:
-                    found.append(int(match.group(1)))
-            return found
-      note: |
-        `re.search` looks the pattern up in a module-level cache on every call, which is a dict probe plus the call itself; the compiled object skips both. Hoisting to module scope rather than to just above the loop makes this C8.S2 as well -- one repair, and the two labels are alternatives rather than separate findings.
-
-        Measured in `validation/taxonomy/C3S3_regex_compiled_per_iteration.py`.
-    - title: a resource opened per iteration
-      before: |
-        import os
-
-
-        import tempfile
-
-
-        def before(rows):
-            handle, path = tempfile.mkstemp(suffix=".c3s3")
-            os.close(handle)
-            try:
-                for row in rows:
-                    with open(path, "a", encoding="utf-8") as out:
-                        out.write(f"{row}\n")
-                return os.path.getsize(path)
-            finally:
-                os.unlink(path)
-      after: |
-        import os
-
-
-        import tempfile
-
-
-        def after(rows):
-            handle, path = tempfile.mkstemp(suffix=".c3s3")
-            os.close(handle)
-            try:
-                with open(path, "a", encoding="utf-8") as out:
-                    for row in rows:
-                        out.write(f"{row}\n")
-                return os.path.getsize(path)
-            finally:
-                os.unlink(path)
-      note: |
-        One open and one close instead of N of each, and the buffer is flushed when it fills rather than on every row. This is a syscall-per-iteration saving rather than an allocation one, which makes it much larger than it looks -- and it changes the failure mode, since a crash mid-loop now loses buffered rows.
-
-        Measured in `validation/taxonomy/C3S3_file_opened_per_iteration.py`.
-    - title: an object that can be reused if it is reset
-      before: |
-        class Person:
-            __slots__ = ("name", "age")
-
-            def __init__(self, name, age):
-                self.name = name
-                self.age = age
-
-            def __str__(self):
-                return f"{self.name} ({self.age})"
-
-
-        def before(count):
-            out = []
-            for i in range(count):
-                person = Person(f"person {i}", i)
-                out.append(str(person))
-            return out
-      after: |
-        class Person:
-            __slots__ = ("name", "age")
-
-            def __init__(self, name, age):
-                self.name = name
-                self.age = age
-
-            def __str__(self):
-                return f"{self.name} ({self.age})"
-
-
-        def after(count):
-            out = []
-            person = Person("", 0)
-            for i in range(count):
-                person.name = f"person {i}"
-                person.age = i
-                out.append(str(person))
-            return out
-      note: |
-        One allocation instead of N, available only because the instance is rendered to a string immediately and never escapes. If `out` collected the objects rather than their renderings, every entry would be the same object and the repair would be a bug. Reuse is available only when the object cannot escape the iteration that filled it.
-
-        Measured in `validation/taxonomy/C3S3_object_reuse_with_reset.py`.
-    - title: a lambda rebuilt every iteration
-      before: |
-        def before(batches):
-            total = 0
-            for batch in batches:
-                key = lambda pair: pair[1]
-                total += max(batch, key=key)[0]
-            return total
-      after: |
-        def after(batches):
-            key = lambda pair: pair[1]
-            total = 0
-            for batch in batches:
-                total += max(batch, key=key)[0]
-            return total
-      note: |
-        A lambda rebuilt every iteration.
-
-        One of the three shapes the taxonomy names for this root cause, and the one
-        with no implementation. A `lambda` in a loop body is a `MAKE_FUNCTION` per
-        iteration: a fresh function object, with its own closure cell when it captures
-        anything, allocated and discarded each pass.
-
-        The other measured files hoist a compiled pattern and a file handle, where the
-        saving is a cache probe or a syscall. This one's saving is an allocation, which
-        is the smallest of the three and the one most likely to be written by accident.
-
-        Measured in `validation/taxonomy/C3S3_lambda_in_loop.py`.
-  patch_shape: statement_local
-  measurability: scales_with_input
-  min_workload_hint: |
-    scale by what is created rather than by the loop length; a per-iteration `open` shows at hundreds of iterations, a per-iteration `[]` needs millions
-  similar:
-  - C1.S8
-  - C3.S2
-  - C6.S1
-  - C8.S2
-- id: C3.S4
-  signals:
-  - membership_test_on_sequence
-  in_one_line: |
-    an inner loop that searches, where a lookup would turn n*m into n+m
-  what_to_look_for: |
-    Nested loops multiply, so anything in the inner body is paid n*m times.  The repair that matters replaces the inner *search* with a constant-time lookup, turning n*m into n+m -- a complexity change rather than a constant factor, and therefore the largest class of effect in the taxonomy.  So the first thing to establish is whether the inner loop is scanning for matching elements or genuinely doing work for every pair: a distance matrix has no search to index away.  Then that the key is hashable and is what the inner loop actually compares, and that neither collection is mutated inside the loops.  A second, weaker form applies when both loops range over the same collection and the relation is symmetric: walking only the upper triangle halves the comparisons.  That one is a constant factor and it is not free -- this project measured a triangular version losing to the full n^2, because halving the comparisons doubled the appends onto n separately growing lists. Fewer operations is not automatically less work.  Sizes decide the rest: two nested loops over ten items each is a hundred iterations and no finding.
-  not_a_smell_when:
-  - |
-    the inner loop does work for every pair rather than searching, so there is nothing a lookup can replace
-  - |
-    either collection is small enough that the index costs more than the scan
-  - |
-    the elements are unhashable or the match is not equality -- a range overlap, a prefix, a distance threshold
-  - |
-    a collection is mutated inside the loop, so an index would have to be rebuilt
-  - |
-    the pairing is inherently quadratic -- a distance matrix, a full outer product -- and every result is used
-  counter_examples:
-  - code: |
-      def difference_matrix(values):
-          out = [[] for _ in values]
-          for i in range(len(values)):
-              out[i].append(0)
-              for j in range(i + 1, len(values)):
-                  d = abs(values[i] - values[j])
-                  out[i].append(d)
-                  out[j].append(d)
-          return out
-    why: |
-      The triangular optimisation, already applied -- and on this project's sample data the *full* n^2 version with pre-sized rows measured better. Halving the comparisons costs two appends per pair onto n separately growing lists, where the full version does n^2 contiguous writes into rows allocated once. Fewer operations is not automatically less work, and allocation pattern can dominate comparison count.
-  - code: |
-      for a in points:
-          for b in points:
-              matrix[a.id][b.id] = distance(a, b)
-    why: |
-      Genuinely quadratic: every pair's result is wanted and stored. There is no search to index away. The only repairs available are symmetry -- if `distance` is symmetric -- or vectorisation, which is C10.S3.
-  refactoring:
-    summary: replace the inner scan with a hash lookup, or halve a symmetric traversal
-    examples:
-    - title: the inner loop is a linear search
-      before: |
-        def before(xs, ys):
-            return [x for x in xs if x in ys]
-      after: |
-        def after(xs, ys):
-            lookup = set(ys)
-            return [x for x in xs if x in lookup]
-      note: |
-        n*m comparisons become m hashes plus n probes. The dict maps the complement back to the element so the return value is unchanged -- getting that right is the difference between a repair and a rewrite. Note the first matching pair may differ if `second` has duplicates; check whether the caller depends on which one comes back.
-
-        Measured in `validation/taxonomy/C3S4_nested_scan.py`.
-    - title: a symmetric relation over one collection
-      before: |
-        import math
-
-
-        def before(limit, expensive):
-            result = {}
-            for i in range(2, limit):
-                for j in range(2, limit):
-                    ok = math.gcd(i, j) == 1 if expensive else (i != j)
-                    if ok:
-                        result.setdefault(i, []).append(j)
-            return sum(len(v) for v in result.values())
-      after: |
-        import math
-
-
-        def after(limit, expensive):
-            result = {}
-            for i in range(2, limit):
-                for j in range(i + 1, limit):
-                    ok = math.gcd(i, j) == 1 if expensive else (i != j)
-                    if ok:
-                        result.setdefault(i, []).append(j)
-                        result.setdefault(j, []).append(i)
-            return sum(len(v) for v in result.values())
-      note: |
-        `gcd` is symmetric, so half the pairs were being computed twice. This halves the expensive part -- and only pays because `gcd` costs far more than the extra `setdefault`. When the per-pair work is cheap and the mirroring writes are not, the full traversal wins; see the first counter-example.
-
-        Measured in `validation/taxonomy/C3S4_triangular_traversal.py`.
-    - title: the nesting that is not a lookup in disguise
-      before: |
-        def before(points):
-            n = len(points)
-            matrix = [[0] * n for _ in range(n)]
-            for i in range(n):
-                for j in range(n):
-                    matrix[i][j] = abs(points[i] - points[j])
-            return sum(sum(row) for row in matrix)
-      after: |
-        def after(points):
-            n = len(points)
-            matrix = [[0] * n for _ in range(n)]
-            for i in range(n):
-                left = points[i]
-                row = matrix[i]
-                for j in range(n):
-                    row[j] = abs(left - points[j])
-            return sum(sum(r) for r in matrix)
-      note: |
-        Every pair's result is wanted.
-
-        The card's first `NOT a smell when` clause: the inner loop is not a search, so
-        there is nothing a lookup can replace and no loop level to remove. The only
-        edit available is to hoist the row lookup out of the inner loop, which is C3.S2
-        -- so a small reading here says the nesting was never the finding.
-
-        Measured in `validation/taxonomy/C3S4_genuinely_quadratic.py`.
-  patch_shape: structural
-  measurability: scales_with_input
-  min_workload_hint: |
-    both dimensions must be large; the effect is the gap between n*m and n+m, so a case with a small inner collection shows almost nothing
-  similar:
-  - C5.S1
-  - C5.S2
-  - C7.S1
-  - C9.S3
-- id: C3.S5
-  signals:
-  - missing_early_exit
-  in_one_line: |
-    a loop that keeps going after its answer is already settled
-  what_to_look_for: |
-    A loop that has determined its answer and keeps going pays for every remaining iteration, so the saving is not a property of the code but of the data: a search that finds its target in the first percent of a million-element list wastes 99% of the traversal, and one that usually finds it at the end wastes nothing.  Expect the report to state where the answer typically arrives, because that is the whole finding.  The load-bearing check is whether a later iteration could still change the outcome.  A loop that assigns a *constant* and keeps going has a genuine missing exit; a loop that assigns a *value derived from the element* does not, because breaking early returns the first match where the original returned the last.  Look also for work after the loop that depends on it having completed -- a counter, a per-element side effect, a final index.  Prefer the primitive that already short-circuits: `any`, `all`, `next`, `in` and `str.find` all stop at the answer, and reaching for one is usually a better repair than adding a `break`.
-  not_a_smell_when:
-  - |
-    a later iteration can still change the outcome, so breaking changes the result
-  - |
-    the loop has a side effect on every element that must happen regardless
-  - |
-    the answer typically arrives near the end, so the expected saving is small
-  - |
-    code after the loop depends on it having completed -- a fully populated accumulator, a final index value
-  counter_examples:
-  - code: |
-      status = "ok"
-      for server in servers:
-          if server.latency > limit:
-              status = "degraded"
-          elif server.offline:
-              status = "down"
-      return status
-    why: |
-      An assignment inside a loop that keeps going, which is exactly the shape this root cause is about -- and breaking at the first `degraded` would miss a later `down`. A later iteration *can* change the outcome, so there is no early exit here. Only when every remaining iteration is guaranteed to leave the value alone is the exit missing.
-  - code: |
-      found = None
-      for record in records:
-          if record.matches(query):
-              found = record
-      return found
-    why: |
-      Looks like a search that forgot to break, and it returns the *last* match rather than the first. Adding `break` changes which record comes back. The repair is only equivalent if you also reverse the iteration, or if the caller genuinely does not care -- and you have to check.
-  refactoring:
-    summary: stop as soon as the outcome is settled, ideally with a primitive that does so
-    examples:
-    - title: a validation that keeps checking after it has failed
-      before: |
-        def before(records):
-            valid = True
-            for record in records:
-                if not record.check():
-                    valid = False
-            return valid
-      after: |
-        def after(records):
-            return all(record.check() for record in records)
-      note: |
-        `all` stops at the first false. On data where the third of ten thousand records fails, this is a 99.97% saving; on data where everything passes it is zero. The value is entirely in the input distribution, so the submission has to make the failure position realistic.
-
-        Measured in `validation/taxonomy/C3S5_all_short_circuits.py`.
-    - title: collecting only as many as are wanted
-      before: |
-        def before(values, limit, floor):
-            return [x for x in values if x > floor][:limit]
-      after: |
-        from itertools import islice
-
-
-        def after(values, limit, floor):
-            return list(islice((x for x in values if x > floor), limit))
-      note: |
-        The original filters the whole collection and then discards all but the first `limit`. The explicit loop is longer and stops as soon as it has enough. Note this is the one place where writing out the loop beats the comprehension -- and `itertools.islice(filter(...), limit)` expresses it better still.
-
-        Measured in `validation/taxonomy/C3S5_take_only_what_is_wanted.py`.
-    - title: a search that runs on after it has found its answer
-      before: |
-        def before(xs, target):
-            found = False
-            for x in xs:
-                if x == target:
-                    found = True
-            return found
-      after: |
-        def after(xs, target):
-            for x in xs:
-                if x == target:
-                    return True
-            return False
-      note: |
-        Scanning past the answer.
-
-        The `hit-early` case is where the repair pays; `no-hit` is the adversarial one
-        where it can only cost, and both must be reported.
-
-        Measured in `validation/taxonomy/C3S5_missing_early_exit.py`.
-  patch_shape: statement_local
-  measurability: scales_with_input
-  min_workload_hint: |
-    the driver's data decides everything: the answer must arrive early on the large case, and the submission should say why that is representative
-  similar:
-  - C3.S6
-  - C7.S2
-- id: C3.S6
-  signals:
-  - ruff_RUF015
-  in_one_line: |
-    the whole collection processed when only a subset was ever wanted
-  what_to_look_for: |
-    Processing everything when a subset is wanted pays the expensive step's per-element cost for every element that never reaches the result.  The repair moves the reduction earlier: filter before transform, take before sort, `heapq.nlargest` instead of a full sort, `itertools.islice` instead of building and slicing, a `WHERE` clause instead of selecting in Python, a `set()` before a per-element test when duplicates are dense.  Selectivity is the whole finding -- high selectivity makes this one of the larger effects available and low selectivity makes it nothing -- so say what fraction of the processed elements reach the result.  Equivalence needs one check: filtering before a transform only holds when the predicate does not depend on the transform's output.  And the reduction has to be cheaper than what it removes.  This project measured deduplicating a million values drawn from 101 distinct ones as a large win and the same edit on unique data as a pure extra pass, which is the same rule seen from both sides.
-  not_a_smell_when:
-  - |
-    most of the processed elements do reach the result, so the reduction removes little
-  - |
-    the predicate depends on the transform's output, so filtering first is not equivalent
-  - |
-    the collection has few duplicates, making a deduplicating pass pure overhead
-  - |
-    the full result is needed elsewhere, so the work is not wasted after all
-  - |
-    the source is a generator that cannot be reduced at its origin
-  counter_examples:
-  - code: |
-      results = [format_record(r) for r in records if r.active]
-    why: |
-      A comprehension's `if` clause is evaluated *before* the element expression, so `format_record` only ever runs on records that passed. This is already the filtered-first form. It looks like "transform then filter" and is the opposite, and mistaking it is a common false positive -- the actual smell is two separate comprehensions, or `filter(pred, map(f, xs))` where `pred` only inspects the untransformed element.
-  - code: |
-      scores = [expensive(x) for x in items]
-      best = [s for s in scores if s > threshold]
-    why: |
-      This one *is* transform-then-filter -- and it is not repairable, because the predicate tests `expensive`'s output. You cannot filter first without computing the thing you are filtering on. Check what the predicate reads before proposing the reorder.
-  refactoring:
-    summary: reduce the collection before the expensive step, not after
-    examples:
-    - title: a full sort where only the top k is wanted
-      before: |
-        def before(values, k):
-            return sorted(values, reverse=True)[:k]
-      after: |
-        import heapq
-
-
-        def after(values, k):
-            return heapq.nlargest(k, values)
-      note: |
-        Sorting a million elements to keep a hundred is n log n where the heap is n log k. Note `nlargest` and a reverse sort agree on the values but not necessarily on the order of ties, so check whether the caller depends on that.
-
-        Measured in `validation/taxonomy/C3S6_top_k_without_sorting.py`.
-    - title: deduplicate before a per-element test, when duplicates are dense
-      before: |
-        def _expensive(x):
-            total = 0
-            for i in range(1, 24):
-                total += (x * i) % 7
-            return total % 3 == 0
-
-
-        def before(values):
-            return {x for x in values if _expensive(x)}
-      after: |
-        def _expensive(x):
-            total = 0
-            for i in range(1, 24):
-                total += (x * i) % 7
-            return total % 3 == 0
-
-
-        def after(values):
-            return {x for x in set(values) if _expensive(x)}
-      note: |
-        One million elements drawn from a hundred distinct values: the extra `set()` pass replaces 999 900 redundant modulo operations with a hashing pass that was going to happen anyway for the result set. On unique data this is strictly worse, so the duplicate ratio is the whole decision and the submission must state it.
-
-        Measured in `validation/taxonomy/C3S6_deduplicate_first.py`.
-    - title: filtering that could happen at the source
-      before: |
-        def before(n):
-            with open(_PATH) as f:
-                rows = f.read().splitlines()
-            return len(rows[:n])
-      after: |
-        def after(n):
-            out = []
-            with open(_PATH) as f:
-                for line in f:
-                    out.append(line.rstrip("\n"))
-                    if len(out) >= n:
-                        break
-            return len(out)
-      note: |
-        The rows never cross the process boundary, so the saving is transfer and deserialisation as well as the Python filter -- much larger than the loop it removes. This one spans the data layer and is also C9.S2; report whichever describes the edit better.
-
-        Measured in `validation/taxonomy/C9S2_oversized_retrieval.py`.
-    - title: a full sort where one element was wanted
-      before: |
-        def before(xs):
-            return sorted(xs)[0]
-      after: |
-        def after(xs):
-            return min(xs)
-      note: |
-        Materialising everything to take one item.
-
-        Measured in `validation/taxonomy/C3S6_unfiltered_bulk.py`.
-  patch_shape: structural
-  measurability: scales_with_input
-  min_workload_hint: |
-    the selectivity is the effect: the case must discard most of the collection, and the submission should say what fraction and why that is representative
-  notes: |
-    The deduplicate-first form has a sibling worth knowing about, on C10.S1: handing a whole collection to a bulk primitive when only a slice is wanted is the same waste in the opposite direction.  `Counter(values)` followed by a filter to odd keys tallies every even value for nothing, and a hand loop that skips them beats it.  Reducing first applies to primitives too.
-  similar:
-  - C1.S5
-  - C3.S5
-  - C6.S3
-  - C7.S4
-- id: C3.S7
-  signals:
-  - mutation_during_iteration
-  in_one_line: |
-    a collection edited while it is being walked, which costs correctness first and energy second
-  what_to_look_for: |
-    This is a correctness problem with an energy consequence, and the report has to say which of the two it is claiming.  Removing from a list shifts the remaining elements down so the iterator skips one; appending during iteration can run the loop indefinitely; a dict or set raises `RuntimeError` outright.  The cost follows: every `list.remove` or `del lst[i]` moves the whole tail, so a filtering loop written this way is quadratic where a rebuild is linear.  Confirm the mutated collection really is the one being iterated rather than a copy or a similarly named sibling -- `for item in list(pending)` is a snapshot and correct as written.  Mutation during iteration is also sometimes the algorithm: `while queue: queue.extend(...)` is how a work-list traversal works.  For a `while` loop, check the termination variable is updated on every path, since a `continue` that skips the increment is the classic unbounded loop.
-  not_a_smell_when:
-  - |
-    the loop iterates a copy, a slice, or a materialised `list(...)` of the collection, so the mutation cannot disturb the iterator
-  - |
-    the mutation targets a different collection than the one being walked
-  - |
-    the structure supports it by design, as a `deque` does when appended to at the far end
-  - |
-    the loop is over an index range whose bound is deliberately recomputed
-  counter_examples:
-  - code: |
-      for item in list(self.pending):
-          if item.done:
-              self.pending.remove(item)
-    why: |
-      The `list(...)` makes a snapshot, so the iterator walks a copy while the mutation lands on the original. Correct as written. The remaining inefficiency is that `remove` is a linear scan per item, which makes it quadratic -- a real finding, but C7.S1 rather than this.
-  - code: |
-      while queue:
-          node = queue.pop()
-          queue.extend(node.children)
-    why: |
-      Appending to the collection being consumed, which is the whole mechanism of a work-list traversal. `while queue` re-evaluates the condition each pass by design. Mutation during iteration is the algorithm, not a defect.
-  refactoring:
-    summary: iterate over a snapshot, or build a new collection instead of editing in place
-    examples:
-    - title: removal while iterating, which also skips elements
-      before: |
-        def before(xs, k):
-            keep = list(xs)
-            for x in list(keep):
-                if x % k == 0:
-                    keep.remove(x)
-            return keep
-      after: |
-        def after(xs, k):
-            return [x for x in xs if x % k != 0]
-      note: |
-        The original skips the element after each removal, so it is wrong as well as quadratic -- two adjacent inactive users leave one behind. The repair is linear and correct, and `users[:] =` keeps mutating the caller's list, which `users = [...]` would not. If the caller does not rely on that, returning a new list is simpler.
-
-        Measured in `validation/taxonomy/C3S7_mutation_in_loop.py`.
-    - title: a `while` loop whose counter is skipped on one path
-      before: |
-        def before(values):
-            i = 0
-            while i < len(values):
                 if values[i] is None:
-                    del values[i]                 # shifts the tail; no increment after
+                    del values[i]
                 else:
                     i += 1
             return values
-      after: |
-        def after(values):
-            values[:] = [v for v in values if v is not None]
-            return values
-      note: |
-        The original increments after deleting, so it skips the element that slid into position `i` -- consecutive `None`s survive. Each `del` also shifts the tail, making it quadratic. The rebuild is one pass and one allocation. Note the incremental version can be fixed in place by not incrementing after a delete; that is the smaller edit, and it stays quadratic.
-
-        Measured in `validation/taxonomy/C3S7_delete_while_scanning.py`.
-    - title: the snapshot that fixes correctness and leaves the cost
-      before: |
-        def before(pending):
-            snapshot = list(pending)
-            for item in snapshot:
-                if item % 2 == 0:
-                    pending.remove(item)
-            return pending
-      after: |
-        def after(pending):
-            pending[:] = [item for item in pending if item % 2]
-            return pending
-      note: |
-        Already correct, and the
-        remaining cost is somebody else's.
-
-        The card's first `NOT a smell when` clause: `for item in list(pending)` walks a
-        snapshot, so the mutation cannot disturb the iterator and the code is right as
-        written. What is left is that `remove` is a linear scan per item, which makes
-        it quadratic -- and the card says that finding is C7.S1, not this one.
-
-        So `after` here applies the C7.S1 repair, and a large reading says the card is
-        right to send the reader elsewhere rather than that C3.S7 applies.
-
-        Measured in `validation/taxonomy/C3S7_iterating_a_snapshot.py`.
-  patch_shape: structural
-  measurability: scales_with_input
-  min_workload_hint: |
-    the quadratic form needs thousands of elements with many removals; if the finding is the correctness bug rather than the cost, say so and do not force a measurement
-  notes: |
-    Report this one carefully.  Where the loop currently skips elements, `before` and `after` are not equivalent by construction -- the verifier will say `not_equivalent` and it will be right.  The honest presentation is a correctness finding with an energy consequence, measured on a variant that fixes the skip in both arms, so that the measurement isolates the quadratic removal rather than the bug.
+      why: |
+        Each `del` shortens the list, so the hoisted bound outlives it and `values[i]` raises `IndexError` once anything has been deleted.
+    - title: the invariant is a generator, which one pass uses up
+      source: rule:loop_invariant_expression/score_batches
+      code: |
+        def score_batches(batches, static_weights):
+            for batch in batches:
+                gen = (w * 2 for w in static_weights)
+                consume(batch, gen)
+      tempting: |
+        def score_batches(batches, static_weights):
+            gen = (w * 2 for w in static_weights)
+            for batch in batches:
+                consume(batch, gen)
+      why: |
+        A generator is a single-use iterator: the first batch exhausts it and every later batch receives an empty one.
   similar:
-  - C6.S2
+    - C1.S4
+    - C3.S3
+    - C4.S5
+    - C8.S3
+    - C10.S5
+- id: C3.S3
+  signals:
+    - regex_in_loop
+  in_one_line: |
+    an object or resource created once per iteration that the whole loop could share
+  look_for: |
+    An object or resource built on every pass of a loop that carries no per-iteration state, so one instance could serve the whole loop. Look for `re.search`, `re.sub`, `re.findall` or `re.compile` with a fixed pattern, which looks the pattern up in the module's cache on every call; a file opened and closed per row, which adds syscalls to every iteration; a `lambda` or a set built from values the loop never changes; and an object constructed per pass that never leaves the iteration that filled it.
+  refactoring:
+    summary: create the object once before the loop and reuse it
+  repairs:
+    - case: C3S3_regex_compiled_per_iteration
+      note: |
+        `re.search` looks the pattern up in a module-level cache on every call, which is a dict probe plus the call itself; the compiled object skips both. Hoisting to module scope rather than to just above the loop makes this C8.S2 as well.
+    - case: C3S3_file_opened_per_iteration
+      note: |
+        One open and one close instead of N of each, and the buffer is flushed when it fills rather than on every row. It changes the failure mode: a crash mid-loop now loses buffered rows.
+    - case: C3S3_object_reuse_with_reset
+      note: |
+        One allocation instead of N, available only because the instance is rendered to a string immediately and never escapes. If `out` collected the objects rather than their renderings, every entry would be the same object and the repair would be a bug.
+    - case: C3S3_lambda_in_loop
+      note: |
+        A `lambda` in a loop body is a `MAKE_FUNCTION` per iteration: a fresh function object, with its own closure cell when it captures anything, allocated and discarded each pass.
+    - case: C3S3_per_iteration_setup
+  not_this:
+    - title: the pattern is the loop variable
+      source: rule:regex_in_loop/compile_per_pattern
+      code: |
+        def compile_per_pattern(patterns, text):
+            return [re.compile(p).findall(text) for p in patterns]
+      tempting: |
+        def compile_per_pattern(patterns, text):
+            matcher = re.compile(patterns[0])
+            return [matcher.findall(text) for p in patterns]
+      why: |
+        The compiled object depends on the loop variable, so there is no single object to share: one compiled before the loop applies the first pattern to every iteration.
+    - title: the object built per iteration is kept, not discarded
+      source: catalog
+      code: |
+        for group in groups:
+            members = []
+            for user in group.users:
+                members.append(user.name)
+            result[group.id] = members
+      tempting: |
+        members = []
+        for group in groups:
+            members.clear()
+            for user in group.users:
+                members.append(user.name)
+            result[group.id] = members
+      why: |
+        Each list is stored in `result`, so a hoisted list cleared per pass leaves every key pointing at the same object, holding only the last group's names.
+  similar:
+    - C1.S8
+    - C3.S2
+    - C6.S1
+    - C8.S2
+- id: C3.S4
+  signals:
+    - membership_test_on_sequence
+  in_one_line: |
+    an inner loop that searches, where a lookup would turn n*m into n+m
+  look_for: |
+    Nested iteration whose inner level is a search: an inner loop looking for a matching element, or an `in` test against a list inside a loop, which scans the list every pass and makes the work n*m. The list may be built once, grown by `.append` as the loop goes, rebuilt per row, or passed in as a constant or parameter. The second form is a double loop over one collection computing a symmetric relation for every ordered pair, so each pair is computed twice.
+  refactoring:
+    summary: replace the inner scan with a hash lookup, or halve a symmetric traversal
+  repairs:
+    - case: C3S4_nested_scan
+      note: |
+        n*m comparisons become m hashes plus n probes.
+    - case: C3S4_triangular_traversal
+      note: |
+        `gcd` is symmetric, so half the pairs were being computed twice.
+  excluded:
+    - case: C3S4_genuinely_quadratic
+      reason: |
+        its after hoists the row lookup out of the inner loop, which is C3.S2's repair, not this one's
+  not_this:
+    - title: the inner loop matches by prefix, not by equality
+      source: catalog
+      code: |
+        hits = []
+        for word in words:
+            for prefix in prefixes:
+                if word.startswith(prefix):
+                    hits.append(word)
+                    break
+      tempting: |
+        lookup = set(prefixes)
+        hits = [word for word in words if word in lookup]
+      why: |
+        A set answers equality only. `startswith` matches every word that begins with a prefix, so the lookup keeps only the words that equal one exactly.
+  similar:
+    - C5.S1
+    - C5.S2
+    - C7.S1
+    - C9.S3
+- id: C3.S5
+  signals:
+    - missing_early_exit
+  in_one_line: |
+    a loop that keeps going after its answer is already settled
+  look_for: |
+    A loop that keeps iterating after its answer is settled. Look for a flag set to a constant that nothing can set back -- `found = True` in a search, `valid = False` in a validation -- with no `break` or `return` after it, and for a comprehension that filters a whole collection before a slice keeps the first few. A `break` in an inner loop, or a `return` in a nested function, leaves the outer loop running. Every pass after the answer is paid for and changes nothing.
+  refactoring:
+    summary: stop as soon as the outcome is settled, ideally with a primitive that does so
+  repairs:
+    - case: C3S5_all_short_circuits
+      note: |
+        `all` stops at the first false. The value is entirely in the input distribution: where the first failure sits.
+    - case: C3S5_take_only_what_is_wanted
+      note: |
+        The original filters the whole collection and then discards all but the first `limit`; `islice` stops as soon as it has enough.
+    - case: C3S5_missing_early_exit
+  not_this:
+    - source: lookalike:C3S5_lookalike
+      why: |
+        The loop appends every failing position, so it is a fold rather than a search; a `break` after the first append reports one problem where the original reports all of them.
+    - title: a later element can still change the answer
+      source: rule:missing_early_exit/get_system_status
+      code: |
+        def get_system_status(servers, limit):
+            status = "ALL_SYSTEMS_GO"
+            for server in servers:
+                if server.ping > limit:
+                    status = "SYSTEM_DEGRADED"
+                elif server.offline:
+                    status = "SYSTEM_DOWN"
+            return status
+      tempting: |
+        def get_system_status(servers, limit):
+            status = "ALL_SYSTEMS_GO"
+            for server in servers:
+                if server.ping > limit:
+                    status = "SYSTEM_DEGRADED"
+                    break
+                elif server.offline:
+                    status = "SYSTEM_DOWN"
+                    break
+            return status
+      why: |
+        The loop assigns different values and a later server can overwrite an earlier one, so breaking at the first match can return `SYSTEM_DEGRADED` where the original returns `SYSTEM_DOWN`.
+    - title: the loop returns the last match, not the first
+      source: catalog
+      code: |
+        found = None
+        for record in records:
+            if record.matches(query):
+                found = record
+        return found
+      tempting: |
+        found = None
+        for record in records:
+            if record.matches(query):
+                found = record
+                break
+        return found
+      why: |
+        The value assigned comes from the element, so each later match overwrites it and the loop returns the last one; a `break` returns the first.
+    - title: every iteration has a side effect the caller sees
+      source: rule:missing_early_exit/audit_every_row
+      code: |
+        def audit_every_row(stream, stats):
+            found = False
+            for item in stream:
+                log_event(item)
+                stats.total += 1
+                if item.is_target:
+                    found = True
+            return found
+      tempting: |
+        def audit_every_row(stream, stats):
+            for item in stream:
+                log_event(item)
+                stats.total += 1
+                if item.is_target:
+                    return True
+            return False
+      why: |
+        The loop logs every item and counts it on an object the caller holds; returning at the first target skips both for the rest of the stream.
+  similar:
+    - C3.S6
+    - C7.S2
+- id: C3.S6
+  signals:
+    - ruff_RUF015
+  in_one_line: |
+    the whole collection processed when only a subset was ever wanted
+  look_for: |
+    Work spent on every element of a collection when the result needs only some of them. Look for a full sort followed by an index or slice -- `sorted(xs)[0]` for a minimum, `sorted(xs, reverse=True)[:k]` for the top k -- an expensive test run over every value, repeats included, before a set keeps the distinct results, a transform applied before a filter that reads only the raw element, and rows selected in Python that a query could filter at the source. The expensive step is paid for elements that never reach the result.
+  refactoring:
+    summary: reduce the collection before the expensive step, not after
+  repairs:
+    - case: C3S6_top_k_without_sorting
+      note: |
+        Sorting n elements to keep k is n log n where the heap is n log k. `nlargest` and a reverse sort agree on the values but not necessarily on the order of ties, so check whether the caller depends on that.
+    - case: C3S6_deduplicate_first
+      note: |
+        The extra `set()` pass replaces the predicate calls on repeated values with a hashing pass that was going to happen anyway for the result set.
+    - case: C3S6_unfiltered_bulk
+  not_this:
+    - source: lookalike:C3S6_lookalike
+      why: |
+        The consumer wants the largest k, which is a question about every element; `islice` returns the first k in input order, which is a different answer.
+    - title: the filter tests the transformed value
+      source: catalog
+      code: |
+        scores = [expensive(x) for x in items]
+        best = [s for s in scores if s > threshold]
+      tempting: |
+        best = [expensive(x) for x in items if x > threshold]
+      why: |
+        The predicate reads `expensive`'s output, so filtering first tests the raw item instead and keeps a different set; there is nothing to filter on until the transform has run.
+  similar:
+    - C1.S5
+    - C3.S5
+    - C6.S3
+    - C7.S4
+- id: C3.S7
+  signals:
+    - mutation_during_iteration
+  in_one_line: |
+    a collection edited while it is being walked
+  look_for: |
+    A loop that removes, inserts, reorders or appends to the collection it is scanning. Removing from a list shifts the rest down, so a `for` loop skips the next element, and every `remove`, `pop` or `del` in the loop moves the whole tail, so a filtering loop that deletes as it goes is quadratic where a rebuild is linear. Appending can run the loop without end, a new key in a dict being iterated raises `RuntimeError`, and a `while` loop whose counter is not updated on every path never ends.
+  refactoring:
+    summary: build the items to keep into a new collection instead of editing the one being walked
+  repairs:
+    - case: C3S7_mutation_in_loop
+    - case: C3S7_delete_while_scanning
+      note: |
+        Each `del` shifts the tail, making the loop quadratic. The rebuild is one pass and one allocation.
+  excluded:
+    - case: C3S7_iterating_a_snapshot
+      reason: |
+        its before already walks a snapshot, and its after removes the per-item linear `remove`, which is C7.S1's repair, not this one's
+  not_this:
+    - source: lookalike:C3S7_lookalike
+      why: |
+        Rebuilding with `values = [...]` rebinds a local and leaves every other reference to the list pointing at the unfiltered version; the rebuild has to keep the list's identity, with `values[:] =`, when anything else can see it.
+    - title: a work list that is meant to grow
+      source: rule:mutation_during_iteration/work_list
+      code: |
+        def work_list(pending):
+            seen = []
+            while pending:
+                node = pending.pop()
+                seen.append(node)
+                pending.extend(node.children)
+            return seen
+      tempting: |
+        def work_list(pending):
+            seen = []
+            for node in list(pending):
+                seen.append(node)
+                pending.extend(node.children)
+            return seen
+      why: |
+        Growing `pending` is how the traversal reaches the children; walking a snapshot visits only the nodes present at the start and never descends.
+    - title: one removal, then the loop stops
+      source: rule:mutation_during_iteration/remove_then_stop
+      code: |
+        def remove_then_stop(users, target):
+            for user in users:
+                if user is target:
+                    users.remove(user)
+                    break
+      tempting: |
+        def remove_then_stop(users, target):
+            users[:] = [user for user in users if user is not target]
+      why: |
+        The `break` ends the loop straight after the removal, so no element is skipped. The rebuild removes every occurrence of `target` where the original removes one.
+  similar:
+    - C6.S2

@@ -1,396 +1,138 @@
 - id: C2.S1
   signals:
-  - trivial_delegation
+    - trivial_delegation
   in_one_line: |
     a wrapper or property that forwards, adds nothing, and sits on a hot path
-  what_to_look_for: |
-    A Python call allocates a frame of a few hundred bytes, binds the arguments into it, executes and tears it down; a wrapper that only forwards pays all of that to accomplish nothing.  A `@property` returning a bare attribute is the same cost in a different guise, since attribute access runs the descriptor protocol where a plain read is a dict lookup.  The overhead is tens to hundreds of nanoseconds per access -- real inside a loop over a million elements and invisible everywhere else -- so hotness is not a caveat on this card, it is the finding, and it has to be argued in every report. Thin wrappers are good design almost everywhere: one library has 657 of them and essentially all are legitimate public interface.  So establish both that the wrapper genuinely adds nothing -- no default, no validation, no conversion, no log line, no exception translation -- and that nothing you cannot see depends on it existing.  Prefer the repair that bypasses the wrapper at its hot call sites to the one that deletes it: the first changes one line, the second changes a class's surface.
-  not_a_smell_when:
-  - |
-    the wrapper is public API, an alias, or an override satisfying an interface, so callers you cannot see depend on it existing
-  - |
-    it is called a handful of times, where one frame is nothing
-  - |
-    the wrapper adds anything at all -- a default, a validation, a conversion, a log line, an exception translation
-  - |
-    the `@property` computes or caches, rather than returning a stored value
-  - |
-    the indirection is a deliberate seam for testing or subclassing, and the path is not hot
-  counter_examples:
-  - code: |
-      class Session:
-          def get(self, url, **kwargs):
-              return self.request("GET", url, **kwargs)
-    why: |
-      A pure forwarding wrapper, and it is the library's public interface. Every caller uses `get` rather than `request("GET", ...)`, and removing it breaks all of them. This is the shape that produced 657 hits on pandas -- the pattern is correct and ubiquitous, and hotness is the only thing that could make it a finding.
-  - code: |
-      class Config:
-          @property
-          def timeout(self):
-              return self._timeout if self._timeout is not None else DEFAULT_TIMEOUT
-    why: |
-      A property that looks trivial and is not: it applies a default. Replacing it with `self._timeout` returns `None` where the property returns the default. Read the body before calling a property a pass-through.
+  look_for: |
+    A wrapper that only forwards: a method or function whose whole body calls one other callable with the arguments it received, unchanged -- one argument, none, or `*args, **kwargs` -- or a `@property` whose body is `return self._x`. Each access pays a call frame, and a property also runs the descriptor protocol, to do what a direct call or attribute read does. The repair calls the target or reads the attribute directly at the hot call sites, or deletes a private wrapper that nothing outside the class can reach.
   refactoring:
     summary: call the target directly at the hot call sites, or read the attribute directly
-    examples:
-    - title: private accessors called from other methods of the same class
-      before: |
-        class BeforeUser:
-            __slots__ = ("_name",)
-
-            def __init__(self, name):
-                self._name = name
-
-            def __get_name(self):
-                return self._name
-
-            def print_name(self):
-                return f"The name is {self.__get_name()}"
-
-
-        def before(name, repeats):
-            user = BeforeUser(name)
-            total = 0
-            for _ in range(repeats):
-                total += len(user.print_name())
-            return total
-      after: |
-        class AfterUser:
-            __slots__ = ("_name",)
-
-            def __init__(self, name):
-                self._name = name
-
-            def print_name(self):
-                return f"The name is {self._name}"
-
-
-        def after(name, repeats):
-            user = AfterUser(name)
-            total = 0
-            for _ in range(repeats):
-                total += len(user.print_name())
-            return total
+  repairs:
+    - case: C2S1_private_accessors
       note: |
-        The accessors are name-mangled and private, so nothing outside the class can be calling them -- which is what makes deleting them safe, and what made this repair available where the `Session.get` case above is not. Two frames per iteration disappear. In a ten-million-iteration driver that is the whole difference; called twice, it is nothing.
-
-        Measured in `validation/taxonomy/C2S1_private_accessors.py`.
-    - title: a property read once per element
-      before: |
-        def before(rows):
-            # `len` of the index rather than the index itself: the work being measured
-            # is building it, and returning it would compare `Row` objects by identity,
-            # which differ between the two calls because the thunk makes them fresh.
-            return len({row.key: row for row in rows})
-      after: |
-        def after(rows):
-            return len({row._key: row for row in rows})
+        The accessor is name-mangled and private, so nothing outside the class can be calling it, which is what makes deleting it safe.
+    - case: C2S1_property_per_element
       note: |
-        The property stays, because callers outside this module use it; the hot comprehension reads the attribute directly. That is deliberately the smaller repair -- it changes one call site rather than the class's surface. Reaching for a private name is a real cost in cohesion, so it needs the hotness argument to justify it.
+        The property stays, because callers outside this module use it; only the hot comprehension reads the attribute directly. That is deliberately the smaller repair: it changes one call site rather than the class's surface.
+    - case: C2S1_method_delegation
+  not_this:
+    - source: lookalike:C2S1_lookalike
+      why: |
+        `size` computes and stores its value on first access, so reading `_size` directly gets `None` until something has read `size`; the bypass removes the only code that fills the field. A property may be bypassed only when its body is `return self._x`.
+    - title: a wrapper that translates the failure
+      source: rule:trivial_delegation/read
+      code: |
+        class Store:
+            def read(self, key):
+                try:
+                    return self._backend.fetch(key)
+                except KeyError:
+                    return None
+      tempting: |
+        value = store._backend.fetch(key)       # was store.read(key)
+      why: |
+        `read` turns a missing key into `None`; the direct call raises `KeyError` where the wrapper returned `None`.
+    - title: a forwarding method that is the public interface
+      source: catalog
+      code: |
+        class Session:
+            def get(self, url, **kwargs):
+                return self.request("GET", url, **kwargs)
+      tempting: |
+        class Session:
+            ...                                  # `get` deleted
 
-        Measured in `validation/taxonomy/C2S1_property_per_element.py`.
-    - title: a wrapper that forwards to one private call
-      before: |
-        def before(store, keys):
-            return sum(store.get(k) for k in keys)
-      after: |
-        def after(store, keys):
-            return sum(store._lookup(k) for k in keys)
-      note: |
-        A wrapper that only forwards.
 
-        Measured in `validation/taxonomy/C2S1_method_delegation.py`.
-  patch_shape: statement_local
-  measurability: scales_with_calls
-  min_workload_hint: |
-    the effect is one frame per call, so the case must call the unit millions of times over trivial input rather than once over a large one
-  notes: |
-    Report the hotness argument explicitly in every finding here, because without it this root cause is indistinguishable from ordinary good design.  A wrapper on a cold path is not a smell at any size, however plainly the pattern is present.
+        response = session.request("GET", url)   # was session.get(url)
+      why: |
+        Callers outside the library use `get` rather than `request("GET", ...)`, and deleting it breaks every one of them. Only a bypass at a hot call site inside the library leaves them working.
   similar:
-  - C2.S2
-  - C2.S3
+    - C2.S2
+    - C2.S3
 - id: C2.S2
   signals:
-  - method_ignores_self
+    - method_ignores_self
   in_one_line: |
     a method that never touches `self` and still pays to be bound to an instance
-  what_to_look_for: |
-    Reaching a function through an instance runs the descriptor protocol: `__get__` returns a bound method object wrapping the function and `self`, which is then called and discarded.  A `@staticmethod` skips that wrapper and a module-level function skips the class namespace lookup as well, so the saving is one small allocation and one dispatch layer per call -- which needs millions of calls before it is visible at all.  What to look for is a body that never mentions `self` anywhere, including inside a nested function or a comprehension.  What most often makes the repair wrong is polymorphism rather than cost: the instance parameter keeps dispatch overridable even when the body ignores it, so a subclass override or a `super()` call rules it out.  Be careful about the direction here -- recent CPython specialises method calls aggressively and this project's own sample is deliberately reversed, so treat any finding as needing measurement rather than as following from the mechanism.
-  not_a_smell_when:
-  - |
-    the method reads or writes `self`, even once, even in a nested scope
-  - |
-    a subclass overrides it, or it is called through `super()`
-  - |
-    it is part of a public interface where the signature is documented
-  - |
-    the call count is modest, where one small allocation per call is nothing
-  - |
-    the method is a stub that will need `self` shortly, and churning the declaration costs more than it saves
-  counter_examples:
-  - code: |
-      class Formatter:
-          def escape(self, text):
-              return text.replace("<", "&lt;")
-
-          def render(self, rows):
-              return [self.escape(r) for r in rows]
-    why: |
-      `escape` never touches `self`, so the rule fires -- and if `Formatter` has subclasses that override `escape`, making it static freezes the behaviour of `render` to the base implementation. The instance parameter is what makes the dispatch polymorphic even when the body does not use it.
-  - code: |
-      class Codec:
-          @staticmethod
-          def decode(payload):
-              return json.loads(payload)
-    why: |
-      Already static. Reporting this as a missing static declaration means the decorator list was not read. Worth including because it is the commonest false positive, and because the reverse direction -- someone proposing an instance method here -- is not a repair either.
+  look_for: |
+    A method whose body never mentions `self`, including inside nested functions and comprehensions, so it depends on no instance state. Reaching it through an instance still binds `self` to a function that never uses it. The repair declares it `@staticmethod`, or moves it to module scope, which also skips the class namespace lookup. A private helper that formats or cleans up its argument is the clearest case.
   refactoring:
     summary: declare the method `@staticmethod`, or move it to module scope
-    examples:
-    - title: a helper that never touches the instance
-      before: |
-        class Before:
-            def __init__(self, year):
-                self.year = year
-
-            def newer(self, a, b):
-                return a.year > b.year
-
-
-        def before(n, a, b):
-            obj = Before(0)
-            hits = 0
-            for _ in range(n):
-                hits += obj.newer(a, b)
-            return hits
-      after: |
-        class After:
-            def __init__(self, year):
-                self.year = year
-
+  repairs:
+    - case: C2S2_static_method
+      note: |
+        It has no subclasses, which is what makes it safe.
+    - case: C2S2_module_function
+      note: |
+        This removes the class namespace lookup as well as the binding, and every call site inside the class loses its `self.`.
+    - case: C2S2_declaration_only
+      note: |
+        Both variants are called the same way, through `self.`, so the only difference is the decorator.
+  not_this:
+    - source: lookalike:C2S2_lookalike
+      why: |
+        `Base.fee` ignores `self`, but `Premium` overrides it, so the call site rewritten to `Base.fee(...)` skips the override and charges every premium account the base rate. Look for overrides before declaring a method static.
+    - title: a method that calls zero-argument `super()`
+      source: rule:method_ignores_self/Saver
+      code: |
+        class Saver:
+            def save(self):
+                return super().save()
+      tempting: |
+        class Saver:
             @staticmethod
-            def newer(a, b):
-                return a.year > b.year
-
-
-        def after(n, a, b):
-            hits = 0
-            for _ in range(n):
-                hits += After.newer(a, b)
-            return hits
-      note: |
-        The call sites are unchanged -- `self._format_cell(v)` still works -- so this is a one-line edit with no ripple. It is private and has no subclasses, which is what makes it safe. Expect a small effect and measure before claiming one; see the notes.
-
-        Measured in `validation/taxonomy/C2S2_static_method.py`.
-    - title: moving out of the class entirely
-      before: |
-        def _split_fields(line):
-            return [f.strip() for f in line.split(",")]
-
-
-        class Before:
-            __slots__ = ()
-
-            def _split_fields(self, line):
-                return [f.strip() for f in line.split(",")]
-
-            def parse(self, lines):
-                return [self._split_fields(line) for line in lines]
-
-
-        def before(lines):
-            return Before().parse(lines)
-      after: |
-        def _split_fields(line):
-            return [f.strip() for f in line.split(",")]
-
-
-        class After:
-            __slots__ = ()
-
-            def parse(self, lines):
-                return [_split_fields(line) for line in lines]
-
-
-        def after(lines):
-            return After().parse(lines)
-      note: |
-        This removes the class namespace lookup as well as the binding, so it is the larger of the two repairs -- and the larger change, because every call site inside the class has to lose its `self.`. Prefer `@staticmethod` unless the function has no conceptual home in the class.
-
-        Measured in `validation/taxonomy/C2S2_module_function.py`.
-    - title: the declaration changed and the call site left alone
-      before: |
-        class Before:
-            __slots__ = ("seen",)
-
-            def __init__(self):
-                self.seen = 0
-
-            def _newer(self, a, b):
-                return a if a > b else b
-
-            def run(self, pairs):
-                total = 0
-                for a, b in pairs:
-                    total += self._newer(a, b)
-                return total
-
-
-        def before(pairs):
-            return Before().run(pairs)
-      after: |
-        class After:
-            __slots__ = ("seen",)
-
-            def __init__(self):
-                self.seen = 0
-
-            @staticmethod
-            def _newer(a, b):
-                return a if a > b else b
-
-            def run(self, pairs):
-                total = 0
-                for a, b in pairs:
-                    total += self._newer(a, b)
-                return total
-
-
-        def after(pairs):
-            return After().run(pairs)
-      note: |
-        The declaration changed and nothing else.
-
-        The other C2.S2 case changes two things at once: the declaration *and* the call
-        site, from `obj.newer(a, b)` to `After.newer(a, b)`. That makes its reading
-        hard to attribute. Here both variants are called the same way, through
-        `self.`, so the only difference is the decorator -- which is what the card's
-        patch shape (`signature`) actually says the repair is.
-
-        Measured in `validation/taxonomy/C2S2_declaration_only.py`.
-  patch_shape: signature
-  measurability: scales_with_calls
-  min_workload_hint: |
-    millions of calls; the effect is one small allocation and one dispatch layer, so a driver that calls the method a few thousand times will measure nothing
-  notes: |
-    **The direction of this effect is not confirmed on this project's host, and the card should not be read as if it were.**  The project's own sample for this root cause is *reversed*: its "before" declares `@staticmethod` and its "after" uses an ordinary instance method, which is the owner probing whether the received advice survives contact with a modern interpreter.  Recent CPython specialises method calls aggressively, and a `@staticmethod` reached through the class is not obviously cheaper than a bound method reached through an instance.
-    So the mechanism above is real and the *magnitude and sign* are open.  Treat any finding here as requiring measurement rather than as following from the mechanism, and if it comes back refuted, that is a result about the taxonomy worth recording rather than a failed analysis.
+            def save():
+                return super().save()
+      why: |
+        Zero-argument `super()` takes the instance from the method's first argument, so the static `save` raises `RuntimeError: super(): no arguments` when called.
   similar:
-  - C2.S1
-  - C2.S3
+    - C2.S1
+    - C2.S3
 - id: C2.S3
   signals:
-  - self_delegation_chain
+    - self_delegation_chain
   in_one_line: |
     a chain of thin layers whose frames cost more than the work at the bottom
-  what_to_look_for: |
-    Frame cost is per call, so a chain of thin layers multiplies it: three one-line wrappers between a loop and the work mean three frames per iteration on top of whatever the work costs.  This is a *ratio* and not a count of layers -- three frames around a dict lookup is the finding, three frames around a regex match is not, because the match dominates.  It also cannot be seen from any one function, since the finding is the depth of the path rather than anything about its members, so it is found by tracing from the hot loop down to the work and counting the frames per iteration.  Layers that validate, transform, dispatch or handle errors are earning their frames; layers that compute one expression and return are not.  Ask what the structure is *for* before merging it -- an extension point, a strategy, a seam for tests -- and prefer keeping every layer while bypassing them on the bulk path, which is the shape real code usually needs.  This repair trades structure for speed, so it is only worth proposing where the hotness is established and substantial.
-  not_a_smell_when:
-  - |
-    each layer does substantial work, so the frames are a small fraction of the total
-  - |
-    the layers are public API or extension points other code depends on
-  - |
-    the path is not hot, where the whole saving is a few hundred nanoseconds per call
-  - |
-    the decomposition is what makes the code testable or comprehensible, and merging it would be a net loss
-  - |
-    the layers exist to allow substitution -- a strategy, a plugin, a mock in tests
-  counter_examples:
-  - code: |
-      def handle(request):
-          return respond(render(fetch(request)))
-    why: |
-      Three calls per request, and each does substantial work -- a fetch, a render, a response. Three frames against three real operations is a rounding error. Depth is not the finding; the ratio of ceremony to work is.
-  - code: |
-      class Pipeline:
-          def run(self, item):
-              return self._finish(self._transform(self._prepare(item)))
-    why: |
-      Three layers, and if `Pipeline` exists so subclasses can override `_transform`, inlining removes the whole point of the class. The layers are an extension mechanism. Check what the structure is *for* before merging it.
+  look_for: |
+    A chain of thin layers between a hot loop and the work it reaches: methods whose whole body is one call to another method on `self`, sometimes passing an argument through, stacked so that every iteration pays one frame per layer. Each layer looks reasonable on its own, so the chain shows only when the path is traced from the loop down to the work and the frames are counted. The repair merges the layers on that path, or keeps every layer and bypasses them on the bulk path.
   refactoring:
     summary: |
       merge the thin layers on the hot path into one function, keeping the layers for any other caller
-    examples:
-    - title: a chain of one-expression methods under a loop
-      before: |
-        class Before:
-            def __init__(self, name):
-                self._name = name
-
-            def _fetch(self):
-                return self._get()
-
-            def _get(self):
-                return self._name
-
-            def label(self):
-                return self._fetch()
-
-
-        def before(n):
-            obj = Before("abc")
-            total = 0
-            for _ in range(n):
-                total += len(obj.label())
-            return total
-      after: |
-        class After:
-            def __init__(self, name):
-                self._name = name
-
-            def label(self):
-                return self._name
-
-
-        def after(n):
-            obj = After("abc")
-            total = 0
-            for _ in range(n):
-                total += len(obj.label())
-            return total
+  repairs:
+    - case: C2S3_modularization
       note: |
-        Three frames per element become one, around two C-level string operations that were themselves cheaper than the frames wrapping them. `_strip` and `_fold` are private and called from nowhere else, which is what makes deletion available -- if either were public the repair would be to inline the body into `normalise` and leave them in place.
-
-        Measured in `validation/taxonomy/C2S3_modularization.py`.
-    - title: keeping the layers and bypassing them here
-      before: |
-        def before(store, keys):
-            return store.load_all_layered(keys)
-      after: |
-        def after(store, keys):
-            return store.load_all_direct(keys)
+        Three frames per call become one. `_fetch` and `_get` are private and called from nowhere else, which is what makes deletion available; if either were public, the repair would inline the body into `label` and leave them in place.
+    - case: C2S3_bypass_on_bulk_path
       note: |
-        Every method survives, so nothing that calls them breaks; only the bulk path skips them. Three frames per key become none. This is usually the right shape for this repair in real code -- and note that `json.loads` dominates here, so measure before claiming: the frames may be a small share of the total, in which case the honest answer is that the ratio fails and this is not a finding.
+        Every method survives, so nothing that calls them breaks; only the bulk path skips them. Three frames per key become none.
+    - case: C2S3_heavy_bottom
+  not_this:
+    - title: a template method whose hook a subclass overrides
+      source: rule:self_delegation_chain/BaseProcessor
+      code: |
+        class BaseProcessor:
+            def process(self, data):
+                return self._do_process(data)
 
-        Measured in `validation/taxonomy/C2S3_bypass_on_bulk_path.py`.
-    - title: the same layers over work that dominates them
-      before: |
-        def before(store, keys):
-            return store.load_all_layered(keys)
-      after: |
-        def after(store, keys):
-            return store.load_all_direct(keys)
-      note: |
-        The same chain, with real work at the
-        bottom.
+            def _do_process(self, data):
+                raise NotImplementedError
 
-        This is the adversarial half of C2.S3 and the card's stated precondition: the
-        finding is a *ratio*, not a count of layers. Three frames around a JSON parse
-        should disappear into the parse, so the expected reading is close to nothing --
-        and if it is, the card can say how thin "thin" has to be.
 
-        Deliberately identical in structure to `C2S3_bypass_on_bulk_path`; only the
-        work at the bottom differs.
+        class BatchProcessor(BaseProcessor):
+            def _do_process(self, data):
+                return [x for x in data]
+      tempting: |
+        class BaseProcessor:
+            def process(self, data):
+                raise NotImplementedError
 
-        Measured in `validation/taxonomy/C2S3_heavy_bottom.py`.
-  patch_shape: structural
-  measurability: scales_with_calls
-  min_workload_hint: |
-    millions of traversals of the path, and the layers must be thin -- if the work at the bottom is expensive the frames disappear into it and the case correctly refutes
-  notes: |
-    This root cause exists between units rather than inside one, so it will not be found by looking at any single function.  The scan can only hint at it: the most tooling can see one delegating method at a time, so a chain surfaces as several separate observations rather than as one fact.  Recognising it means following the path from the loop to the work and counting -- which is what step 2 asks for, and why the procedure insists on reading callees.
+
+        class BatchProcessor(BaseProcessor):
+            def _do_process(self, data):
+                return [x for x in data]
+      why: |
+        `_do_process` is the hook `BatchProcessor` overrides; with the base hook inlined into `process`, `BatchProcessor().process(data)` raises `NotImplementedError` instead of returning the list.
   similar:
-  - C2.S1
-  - C2.S2
-  - C7.S3
+    - C2.S1
+    - C2.S2
+    - C7.S3

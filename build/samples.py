@@ -2,8 +2,8 @@
 
 Nothing about a repair is typed into the catalog except an optional note. The
 case file under `validation/taxonomy/` gives the code, `before` and `after`
-with the helpers they need; `validation/alignment/decisions.yaml` gives the
-title (the case file's docstring when it is not listed there); and the latest
+with the helpers they need, and its docstring gives the title;
+`validation/alignment/decisions.yaml` gives the order; and the latest
 run in `validation/results/taxonomy.jsonl` gives what each case measured. So
 the example the agent reads, the code that was measured and the result the
 card states cannot drift apart.
@@ -34,6 +34,7 @@ CASES = ROOT / "validation" / "taxonomy"
 RESULTS = ROOT / "validation" / "results" / "taxonomy.jsonl"
 DECISIONS = ROOT / "validation" / "alignment" / "decisions.yaml"
 RULE_TESTS = ROOT / "tests" / "rules"
+LOOKALIKES = ROOT / "validation" / "lookalikes"
 
 
 @dataclass(frozen=True)
@@ -141,20 +142,34 @@ def case_files(root_cause_id: str) -> list[str]:
 
 
 def title_of(stem: str) -> str:
-    """The sample's title: decisions.yaml's, else its docstring's first line after `--`.
+    """The sample's title: its docstring's first line, after `--`.
 
-    Some samples are listed under a second root cause as well; the title used
-    is the one under the root cause the sample is filed as.
+    The docstring sits next to the code it describes. The titles in
+    decisions.yaml were written for the old cards' examples, and some describe
+    an earlier version of the sample, so they set the order only.
     """
-    own = stem.split("_")[0].replace("S", ".S")
-    for example in _decisions().get(own, []):
-        if example["file"] == stem:
-            return example["title"]
     doc = ast.get_docstring(ast.parse((CASES / f"{stem}.py").read_text())) or ""
-    first = doc.splitlines()[0] if doc else ""
-    if " -- " not in first:
-        raise KeyError(f"{stem} has no title in decisions.yaml and no `--` docstring line")
-    return first.split(" -- ", 1)[1].strip().rstrip(".")
+    head = " ".join(doc.split("\n\n")[0].split())
+    if " -- " not in head:
+        raise KeyError(f"{stem} has no `<id> <name> -- <title>` docstring line")
+    return head.split(" -- ", 1)[1].strip().rstrip(".")
+
+
+def lookalike(stem: str) -> tuple[str, str, str]:
+    """(title, code, tempting repair) from `validation/lookalikes/<stem>.py`.
+
+    Each specimen has the pattern as `before`, the repair that breaks it as
+    `after`, and a docstring whose first line names the trap after `IS NOT:`.
+    """
+    path = LOOKALIKES / f"{stem}.py"
+    if not path.exists():
+        raise FileNotFoundError(f"no lookalike validation/lookalikes/{stem}.py")
+    doc = ast.get_docstring(ast.parse(path.read_text())) or ""
+    head = " ".join(doc.split("\n\n")[0].split())
+    if "IS NOT:" not in head:
+        raise KeyError(f"{stem}'s docstring has no `IS NOT:` title")
+    code, tempting = extract(path)
+    return head.split("IS NOT:", 1)[1].strip().rstrip("."), code, tempting
 
 
 def rule_negative(reference: str) -> str:

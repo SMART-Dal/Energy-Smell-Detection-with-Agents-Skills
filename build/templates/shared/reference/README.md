@@ -50,7 +50,7 @@ opposite directions:
 
 - **A rule firing has observed a pattern, not diagnosed a problem.** Every
   pattern in this taxonomy is the right thing to write somewhere, which is what
-  each card's `NOT a smell when` and `Looks the same, is not` sections record.
+  each card's `Looks like it, but is not` section records.
   Some of what any rule reports is therefore wrong here, and saying which is
   part of the job.
 - **A rule staying quiet has observed nothing.** Waste that lives in the

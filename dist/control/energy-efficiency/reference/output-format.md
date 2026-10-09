@@ -76,8 +76,8 @@ examine, or `null` when you were not given one and examine the whole target.
 **`outcomes`**, in step 4, gives every accepted suspicion exactly one of:
 `submission` (an `id` in `submissions.jsonl`), `same_repair_as` (the `id` of
 the submission that already makes this edit), `blocked` (why no repair could
-be measured), or `deferred` (accepted, but outside the repairs chosen for
-measurement). A deferred suspicion is still a finding.
+be measured), or `deferred` (accepted, and not measured). A deferred
+suspicion is still a finding.
 
 Every unit from step 1 has a step-2 record, and every suspicion is accounted
 for: rejected in step 3, or given an outcome in step 4. A run that examined

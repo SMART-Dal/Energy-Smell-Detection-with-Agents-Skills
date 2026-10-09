@@ -1,953 +1,216 @@
 - id: C7.S1
   signals:
-  - ruff_RUF017
+    - ruff_RUF017
   in_one_line: |
     an algorithm of worse complexity than the problem requires
-  what_to_look_for: |
-    Complexity is the only thing in this taxonomy that changes the *shape* of the cost curve rather than its constant factor.  Every other root cause makes each element cheaper; this one changes how many element-operations there are.  A linear scan over sorted data is n comparisons where a binary search is log2(n) -- twenty against a million -- and a quadratic pairwise scan is n^2 where a hash-based pass is n.  The saving therefore grows without bound with the input, and is equally negligible at small n, where the better algorithm's constant factor and setup can lose outright.  The discipline that keeps this card honest is naming *both* algorithms: "a linear scan over sorted data" and "`bisect.bisect_left`"; "a hand-written insertion sort" and "Timsort via `sorted`".  If you cannot name both, you have noticed that something is slow, which is not the same as knowing it is algorithmic, and this is not the root cause.  Then state both complexities and roughly where they cross, and establish that the input reaches that size -- most candidates die here, on code that is genuinely quadratic where n is always eight.  Check the precondition the better algorithm needs, since establishing it counts against the repair, and check the edges the replacement has to preserve: ties, duplicates, empty input, the order of equal elements, floating-point accumulation order.
-  not_a_smell_when:
-  - |
-    the input is always small, so the asymptotically worse algorithm wins on constants
-  - |
-    the better algorithm needs a precondition -- sorted, hashable, bounded -- that would cost more to establish than it saves
-  - |
-    the replacement changes the result at the edges, and something depends on the current behaviour
-  - |
-    the current approach is required for a reason outside performance: numerical stability, determinism, a documented ordering
-  - |
-    the two are the same algorithm and only the implementation differs, which is C10.S1
-  counter_examples:
-  - code: |
-      def find(needles, haystack):
-          return [n for n in needles if n in haystack]
-    why: |
-      A linear membership test inside a loop, which is the classic quadratic shape -- and whether it is a smell depends entirely on sizes nobody has stated. With eight needles against a twelve-element list, building a set is more work than the scans. The repair also belongs to C5.S1 rather than here: the algorithm is unchanged, only the container is.
-  - code: |
-      def nearest(points, target):
-          best = None
-          for p in points:
-              if best is None or distance(p, target) < distance(best, target):
-                  best = p
-          return best
-    why: |
-      Linear and cannot be better without preprocessing: finding a nearest neighbour in unstructured data is Omega(n). A k-d tree is asymptotically better only across *many* queries, so proposing it for one query is a regression. The real finding here is that `distance(best, target)` is recomputed every iteration, which is C3.S2.
-  - code: |
-      def merge_sort(values):
-          if len(values) <= 1:
-              return values
-          middle = len(values) // 2
-          left = merge_sort(values[:middle])
-          right = merge_sort(values[middle:])
-          return _merge(left, right)
-    why: |
-      Recursive and O(n log n), which is optimal for a comparison sort. It looks like a candidate because it is hand-written where `sorted` exists, and replacing it with `sorted` is C10.S1 -- the same complexity implemented in C -- not an algorithmic improvement. The distinction matters because the expected saving is a constant factor, not a curve.
+  look_for: |
+    A hand-written procedure whose complexity is worse than a known alternative for the same problem: a linear scan for each target over data that is already sorted, where a binary search halves the range at every step; a bubble or insertion sort, where merge sort or the Timsort behind `sorted` is O(n log n); a substring search that restarts at the next character after every mismatch, where KMP reuses what the failed comparison proved. Name both algorithms and both complexities.
   refactoring:
     summary: replace the algorithm with one whose complexity fits the input size
-    examples:
-    - title: a linear scan over data that is already sorted
-      before: |
-        def _scan(sorted_values, target):
-            for position, value in enumerate(sorted_values):
-                if value == target:
-                    return position
-                if value > target:
-                    return -1
-            return -1
-
-
-        def before(sorted_values, targets):
-            found = 0
-            for target in targets:
-                position = _scan(sorted_values, target)
-                if position >= 0:
-                    found += position
-            return found
-      after: |
-        def _bisect(sorted_values, target):
-            low, high = 0, len(sorted_values)
-            while low < high:
-                middle = (low + high) // 2
-                if sorted_values[middle] < target:
-                    low = middle + 1
-                else:
-                    high = middle
-            if low < len(sorted_values) and sorted_values[low] == target:
-                return low
-            return -1
-
-
-        def after(sorted_values, targets):
-            found = 0
-            for target in targets:
-                position = _bisect(sorted_values, target)
-                if position >= 0:
-                    found += position
-            return found
+  repairs:
+    - case: C7S1_binary_search
       note: |
-        n comparisons become log2(n): twenty against a million. The input's sortedness is the precondition and it was already established -- if the function had to sort first, the sort would dominate and the repair would be worthless for a single lookup.
-
-        Measured in `validation/taxonomy/C7S1_binary_search.py`.
-    - title: a quadratic pairwise search made linear by hashing
-      before: |
-        def before(xs, ys):
-            return [x for x in xs if x in ys]
-      after: |
-        def after(xs, ys):
-            lookup = set(ys)
-            return [x for x in xs if x in lookup]
+        n comparisons become log2(n). The input's sortedness is the precondition and it was already established; if the function had to sort first, the sort would dominate and the repair would be worthless for a single lookup.
+    - case: C7S1_algorithm_choice
       note: |
-        An inner linear scan over a second list.
-
-        The repair removes a loop level by hashing, so this is the quadratic-to-linear
-        claim. It should confirm strongly; if it does not, the rig is wrong.
-
-        Measured in `validation/taxonomy/C3S4_nested_scan.py`.
-    - title: quadratic accumulation hidden in an operator
-      before: |
-        def before(groups):
-            out = []
-            for group in groups:
-                out = out + group
-            return len(out)
-      after: |
-        def after(groups):
-            out = []
-            for group in groups:
-                out.extend(group)
-            return len(out)
+        Both variants are hand-written Python: same language, same interpreter, same data, and only the exponent differs.
+    - case: C7S1_hand_written_sort
       note: |
-        `out = out + group` in an accumulation.
-
-        `out + group` builds a new list holding everything accumulated so far, so the
-        total copying is quadratic in the output length; `extend` grows the existing
-        buffer. This is the largest form of the root cause and the one where the copy
-        buys nothing at all -- nothing else refers to `out`.
-
-        Measured in `validation/taxonomy/C6S2_concat_versus_extend.py`.
-    - title: a hand-written quadratic sort
-      before: |
-        def _bubble_sorted(values):
-            a = list(values)
-            n = len(a)
-            for i in range(n):
-                swapped = False
-                for j in range(0, n - i - 1):
-                    if a[j] > a[j + 1]:
-                        a[j], a[j + 1] = a[j + 1], a[j]
-                        swapped = True
-                if not swapped:
-                    break
-            return a
-
-
-        def before(values):
-            return _bubble_sorted(values)
-      after: |
-        def _merge_sorted(values):
-            a = list(values)
-            if len(a) < 2:
-                return a
-            middle = len(a) // 2
-            left = _merge_sorted(a[:middle])
-            right = _merge_sorted(a[middle:])
-            out = []
-            i = j = 0
-            while i < len(left) and j < len(right):
-                if left[i] <= right[j]:
-                    out.append(left[i])
-                    i += 1
-                else:
-                    out.append(right[j])
-                    j += 1
-            out.extend(left[i:])
-            out.extend(right[j:])
-            return out
-
-
-        def after(values):
-            return _merge_sorted(values)
+        `before` restarts the comparison at the next character after a mismatch, which is quadratic on text with long repeated runs; `after` reuses what the failed comparison already proved, which is linear.
+    - case: C7S1_constants_beat_complexity
       note: |
-        Bubble sort against merge sort.
-
-        Both variants are hand-written Python. That is the point: this root cause is
-        about the *algorithm*, and comparing a Python loop against `sorted()` would
-        measure CPython's C implementation instead. Timsort would win here whatever
-        algorithm it replaced, which tells the reader nothing about complexity.
-
-        Same language, same interpreter, same data; only the exponent differs.
-
-        Measured in `validation/taxonomy/C7S1_algorithm_choice.py`.
-    - title: a hand-written substring search
-      before: |
-        def _naive_count(text, pattern):
-            n, m = len(text), len(pattern)
-            if m == 0 or m > n:
-                return 0
-            hits = 0
-            for start in range(n - m + 1):
-                k = 0
-                while k < m and text[start + k] == pattern[k]:
-                    k += 1
-                if k == m:
-                    hits += 1
-            return hits
-
-
-        def before(text, pattern):
-            return _naive_count(text, pattern)
-      after: |
-        def _kmp_count(text, pattern):
-            n, m = len(text), len(pattern)
-            if m == 0 or m > n:
-                return 0
-            # Prefix table: failure[k] is the length of the longest proper prefix of
-            # pattern[:k+1] that is also a suffix of it.
-            failure = [0] * m
-            length = 0
-            for k in range(1, m):
-                while length and pattern[k] != pattern[length]:
-                    length = failure[length - 1]
-                if pattern[k] == pattern[length]:
-                    length += 1
-                failure[k] = length
-            hits = 0
-            length = 0
-            for character in text:
-                while length and character != pattern[length]:
-                    length = failure[length - 1]
-                if character == pattern[length]:
-                    length += 1
-                if length == m:
-                    hits += 1
-                    length = failure[length - 1]
-            return hits
-
-
-        def after(text, pattern):
-            return _kmp_count(text, pattern)
+        Insertion sort allocates nothing, touches one list, and its inner `while` usually exits immediately, where merge sort slices, recurses and builds a new list at every level.
+    - case: C7S1_bubble_versus_builtin
       note: |
-        Naive substring search against KMP.
-
-        The third shape, and neither side calls a built-in: `str.find` would settle the
-        question in C and say nothing about the algorithm. `before` restarts the
-        comparison at the next character after a mismatch, which is quadratic on text
-        with long repeated runs; `after` reuses what the failed comparison already
-        proved, which is linear.
-
-        `sparse-text` is the case where the naive scan is competitive: a mismatch on the
-        first character costs one comparison, so the quadratic term never appears and
-        KMP is left paying for a prefix table nothing uses.
-
-        Measured in `validation/taxonomy/C7S1_hand_written_sort.py`.
-    - title: the better complexity that loses on small inputs
-      before: |
-        def _insertion_sorted(values):
-            out = list(values)
-            for i in range(1, len(out)):
-                key = out[i]
-                j = i - 1
-                while j >= 0 and out[j] > key:
-                    out[j + 1] = out[j]
-                    j -= 1
-                out[j + 1] = key
-            return out
-
-
-        def before(batches):
-            return sum(_insertion_sorted(b)[0] for b in batches)
-      after: |
-        def _merge_sorted(values):
-            a = list(values)
-            if len(a) < 2:
-                return a
-            middle = len(a) // 2
-            left, right = _merge_sorted(a[:middle]), _merge_sorted(a[middle:])
-            out = []
-            i = j = 0
-            while i < len(left) and j < len(right):
-                if left[i] <= right[j]:
-                    out.append(left[i]); i += 1
-                else:
-                    out.append(right[j]); j += 1
-            out.extend(left[i:]); out.extend(right[j:])
-            return out
-
-
-        def after(batches):
-            return sum(_merge_sorted(b)[0] for b in batches)
-      note: |
-        The better complexity
-        loses at the size this code actually sees.
-
-        `C7S1_algorithm_choice` compares the same two algorithms at n = 1500 and merge
-        sort wins outright. Nothing about the code changes here; only n does.
-
-        Insertion sort is O(n^2) and merge sort is O(n log n), and for n = 12 the
-        quadratic one is faster: it allocates nothing, touches one list, and its inner
-        `while` usually exits immediately, where merge sort slices, recurses four levels
-        deep and builds a new list at every level. The batches here are twelve elements
-        because that is what the caller produces, and there are a lot of them.
-
-        Complexity is a statement about the limit. The finding needs the size the input
-        actually takes, and where that size is small and fixed, the constant factors are
-        the whole comparison.
-
-        Measured in `validation/taxonomy/C7S1_constants_beat_complexity.py`.
-    - title: a hand-written sort against the builtin one
-      before: |
-        def _bubble_sorted(values):
-            a = list(values)
-            n = len(a)
-            for i in range(n):
-                swapped = False
-                for j in range(0, n - i - 1):
-                    if a[j] > a[j + 1]:
-                        a[j], a[j + 1] = a[j + 1], a[j]
-                        swapped = True
-                if not swapped:
-                    break
-            return a
-
-
-        def before(values):
-            return _bubble_sorted(values)
-      after: |
-        def after(values):
-            return sorted(values)
-      note: |
-        A bubble sort against `sorted()`.
-
-        The taxonomy's own first example, which had no implementation: the measured
-        file for this root cause compares bubble against a *hand-written* merge sort,
-        which holds the language constant and isolates the complexity. That is the
-        right experiment for "is O(n log n) better than O(n^2)", and it is not the
-        comparison the taxonomy names.
-
-        This one names it. `sorted()` is Timsort in C, so the repair changes both the
-        complexity and the language the inner loop runs in, and the reading is the sum
-        of the two. That is what a reader following the card will actually write.
-
-        Measured in `validation/taxonomy/C7S1_bubble_versus_builtin.py`.
-  patch_shape: structural
-  measurability: scales_with_input
-  min_workload_hint: |
-    the input must be large enough that the complexity difference dominates the constant factors, and the submission should include a small case too, to show where the crossover is
-  notes: |
-    The single most over-applied label in the taxonomy.  The discipline that prevents it is naming both algorithms.  "It has nested loops" is not this root cause; "it is a linear scan where binary search applies" is.
+        `sorted()` is Timsort in C, so the repair changes both the complexity and the language the inner loop runs in.
   similar:
-  - C3.S4
-  - C5.S1
-  - C7.S2
-  - C7.S5
-  - C9.S4
+    - C3.S4
+    - C5.S1
+    - C7.S2
+    - C7.S5
+    - C9.S4
 - id: C7.S2
   signals:
-  - recursion_without_memo
+    - recursion_without_memo
   in_one_line: |
     a search exploring subproblems it could have pruned, reordered or reused
-  what_to_look_for: |
-    A search's cost is how many subproblems it visits, and three things make that number larger than it needs to be.  Overlapping subproblems get re-solved from scratch, which is what turns naive Fibonacci from linear into exponential.  Branches that cannot contain a solution get explored anyway, because no bound is checked before descending.  And the exploration order delays the discovery that would have pruned the rest.  All three are decomposition failures rather than algorithm failures, so the repair keeps the shape of the code and changes which parts of the space it touches -- which is why the saving can be an entire exponent while three lines change. Look for a subproblem space and how the code walks it: recursion, an explicit stack, nested loops over combinations.  Then name which failure applies, and be specific about the evidence.  For overlap, describe two paths that reach the same subproblem, because a tree with no shared subproblems gains nothing from a memo and pays for the table.  For pruning, name the bound and confirm no pruned branch could have held a better answer, since an unsound bound is a wrong answer rather than a faster one.  And check the space is large enough to matter, because exhaustive search over twelve combinations needs nothing.  This project measured the memoised form of exactly this shape -- a million values drawn from a range of five hundred -- at around 95%, and the same memo on unique keys is pure overhead.
-  not_a_smell_when:
-  - |
-    the subproblems do not overlap, so a memo table is pure overhead
-  - |
-    no sound bound exists, so pruning would change the answer
-  - |
-    the search space is small enough that exhaustive exploration is the simplest correct thing
-  - |
-    the memo would grow without bound over a long-lived process, trading a leak for the speed-up
-  - |
-    the exploration order is fixed by a requirement -- a stable result, a deterministic tie-break
-  counter_examples:
-  - code: |
-      def walk(node, depth=0):
-          yield node, depth
-          for child in node.children:
-              yield from walk(child, depth + 1)
-    why: |
-      Recursive descent over a tree, and every node is visited exactly once because a tree has no shared subproblems. Memoising this adds a dict and saves nothing. The rule fires on "recursion with no cache"; the reader has to establish that anything repeats.
-  - code: |
-      @functools.cache
-      def render(self, template):
-          return template.format(**self.fields)
-    why: |
-      Memoisation applied to a method, which caches `self` in a module-level table and keeps every instance alive for the process lifetime. The decomposition was fine; the fix introduced a leak. When the memo's lifetime is the problem, the finding is C6.S4 and the direction is the opposite one.
+  look_for: |
+    A walk over a space of subproblems that visits more of them than the answer needs: a recursion with two self-calls whose branches reach the same arguments, as `fib(n - 1) + fib(n - 2)` and a grid path count do, re-solving every shared subproblem from scratch; nested loops that test every combination where a bound on sorted, non-negative values could end a loop early; a table sweep that re-decides states nothing can have reached yet. Say which subproblems repeat, or which bound is sound.
   refactoring:
-    summary: memoise overlapping subproblems, prune what cannot contribute, or reorder to
-      prune sooner
-    examples:
-    - title: overlapping subproblems re-solved
-      before: |
-        def _fib_naive(n):
-            if n < 2:
-                return n
-            return _fib_naive(n - 1) + _fib_naive(n - 2)
-
-
-        def _sum_tree_naive(depth):
-            if depth == 0:
-                return 1
-            return depth + _sum_tree_naive(depth - 1)
-
-
-        def before(n, kind):
-            return _fib_naive(n) if kind == "overlap" else _sum_tree_naive(n)
-      after: |
-        def _fib_memo(n, memo=None):
-            if memo is None:
-                memo = {}
-            if n < 2:
-                return n
-            if n not in memo:
-                memo[n] = _fib_memo(n - 1, memo) + _fib_memo(n - 2, memo)
-            return memo[n]
-
-
-        def _sum_tree_memo(depth, memo=None):
-            if memo is None:
-                memo = {}
-            if depth == 0:
-                return 1
-            if depth not in memo:
-                memo[depth] = depth + _sum_tree_memo(depth - 1, memo)
-            return memo[depth]
-
-
-        def after(n, kind):
-            return _fib_memo(n) if kind == "overlap" else _sum_tree_memo(n)
+    summary: memoise overlapping subproblems, prune what cannot contribute, or reorder to prune sooner
+  repairs:
+    - case: C7S2_memoised_recursion
+    - case: C7S2_reachable_states_only
+    - case: C7S2_bounded_enumeration
       note: |
-        Exponential to linear from one decorator, because `ways(n - 2)` is reached by two different paths at every level. The cache is unbounded, which is correct for a pure function of a small integer and would be a leak for one keyed on arbitrary objects -- check what the key space is before using `cache` rather than `lru_cache(maxsize=...)`.
-
-        Measured in `validation/taxonomy/C7S2_memoised_recursion.py`.
-    - title: a state the search forgot to record
-      before: |
-        def before(coins, target):
-            reachable = [False] * (target + 1)
-            reachable[0] = True
-            for coin in coins:
-                for value in range(target, coin - 1, -1):
-                    if reachable[value - coin]:
-                        reachable[value] = True
-            return sum(reachable)
-      after: |
-        def after(coins, target):
-            reachable = [False] * (target + 1)
-            reachable[0] = True
-            highest = 0                       # nothing above this has been reached yet
-            for coin in coins:
-                top = min(target, highest + coin)
-                for value in range(top, coin - 1, -1):
-                    if reachable[value - coin]:
-                        reachable[value] = True
-                highest = top
-            return sum(reachable)
-      note: |
-        The original forgets which subtrees it has already cleared, so a node reachable by many paths is re-explored once per path -- exponential on a diamond-shaped graph. Adding a second state makes each node's subtree visited once. Same algorithm, same traversal, one set: the saving is in what gets revisited.
-
-        Measured in `validation/taxonomy/C7S2_reachable_states_only.py`.
-    - title: pruning a branch that cannot improve the answer
-      before: |
-        def before(values, target):
-            n = len(values)
-            hits = 0
-            for i in range(n):
-                for j in range(i + 1, n):
-                    for k in range(j + 1, n):
-                        if values[i] + values[j] + values[k] == target:
-                            hits += 1
-            return hits
-      after: |
-        def after(values, target):
-            n = len(values)
-            hits = 0
-            for i in range(n):
-                for j in range(i + 1, n):
-                    base = values[i] + values[j]
-                    if base >= target:
-                        break                  # sorted ascending: larger j cannot help
-                    for k in range(j + 1, n):
-                        total = base + values[k]
-                        if total > target:
-                            break              # sorted ascending: larger k cannot help
-                        if total == target:
-                            hits += 1
-            return hits
-      note: |
-        The original enumerates all 2^n subsets and tests each; the repair never descends into a branch already over budget, and visits the highest-value-density items first so the bound bites early. The pruning is sound only because costs are non-negative -- state that, because an unsound bound gives a wrong answer rather than a faster one.
-
-        Measured in `validation/taxonomy/C7S2_bounded_enumeration.py`.
-  patch_shape: structural
-  measurability: scales_with_input
-  min_workload_hint: |
-    the input must be large enough for the exponent to show; for a memoisation case that usually means an input where the naive version is visibly slow
+        The pruning is sound only because the values are non-negative; an unsound bound gives a wrong answer rather than a faster one.
+  not_this:
+    - title: a tree walk written as a generator
+      source: catalog
+      code: |
+        def walk(node, depth=0):
+            yield node, depth
+            for child in node.children:
+                yield from walk(child, depth + 1)
+      tempting: |
+        @functools.cache
+        def walk(node, depth=0):
+            yield node, depth
+            for child in node.children:
+                yield from walk(child, depth + 1)
+      why: |
+        `functools.cache` stores the generator object, so a second `walk(root)` gets back the one the first call already exhausted and yields nothing; a tree has no shared subproblems for the cache to reuse.
+    - title: a recursion that sorts a list in place
+      source: rule:recursion_without_memo/quicksort
+      code: |
+        def quicksort(arr, low, high):
+            if low < high:
+                p = partition(arr, low, high)
+                quicksort(arr, low, p - 1)
+                quicksort(arr, p + 1, high)
+      tempting: |
+        @functools.lru_cache(maxsize=None)
+        def quicksort(arr, low, high):
+            if low < high:
+                p = partition(arr, low, high)
+                quicksort(arr, low, p - 1)
+                quicksort(arr, p + 1, high)
+      why: |
+        `lru_cache` hashes its arguments and a list is unhashable, so the first call raises `TypeError`; the two calls cover disjoint ranges either side of the pivot, so nothing is ever recomputed.
+    - title: the first answer found is the one returned
+      source: catalog
+      code: |
+        def first_fit(items, capacity):
+            for combo in itertools.combinations(items, 3):
+                if sum(item.size for item in combo) <= capacity:
+                    return combo
+            return None
+      tempting: |
+        def first_fit(items, capacity):
+            ordered = sorted(items, key=lambda item: item.size)
+            for combo in itertools.combinations(ordered, 3):
+                if sum(item.size for item in combo) <= capacity:
+                    return combo
+            return None
+      why: |
+        The function returns the first fitting triple in the caller's order; exploring the smallest items first returns a different triple whenever more than one fits.
   similar:
-  - C3.S5
-  - C7.S1
-  - C7.S3
-  - C8.S1
+    - C3.S5
+    - C7.S1
+    - C7.S3
+    - C8.S1
 - id: C7.S3
   signals:
-  - linear_recursion
+    - linear_recursion
   in_one_line: |
-    a linear recursion paying a frame per level where a loop would use one
-  what_to_look_for: |
-    A Python call is expensive relative to a loop iteration -- a frame of two to four hundred bytes is allocated, arguments are bound into it, and it is torn down on return -- and CPython does no tail-call elimination, so a self-recursive function pays that per level and holds every frame alive until the base case returns.  A loop with an accumulator does the same arithmetic in one frame, so the saving is the frame cost times the depth; this project measured an iterative factorial at 39.5% against the recursive one.  There is a correctness dimension too, since the default recursion limit is 1000 and a linear recursion over a large input raises rather than running slowly, which is worth reporting even where the energy saving is not.  The precondition is that the recursion is *linear*: exactly one self-call on each path, so the recursion is sequencing rather than branching, and an accumulator can carry what it was passing down.  A branching recursion -- a tree walk, divide and conquer -- is not this, and replacing it with an explicit stack reimplements the call stack in slower Python and usually regresses.  Depth is the other half: three levels saves three frames and is not a finding.
-  not_a_smell_when:
-  - |
-    the recursion branches -- a tree walk, divide and conquer -- where an explicit stack reimplements the call stack in Python and is slower
-  - |
-    the depth is small and bounded, so a handful of frames is the whole cost
-  - |
-    the recursive form is substantially clearer and the path is not hot
-  - |
-    the recursion is the algorithm's definition and rewriting it would obscure why it is correct
-  counter_examples:
-  - code: |
-      def merge_sort(values):
-          if len(values) <= 1:
-              return values
-          middle = len(values) // 2
-          return _merge(merge_sort(values[:middle]), merge_sort(values[middle:]))
-    why: |
-      Two self-calls per level, so this is branching recursion. An iterative version needs an explicit stack of pending ranges, which allocates list objects instead of frames and is generally *slower* in CPython. The project's own sample keeps the recursion in both variants and changes only the merge loop -- which is the right call.
-  - code: |
-      def depth(node):
-          if node is None:
-              return 0
-          return 1 + max(depth(node.left), depth(node.right))
-    why: |
-      Branching, and bounded by the tree's height -- around twenty for a balanced million-node tree. Twenty frames is nothing, and the iterative form needs its own stack. Depth being logarithmic is what makes tree recursion safe.
+    a recursion paying a frame per level where a loop would use one
+  look_for: |
+    A function that calls itself where a loop would do the same work in one frame: a linear recursion such as `n * factorial(n - 1)`, with one self-call on each path and an accumulator it could carry instead, or a tree walk that recurses into each child, where an explicit stack can do the walking. Every call allocates a frame and binds its arguments; CPython does no tail-call elimination, so every frame stays alive until the base case returns, and a deep enough recursion raises `RecursionError`.
   refactoring:
-    summary: convert linear recursion to a loop with an explicit accumulator
-    examples:
-    - title: an accumulating recursion
-      before: |
-        def _factorial_recursive(n):
-            if n <= 1:
-                return 1
-            return n * _factorial_recursive(n - 1)
-
-
-        def before(n, repeats):
-            return sum(_factorial_recursive(n) % 1_000_003 for _ in range(repeats))
-      after: |
-        def _factorial_iterative(n):
-            total = 1
-            for i in range(2, n + 1):
-                total *= i
-            return total
-
-
-        def after(n, repeats):
-            return sum(_factorial_iterative(n) % 1_000_003 for _ in range(repeats))
+    summary: convert the recursion to a loop, with an accumulator or an explicit stack
+  repairs:
+    - case: C7S3_iterative_factorial
       note: |
-        Measured **+39.5%** at n = 800. One self-call per level, so the recursion is pure sequencing and the loop carries the same accumulator in one frame. It also removes the recursion limit as a ceiling: the original raises above n = 1000 by default.
-
-        Measured in `validation/taxonomy/C7S3_iterative_factorial.py`.
-    - title: a recursion that branches, where the frame is not the cost
-      before: |
-        class Node:
-            __slots__ = ("value", "left", "right")
-
-            def __init__(self, value, left=None, right=None):
-                self.value = value
-                self.left = left
-                self.right = right
-
-
-        def _build(depth, seed=1):
-            if depth == 0:
-                return None
-            return Node(seed, _build(depth - 1, seed * 2), _build(depth - 1, seed * 2 + 1))
-
-
-        _TREE = _build(16)
-
-
-        def _sum_recursive(node):
-            if node is None:
-                return 0
-            return node.value + _sum_recursive(node.left) + _sum_recursive(node.right)
-
-
-        def before(repeats):
-            return sum(_sum_recursive(_TREE) for _ in range(repeats))
-      after: |
-        class Node:
-            __slots__ = ("value", "left", "right")
-
-            def __init__(self, value, left=None, right=None):
-                self.value = value
-                self.left = left
-                self.right = right
-
-
-        def _build(depth, seed=1):
-            if depth == 0:
-                return None
-            return Node(seed, _build(depth - 1, seed * 2), _build(depth - 1, seed * 2 + 1))
-
-
-        _TREE = _build(16)
-
-
-        def _sum_stack(node):
-            total = 0
-            stack = [node]
-            while stack:
-                current = stack.pop()
-                if current is None:
-                    continue
-                total += current.value
-                stack.append(current.left)
-                stack.append(current.right)
-            return total
-
-
-        def after(repeats):
-            return sum(_sum_stack(_TREE) for _ in range(repeats))
-      note: |
-        The branching case, where the repair loses.
-
-        The card's first `NOT a smell when` clause: a recursion with two self-calls is
-        a tree walk, and replacing it with an explicit stack reimplements the call
-        stack in slower Python. `before` is the recursion and `after` is the explicit
-        stack, so a negative reading is the card being right -- and it is the reading
-        that stops an agent applying C7.S3 to every recursion it meets.
-
-        Measured in `validation/taxonomy/C7S3_branching_recursion.py`.
-  patch_shape: structural
-  measurability: scales_with_calls
-  min_workload_hint: |
-    the depth is the effect, so the case needs a large n rather than many calls with a small one -- and keep it under the recursion limit or `before` raises
+        One self-call per level, so the recursion is pure sequencing and the loop carries the same accumulator in one frame. It also removes the recursion limit as a ceiling: the original raises once the depth passes the default limit.
+    - case: C7S3_branching_recursion
+    - case: C7S3_recursion_to_loop
   similar:
-  - C2.S3
-  - C7.S2
+    - C2.S3
+    - C7.S2
 - id: C7.S4
   signals:
-  - sort_then_slice
-  - filter_after_transform
+    - sort_then_slice
+    - filter_after_transform
   in_one_line: |
     two commuting operations in the order that makes the expensive one see more data
-  what_to_look_for: |
-    When two operations commute, their order decides how much data the expensive one sees.  Filtering before transforming means the transform runs on the survivors; sorting after taking the top k means the sort sees k elements rather than n.  The saving is the expensive operation's per-element cost times the elements the cheap one removed, so it scales with selectivity and is nothing when the cheap step removes nothing -- a filter keeping 95% of the rows is not worth reordering for.  This is short-circuit ordering applied to statements instead of to boolean operands.  Commutation is the precondition and it fails in one specific way that is easy to miss: a predicate testing the *transform's output* cannot run first, because the value it reads does not exist yet.  Then check the reorder does not change the answer -- a sort over filtered data can order equal elements differently, and floating-point sums change with accumulation order -- and that the cheap step is still cheap on the full input, since deduplicating a million unique values to shrink a scan costs more than the scan.
-  not_a_smell_when:
-  - |
-    the operations do not commute -- the second reads what the first produced
-  - |
-    the cheap operation removes little, so the expensive one sees nearly the same data either way
-  - |
-    the reorder changes the result: tie order, floating-point accumulation, the identity of a chosen element
-  - |
-    the full intermediate result is needed by something else as well
-  - |
-    the "cheap" step is only cheap on the reduced data and expensive on the full input
-  counter_examples:
-  - code: |
-      scores = [expensive(x) for x in items]
-      best = [s for s in scores if s > threshold]
-    why: |
-      Transform then filter, which is exactly the shape -- and irrepairable, because the predicate tests the transform's *output*. You cannot filter first on something you have not computed. Read what the predicate reads before proposing the swap.
-  - code: |
-      rows = sorted(records, key=lambda r: r.at)
-      recent = [r for r in rows if r.at >= cutoff]
-    why: |
-      Sort then filter, and the operations do commute here, so it looks like a clean win -- but the sort is by the same key the filter tests, so the genuine repair is neither reorder nor filter: it is `bisect` on the sorted list, which is C7.S1. When a reorder is available and something better also is, say so.
+  look_for: |
+    Two steps that could run in either order, run so that the expensive one sees more data than it needs: `sorted(values)[:k]`, `[0]` or `[-1]`, sorting everything to keep a few elements; a transform such as parsing applied to every element before a filter that tests only what the input already had; an expensive mapping applied to every value before the duplicates are removed. Running the cheap, reducing step first means the expensive one sees only what survives it.
   refactoring:
     summary: run the cheap, reducing operation before the expensive one
-    examples:
-    - title: sort after taking, not before
-      before: |
-        def before(xs, k):
-            return sum(sorted(xs)[:k])
-      after: |
+  repairs:
+    - case: C7S4_sort_then_slice
+      note: |
+        n log n becomes n log k.
+    - case: C7S4_filter_before_transform
+      note: |
+        The predicate only reads `r`, not `_expensive(r)`, which is what makes the move legal.
+    - case: C7S4_deduplicate_before_mapping
+      note: |
+        Both operations are already bulk steps and the repair swaps two statements, which is what separates this from C3.S6.
+  not_this:
+    - title: the filter tests the transform's output
+      source: catalog
+      code: |
+        scores = [expensive(x) for x in items]
+        best = [s for s in scores if s > threshold]
+      tempting: |
+        best = [expensive(x) for x in items if x > threshold]
+      why: |
+        The predicate reads the score, which does not exist until the transform has run; moved first, it tests the input instead and keeps different elements.
+    - title: a slice that drops only the last element
+      source: rule:sort_then_slice/all_but_the_last
+      code: |
+        def all_but_the_last(data):
+            return sorted(data)[:-1]
+      tempting: |
         import heapq
 
-
-        def after(xs, k):
-            return sum(heapq.nsmallest(k, xs))
-      note: |
-        n log n becomes n log k. Note the tie behaviour differs: `sorted` is stable and `nlargest` is not guaranteed to be, so if two records share a score the chosen one may change. Check whether the caller cares.
-
-        Measured in `validation/taxonomy/C7S4_sort_then_slice.py`.
-    - title: filter before the expensive transform
-      before: |
-        def _expensive(row):
-            total = 0
-            for i in range(1, 30):
-                total += (row * i) % 11
-            return total
-
-
-        def before(rows, floor):
-            scored = [_expensive(r) for r in rows]
-            return [s for r, s in zip(rows, scored) if r > floor]
-      after: |
-        def _expensive(row):
-            total = 0
-            for i in range(1, 30):
-                total += (row * i) % 11
-            return total
-
-
-        def after(rows, floor):
-            return [_expensive(r) for r in rows if r > floor]
-      note: |
-        The predicate only reads the path, not the parsed document, which is what makes the move legal -- and it means `parse_document` runs on the markdown files instead of on everything. The saving is `parse_document`'s cost times the files excluded.
-
-        Measured in `validation/taxonomy/C7S4_filter_before_transform.py`.
-    - title: early exit beats bulk work
-      before: |
-        def before(a, b):
-            return "".join(a) == "".join(b)
-      after: |
-        def after(a, b):
-            if len(a) != len(b):
-                return False
-            for x, y in zip(a, b):
-                if x != y:
-                    return False
-            return True
-      note: |
-        The "cheap first" operation here is the comparison itself: the loop returns at the first mismatch where the joins materialise both sequences in full -- roughly a gigabyte in the project's sample -- before comparing anything. A C-level primitive that must see all the data loses to an interpreted loop that usually does not. This is the C7.S4 case people miss, because the expensive operation looks like the fast one.
-
-        Measured in `validation/taxonomy/C10S1_primitive_loses_early_exit.py`.
-    - title: deduplicate before the expensive transform
-      before: |
-        def _expensive(x):
-            total = 0
-            for i in range(1, 26):
-                total += (x * i) % 13
-            return total
-
-
-        def before(values):
-            mapped = [_expensive(v) for v in values]
-            return len(set(mapped))
-      after: |
-        def _expensive(x):
-            total = 0
-            for i in range(1, 26):
-                total += (x * i) % 13
-            return total
-
-
-        def after(values):
-            return len({_expensive(v) for v in set(values)})
-      note: |
-        Two bulk steps, deduplicate first.
-
-        The card separates this from C3.S6 by scope: here both operations are already
-        bulk steps and the repair swaps two statements. It also warns the cheap step
-        must still be cheap on the *full* input, so `all-unique` is the case where
-        hashing a million distinct values buys nothing and costs a pass.
-
-        Measured in `validation/taxonomy/C7S4_deduplicate_before_mapping.py`.
-  patch_shape: statement_local
-  measurability: scales_with_input
-  min_workload_hint: |
-    the cheap step must remove most of the data; state the selectivity in the submission and make it representative rather than convenient
+        def all_but_the_last(data):
+            return heapq.nsmallest(-1, data)
+      why: |
+        `[:-1]` keeps every element but the largest, so the sort is not thrown away; `heapq.nsmallest` with a count below one returns an empty list.
   similar:
-  - C3.S6
-  - C4.S1
-  - C7.S5
+    - C3.S6
+    - C4.S1
+    - C7.S5
 - id: C7.S5
   in_one_line: |
     an operation doing more work than an algebraic fact about its inputs requires
-  what_to_look_for: |
-    An expensive operation applied to an input that could have been reduced first does more work than the answer requires, and the reduction here is algebraic rather than structural: a term that is provably zero or an identity, a wrapper that cannot change its argument, a general procedure whose result is settled by a cheap property of the input, a transformation the following step is invariant under.  Unlike everything else in this category it needs knowledge of *what the values mean* rather than of the control flow, which is why it is a root cause a reader can find and no tool can.  The discipline is to write the fact out: "`k = max(a, b)`, so `k - a` is never negative and `abs` cannot change it"; "softmax is monotonic, so `argmax` does not need it".  Then establish it holds for every input the function *accepts*, not only for the ones it usually gets -- "it has always been positive so far" is a different claim from "it cannot be negative", and this is the step that decides correctness.  Check the simplified form at the edges the fact is silent about: NaN, empty input, zero, negative zero, overflow.  If the simplification holds for all inputs it belongs here; if it holds for some and needs a branch, the finding is the missing guard instead.
-  not_a_smell_when:
-  - |
-    the algebraic fact does not hold for every input the function accepts
-  - |
-    the general form is defensive against inputs the caller could supply, even if today's callers do not
-  - |
-    the simplification changes floating-point results, NaN handling, or overflow behaviour in ways something depends on
-  - |
-    the general form is required by an interface -- the same code path must handle a wider set of inputs elsewhere
-  - |
-    the saving is one cheap operation on a cold path
-  counter_examples:
-  - code: |
-      def normalise(values):
-          total = sum(abs(v) for v in values)
-          return [v / total for v in values]
-    why: |
-      `abs` looks removable, and it is not: `values` may contain negatives, and that is the whole reason the sum is taken over magnitudes. The fact has to hold for every accepted input, and here it does not hold for any interesting one.
-  - code: |
-      def score(logits):
-          probabilities = softmax(logits)
-          return max(probabilities)
-    why: |
-      Nearly identical to the positive example below and not the same: `argmax(softmax(x)) == argmax(x)`, but `max(softmax(x))` is a probability and `max(x)` is a logit. Monotonicity preserves the *position* of the maximum, not its value. This is the near-miss that makes the difference between a repair and a wrong answer.
+  look_for: |
+    An operation doing work that a fact about its inputs makes unnecessary: `abs` on a difference that cannot be negative because one side is the `max` of the two; `math.sqrt` applied to both sides of a comparison, when it is strictly increasing on the values compared; a constant factor multiplied into every term of a sum instead of once into the total; a whole string reversed to compare it with itself. Write the fact out and check it holds for every input the function accepts.
   refactoring:
     summary: simplify the input or the operation using a fact about the values
-    examples:
-    - title: a wrapper that cannot change its argument
-      before: |
-        def before(first, second, use_max):
-            total = 0
-            for a, b in zip(first, second):
-                k = max(a, b) if use_max else a
-                total += abs(k - b)
-            return total
-      after: |
-        def after(first, second, use_max):
-            total = 0
-            for a, b in zip(first, second):
-                if use_max:
-                    k = max(a, b)
-                    total += k - b                 # non-negative by construction
-                else:
-                    total += abs(a - b)
-            return total
+  repairs:
+    - case: C7S5_abs_never_negative
       note: |
-        `h` is the maximum of `a` and `b`, so `h - a` and `h - b` are both non-negative by construction and `abs` can only ever return its argument. Two calls per element removed, and the fact holds for every input including negatives and equal values. This is the cleanest form of the root cause: nothing about the control flow changes.
-
-        Measured in `validation/taxonomy/C7S5_abs_never_negative.py`.
-    - title: the expensive step does not affect the answer at all
-      before: |
-        import math
-
-
-        def _softmax(logits):
-            exponentials = [math.exp(v) for v in logits]
-            total = sum(exponentials)
-            return [e / total for e in exponentials]
-
-
-        def before(logits):
-            probabilities = _softmax(logits)
-            best, index = float("-inf"), 0
-            for i, p in enumerate(probabilities):
-                if p > best:
-                    best, index = p, i
-            return index
-      after: |
-        def after(logits):
-            best, index = float("-inf"), 0
-            for i, value in enumerate(logits):
-                if value > best:
-                    best, index = value, i
-            return index
+        `k` is the maximum of `a` and `b`, so `k - b` is non-negative by construction and `abs` can only ever return its argument; the fact holds for every input, including negatives and equal values.
+    - case: C7S5_monotonic_comparison
       note: |
-        Softmax is strictly monotonic, so it preserves order and the position of the maximum -- the whole exponentiation and normalisation is dead work for a function that returns only an index. An entire helper and a full pass over a million elements disappear. Note the initial value has to change from `0` to `-inf`, because logits can be negative where probabilities cannot: the simplification is only correct with that adjustment, and getting it wrong makes the repair silently wrong on all-negative input.
-
-        Measured in `validation/taxonomy/C1S5_invariant_stage.py`.
-    - title: a cheap pre-check settles the common case
-      before: |
-        def before(batches):
-            return [sorted(b) for b in batches]
-      after: |
-        def after(batches):
-            out = []
-            for b in batches:
-                if len(b) < 2:
-                    out.append(list(b))
-                else:
-                    out.append(sorted(b))
-            return out
+        `math.sqrt` is strictly increasing on non-negative reals, so `sqrt(a) > sqrt(b)` and `a > b` agree wherever both are defined; `after` keeps the calls on the path where the values may be negative.
+    - case: C7S5_only_half_is_needed
       note: |
-        The regex still decides every accepted string; the pre-check only rejects the ones that cannot possibly match, and it costs two comparisons where entering the matcher costs far more. Included because it sits exactly on the boundary with C4.S7 -- it *is* a guard -- and the reason it is arguably C7.S5 is that the general operation is left intact for everything it can still decide. Either label is defensible; say which you chose.
-
-        Measured in `validation/taxonomy/C4S7_guard_before_short_circuit.py`.
-    - title: comparing through a strictly increasing function
-      before: |
-        import math
-
-
-        def before(pairs, non_negative):
-            hits = 0
-            for a, b in pairs:
-                if non_negative:
-                    if math.sqrt(a) > math.sqrt(b):
-                        hits += 1
-                elif a >= 0 and b >= 0 and math.sqrt(a) > math.sqrt(b):
-                    hits += 1
-            return hits
-      after: |
-        import math
-
-
-        def after(pairs, non_negative):
-            hits = 0
-            for a, b in pairs:
-                if non_negative:
-                    if a > b:                       # sqrt is strictly increasing
-                        hits += 1
-                elif a >= 0 and b >= 0 and math.sqrt(a) > math.sqrt(b):
-                    hits += 1
-            return hits
+        `text == text[::-1]` examines each pair of characters twice, once from each end; comparing the first half against the reversed second half examines each pair once, at the price of three slices instead of one copy. The `+ (len(text) % 2)` skips the middle character of an odd-length string, without which every odd-length string reports as not a palindrome.
+    - case: C7S5_unsimplified
       note: |
-        A monotonic transform inside a comparison.
-
-        `math.sqrt` is strictly increasing on non-negative reals, so `sqrt(a) > sqrt(b)`
-        and `a > b` agree wherever both are defined. The result *is* consumed -- which
-        is what separates this from a discarded computation -- and the operation itself
-        got cheaper, which is what this root cause is.
-
-        `has-negatives` removes the precondition: `sqrt` raises there, so the two
-        functions are not the same and `after` keeps the calls on that path.
-
-        Measured in `validation/taxonomy/C7S5_monotonic_comparison.py`.
-    - title: half the comparison decides the whole of it
-      before: |
-        def before(strings):
-            hits = 0
-            for text in strings:
-                if text == text[::-1]:
-                    hits += 1
-            return hits
-      after: |
-        def after(strings):
-            hits = 0
-            for text in strings:
-                half = len(text) // 2
-                if text[:half] == text[half + (len(text) % 2):][::-1]:
-                    hits += 1
-            return hits
-      note: |
-        Reversing the whole string to compare it with
-        itself.
-
-        From Javad's BuiltInBehavior/IsStringPalindrome and IneffectiveComputation/
-        IsStringPalindrome, whose refactorings both go from `s == s[::-1]` to a
-        comparison of the two halves.
-
-        `s == s[::-1]` is the idiom, and it compares every character against its mirror
-        -- so each pair is examined twice, once from each end. Comparing `s[:half]`
-        against the reverse of `s[half:]` examines each pair once.
-
-        The trade is not free and the file exists to price it. `before` allocates one
-        copy of length n; `after` allocates three slices totalling 3n/2, and halves the
-        comparisons. Which side wins depends on whether the comparison or the
-        allocation dominates, and on where the first mismatch is -- `early-reject` is
-        the case where `before` allocates a full reversal to compare one character.
-
-        Javad's version omits the odd-length adjustment, so it compares a slice of
-        `half` characters against one of `half + 1` and reports every odd-length string
-        as not a palindrome. The `+ (len(text) % 2)` here is that correction; without
-        it the pair is not equivalent and nothing could be measured.
-
-        Measured in `validation/taxonomy/C7S5_only_half_is_needed.py`.
-    - title: a factor that can come out of the sum
-      before: |
-        def before(xs):
-            return sum(x * 2 for x in xs)
-      after: |
-        def after(xs):
-            return 2 * sum(xs)
-      note: |
-        Work that algebra removes.
-
-        sum(x * 2 for x) is 2 * sum(x): one multiply instead of n.
-
-        Measured in `validation/taxonomy/C7S5_unsimplified.py`.
-  patch_shape: expression
-  measurability: scales_with_input
-  min_workload_hint: |
-    when the simplification removes per-element work, size on the element count; when it removes a whole stage, almost any realistic input shows it
+        `sum(x * 2 for x in xs)` is `2 * sum(xs)`: one multiply instead of n.
+  not_this:
+    - source: lookalike:C7S5_lookalike
+      why: |
+        `x * 0 + x * 1 == x` holds over the integers but not over IEEE floats: `inf * 0` is `nan`, so the simplified form turns a reading the caller's NaN check was meant to catch into a clean number. An identity has to hold for the type the values actually have.
+    - title: monotonicity keeps the position of the maximum, not its value
+      source: catalog
+      code: |
+        def score(logits):
+            probabilities = softmax(logits)
+            return max(probabilities)
+      tempting: |
+        def score(logits):
+            return max(logits)
+      why: |
+        `argmax(softmax(x)) == argmax(x)`, but `max(softmax(x))` is a probability and `max(x)` is a logit, so the function returns a different number.
+    - title: nothing makes the values non-negative
+      source: catalog
+      code: |
+        def normalise(values):
+            total = sum(abs(v) for v in values)
+            return [v / total for v in values]
+      tempting: |
+        def normalise(values):
+            total = sum(values)
+            return [v / total for v in values]
+      why: |
+        The sum is taken over magnitudes on purpose; with negative values the plain sum gives a different total, or zero and a `ZeroDivisionError`.
   similar:
-  - C7.S1
-  - C7.S4
-  - C10.S2
+    - C7.S1
+    - C7.S4
+    - C10.S2

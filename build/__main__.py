@@ -261,16 +261,17 @@ def _report(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
     entries = catalog.entries.values()
     # `similar` is symmetric, so every edge is counted from both ends.
     edges = sum(len(e.similar) for e in entries) // 2
-    exceptions = sum(len(e.not_a_smell_when) for e in entries)
-    near_misses = sum(len(e.counter_examples) for e in entries)
+    repairs = sum(len(e.repairs) for e in entries)
+    excluded = sum(len(e.excluded) for e in entries)
+    near_misses = sum(len(e.not_this) for e in entries)
     signals = catalog.signal_index()
 
     routed = {rc for ids in signals.values() for rc in ids}
     print(f"wrote {written} files to dist/ ({changed} changed)")
     print(f"  {len(taxonomy.categories)} categories, "
           f"{len(taxonomy.root_causes)} root causes")
-    print(f"  {edges} similarity edges, {exceptions} context exceptions, "
-          f"{near_misses} near-misses")
+    print(f"  {repairs} measured repairs shown ({excluded} excluded), "
+          f"{near_misses} near-misses, {edges} similarity edges")
     print(f"  {len(signals)} static signals routing to {len(routed)} root causes "
           f"({len(taxonomy.root_causes) - len(routed)} have none)")
     # The shipped protocol tells the reader that 0% means "measured and it did

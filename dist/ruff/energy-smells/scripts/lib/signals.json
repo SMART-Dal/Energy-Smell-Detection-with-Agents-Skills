@@ -356,7 +356,7 @@
    "name": "Inefficient Array Mutation in Loop",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
-   "repair": "iterate over a snapshot, or build a new collection instead of editing in place",
+   "repair": "build the items to keep into a new collection instead of editing the one being walked",
    "card": "reference/root-causes/C3.S7.md",
    "impact": 52.3
   },
@@ -532,7 +532,7 @@
    "name": "Avoidable Recursive Implementation",
    "category": "C7",
    "category_name": "Suboptimal Algorithmic",
-   "repair": "convert linear recursion to a loop with an explicit accumulator",
+   "repair": "convert the recursion to a loop, with an accumulator or an explicit stack",
    "card": "reference/root-causes/C7.S3.md",
    "impact": 14.1
   },

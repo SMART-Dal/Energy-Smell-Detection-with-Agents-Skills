@@ -128,130 +128,18 @@ def render_category(category_id: str, taxonomy: Taxonomy, catalog: Catalog) -> s
 def render_root_cause(
     root_cause_id: str, taxonomy: Taxonomy, catalog: Catalog
 ) -> str:
-    """The full working card: everything needed to accept, reject and repair."""
+    """The full working card: the reference, what to look for, and the measured repairs.
+
+    Five parts: the reference's definition and example, what to look for, the
+    measured repairs, near-misses, and similar root causes. How to read them --
+    that the repairs are ideas rather than templates, what each result line
+    asks for, that a near-miss means the repair would be wrong -- is said once,
+    in SKILL.md's step 3, rather than on every card.
+    """
     node = taxonomy[root_cause_id]
     entry = catalog[root_cause_id]
     category = taxonomy[entry.category_id]
-    if entry.uses_new_card:
-        return _render_measured_card(node, entry, category, taxonomy, catalog)
-
-    lines = [
-        f"# {node.id} — {node.name}",
-        "",
-        f"*Level 2 card. Category [{category.id} {category.name}]"
-        f"(../categories/{category.id}.md).*",
-        "",
-        node.description,
-        "",
-    ]
-
-    if node.example:
-        lines += ["## Example from the taxonomy", "", node.example, ""]
-
-    if entry.what_to_look_for:
-        lines += ["## What to look for", "", _paragraphs(entry.what_to_look_for), ""]
-
-    if entry.not_a_smell_when:
-        lines += [
-            "## NOT a smell when",
-            "",
-            "The pattern is present and is the right call. If one of these holds, "
-            "reject and record which.",
-            "",
-            *[f"- {item}" for item in entry.not_a_smell_when],
-            "",
-        ]
-
-    if entry.counter_examples:
-        lines += [
-            "## Looks the same, is not",
-            "",
-            "Each of these matches the pattern and is correct as written. If the "
-            "code you are judging is one of them, reject it.",
-            "",
-        ]
-        for example in entry.counter_examples:
-            lines += [
-                "```python",
-                example.code,
-                "```",
-                "",
-                f"**Not a smell:** {example.why}",
-                "",
-            ]
-
-    if entry.refactoring:
-        lines += ["## The repair", "", entry.refactoring.summary, ""]
-        examples = entry.refactoring.examples
-        for position, example in enumerate(examples, start=1):
-            if example.title:
-                heading = (
-                    f"### {example.title}" if len(examples) > 1
-                    else f"**{example.title}**"
-                )
-                lines += [heading, ""]
-            elif len(examples) > 1:
-                lines += [f"### Example {position}", ""]
-            lines += [
-                "Before:", "", "```python", example.before, "```", "",
-                "After:", "", "```python", example.after, "```", "",
-            ]
-            if example.note:
-                lines += [example.note, ""]
-        lines += [
-            "The examples are illustrations, not the permitted cases; the repair "
-            "you write will not look like any of them.",
-            "",
-        ]
-
-    if entry.similar:
-        lines += [
-            "## Similar root causes",
-            "",
-            "Open these when this card nearly fits and you cannot write a repair "
-            "from it. Overlap is expected; if two both describe what you "
-            "repaired, file it under either and say so.",
-            "",
-        ]
-        for neighbour_id in entry.similar:
-            neighbour = taxonomy[neighbour_id]
-            summary = catalog[neighbour_id].in_one_line
-            lines += [
-                f"- **[{neighbour.id} {neighbour.name}]"
-                f"(../root-causes/{neighbour.id}.md)** — {summary}",
-            ]
-        lines.append("")
-
-    if entry.notes:
-        lines += ["## Notes", "", _paragraphs(entry.notes), ""]
-
-    lines += [
-        "## Before you accept this",
-        "",
-        "1. Say what the machine does here that it need not do, in your own words.",
-        "2. Apply `NOT a smell when` and `Looks the same, is not`.",
-        "3. Write the repair for *this* code.",
-        "4. Check it removes what *this* root cause names, not something adjacent.",
-        "5. Say how often the code runs and how large its inputs get.",
-        "",
-        "Record which one decided it, whichever way it went.",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-# -- the card built from measured samples -----------------------------------
-#
-# Six parts: the reference's definition and example, what to look for, the
-# measured repairs, near-misses, and similar root causes. How to read them --
-# that the repairs are ideas rather than templates, what each result line asks
-# for, that a near-miss means the repair would be wrong -- is said once, in
-# SKILL.md's step 3, rather than on every card.
-
-
-def _render_measured_card(node, entry, category, taxonomy: Taxonomy,
-                          catalog: Catalog) -> str:
-    from .samples import decision, measured, title_of   # reads the case files
+    from .samples import decision, lookalike, measured, title_of   # reads the case files
 
     lines = [
         f"# {node.id} — {node.name}",
@@ -287,12 +175,15 @@ def _render_measured_card(node, entry, category, taxonomy: Taxonomy,
     if entry.not_this:
         lines += ["## Looks like it, but is not", ""]
         for item in entry.not_this:
+            title, code, tempting = item.title, item.code, item.tempting
+            if item.source.startswith("lookalike:"):
+                title, code, tempting = lookalike(item.source[len("lookalike:"):])
             lines += [
-                f"### {item.title}", "",
-                "```python", item.code, "```", "",
+                f"### {title}", "",
+                "```python", code.rstrip(), "```", "",
                 "The tempting repair:", "",
-                "```python", item.tempting, "```", "",
-                f"**Why not:** {item.why}", "",
+                "```python", tempting.rstrip(), "```", "",
+                f"**Why not:** {_one_paragraph(item.why)}", "",
             ]
 
     if entry.similar:
@@ -318,6 +209,11 @@ def _paragraphs(text: str) -> str:
     the source, and markdown wants two.
     """
     return "\n\n".join(part.strip() for part in text.split("\n") if part.strip())
+
+
+def _one_paragraph(text: str) -> str:
+    """A block scalar's lines joined into one paragraph."""
+    return " ".join(text.split())
 
 
 def _one_line(text: str) -> str:

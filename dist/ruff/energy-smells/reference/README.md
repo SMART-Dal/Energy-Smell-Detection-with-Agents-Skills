@@ -62,7 +62,7 @@ Cards live at `reference/categories/<ID>.md` and
 | **C3.S4** | Inefficient Nested Iteration | an inner loop that searches, where a lookup would turn n*m into n+m |
 | **C3.S5** | Missing Loop Early Exit | a loop that keeps going after its answer is already settled |
 | **C3.S6** | Unfiltered Bulk Iteration | the whole collection processed when only a subset was ever wanted |
-| **C3.S7** | Inefficient Array Mutation in Loop | a collection edited while it is being walked, which costs correctness first and energy second |
+| **C3.S7** | Inefficient Array Mutation in Loop | a collection edited while it is being walked |
 
 ### C4 — Inefficient Control Flow
 
@@ -72,7 +72,7 @@ Cards live at `reference/categories/<ID>.md` and
 | **C4.S2** | Redundant Conditional Evaluation | a test whose answer was already settled before it ran |
 | **C4.S3** | Inefficient Conditional Nesting | a nest or chain of branches that tests more than it has to, where a lookup would test once |
 | **C4.S4** | Missing Else-If | consecutive `if`s on one subject that are exclusive in fact but not in form |
-| **C4.S5** | Expensive Comparison | a type or identity check asked once per element when the answer never varies |
+| **C4.S5** | Expensive Comparison | a type check made per element where the answer never varies or the types could dispatch themselves |
 | **C4.S6** | Expensive Exception Control Flow | an exception used as ordinary control flow, on a path where it is raised often |
 | **C4.S7** | Missing Edge-Case Guards | a missing cheap test that would let a common trivial input skip the expensive path |
 | **C4.S8** | Non-Idiomatic Condition | a condition spelled the long way round, missing the interpreter's fast path |
@@ -104,7 +104,7 @@ Cards live at `reference/categories/<ID>.md` and
 |---|---|---|
 | **C7.S1** | Suboptimal Algorithm Choice | an algorithm of worse complexity than the problem requires |
 | **C7.S2** | Inefficient Problem Decomposition | a search exploring subproblems it could have pruned, reordered or reused |
-| **C7.S3** | Avoidable Recursive Implementation | a linear recursion paying a frame per level where a loop would use one |
+| **C7.S3** | Avoidable Recursive Implementation | a recursion paying a frame per level where a loop would use one |
 | **C7.S4** | Inefficient Operation Ordering | two commuting operations in the order that makes the expensive one see more data |
 | **C7.S5** | Unsimplified Operation | an operation doing more work than an algebraic fact about its inputs requires |
 
@@ -186,7 +186,7 @@ opposite directions:
 
 - **A rule firing has observed a pattern, not diagnosed a problem.** Every
   pattern in this taxonomy is the right thing to write somewhere, which is what
-  each card's `NOT a smell when` and `Looks the same, is not` sections record.
+  each card's `Looks like it, but is not` section records.
   Some of what any rule reports is therefore wrong here, and saying which is
   part of the job.
 - **A rule staying quiet has observed nothing.** Waste that lives in the

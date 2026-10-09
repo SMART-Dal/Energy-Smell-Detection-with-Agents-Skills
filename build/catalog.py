@@ -1,34 +1,20 @@
-"""The refactoring catalog: one canonical repair per root cause.
+"""The catalog: what to look for, and the measured repairs, per root cause.
 
 This is what makes the project's central rule executable:
 
     a finding is a repair, attributed to a root cause whose definition the
     repair actually matches.
 
-An entry therefore describes not just *what* a root cause is, but the specific
-edit that removes it.  That single decision does a lot of work:
-
-* the agent writes a bounded patch instead of rewriting a function;
-* two root causes whose repairs are the same edit at the same patch shape are
-  operationally the same finding, so taxonomy overlap stops being an argument;
-* a root cause whose repair is too small to measure is declared as such up
-  front, instead of being silently reported as unverifiable.
-
-Repairs overlap, and the catalog does not pretend otherwise.  One edit routinely
-makes several candidates disappear, because they only existed to serve the thing
-that was fixed.  What the agent owes in that case is a record -- one finding,
-and the absorbed candidates listed as subsumed -- not an artificially separated
-count.
-
-Two fields carry the most weight in practice.  `not_a_smell_when` records the
-contexts where the pattern is present and correct, because a pattern firing is
-not the same as a pattern being wrong.  `counter_examples` records the
-near-misses: code that matches the shape exactly and is right as written, which
-is what actually decides the hard cases.
+An entry is mostly references. Its repairs name case files under
+`validation/taxonomy/`, whose code and measured results the card shows as they
+are; its near-misses are lookalike specimens or a sourced example. What is
+written by hand is short: what to look for, a note under a sample when it has
+something specific to say, and why each near-miss breaks under the repair.
 
 This module is *build-time only*.  It reads `catalog/*.yaml`, validates it
-against the taxonomy, and feeds the card renderer and the signal compiler.
-Nothing that ships imports it.  See `CARD_SPEC.md` for how to write an entry.
+against the taxonomy and the case files, and feeds the card renderer and the
+signal compiler. Nothing that ships imports it.  See `CARD_SPEC.md` for how to
+write an entry.
 """
 
 from __future__ import annotations
@@ -45,58 +31,22 @@ CATALOG_DIR = Path(__file__).resolve().parent.parent / "catalog"
 
 
 @dataclass(frozen=True)
-class Example:
-    """One before/after pair showing the repair on a concrete piece of code."""
-
-    before: str
-    after: str
-    title: str = ""
-    """What kind of case this is, e.g. "the shape is chosen three calls earlier"."""
-    note: str = ""
-    """What changed, and what the machine stops doing. One to three sentences."""
-
-
-@dataclass(frozen=True)
 class Refactoring:
-    """The canonical repair for a root cause, with the examples that teach it.
+    """The canonical repair for a root cause, in one line.
 
-    More than one example is normal.  A single minimal pair teaches the shape
-    of the syntax and nothing about the judgement, and the judgement is the
-    hard part: the same repair looks different when the waste is spread over
-    three methods than when it sits in one expression.
+    Shown at the top of the card's repair section and in the category table;
+    the measured samples below it show what the repair looks like in code.
     """
 
     summary: str
-    examples: tuple[Example, ...] = ()
-
-
-@dataclass(frozen=True)
-class CounterExample:
-    """Code that matches the pattern and is not a smell.
-
-    A second positive example teaches nothing a first one did not. What decides
-    a hard case is the near-miss: the snippet that looks identical and is
-    correct as written, plus the one difference that makes it so.
-
-    C10.S4 is why this field exists. Three examples of `s += x` inside a loop
-    would all have taught the wrong lesson, because what separates the case that
-    pays from the case that does not is one character of the assignment target
-    -- `out +=` against `self.buf +=` -- and no number of positive examples
-    surfaces that.
-    """
-
-    code: str
-    why: str
-    """The single difference that makes this one fine."""
 
 
 @dataclass(frozen=True)
 class RepairSample:
     """A measured sample shown as a repair.
 
-    Only the note is authored. The code comes from the case file, the title from
-    `validation/alignment/decisions.yaml` (or the case file's docstring), and
-    the verdict from the latest results -- see `samples.py`.
+    Only the note is authored. The code and the title come from the case file,
+    and the verdict from the latest results -- see `samples.py`.
     """
 
     case: str
@@ -114,10 +64,13 @@ class NotThis:
     tempting: str
     why: str
     source: str
-    """Where it comes from, so it can be checked: `catalog` (the old card's
-    `not_a_smell_when` or `counter_examples`), `rule:<rule>/<function>` (a
-    negative in that rule's test fixtures), or `known` (documented Python
-    behaviour, which `why` names)."""
+    """Where it comes from, so it can be checked: `lookalike:<stem>` (a
+    specimen under `validation/lookalikes/`, whose code, repair and title are
+    read from the file), `catalog` (the `not_a_smell_when` or `counter_examples`
+    of the card before the October 2026 rewrite, in git history),
+    `rule:<rule>/<function>` (a negative in that rule's
+    test fixtures), or `known` (documented Python behaviour, which `why`
+    names)."""
 
 
 @dataclass(frozen=True)
@@ -139,27 +92,15 @@ class CatalogEntry:
     signals: tuple[str, ...] = ()
     """Evidence kinds from `scan.py` that suggest this root cause."""
 
-    what_to_look_for: str = ""
-    """The symptom and its cost, as one short passage.
+    look_for: str = ""
+    """What to look for: three or four lines summarising the measured samples.
 
-    This field replaced two: a `mechanism` paragraph and a numbered
-    `how_to_tell` procedure whose steps all had to hold.  The procedure read as
-    a gate, and a gate teaches an agent to match the shapes somebody thought to
-    enumerate and to reject everything else -- which is the opposite of what a
-    card is for, since the expensive instances of every root cause here are the
-    ones nobody enumerated.
-
-    So this says, in general terms, what the redundancy looks like and what the
-    machine is doing that it need not do.  The concrete shapes live in the
-    repair examples, where they read as illustrations rather than as a list of
-    the permitted cases.
+    Written from the samples and the rule fixtures, in the card's own terms,
+    and only about what the root cause is -- what it is not lives in
+    `not_this`. It says what the waste looks like and what the machine does
+    that it need not; the concrete shapes are the repairs below it, which read
+    as illustrations rather than as a list of the permitted cases.
     """
-
-    not_a_smell_when: tuple[str, ...] = ()
-    """Contexts where the pattern is present but is the right thing to do."""
-
-    counter_examples: tuple[CounterExample, ...] = ()
-    """Code that matches the pattern and is nonetheless correct as written."""
 
     refactoring: Refactoring | None = None
 
@@ -180,15 +121,6 @@ class CatalogEntry:
     reader arrives from the wrong side.
     """
 
-    notes: str = ""
-
-    look_for: str = ""
-    """What to look for: three or four lines summarising the measured samples.
-
-    Written from the samples and the rule fixtures, in the card's own terms,
-    and only about what the root cause is -- what it is not lives in
-    `not_this`."""
-
     repairs: tuple[RepairSample, ...] = ()
     """Every measured sample that repairs this root cause, in the order shown."""
 
@@ -197,11 +129,6 @@ class CatalogEntry:
 
     excluded: tuple[tuple[str, str], ...] = ()
     """(case stem, reason): samples filed under this root cause that repair another one."""
-
-    @property
-    def uses_new_card(self) -> bool:
-        """The card is rendered from measured samples rather than authored examples."""
-        return bool(self.repairs)
 
     @property
     def category_id(self) -> str:
@@ -240,51 +167,17 @@ class Catalog:
 # -- loading ---------------------------------------------------------------
 
 ENTRY_KEYS = {
-    "id", "in_one_line", "signals", "what_to_look_for", "not_a_smell_when",
-    "counter_examples", "refactoring", "similar", "notes",
-    "look_for", "repairs", "not_this", "excluded",
-} | {"patch_shape", "measurability", "min_workload_hint"}
-
-RETIRED_KEYS = {"patch_shape", "measurability", "min_workload_hint"}
-"""Still present in the catalog, deliberately ignored.
-
-They told the agent how large an edit should be, whether a root cause could be
-measured at all, and how to size a workload -- each one steering it toward an
-action instead of letting the measurement say what a repair was worth. Nothing
-reads them any more; they stay in the YAML until the root causes are rewritten,
-and can be deleted from it then."""
+    "id", "in_one_line", "signals", "look_for", "refactoring", "repairs",
+    "excluded", "not_this", "similar",
+}
 """Every key an entry may carry.
 
 Checked rather than ignored, because a misspelled key used to vanish silently
-and take a whole section of a card with it.
+and take a whole section of a card with it. The old card's keys --
+`what_to_look_for`, `not_a_smell_when`, `counter_examples`, `notes`,
+`refactoring.examples`, `patch_shape`, `measurability`, `min_workload_hint` --
+are errors too, so none of them can come back by accident.
 """
-
-
-def _examples(block: dict) -> list[Example]:
-    """Read a refactoring's examples, in either supported form.
-
-    A top-level `before`/`after` pair is the one-example shorthand; the
-    `examples:` list is what a root cause uses once one pair is not enough to
-    show what the repair actually involves.
-    """
-    if "before" in block or "after" in block:
-        return [
-            Example(
-                before=block.get("before", "").rstrip(),
-                after=block.get("after", "").rstrip(),
-                title=block.get("title", ""),
-                note=block.get("note", "").strip(),
-            )
-        ]
-    return [
-        Example(
-            before=item.get("before", "").rstrip(),
-            after=item.get("after", "").rstrip(),
-            title=item.get("title", "").strip(),
-            note=item.get("note", "").strip(),
-        )
-        for item in block.get("examples", ())
-    ]
 
 
 def _entry_from_dict(raw: dict) -> CatalogEntry:
@@ -297,36 +190,24 @@ def _entry_from_dict(raw: dict) -> CatalogEntry:
 
     refactoring = None
     if "refactoring" in raw:
-        block = raw["refactoring"]
-        refactoring = Refactoring(
-            summary=block["summary"].strip(),
-            examples=tuple(_examples(block)),
-        )
+        unknown = set(raw["refactoring"]) - {"summary"}
+        if unknown:
+            raise ValueError(f"{raw['id']} refactoring has unknown keys: {sorted(unknown)}")
+        refactoring = Refactoring(summary=raw["refactoring"]["summary"].strip())
     return CatalogEntry(
         id=raw["id"],
         in_one_line=raw.get("in_one_line", "").strip(),
         signals=tuple(raw.get("signals", ())),
-        what_to_look_for=raw.get("what_to_look_for", "").strip(),
-        # YAML folded scalars keep a trailing newline, which renders as a blank
-        # line between every bullet. These are prose items; strip them.
-        not_a_smell_when=tuple(
-            item.strip() for item in raw.get("not_a_smell_when", ())
-        ),
-        counter_examples=tuple(
-            CounterExample(code=c["code"].rstrip(), why=c["why"].strip())
-            for c in raw.get("counter_examples", ())
-        ),
+        look_for=raw.get("look_for", "").strip(),
         refactoring=refactoring,
         similar=tuple(raw.get("similar", ())),
-        notes=raw.get("notes", "").strip(),
-        look_for=raw.get("look_for", "").strip(),
         repairs=tuple(
             RepairSample(case=r["case"], note=(r.get("note") or "").strip())
             for r in raw.get("repairs", ())
         ),
         not_this=tuple(
-            NotThis(title=n["title"].strip(), code=n["code"].rstrip(),
-                    tempting=n["tempting"].rstrip(), why=n["why"].strip(),
+            NotThis(title=n.get("title", "").strip(), code=n.get("code", "").rstrip(),
+                    tempting=n.get("tempting", "").rstrip(), why=n["why"].strip(),
                     source=n.get("source", "").strip())
             for n in raw.get("not_this", ())
         ),
@@ -376,22 +257,15 @@ def load_catalog(strict: bool = True) -> Catalog:
 MAX_NOT_THIS = 5
 
 
-def _new_card_problems(entry: CatalogEntry) -> list[str]:
-    """A card built from measured samples carries none of the old authored prose."""
-    from .samples import case_files, measured, rule_negative   # reads the case files
+def _card_problems(entry: CatalogEntry) -> list[str]:
+    """What is missing or unverifiable in one entry's card."""
+    from .samples import case_files, lookalike, measured, rule_negative   # reads the case files
 
     problems = []
     if not entry.look_for:
-        problems.append(f"{entry.id} has repairs but no `look_for`")
-    left_over = [name for name, value in (
-        ("what_to_look_for", entry.what_to_look_for),
-        ("not_a_smell_when", entry.not_a_smell_when),
-        ("counter_examples", entry.counter_examples),
-        ("refactoring.examples", entry.refactoring.examples if entry.refactoring else ()),
-        ("notes", entry.notes),
-    ) if value]
-    if left_over:
-        problems.append(f"{entry.id} mixes the new card with old fields: {left_over}")
+        problems.append(f"{entry.id} has no `look_for`")
+    if not entry.repairs:
+        problems.append(f"{entry.id} shows no measured repair")
 
     # Every sample filed under this root cause is shown or excluded with a
     # reason; none disappears because nobody listed it.
@@ -418,6 +292,18 @@ def _new_card_problems(entry: CatalogEntry) -> list[str]:
                         f"at most {MAX_NOT_THIS}")
     for item in entry.not_this:
         source = item.source
+        if source.startswith("lookalike:"):
+            try:
+                lookalike(source[len("lookalike:"):])
+            except (FileNotFoundError, KeyError, SyntaxError) as exc:
+                problems.append(f"{entry.id} near-miss {source}: {exc}")
+            if item.code or item.tempting or item.title:
+                problems.append(f"{entry.id} near-miss {source}: title, code and "
+                                f"tempting come from the file; do not write them")
+            continue
+        if not (item.title and item.code and item.tempting):
+            problems.append(f"{entry.id} near-miss {item.title or source!r} needs "
+                            f"title, code and tempting")
         if source in ("catalog", "known"):
             continue
         if source.startswith("rule:"):
@@ -426,7 +312,7 @@ def _new_card_problems(entry: CatalogEntry) -> list[str]:
                 problems.append(f"{entry.id} near-miss {item.title!r}: {problem}")
             continue
         problems.append(f"{entry.id} near-miss {item.title!r} has source {source!r}; "
-                        f"expected catalog, known, or rule:<rule>/<function>")
+                        f"expected lookalike:<stem>, catalog, known, or rule:<rule>/<function>")
     return problems
 
 
@@ -451,8 +337,6 @@ def _validate(catalog: Catalog, *, strict: bool) -> None:
     for entry in catalog.entries.values():
         if not entry.in_one_line:
             problems.append(f"{entry.id} has no in_one_line")
-        if not entry.what_to_look_for and not entry.uses_new_card:
-            problems.append(f"{entry.id} has no what_to_look_for")
         if entry.id in entry.similar:
             problems.append(f"{entry.id} lists itself as similar")
         if len(entry.similar) > MAX_SIMILAR:
@@ -473,8 +357,7 @@ def _validate(catalog: Catalog, *, strict: bool) -> None:
                 problems.append(f"{entry.id} points at unknown root cause {target}")
         if entry.refactoring is None:
             problems.append(f"{entry.id} has no refactoring: every root cause needs a repair to measure")
-        if entry.uses_new_card:
-            problems.extend(_new_card_problems(entry))
+        problems.extend(_card_problems(entry))
 
     if strict:
         missing = known - set(catalog.entries)

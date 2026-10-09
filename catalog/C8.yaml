@@ -1,546 +1,152 @@
 - id: C8.S1
   signals:
-  - recursion_without_memo
-  - ruff_B019
+    - recursion_without_memo
+    - ruff_B019
   in_one_line: |
     a deterministic computation repeated across calls that a cache would answer
-  what_to_look_for: |
-    Memoisation replaces a computation with a dict probe, and whether that is a saving depends on one ratio: how many distinct inputs there are against how many calls.  A million calls over five hundred distinct values runs the function five hundred times and turns the other 999 500 into hash lookups, which is where this project's 95% measurements come from.  A million calls over a million distinct values is a million computations *plus* a million dict insertions, which is strictly worse, plus a table holding every result for the rest of the process.  So the key space against the call count is the whole finding, it is a fact about the data rather than the code, and it has to be stated.  Two preconditions: the function must be deterministic -- no clock, no random source, no file, no mutable global -- and free of side effects, because a memoised function that writes, logs or increments something stops doing so on a hit.  Think about the key as well as the ratio: `(x, y)` and `(y, x)` are different keys for a symmetric function, and normalising to `(min, max)` can double the hit rate for nothing.  Then bound the cache.  `functools.cache` is unbounded, which is correct on a small integer key space and a leak on user-supplied strings; use `lru_cache(maxsize=...)` when the key space is open, and never `@cache` on a method, since it keys on `self` and keeps every instance alive.
-  not_a_smell_when:
-  - |
-    the function is not deterministic -- it reads a clock, a random source, a file, or mutable state
-  - |
-    it has a side effect that must happen on every call
-  - |
-    the arguments are almost all distinct, so the cache stores everything and hits nothing
-  - |
-    the arguments are unhashable, or hashing them costs as much as the call
-  - |
-    the key space is unbounded and the process is long-lived, so the fix is a slow leak
-  - |
-    the function is already cheap, where a dict probe is comparable to running it
-  counter_examples:
-  - code: |
-      @functools.cache
-      def config_for(self, name):
-          return self._parse(self._files[name])
-    why: |
-      `cache` on a method keys on `self`, so the module-level table holds a strong reference to every instance the method was ever called on, for the life of the process. The cost is fixed and the leak is not. The repair is a per-instance cache or `cached_property`, never a decorator on a method.
-  - code: |
-      def render(template, context):
-          return template.format(**context)
-    why: |
-      Deterministic and pure, so it passes the first two steps -- and `context` is a dict, which is unhashable, and even frozen the key space is effectively every distinct context the program builds. The cache would store everything and hit almost nothing.
-  - code: |
-      def parse_timestamp(text):
-          return datetime.fromisoformat(text)
-    why: |
-      Deterministic, pure, hashable -- and already cheap. A dict probe and a hash of the string is not obviously less work than the parse, so the cache buys little and costs a table. Cheapness is a rejection reason in its own right.
+  look_for: |
+    A deterministic function called again with arguments it has already seen, recomputing a result it could look up: a predicate such as `_is_prime(x)` applied to a list in which the same values recur, or a self-recursive function such as `fib(n - 1) + fib(n - 2)` whose calls solve the same subproblems again. The function reads nothing but its arguments -- no clock, random source, file or mutable global -- and has no side effect. For a symmetric function, `(x, y)` and `(y, x)` are the same question under two keys.
   refactoring:
     summary: cache the result, keyed on the arguments, with a lifetime you have chosen
-    examples:
-    - title: a small key space behind a large call count
-      before: |
-        def _is_prime(n):
-            if n < 2:
-                return False
-            for i in range(2, int(n ** 0.5) + 1):
-                if n % i == 0:
-                    return False
-            return True
-
-
-        def before(xs):
-            return [_is_prime(x) for x in xs]
-      after: |
-        def _is_prime(n):
-            if n < 2:
-                return False
-            for i in range(2, int(n ** 0.5) + 1):
-                if n % i == 0:
-                    return False
-            return True
-
-
-        def after(xs):
-            seen = {}
-            out = []
-            for x in xs:
-                if x not in seen:
-                    seen[x] = _is_prime(x)
-                out.append(seen[x])
-            return out
+  repairs:
+    - case: C8S1_memoization
       note: |
-        Measured **+95%** on a million values drawn from 0-500. The ratio is the reason: five hundred computations serve a million calls. `cache` is unbounded and that is correct here, because the key space is a bounded range of small integers -- on arbitrary input it would be a leak.
-
-        Measured in `validation/taxonomy/C8S1_memoization.py`.
-    - title: normalising the key to double the hit rate
-      before: |
-        def _expensive(a, b):
-            # Symmetric in its arguments -- which is the precondition for normalising
-            # the key, and was wrong on the first attempt: `(a * i + b)` is not.
-            total = 0
-            for i in range(1, 40):
-                total += (a * b + i) % 17
-            return total
-
-
-        def before(pairs):
-            memo = {}
-            total = 0
-            for a, b in pairs:
-                key = (a, b)
-                if key not in memo:
-                    memo[key] = _expensive(a, b)
-                total += memo[key]
-            return total
-      after: |
-        def _expensive(a, b):
-            # Symmetric in its arguments -- which is the precondition for normalising
-            # the key, and was wrong on the first attempt: `(a * i + b)` is not.
-            total = 0
-            for i in range(1, 40):
-                total += (a * b + i) % 17
-            return total
-
-
-        def after(pairs):
-            memo = {}
-            total = 0
-            for a, b in pairs:
-                key = (a, b) if a <= b else (b, a)
-                if key not in memo:
-                    memo[key] = _expensive(min(a, b), max(a, b))
-                total += memo[key]
-            return total
+        The ratio of distinct inputs to calls is what decides it.
+    - case: C8S1_normalised_cache_key
       note: |
-        `gcd` is symmetric, so `(3, 7)` and `(7, 3)` are the same question and would otherwise occupy two entries and miss each other. Sorting the pair at the boundary makes them one key. The wrapper exists so the public signature is unchanged -- and `maxsize` is bounded because the key space here is open.
-
-        Measured in `validation/taxonomy/C8S1_normalised_cache_key.py`.
-    - title: the key space that is open, where the cache only costs
-      before: |
-        def _expensive(x):
-            total = 0
-            for i in range(1, 40):
-                total += (x * i) % 17
-            return total
-
-
-        def before(values):
-            return sum(_expensive(v) for v in values)
-      after: |
-        def _expensive(x):
-            total = 0
-            for i in range(1, 40):
-                total += (x * i) % 17
-            return total
-
-
-        def after(values):
-            memo = {}
-            total = 0
-            for value in values:
-                if value not in memo:
-                    memo[value] = _expensive(value)
-                total += memo[value]
-            return total
-      note: |
-        The key space is the whole finding.
-
-        The card says the ratio of distinct inputs to calls decides whether this is a
-        saving or a regression, and that an unbounded cache on user-supplied keys is a
-        leak. `all-distinct` is the regression: a million computations *plus* a million
-        dict insertions, and a table holding every result.
-
-        `before` is the uncached version, so a negative reading is the cache costing
-        more than it saves.
-
-        Measured in `validation/taxonomy/C8S1_open_key_space.py`.
-  patch_shape: signature
-  measurability: scales_with_calls
-  min_workload_hint: |
-    the driver must call the unit many times with *repeating* arguments at a ratio you can defend; a driver with all-distinct arguments measures the regression rather than the saving, and is measuring the wrong thing
+        `_expensive` is symmetric, so `(3, 7)` and `(7, 3)` are the same question and would otherwise occupy two entries and miss each other. Sorting the pair makes them one key.
+    - case: C8S1_open_key_space
+  not_this:
+    - source: lookalike:C8S1_lookalike
+      why: |
+        `_rate` reads a table the loop itself updates, so a memo keyed on the currency keeps returning the first rate it saw. Check every name the body reads, not only its parameters: a global, an attribute, the clock or a file rules out caching on the arguments alone.
+    - title: recursion that sorts its argument in place
+      source: rule:recursion_without_memo/quicksort
+      code: |
+        def quicksort(arr, low, high):
+            if low < high:
+                p = partition(arr, low, high)
+                quicksort(arr, low, p - 1)
+                quicksort(arr, p + 1, high)
+      tempting: |
+        @functools.lru_cache(maxsize=None)
+        def quicksort(arr, low, high):
+            if low < high:
+                p = partition(arr, low, high)
+                quicksort(arr, low, p - 1)
+                quicksort(arr, p + 1, high)
+      why: |
+        `arr` is a list, so the cache raises `TypeError: unhashable type: 'list'` on the first call. The function's work is the in-place sort, a side effect a cache hit would skip, and its two branches never cross the pivot, so nothing is recomputed.
+    - title: a method, where a decorator cache keys on `self`
+      source: catalog
+      code: |
+        def config_for(self, name):
+            return self._parse(self._files[name])
+      tempting: |
+        @functools.cache
+        def config_for(self, name):
+            return self._parse(self._files[name])
+      why: |
+        `functools.cache` on a method keys on `self`, so its module-level table holds a strong reference to every instance the method was called on, for the life of the process. Cache per instance instead.
   similar:
-  - C1.S4
-  - C5.S2
-  - C7.S2
-  - C8.S2
-  - C8.S4
+    - C1.S4
+    - C5.S2
+    - C7.S2
+    - C8.S2
+    - C8.S4
 - id: C8.S2
   signals:
-  - regex_in_loop
+    - regex_in_loop
   in_one_line: |
     an expensive artefact derived again on every use instead of once for the process
-  what_to_look_for: |
-    Some artefacts are expensive to derive and cheap to reuse: a compiled regular expression, a parsed configuration file, a prepared SQL statement, a loaded template, a `struct.Struct`.  Deriving one per use pays the compilation or the parse every time; deriving it once and binding it at module or instance scope pays once for the process.  Unlike memoisation there is no key space to worry about because there is exactly one artefact, which makes this the safest repair in the category and the one with the fewest exceptions.  The precondition is that the derivation's inputs are constant -- a pattern built from a literal hoists, one built from an argument does not.  Then check the artefact is safe to share: a compiled pattern is immutable and thread-safe, a database cursor is not, and a parsed config that callers mutate becomes shared mutable state.  Where it goes matters and should be justified, since module scope pays the derivation at import time, which is wrong when the path may never run and wrong again when the source can change under the process.  Check the library is not already doing this: `re` caches compiled patterns internally, so the saving there is the cache probe and the call rather than the compilation, which is smaller than it looks.
-  not_a_smell_when:
-  - |
-    the derivation depends on runtime values, so there is nothing constant to hoist
-  - |
-    the artefact is mutable and sharing it would create shared state -- a cursor, a parsed document callers modify
-  - |
-    the library already caches it, so the saving is the lookup rather than the derivation
-  - |
-    hoisting to module scope would do expensive work at import on a path that may never be reached
-  - |
-    the artefact must be re-derived because its source can change -- a config file watched for edits
-  counter_examples:
-  - code: |
-      def find_all(patterns, text):
-          return [re.findall(p, text) for p in patterns]
-    why: |
-      A regex used per iteration, which is the shape -- and the pattern is the loop variable. There is nothing constant to hoist. If the same patterns recur across calls, the repair is a cache keyed on the pattern, which is C8.S1.
-  - code: |
-      def load(path):
-          with open(path) as handle:
-              return yaml.safe_load(handle)
-    why: |
-      An expensive parse, and hoisting it to module scope reads the file at import -- before the process knows whether it needs it, and freezing the contents for the run. Whether that is right depends on whether the file can change, which is a deployment fact rather than a code one.
+  look_for: |
+    An artefact derived from inputs that do not change between uses, rebuilt on every use: `re.search(r"id=(\d+)", line)` or `re.compile(pattern)` inside a loop over lines, `json.loads` of the same document for every key looked up, `struct.Struct(fmt)` constructed per record. Each use pays the compilation or the parse again, where deriving it once and binding it at module or instance scope pays once. The `re` functions consult a module cache of compiled patterns, so there the repeated cost is the cache probe and the call rather than a full compile.
   refactoring:
     summary: derive the artefact once and bind it where it survives the calls that use it
-    examples:
-    - title: a compiled pattern at module scope
-      before: |
-        import re
-
-
-        def before(names):
-            return sum(1 for n in names if re.match(r"^tmp_\d+$", n))
-      after: |
-        import re
-
-
-        _PATTERN = re.compile(r"^tmp_\d+$")
-
-
-        def after(names):
-            return sum(1 for n in names if _PATTERN.match(n))
+  repairs:
+    - case: C8S2_derived_value_reuse
       note: |
-        `re.search` hashes the pattern string and probes the module cache on every call before doing the match; the compiled object goes straight to the matcher. Smaller than the "compile once" framing suggests, because `re` already caches -- but real, and it removes the cache as a shared resource under concurrency.
-
-        Measured in `validation/taxonomy/C8S2_derived_value_reuse.py`.
-    - title: configuration parsed once per process
-      before: |
-        import json
-
-
-        _RAW = json.dumps({f"key{i}": {"value": i, "tags": [1, 2, 3]} for i in range(400)})
-
-
-        def before(keys):
-            total = 0
-            for key in keys:
-                config = json.loads(_RAW)
-                total += config[key]["value"]
-            return total
-      after: |
-        import json
-
-
-        _RAW = json.dumps({f"key{i}": {"value": i, "tags": [1, 2, 3]} for i in range(400)})
-
-
-        _PARSED = json.loads(_RAW)
-
-
-        def after(keys):
-            total = 0
-            for key in keys:
-                total += _PARSED[key]["value"]
-            return total
+        `re.match` hashes the pattern string and probes the module cache on every call before matching; the compiled object goes straight to the matcher.
+    - case: C8S2_parsed_config_reused
+    - case: C8S2_struct_reused
       note: |
-        A syscall and a parse per request become one per instance. The instance attribute rather than module scope is deliberate: the read now happens when a `Router` is built, not at import, so a process that never routes never pays it. It also creates an obligation -- the file's contents are frozen for the instance's life, which has to be acceptable.
-
-        Measured in `validation/taxonomy/C8S2_parsed_config_reused.py`.
-    - title: a prepared struct for a hot binary format
-      before: |
-        import struct
-
-
-        _FORMAT = "<IHHf"
-
-
-        def before(records):
-            return sum(struct.Struct(_FORMAT).pack(*r)[0] for r in records)
-      after: |
-        import struct
-
-
-        _FORMAT = "<IHHf"
-
-
-        _STRUCT = struct.Struct(_FORMAT)
-
-
-        def after(records):
-            return sum(_STRUCT.pack(*r)[0] for r in records)
-      note: |
-        `struct.unpack_from` parses the format string on every call, with a smaller internal cache than `re` has. A `Struct` object holds the compiled layout. Immutable and thread-safe, so module scope is unambiguously right here.
-
-        Measured in `validation/taxonomy/C8S2_struct_reused.py`.
-  patch_shape: statement_local
-  measurability: scales_with_calls
-  min_workload_hint: |
-    many calls over small inputs; the saving is one derivation per call avoided, so a case that calls the unit once measures nothing whatever the input size
+        A `Struct` object holds the compiled layout. It is immutable and thread-safe, so module scope is right here.
+  not_this:
+    - source: lookalike:C8S2_lookalike
+      why: |
+        The caller adds request-scoped keys to the config it is given, so one shared parsed dict accumulates every request's overrides and the totals drift. A parsed document is safe to reuse only if nobody writes to it; otherwise hand out a copy.
   similar:
-  - C1.S4
-  - C3.S3
-  - C8.S1
+    - C1.S4
+    - C3.S3
+    - C8.S1
 - id: C8.S3
   signals:
-  - repeated_lookup_in_loop
+    - repeated_lookup_in_loop
   in_one_line: |
     a name or attribute chain re-resolved every iteration for a value that never moves
-  what_to_look_for: |
-    Resolving a name is not free, and the cost depends on where it lives.  A local is an array index.  A global is a dict probe in the module namespace, with a second probe into builtins on a miss.  Each dot in an attribute chain is a `__dict__` lookup on the instance, then on the type and its bases, and possibly a descriptor invocation on top.  So `self.config.limits.batch` inside a loop is three lookups per iteration plus whatever the descriptors do, for a value that never changes, where a local bound before the loop makes every later read a single array index.  Count the resolutions -- one per dot, plus one for the base -- and multiply by the iterations, because each saved lookup is a few tens of nanoseconds and this needs a genuinely hot region.  The precondition is that nothing in the loop can rebind any link in the chain, including through a function the loop calls.  Look for a property or a descriptor in the chain: if a link computes, the saving is much larger than a dict lookup, and the semantics may differ because the recomputation was deliberate.  Weigh the readability, too -- one clearly named alias is fine, and aliasing four things into cryptic names to save a loop is a net loss outside genuinely critical code.
-  not_a_smell_when:
-  - |
-    a link in the chain can be rebound during the loop, directly or by a callee
-  - |
-    a link is a property whose recomputation is deliberate
-  - |
-    the loop is short, where the whole saving is under a microsecond
-  - |
-    the aliases would obscure what the code is reading
-  - |
-    the chain is resolved once per call already, outside any loop
-  counter_examples:
-  - code: |
-      for item in queue:
-          if self.state.cancelled:
-              break
-          process(item)
-    why: |
-      An attribute chain read per iteration, which is the shape -- and it is read every time *because* something else may set it. Hoisting `cancelled` into a local makes the loop uncancellable. Mutability of the chain is the rejection reason, and here it is the entire purpose.
-  - code: |
-      total = 0
-      for row in rows:
-          total += row.amount
-    why: |
-      `row.amount` is one attribute lookup per iteration and cannot be hoisted: `row` changes every pass. The chain has to be invariant, not merely repeated. Any rule counting attribute reads in loops reports this.
+  look_for: |
+    An attribute chain whose value does not change during a loop, resolved again on every iteration: `self.limits.window.low` or `config.limits.maximum` in a comparison, `sink.writer.write(...)` as the receiver of a call, or a bound method such as `out.append` read per element. Each dot is a dictionary lookup on the instance and then its type, plus a descriptor call when a link is a property, and reading a bound method allocates a new object every time. A local bound before the loop turns every later read into an array index.
   refactoring:
     summary: bind the resolved value to a local before the hot region
-    examples:
-    - title: an attribute chain in a hot loop
-      before: |
-        def before(xs, config):
-            out = 0
-            for x in xs:
-                if x < config.limits.maximum:
-                    out += x
-            return out
-      after: |
-        def after(xs, config):
-            maximum = config.limits.maximum
-            out = 0
-            for x in xs:
-                if x < maximum:
-                    out += x
-            return out
+  repairs:
+    - case: C8S3_local_lookup_caching
       note: |
-        Three lookups per row become one array index. Valid only if nothing in the loop can rebind `self.config` or `limits` -- and here nothing is called at all, which is the easiest version of that check. When the loop calls out, you have to read the callee.
-
-        Measured in `validation/taxonomy/C8S3_local_lookup_caching.py`.
-    - title: a bound method resolved per iteration
-      before: |
-        def before(transformer, values):
-            out = []
-            for value in values:
-                out.append(transformer._transform(value))
-            return out
-      after: |
-        def after(transformer, values):
-            out = []
-            append = out.append
-            transform = transformer._transform
-            for value in values:
-                append(transform(value))
-            return out
+        Valid only because nothing in the loop can rebind a link in the chain; here nothing is called at all. When the loop calls out, read the callee.
+    - case: C8S3_bound_method_alias
       note: |
-        Two attribute lookups and two bound-method allocations per element become two array indexes. This is also the point at which the loop should probably be a comprehension, which removes the `append` resolution entirely and reads better -- so report C3.S1 and subsume this. The explicit-alias form is for the cases where a comprehension is not available.
-
-        Measured in `validation/taxonomy/C8S3_bound_method_alias.py`.
-    - title: a property rather than a plain attribute in the chain
-      before: |
-        def before(config, rows):
-            kept = 0
-            for row in rows:
-                if row < config.limits.batch:
-                    kept += 1
-            return kept
-      after: |
-        def after(config, rows):
-            batch = config.limits.batch
-            kept = 0
-            for row in rows:
-                if row < batch:
-                    kept += 1
-            return kept
+        Two attribute lookups and two bound-method allocations per element become two array indexes. A comprehension would remove the `append` resolution entirely; the alias form is for the cases where a comprehension is not available.
+    - case: C8S3_property_in_the_chain
       note: |
-        A property in the chain.
-
-        The card says that if a link in the chain *computes*, the saving is much larger
-        than a dict lookup -- and warns the semantics may differ, because the property
-        was being re-evaluated on purpose. Here nothing rebinds it during the loop, so
-        hoisting is safe, and the reading says how much a computing link is worth
-        against a plain one.
-
-        Measured in `validation/taxonomy/C8S3_property_in_the_chain.py`.
-    - title: the loop body that dominates the lookup it repeats
-      before: |
-        def before(config, rows):
-            out = []
-            for row in rows:
-                out.append(f"{row:>10}:{config.limits.batch}")
-            return len(out)
-      after: |
-        def after(config, rows):
-            batch = config.limits.batch
-            out = []
-            for row in rows:
-                out.append(f"{row:>10}:{batch}")
-            return len(out)
-      note: |
-        The chain, in a body that does
-        real work.
-
-        The card's third `NOT a smell when` clause seen from the measurement side: the
-        same three-link chain, hoisted the same way, in a loop that also formats a
-        string. If the saving disappears here and not in the property case, the card
-        can say what proportion of the body the lookups have to be.
-
-        Measured in `validation/taxonomy/C8S3_body_dominates.py`.
-  patch_shape: statement_local
-  measurability: scales_with_input
-  min_workload_hint: |
-    hundreds of thousands of iterations at least; each saved lookup is tens of nanoseconds, so below that report it as advisory
+        A property in the chain computes on every read. Here nothing rebinds it during the loop, so hoisting is safe; a property re-evaluated on purpose would not be.
+    - case: C8S3_body_dominates
+  not_this:
+    - source: lookalike:C8S3_lookalike
+      why: |
+        The loop calls `tighten()`, which lowers `limiter.threshold`, so a local bound before the loop is a snapshot of the first iteration and every later comparison uses a limit that has moved. Check whether anything in the body can write a link in the chain, including a method call, a callback or a property setter.
+    - title: a flag read every pass so the loop can be stopped
+      source: rule:repeated_lookup_in_loop/consume
+      code: |
+        def consume(queue, worker):
+            for item in queue:
+                if worker.state.cancelled:
+                    break
+                worker.handle(item)
+      tempting: |
+        def consume(queue, worker):
+            cancelled = worker.state.cancelled
+            for item in queue:
+                if cancelled:
+                    break
+                worker.handle(item)
+      why: |
+        `cancelled` is read every pass because something outside the loop may set it, and that read is how the loop notices. Bound to a local before the loop it never changes, and the loop can no longer be cancelled.
   similar:
-  - C3.S2
-  - C10.S5
+    - C3.S2
+    - C10.S5
 - id: C8.S4
   signals:
-  - io_call_in_loop
+    - io_call_in_loop
   in_one_line: |
     the same external data fetched again when the copy in memory was still good
-  what_to_look_for: |
-    An external fetch costs orders of magnitude more than anything inside the process: a filesystem read is a syscall and possibly a seek, a database query adds parsing, planning and a round trip, and a network call adds latency measured in milliseconds.  Repeating one for data that has not changed pays all of it again for a value already in memory, and the energy is spent in three places at once -- the local CPU serialising and waiting, the network interface, and the remote system doing the work again -- which gives this the largest per-instance effects in the taxonomy and the least need for a large input to show them.  Establishing the repetition is the easy half.  The load-bearing half is how often the source actually changes, which is not a fact about the code: a config that changes on restart can be cached for the process, one that changes per minute needs a TTL, one that changes per write cannot be cached without invalidation.  So caching is a correctness decision as much as a performance one, and "cache it" is not a repair where "cache it for the life of the request" is.  Check the fetch is not already cached a layer down -- an ORM identity map, an HTTP cache header, the operating system's page cache -- because if it is, the saving is much smaller than the round trip suggests.
-  not_a_smell_when:
-  - |
-    the data changes between the fetches, so reuse would serve something stale
-  - |
-    staleness is unacceptable for correctness -- a balance, a lock state, a permission check
-  - |
-    a lower layer already caches it, so the apparent round trip is not one
-  - |
-    the cache would need invalidation nobody can implement reliably
-  - |
-    the fetch happens once per process already
-  counter_examples:
-  - code: |
-      def process(job_ids):
-          for job_id in job_ids:
-              job = database.query("SELECT state FROM jobs WHERE id = ?", job_id)
-              if job.state == "ready":
-                  run(job_id)
-    why: |
-      A query per iteration, which is the shape -- and every one asks about a *different* row, so there is nothing being re-fetched. The finding here is C9.S3: one query for all the ids instead of one per id. Repetition of the call is not repetition of the data.
-  - code: |
-      def current_leader(cluster):
-          return cluster.fetch("/leader")
-    why: |
-      A fetch that looks obviously cacheable and must not be: which node leads is exactly the thing that changes, and a stale answer sends writes to a node that no longer accepts them. The step about what staleness costs is what rejects this.
+  look_for: |
+    An external read -- a file, a database query, a network call -- repeated for data that has not changed: a settings file opened and parsed once per row, the same file read on every pass, a store asked again for a key it has already answered. Each repeat pays the syscall, the parse or the round trip again for a value already in memory. The repair depends on how often the source changes and on whether a layer below already caches the read, and the code says neither.
   refactoring:
     summary: fetch once and reuse, with a lifetime and an invalidation rule you have stated
-    examples:
-    - title: a config file read per request
-      before: |
-        def _read_setting():
-            with open(_PATH, encoding="utf-8") as handle:
-                for line in handle:
-                    if line.startswith("setting="):
-                        return int(line.split("=", 1)[1])
-            return 0
-
-
-        def before(rows):
-            total = 0
-            for row in rows:
-                total += row * _read_setting()
-            return total
-      after: |
-        def _read_setting():
-            with open(_PATH, encoding="utf-8") as handle:
-                for line in handle:
-                    if line.startswith("setting="):
-                        return int(line.split("=", 1)[1])
-            return 0
-
-
-        def after(rows):
-            setting = _read_setting()
-            total = 0
-            for row in rows:
-                total += row * setting
-            return total
+  repairs:
+    - case: C8S4_same_file_reread
       note: |
-        A syscall and a parse per request become one per process. The lifetime is deliberate and it is the whole decision: this is right when settings change on restart and wrong when they are edited live. Say which assumption the finding rests on. Note also that the returned dict is now shared, so any caller that mutates it corrupts every later request -- return a copy if that is possible.
-
-        Measured in `validation/taxonomy/C8S4_same_file_reread.py`.
-    - title: the same external read inside a loop
-      before: |
-        def before(keys):
-            total = 0
-            for _ in keys:
-                with open(_PATH) as f:
-                    total += len(f.read())
-            return total
-      after: |
-        def after(keys):
-            with open(_PATH) as f:
-                content = f.read()
-            return sum(len(content) for _ in keys)
+        The lifetime is the whole decision: this is right when settings change on restart and wrong when they are edited live. Say which assumption the finding rests on.
+    - case: C8S4_redundant_fetching
       note: |
-        The same file re-read per iteration.
-
-        Stands in for a network fetch: the point is a repeated external read whose
-        answer does not change.
-
-        Measured in `validation/taxonomy/C8S4_redundant_fetching.py`.
-    - title: the layer below was already caching it
-      before: |
-        def before(store, keys):
-            total = 0
-            for key in keys:
-                total += store.get(key)
-            return total
-      after: |
-        def after(store, keys):
-            local = {}
-            total = 0
-            for key in keys:
-                if key not in local:
-                    local[key] = store.get(key)
-                total += local[key]
-            return total
+        Stands in for a network fetch: the point is a repeated external read whose answer does not change.
+    - case: C8S4_already_cached_below
       note: |
-        The fetch is already cached a layer
-        down.
-
-        The card's last check: an ORM identity map, an HTTP cache header or the
-        operating system's page cache may mean no round trip is happening, and the
-        saving is much smaller than the shape suggests. Here the "store" memoises
-        internally, so the outer cache is a second dict in front of a dict -- and the
-        expected reading is close to nothing, which is the answer that stops an agent
-        adding a cache in front of a cache.
-
-        Measured in `validation/taxonomy/C8S4_already_cached_below.py`.
-  patch_shape: structural
-  measurability: scales_with_calls
-  min_workload_hint: |
-    the effect is per avoided round trip and does not need a large input; the submission must stub the external call at roughly its real cost, and say so if it could not
-  notes: |
-    Measuring this one honestly is harder than measuring the saving.  A submission cannot make a network call, so the external cost has to be stubbed -- and a stub that returns instantly makes the repair look worthless, while a stub with an arbitrary `sleep` makes the number meaningless.  The defensible approach is to stub at a cost you can justify from an observed latency and to state that figure in the finding, or to report the round trips avoided as a count rather than as an energy figure.
+        The store already memoises internally, so the outer cache is a second dict in front of a dict. An ORM identity map, an HTTP cache header or the operating system's page cache may likewise mean no round trip is happening.
+  not_this:
+    - source: lookalike:C8S4_lookalike
+      why: |
+        The file is a job queue another process appends to, so re-reading it on each pass is how new jobs are seen; one read before the loop turns the poll into a snapshot and reports less work than there was. Caching an external read is a claim about how often the source changes, and the finding has to state it.
   similar:
-  - C8.S1
-  - C9.S1
-  - C9.S3
+    - C8.S1
+    - C9.S1
+    - C9.S3

@@ -20,11 +20,11 @@ what the card says -- so nothing on a card may be a guess.
 | Definition, Example from the reference | the taxonomy spreadsheet, verbatim |
 | What to look for | `look_for` -- written |
 | Repair: the one-line summary | `refactoring.summary` -- written once, also in the category table |
-| Repair: each sample's title | `validation/alignment/decisions.yaml`, else the case file's docstring |
+| Repair: each sample's title | the case file's docstring, first line after `--` |
 | Repair: before / after | the case file under `validation/taxonomy/`, extracted with its helpers |
 | Repair: the **Measured** line | the latest run in `validation/results/taxonomy.jsonl` |
 | Repair: the note under a sample | `repairs[].note` -- carried over from the old card |
-| Looks like it, but is not | `not_this` -- written, each with a checkable `source` |
+| Looks like it, but is not | `not_this`: a lookalike specimen's code and repair are read from `validation/lookalikes/`; any other is written, with a checkable `source` |
 | Similar root causes | `similar` ids; each neighbour's own `in_one_line` |
 
 How to read a card -- that the repairs are ideas rather than templates, what
@@ -125,6 +125,11 @@ or undoes something the author did on purpose. Each has:
 - `tempting` -- this card's repair applied to it, as an agent would write it;
 - `why` -- one or two sentences: what the tempting repair breaks;
 - `source` -- where it comes from, checked by the build:
+  - `lookalike:<stem>` -- a specimen in `validation/lookalikes/` (33 root
+    causes have one). **Use it first.** Each was checked to change the output
+    under the repair. Its title, code and tempting repair are read from the
+    file, so write only `source` and `why` -- one or two sentences summarising
+    its docstring;
   - `catalog` -- the entry's previous `not_a_smell_when` or `counter_examples`;
   - `rule:<rule>/<function>` -- a negative in that rule's fixtures
     (`tests/rules/<rule>/test_cases.py`, not in `EXPECTED`);
@@ -150,10 +155,11 @@ A list of root cause ids, rendered with each neighbour's own `in_one_line`.
 
 ### Retired keys
 
-`what_to_look_for`, `not_a_smell_when`, `counter_examples`, `notes` and
-`refactoring.examples` belong to the old card. An entry with `repairs` must not
-carry them. `patch_shape`, `measurability` and `min_workload_hint` are
-accepted and ignored (`RETIRED_KEYS`), and are no longer written.
+`what_to_look_for`, `not_a_smell_when`, `counter_examples`, `notes`,
+`refactoring.examples`, `patch_shape`, `measurability` and `min_workload_hint`
+belong to the card before the October 2026 rewrite. They are build errors now,
+so none can come back by accident; the old text is in git history, which is
+what a near-miss with `source: catalog` points at.
 
 ---
 
