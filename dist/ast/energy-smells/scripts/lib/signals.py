@@ -49,6 +49,18 @@ class RootCause:
     that did not confirm counting as zero -- so a repair that pays hugely on
     some inputs and costs on others lands well below one that always pays. This
     is the only thing that orders a scan. See `build/impact.py`."""
+    max_change: float | None = None
+    """The largest change, either way, any input of any sample measured."""
+    reported: bool = True
+    """False when that change stayed under the build's `MIN_MEASURED_CHANGE`
+    (`build/impact.py`) on every input: the repair did nothing a reader would
+    notice even on the microbenchmark built to show it, so the scan says
+    nothing about it. True when nothing was measured -- an absent measurement
+    is not evidence of no effect."""
+
+    @property
+    def reportable(self) -> bool:
+        return self.reported
 
 
 class SignalTable:
@@ -72,6 +84,19 @@ class SignalTable:
         is the reverse mapping and catches anything the analyzer did not think
         to name.
         """
+        return {rc for rc in self._known_targets(evidence)
+                if self.root_causes[rc].reportable}
+
+    def reportable(self, evidence: Evidence) -> bool:
+        """Whether this evidence points at anything the scan still reports.
+
+        False only when every root cause it could indicate is unreported (see
+        `RootCause.reported`). A kind the table does not know is kept.
+        """
+        known = self._known_targets(evidence)
+        return not known or any(self.root_causes[rc].reportable for rc in known)
+
+    def _known_targets(self, evidence: Evidence) -> set[str]:
         candidates = set(evidence.suggests) | set(self._by_signal.get(evidence.kind, ()))
         return {rc for rc in candidates if rc in self.root_causes}
 
@@ -225,18 +250,3 @@ def _merge_agreeing(findings: list[Finding]) -> list[Finding]:
             kept, corroborated_by=kept.corroborated_by + (finding.kind,)
         )
     return list(merged.values())
-
-
-def budget(line_count: int) -> int:
-    """How many findings one unit may show before the rest are named only.
-
-    Three per ten lines, never fewer than five. A long unit has earned more
-    attention than a short one, and a short one still deserves the handful it
-    takes to cover it. This is a ceiling, not a target: after grouping, most
-    units come in far under it.
-    """
-    return max(MIN_FINDINGS_SHOWN, PER_TEN_LINES * line_count // 10)
-
-
-MIN_FINDINGS_SHOWN = 5
-PER_TEN_LINES = 3

@@ -8,7 +8,7 @@ def rank(rows):
 
 
 def measure(values):
-    # `len` computed and dropped.
+    # `len` computed and dropped: dead, but a call's worth, not work.
     len(values)
     return values
 
@@ -71,3 +71,9 @@ def first_or_none(rows):
     except IndexError:
         sorted(rows)
         return None
+
+
+def test_digest_is_hex(build):
+    # Unguarded, but in a test the exception is the assertion.
+    assert len(build["sha256"]) == 64
+    int(build["sha256"], 16)

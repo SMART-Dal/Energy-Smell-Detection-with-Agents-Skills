@@ -74,9 +74,17 @@ def collect(
     aliases = collect_module_aliases(tree)
 
     found: list[Evidence] = []
+    functions = [unit for unit, _ in units if unit.kind != "class"]
     for unit, node in units:
         if unit.kind == "class":
             continue
+        # A function defined inside this one is a unit of its own and gets its
+        # own run. Rules that walk the whole tree reached into it too, and its
+        # findings came out twice -- once against a unit that only encloses
+        # the line. The `def` line itself stays with the enclosing unit.
+        nested = [(inner.lineno, inner.end_lineno) for inner in functions
+                  if inner is not unit and unit.lineno < inner.lineno
+                  and inner.end_lineno <= unit.end_lineno]
         context = UnitContext(
             node=node, source=source, imports=imports,
             module_bindings=module_bindings, overridden_methods=overridden,
@@ -85,7 +93,8 @@ def collect(
         )
         for rule in ALL_RULES:
             try:
-                found.extend(rule(unit, context))
+                found.extend(item for item in rule(unit, context)
+                             if not any(start < item.lineno <= end for start, end in nested))
             except Exception as exc:  # noqa: BLE001
                 # One brittle analyzer must not abort the scan of a whole repo.
                 # Analyzers are heuristic by nature and meet strange code.

@@ -10,7 +10,6 @@ CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
     "stage_configs": 1,       # a dotted receiver is still a copy
-    "snapshot_each": 1,    # `deepcopy` inside a comprehension
 }
 # `refresh_scratch` and `slice_per_row` are deliberately absent. Both copy,
 # then mutate the copy, then append it -- so every pass needs its own and

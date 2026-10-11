@@ -29,13 +29,14 @@ def render_matrix(rows, theme):
     for row in rows:
         for cell in row:
             painted.append(
-                (theme.palette.fill, theme.palette.stroke, theme.palette.width, cell)
+                (theme.palette.fill.r, theme.palette.fill.g, theme.palette.fill.b, cell)
             )
     return painted
 
 
 def flush_all(batches, sink):
-    # The chain is the receiver of a method: the same lookups, three a pass.
+    # Every use is a call, so the repair is `write = sink.writer.write`: the
+    # bound-method alias, measured at 10.6% however many dots lead to it.
     for batch in batches:
         sink.writer.write(batch.header)
         sink.writer.write(batch.body)
@@ -43,11 +44,34 @@ def flush_all(batches, sink):
 
 
 def apply_theme(cells, style):
-    # Two links resolved three times: the plain shape the rule exists for.
+    # Two dots resolved three times: the plain shape the rule exists for.
+    for cell in cells:
+        cell.background = style.theme.fill
+        cell.border = style.theme.fill
+        cell.outline = style.theme.fill
+
+
+def apply_fill(cells, style):
+    # One dot, three times. Caching it saves one lookup per access, which is
+    # how `C8S3_bound_method_alias` measured: inside the 15% that counts as none.
     for cell in cells:
         cell.background = style.fill
         cell.border = style.fill
         cell.outline = style.fill
+
+
+def collect_parts(chunks):
+    # The same for a bound method on a local: `parts.append` is how everyone
+    # writes it, and binding `append = parts.append` is not worth asking for.
+    parts = []
+    for chunk in chunks:
+        if chunk.kind == "text":
+            parts.append(chunk.text)
+        elif chunk.kind == "tool":
+            parts.append(f"[tool: {chunk.name}]")
+        else:
+            parts.append(str(chunk))
+    return parts
 
 
 def consume(queue, worker):
@@ -83,10 +107,10 @@ def paint_pair(cells, style):
 
 
 def norms(points):
-    # A module attribute, four times a pass. Left alone: `global_lookup_in_loop`
-    # will not ask anyone to bind `math` to a local, so asking for
-    # `sqrt = math.sqrt` one dot later would be the same advice in a costume --
-    # and a module attribute is one plain dict probe, no MRO, no descriptor.
+    # A module attribute, four times a pass. Left alone: nothing asks anyone
+    # to bind `math` to a local, so asking for `sqrt = math.sqrt` one dot
+    # later would be the same advice in a costume -- and a module attribute is
+    # one plain dict probe, no MRO, no descriptor.
     out = []
     for x, y, z, w in points:
         out.append(math.sqrt(x) + math.sqrt(y) + math.sqrt(z) + math.sqrt(w))

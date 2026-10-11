@@ -2,7 +2,8 @@
 
 
 def load(path):
-    # Built and immediately replaced without being read.
+    # Replaced without being read, but `[]` is a store, not work: every
+    # measured C1.S6 sample discarded something it had to build.
     rows = []
     rows = parse(path)
     return rows

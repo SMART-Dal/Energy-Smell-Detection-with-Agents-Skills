@@ -69,3 +69,57 @@ def audit_data(data):
         notify(parse(data))
     if check_c():
         save(parse(data))
+
+
+def start(
+    host=Option("127.0.0.1"),
+    realesrgan=Option(False),
+    gfpgan=Option(False),
+    restoreformer=Option(False),
+):
+    # Each default is its own object, built once when the `def` runs.
+    return host, realesrgan, gfpgan, restoreformer
+
+
+def reset_target(window):
+    # Called for what it does: the result is dropped every time.
+    if window.closing:
+        set_taskbar_target(None)
+    set_taskbar_target(None)
+    set_taskbar_target(None)
+
+
+def load_artifact(payload):
+    # Three raises, one of which runs, each needing an exception of its own.
+    if payload is None:
+        raise CorruptArtifactError("The artifact payload is invalid.")
+    if not payload.frame:
+        raise CorruptArtifactError("The artifact payload is invalid.")
+    if not payload.columns:
+        raise CorruptArtifactError("The artifact payload is invalid.")
+    return payload
+
+
+def cleanup(paths):
+    # Each `with` takes a context manager of its own.
+    with suppress(OSError):
+        remove(paths[0])
+    with suppress(OSError):
+        remove(paths[1])
+    with suppress(OSError):
+        remove(paths[2])
+
+
+async def run_three(session, backend, prompt):
+    # Awaited for its effect; the result is dropped each time.
+    await _run(session, backend, prompt)
+    await _run(session, backend, prompt)
+    await _run(session, backend, prompt)
+
+
+def group_three(rows):
+    # Three separate dicts, each built on purpose.
+    by_arm = defaultdict(list)
+    by_task = defaultdict(list)
+    by_trial = defaultdict(list)
+    return by_arm, by_task, by_trial, rows

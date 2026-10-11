@@ -16,7 +16,10 @@ def refresh_scratch(rows, defaults):
 
 
 def snapshot_each(rows, template):
-    # `copy.deepcopy` inside a comprehension is the expensive spelling.
+    # Silent: the copies are the comprehension's output, so each one is kept,
+    # and n independent objects are what was asked for -- one shared copy would
+    # be one object n times. `nn.ModuleList([copy.deepcopy(layer) for _ in
+    # range(n)])` is the same line, and there it is n sets of weights.
     return [copy.deepcopy(template) for _ in rows]
 
 

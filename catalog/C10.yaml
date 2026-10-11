@@ -246,8 +246,6 @@
     - C6.S1
     - C10.S3
 - id: C10.S5
-  signals:
-    - global_lookup_in_loop
   in_one_line: |
     a global or builtin re-resolved through the module namespace on every iteration
   look_for: |

@@ -72,6 +72,52 @@ def measured_impact(results: Path = RESULTS, root: Path | None = None) -> dict[s
     }
 
 
+MIN_MEASURED_CHANGE = 15.0
+"""Below this, a root cause's repair is treated as having no effect.
+
+A root cause is reported by the scan only if at least one input of one of its
+measured samples changed energy by this much, either way (`measured_reach`).
+Under it on every input of every sample, the repair did nothing a reader would
+notice even on the microbenchmark built to show it, and on real code -- where
+the loop also does other work -- it does less. Javad set the line at 15%."""
+
+
+def measured_reach(results: Path = RESULTS, root: Path | None = None) -> dict[str, float]:
+    """The largest change, either way, that any input of any sample produced.
+
+    Per root cause, as a percentage of the `before` energy: +60 for a repair
+    that saved 60% on its best input, 300 for one that cost three times as much
+    on its worst. Unlike `measured_impact` it counts every row whatever its
+    verdict, because the question it answers is not "does this repair pay" but
+    "did this repair ever move anything" -- and a root cause whose answer is
+    under `MIN_MEASURED_CHANGE` on every input of every sample is not reported by
+    the scan at all.
+    """
+    base = root or Path.cwd()
+    results = base / results if not results.is_absolute() else results
+    if not results.exists():
+        return {}
+
+    reach: dict[str, float] = {}
+    for line in results.read_text().splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        case = row.get("case_file", "")
+        if not (base / case).exists():
+            continue
+        root_cause = root_cause_of(case)
+        if root_cause is None:
+            continue
+        for measured in row.get("per_case", []):
+            before = measured.get("before_energy_j") or 0.0
+            after = measured.get("after_energy_j") or 0.0
+            if before > 0:
+                change = abs(100.0 * (before - after) / before)
+                reach[root_cause] = max(reach.get(root_cause, 0.0), change)
+    return {root_cause: round(value, 1) for root_cause, value in reach.items()}
+
+
 def _saving_pct(row: dict) -> float:
     """Percentage of energy a confirmed row saved, or zero.
 

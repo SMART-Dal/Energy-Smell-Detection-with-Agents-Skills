@@ -4,7 +4,7 @@
     python scan.py PATH --units               ranked reading list, no findings
     python scan.py PATH                        an index: which units, how much
     python scan.py PATH --unit NAME            one unit in full
-    python scan.py PATH --top 40 --json        machine-readable, more units
+    python scan.py PATH --top 150 --json       machine-readable, more findings
 
 The default prints an **index**, not the findings.  Tool output is not something
 a reader can put down: it is read in full, once, before anything is known about
@@ -24,8 +24,9 @@ Two different questions, deliberately kept apart:
   default  answers "what did the rules notice?".  It reports *facts* -- "a
            string is grown with += inside a loop at line 45" -- one entry per
            rule per unit, tagged with every root cause that fact could
-           indicate, in a pre-computed order that is a suggestion and
-           nothing more.
+           indicate.  Entries are ordered by what their repair saved when we
+           measured it, and only the best `DEFAULT_FINDINGS` are shown,
+           grouped by unit.  The order is a suggestion and nothing more.
 
 Nothing here ever says a smell is present.  Whether a fact is a smell depends
 on what the code is for, how hot it is, and what the author was required to do,
@@ -49,8 +50,8 @@ from lib.analysis.engine import (  # noqa: E402
     python_files,
 )
 from lib.signals import (  # noqa: E402
+    Finding,
     SignalTable,
-    budget,
     group_findings,
     impact_of,
     load_signals,
@@ -62,15 +63,20 @@ DETAIL_DIR = Path(".energy-scan")
 rather than beside the target, because the target is often somebody else's
 repository and a scan should not leave anything in it."""
 
-DEPTH_WEIGHT = 25
-"""How much one level of loop nesting adds when ordering units.
+DEFAULT_UNITS = 15
+"""How many units `--units` lists unless `--top` says otherwise."""
 
-A unit's rank is what its findings measured elsewhere plus this per level of
-loop nesting. Both halves are guesses -- the nesting is syntax, the measurement
-is a mean over benchmark shapes that are not this code -- and the ordering only
-has to be roughly right for the reader to start in a sensible place. Neither
-number is printed, for the same reason: an ordering is a suggestion, and a
-number beside a finding reads as a verdict on it."""
+DEFAULT_FINDINGS = 100
+"""How many findings the report shows unless `--top` says otherwise.
+
+A finding is one rule in one unit, however many lines it fired on. The cap is
+on findings rather than units because a unit can carry one finding worth
+reading or eight that are not, and a cap on units let the second kind fill the
+report. Findings are ranked by what their repair measured -- the mean saving
+across that root cause's samples -- with loop nesting only to break ties, so
+the hundred kept are the hundred whose repairs paid most when measured. No
+number is printed: a number beside a finding reads as a verdict on this code,
+and it is a fact about other code."""
 
 
 def _report_rule_errors() -> None:
@@ -109,8 +115,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("path", type=Path, help="a .py file or a directory tree")
     parser.add_argument("--units", action="store_true",
                         help="rank units by how hot they look and stop there")
-    parser.add_argument("--top", type=int, default=15,
-                        help="how many units to report (default 15)")
+    parser.add_argument("--top", type=int, default=None,
+                        help=f"how many findings to report (default "
+                             f"{DEFAULT_FINDINGS}), or with --units how many "
+                             f"units to list (default {DEFAULT_UNITS})")
     parser.add_argument("--unit", metavar="NAME",
                         help="print one unit's findings in full and stop; "
                              "matches on qualified name, substring allowed")
@@ -140,7 +148,8 @@ def main(argv: list[str] | None = None) -> int:
             "target": str(args.path),
             "files_scanned": len(files),
             "units_found": len(ranked),
-            "units": [_locate(item, args.path) for item in ranked[: args.top]],
+            "units": [_locate(item, args.path)
+                      for item in ranked[: args.top or DEFAULT_UNITS]],
         }
         print(json.dumps(report, indent=1) if args.json else _render_units(report))
         return 0
@@ -166,18 +175,16 @@ def main(argv: list[str] | None = None) -> int:
     _report_rule_errors()
     table = load_signals()
 
-    described = sorted(
-        (_describe(item, table, args.path) for item in findings),
-        key=lambda unit: (-unit["score"], unit["file"], unit["line"]),
-    )
-    report = {
-        "target": str(args.path),
-        "files_scanned": len(files),
-        "units_with_evidence": len(described),
-        "units": described[: args.top],
-    }
+    # A root cause whose repair never moved energy by the build's 15% line is
+    # not reported, so neither is evidence that could only mean one of those.
+    for item in findings:
+        item.evidence = [e for e in item.evidence if table.reportable(e)]
+    findings = [item for item in findings if item.evidence]
 
+    grouped = [group_findings(item.evidence, table) for item in findings]
     if args.unit:
+        described = [_describe(item, own, table, args.path)
+                     for item, own in zip(findings, grouped)]
         wanted = [u for u in described if u["qualname"] == args.unit]
         # Substring is the convenience; an exact name must never drag in the
         # nested helpers that happen to contain it.
@@ -189,6 +196,18 @@ def main(argv: list[str] | None = None) -> int:
             )
         print("\n".join(_render_unit(unit) for unit in wanted))
         return 0
+
+    ranked = _rank(findings, grouped, table)
+    shown = ranked[: args.top or DEFAULT_FINDINGS]
+    report = {
+        "target": str(args.path),
+        "files_scanned": len(files),
+        "units_with_evidence": len(findings),
+        "findings_total": len(ranked),
+        "findings_shown": len(shown),
+        "units": [_describe(findings[index], own, table, args.path)
+                  for index, own in _by_unit(shown)],
+    }
 
     if args.json:
         json.dump(report, sys.stdout, indent=1)
@@ -210,8 +229,9 @@ def _write_detail(report: dict, out: Path, target: Path) -> Path:
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"{target.name or 'scan'}.txt"
     body = [
-        f"Full findings for {report['target']} -- "
-        f"{report['units_with_evidence']} unit(s) with evidence.",
+        (f"Findings for {report['target']} -- the {report['findings_shown']} of "
+         f"{report['findings_total']} whose repairs measured best, in "
+         f"{len(report['units'])} unit(s)."),
         "Sections are `== file:line qualname`, so one unit can be cut out with",
         "grep or sed without reading the rest.",
         "",
@@ -238,19 +258,44 @@ def _locate(item: UnitFindings, root: Path) -> dict:
     }
 
 
-def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
+def _rank(findings: list[UnitFindings], grouped: list[list[Finding]],
+          table: SignalTable) -> list[tuple[int, Finding]]:
+    """Every finding in the scan, as (unit index, finding), best measured first.
+
+    What a finding is worth is what its repair saved when measured (`impact_of`).
+    Ties -- every finding of one root cause has the same worth -- go to the unit
+    that runs deeper inside loops, then to the finding seen at more places.
+    """
+    ranked = [(index, finding)
+              for index, own in enumerate(grouped) for finding in own]
+    return sorted(ranked, key=lambda pair: (
+        -impact_of(pair[1].root_causes, table),
+        -findings[pair[0]].reached_at_depth,
+        -pair[1].count,
+        str(findings[pair[0]].unit.path),
+        pair[1].lines[0] if pair[1].lines else 0,
+        pair[1].kind,
+    ))
+
+
+def _by_unit(shown: list[tuple[int, Finding]]) -> list[tuple[int, list[Finding]]]:
+    """The kept findings regrouped by unit, units in order of their best finding."""
+    order: dict[int, list[Finding]] = {}
+    for index, finding in shown:
+        order.setdefault(index, []).append(finding)
+    return list(order.items())
+
+
+def _describe(item: UnitFindings, shown: list[Finding], table: SignalTable,
+              root: Path) -> dict:
     """One unit as a worth-ordered list of facts, each tagged with what it could mean.
 
     The earlier shape nested evidence under each candidate root cause, which
-    printed a fact once per root cause it routed to: `repeated_lookup_in_loop`
-    reaches both C8.S3 and C10.S5, so seven lookups became fourteen identical
-    paragraphs. The label is now an attribute of the fact rather than a heading
-    above it, and each fact names the cards to settle it against.
+    printed a fact once per root cause it routed to: one fact routing to two
+    root causes became two identical paragraphs. The label is now an attribute
+    of the fact rather than a heading above it, and each fact names the cards to
+    settle it against.
     """
-    grouped = group_findings(item.evidence, table)
-    allowance = budget(item.unit.end_lineno - item.unit.lineno + 1)
-    shown, over = grouped[:allowance], grouped[allowance:]
-
     findings = []
     for finding in shown:
         findings.append({
@@ -274,18 +319,7 @@ def _describe(item: UnitFindings, table: SignalTable, root: Path) -> dict:
         "line": item.unit.lineno,
         "end_line": item.unit.end_lineno,
         "hotness": _hotness_dict(item),
-        # Orders the list and is not reported. What a repair measured on our
-        # benchmark shapes is a fact about that code, not a prediction for
-        # this one, and printing it beside a finding invites it to be read as
-        # a prediction -- which is the one thing the reader is here to judge.
-        "score": (
-            sum(impact_of(f.root_causes, table) for f in grouped)
-            + DEPTH_WEIGHT * item.reached_at_depth
-        ),
         "findings": findings,
-        "over_budget": [
-            {"kind": f.kind, "count": f.count, "lines": list(f.lines)} for f in over
-        ],
         # The by-root-cause view, for anything asking what this unit could be an
         # instance of rather than what was seen in it.
         "candidates": [
@@ -350,11 +384,14 @@ _CAVEATS = """What this output is and is not:
     these shapes is the right thing to write somewhere, so the question is
     always whether it is right *here* -- which depends on what the code is
     for and how often it runs, neither of which a rule can see.
-  - The order is pre-computed from what these repairs measured on other
-    code. It is a starting point and not a claim about this code: a small
-    repair in a loop that runs a billion times beats a large one that runs
-    twice, and only you can see which is which here. Read in whatever
-    order you think right.
+  - The order is what these repairs saved when we measured them on other
+    code, and only the findings whose repairs measured best are listed. It
+    is a starting point and not a claim about this code: a small repair in
+    a loop that runs a billion times beats a large one that runs twice, and
+    only you can see which is which here. Read in whatever order you think
+    right.
+  - Root causes whose repairs never changed energy by 15% either way, on
+    any input we measured, are not reported at all.
   - The rules only recognise shapes somebody thought to describe in
     advance. Waste with no fixed shape leaves no trace here at all. What
     this output does not mention is not thereby absent, and no part of the
@@ -371,7 +408,9 @@ def _render_index(report: dict, detail: Path) -> str:
     lines = [
         f"{report['files_scanned']} file(s)  |  "
         f"{report['units_with_evidence']} unit(s) with evidence  |  "
-        f"showing {len(report['units'])}",
+        f"{report['findings_total']} finding(s)",
+        f"showing the {report['findings_shown']} whose repairs measured best, "
+        f"in {len(report['units'])} unit(s)",
         "=" * WIDTH,
     ]
 
@@ -385,14 +424,14 @@ def _render_index(report: dict, detail: Path) -> str:
             "shapes is invisible to them however expensive it is. Read the code.",
         ])
 
+    # Two lines a unit: with a hundred findings the index is otherwise longer
+    # than the units it points at. How the unit is reached stays in the detail.
     for rank, unit in enumerate(report["units"], start=1):
         span = unit["end_line"] - unit["line"] + 1
-        lines += ["", f"{rank:>3}. {unit['file']}:{unit['line']}  {unit['qualname']}"]
-        lines.append(f"     {span} lines | {_hotness(unit['hotness'])}")
-        lines.append(f"     {_tally(unit)}")
-        headline = ", ".join(_headline(f) for f in unit["findings"][:3])
-        if headline:
-            lines.append(f"     {_wrap('top: ' + headline, 5)}")
+        depth = unit["hotness"]["reached_at_depth"]
+        lines.append(f"{rank:>3}. {unit['file']}:{unit['line']}  {unit['qualname']}"
+                     f"  ({span} lines, loop depth {depth})")
+        lines.append(f"     {_wrap(', '.join(_headline(f) for f in unit['findings']), 5)}")
 
     lines += [
         "",
@@ -410,14 +449,6 @@ def _render_index(report: dict, detail: Path) -> str:
 def _headline(finding: dict) -> str:
     """"repeated_lookup_in_loop x7" -- the rule and how often, not what it means."""
     return finding["kind"] + ("" if finding["count"] == 1 else f" x{finding['count']}")
-
-
-def _tally(unit: dict) -> str:
-    """"8 finding(s) at 31 place(s); 2 more not shown"."""
-    places = sum(f["count"] for f in unit["findings"])
-    held = len(unit["over_budget"])
-    tail = f"; {held} more not shown" if held else ""
-    return f"{len(unit['findings'])} finding(s) at {places} place(s){tail}"
 
 
 def _render_unit(unit: dict) -> str:
@@ -449,11 +480,6 @@ def _render_unit(unit: dict) -> str:
         for message in finding["messages"]:
             lines.append(f"           {_wrap(message['text'], 11)}")
             lines.append(f"           at {_lines(message['lines'])}")
-
-    if unit["over_budget"]:
-        lines += ["", "  over budget, named only:"]
-        for held in unit["over_budget"]:
-            lines.append(f"      {held['kind']} at {_lines(held['lines'])}")
     return "\n".join(lines)
 
 

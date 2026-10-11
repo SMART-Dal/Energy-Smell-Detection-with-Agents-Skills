@@ -14,8 +14,9 @@ from typing import Iterator
 from ..models import Evidence, UnitRef
 from ..context import (
     COMPREHENSION_NODES, LOOP_NODES, OPAQUE_NODES, PURE_BUILTINS, PURE_METHODS,
-    UnitContext,
+    UnitContext, is_cheap_expression,
 )
+from .waste import _copy_is_consumed
 
 # C5.S1 puts the break-even for a set at "roughly a dozen elements"; below it,
 # scanning a sequence costs less than hashing the thing you are looking for.
@@ -81,7 +82,25 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 continue  # belongs to a nested scope; that scope will report it
             if isinstance(node, ast.Call) and _is_trivial_call(node):
                 continue
+            if is_cheap_expression(node) and not _reads_by_key(node):
+                # Hoisting a builtin call on scalars -- `len(x)`, `float("nan")`,
+                # `range(len(b))` -- saves a call; see `is_cheap_expression`.
+                # A lookup by key is kept: `C3S4_genuinely_quadratic` hoists
+                # `points[i]` and `matrix[i]` out of an inner loop and measured
+                # +16.4% and +19.4%. The two C3.S2 samples that hoist a `len()`
+                # measured 25-42% on loops doing nothing else; leaving `len` out
+                # is a decision about what real loops look like, not a reading.
+                continue
             if not ctx.is_pure(node):
+                continue
+            if _builds_fresh_container(node) and _is_kept(node, ctx, scope):
+                continue
+            if _is_view_call(node) and not _tested_for_membership(node, ctx):
+                # `for k, v in patch.items():` in an outer loop builds a view,
+                # which costs a call. `key in mapping.keys()` is the C4.S8
+                # shape, measured at 35-55%, and stays.
+                continue
+            if _leaves_the_loop(ctx, node, scope):
                 continue
             # Only the names the expression reads from *outside* itself matter.
             # A comprehension binds its own targets, and counting those made
@@ -103,6 +122,106 @@ def loop_invariant_expression(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
                 loop_line=scope.lineno,
                 depth=ctx.repeat_depth(node),
             )
+
+
+def _reads_by_key(node: ast.AST) -> bool:
+    """Whether the expression indexes something: `d[k]`, `rows[i]`, `d.get(k)`."""
+    return any(
+        (isinstance(sub, ast.Subscript) and not isinstance(sub.slice, ast.Slice))
+        or (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute)
+            and sub.func.attr == "get")
+        for sub in ast.walk(node)
+    )
+
+
+FRESH_CONTAINER_CALLS = frozenset({
+    "list", "dict", "set", "bytearray", "deque", "defaultdict", "OrderedDict", "Counter",
+})
+
+
+def _builds_fresh_container(node: ast.AST) -> bool:
+    """A new mutable container: a constructor, a `.copy()`, or a comprehension.
+
+    Each pass getting its own is often the point. `changed = dict(kwargs)`
+    followed by `changed[key] = value` reads as invariant -- nothing it reads
+    changes -- but hoisting it hands every pass the same dict.
+    """
+    if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp)):
+        return True
+    if not isinstance(node, ast.Call):
+        return False
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id in FRESH_CONTAINER_CALLS
+    return isinstance(func, ast.Attribute) and func.attr in {"copy", "deepcopy"}
+
+
+def _is_kept(node: ast.AST, ctx: UnitContext, scope: ast.AST) -> bool:
+    """Whether each pass's fresh container outlives the pass, so it must be its own.
+
+    Three ways it is kept, each of which hoisting would turn into one object
+    shared by every pass:
+
+        changed = dict(kwargs); changed[k] = v      bound, then changed or kept
+        update_stats(dict(TRACKED), live)           handed to a call
+        {arm: {s: 0 for s in S} for arm in arms}    part of what the loop builds
+
+    Literal displays are see-through: a list inside a dict that is appended is
+    appended too.
+    """
+    if isinstance(scope, COMPREHENSION_NODES) and _within_element(node, scope, ctx):
+        return True
+    top = node
+    parent = ctx.parent_of(top)
+    while isinstance(parent, (ast.Dict, ast.List, ast.Tuple, ast.Set, ast.keyword)):
+        top, parent = parent, ctx.parent_of(parent)
+    if isinstance(parent, ast.Call) and top is not parent.func and not ctx.is_pure(parent):
+        return True
+    if isinstance(parent, (ast.Return, ast.Yield)):
+        return True
+    return _copy_is_consumed(top, ctx, (scope,))
+
+
+def _within_element(node: ast.AST, comprehension: ast.AST, ctx: UnitContext) -> bool:
+    """Whether `node` is part of the element a comprehension produces."""
+    produced = ([comprehension.key, comprehension.value]
+                if isinstance(comprehension, ast.DictComp) else [comprehension.elt])
+    current = node
+    while current is not None and current is not comprehension:
+        if any(current is part for part in produced):
+            return True
+        current = ctx.parent_of(current)
+    return False
+
+
+def _is_view_call(node: ast.AST) -> bool:
+    """`d.keys()`, `d.values()`, `d.items()` on a plain name or attribute."""
+    return (isinstance(node, ast.Call) and not node.args and not node.keywords
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"keys", "values", "items"}
+            and is_cheap_expression(node.func.value))
+
+
+def _tested_for_membership(node: ast.AST, ctx: UnitContext) -> bool:
+    parent = ctx.parent_of(node)
+    return isinstance(parent, ast.Compare) and any(
+        isinstance(op, (ast.In, ast.NotIn)) and right is node
+        for op, right in zip(parent.ops, parent.comparators))
+
+
+def _leaves_the_loop(ctx: UnitContext, node: ast.AST, scope: ast.AST) -> bool:
+    """Whether the expression sits in a `return` or `raise` inside the loop.
+
+    That statement ends the loop, so what it evaluates runs once per entry to
+    the loop, not once per pass: `return {"reason": raw[:200]}` written inside
+    a retry loop is not recomputed by the loop.
+    """
+    current = ctx.parent_of(node)
+    while current is not None and current is not scope:
+        if isinstance(current, (ast.Return, ast.Raise)):
+            return True
+        current = ctx.parent_of(current)
+    return False
 
 
 def _is_trivial_call(call: ast.Call) -> bool:
@@ -247,6 +366,11 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             continue
         target, value = pair
         name = _target_name(target)
+        # Adding a number to text raises, so `+= 1` is a counter whatever else
+        # the container holds: one `snapshot["message"] = "..."` used to make
+        # every `snapshot[...] += 1` in the unit look like string growth.
+        if isinstance(value, ast.Constant) and type(value.value) in (int, float, complex):
+            continue
         if name not in accumulators and not _looks_stringy(value):
             continue
         if _looks_numeric(value) and name not in accumulators:
@@ -522,6 +646,17 @@ def _looks_numeric(node: ast.AST) -> bool:
     return False
 
 
+MIN_DOTS_TO_CACHE = 2
+"""How deep a chain must be before binding it to a local is worth saying.
+
+One dot -- `parts.append`, `stats.get`, `self.count` -- is how every Python
+programmer reaches an attribute, and caching it saves one lookup per access.
+Measured, that is `C8S3_bound_method_alias`: 10.6% in a loop doing nothing but
+the call, inside the 15% this scan treats as no effect. Two dots and more --
+`config.limits.maximum` -- saves a lookup per link, and measured 38-73%.
+Where the loop also does real work both shrink (`C8S3_body_dominates`, 5-14%),
+which no rule can see, so the depth is the line that can be drawn."""
+
 MIN_RESOLUTIONS_TO_CACHE = 3
 """Times one attribute chain is walked in a loop before caching it is worth saying.
 
@@ -535,13 +670,14 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     """Attribute chains or globals resolved repeatedly inside a loop body.
 
     Each `a.b.c` costs a dict lookup per level, and each global costs a scope
-    chain walk.  Only chains of depth >= 2 that appear more than once and are
-    never rewritten in the loop are reported.
+    chain walk.  Only chains of two dots or more (`MIN_DOTS_TO_CACHE`) that
+    are resolved at least `MIN_RESOLUTIONS_TO_CACHE` times and never rewritten
+    in the loop are reported.
 
     Chains rooted at an imported module -- `np.searchsorted`, `pd.isna`,
-    `math.sqrt` -- are left alone.  `global_lookup_in_loop` already declines to
-    tell anyone to bind `np` itself to a local, and it would be incoherent to
-    refuse that and then ask for `searchsorted = np.searchsorted` one dot later.
+    `math.sqrt` -- are left alone.  Nothing here asks anyone to bind `np`
+    itself to a local, and it would be incoherent to ask for
+    `searchsorted = np.searchsorted` one dot later.
     They are also where the advice pays least: a module attribute is reached
     through a plain dict, with no instance `__dict__`, no MRO walk and no
     descriptor, and the calls behind those names are the ones doing real work.
@@ -610,6 +746,14 @@ def repeated_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
         mine: set[str] = set()
         for chain, nodes in seen.items():
             if len(nodes) < MIN_RESOLUTIONS_TO_CACHE or chain in covered:
+                continue
+            if chain.count(".") < MIN_DOTS_TO_CACHE:
+                continue
+            # Every use is a method call: binding `append = self.items.append`
+            # is the bound-method alias `C8S3_bound_method_alias` measured at
+            # 10.6%, however many dots lead to it.
+            if all(isinstance(ctx.parent_of(n), ast.Call) and ctx.parent_of(n).func is n
+                   for n in nodes):
                 continue
             # A prefix is only its own finding when it is resolved more often
             # than any chain built on it -- otherwise it is the same lookup.
@@ -1576,6 +1720,10 @@ def regex_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         if ctx.read_names(pattern) & ctx.iteration_names(node):
             continue
         scopes = ctx.repeats_around(node)
+        # Nor does a pattern built from it a line earlier: `pattern = "^" +
+        # re.escape(key)` inside `for key in fields` is a new pattern each pass.
+        if ctx.read_names(pattern) & ctx.assigned_names(scopes[-1]):
+            continue
         yield _evidence(
             unit, "regex_in_loop", node, ("C3.S3", "C8.S2"),
             f"`{label}()` is called once per element; the pattern is "
@@ -1638,7 +1786,9 @@ def mutation_during_iteration(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
         if iterated is None:
             continue
         deferred = _deferred_nodes(loop)
-        for node in ast.walk(loop):
+        # The body only. A `for ... else:` block runs after the walk has ended,
+        # so appending there is not mutating anything being iterated.
+        for node in (n for statement in loop.body for n in ast.walk(statement)):
             if id(node) in deferred:
                 continue
             operation = None

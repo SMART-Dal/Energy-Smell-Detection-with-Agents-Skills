@@ -120,3 +120,14 @@ def fstring_that_does_not_read_itself(rows):
     for row in rows:
         out = f"[{row}]"
     return out
+
+
+def tally(rows):
+    # One key holds text, so `snapshot[...]` looks textual -- but `+= 1` is a
+    # counter, and adding a number to text would raise.
+    snapshot = {"message": ""}
+    for row in rows:
+        if row.bad:
+            snapshot["message"] = "some rows were rejected"
+            snapshot["invalid"] += 1
+    return snapshot

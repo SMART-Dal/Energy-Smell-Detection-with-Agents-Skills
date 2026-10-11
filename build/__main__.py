@@ -36,7 +36,7 @@ from .cards import (
     render_root_cause_index,
 )
 from .catalog import Catalog, load_catalog
-from .impact import measured_impact
+from .impact import MIN_MEASURED_CHANGE, measured_impact, measured_reach
 from .taxonomy import Taxonomy, load_taxonomy
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -72,8 +72,9 @@ def main(argv: list[str] | None = None) -> int:
     taxonomy = load_taxonomy("python")
     catalog = load_catalog()
     impact = measured_impact(root=PROJECT_ROOT)
+    reach = measured_reach(root=PROJECT_ROOT)
 
-    per_arm = {arm: _render_arm(arm, taxonomy, catalog, impact) for arm in ARMS}
+    per_arm = {arm: _render_arm(arm, taxonomy, catalog, impact, reach) for arm in ARMS}
     outputs: dict[Path, str] = {}
     for files in per_arm.values():
         outputs.update(files)
@@ -101,12 +102,13 @@ def main(argv: list[str] | None = None) -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
 
-    _report(taxonomy, catalog, impact, written=len(outputs), changed=len(stale))
+    _report(taxonomy, catalog, impact, reach, written=len(outputs), changed=len(stale))
     return 0
 
 
 def _render_arm(
-    arm: Arm, taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float]
+    arm: Arm, taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
+    reach: dict[str, float],
 ) -> dict[Path, str]:
     """Every file of one arm's skill directory, as path -> contents.
 
@@ -155,7 +157,7 @@ def _render_arm(
 
     if arm.ships_scanner:
         files[root / "scripts" / "lib" / "signals.json"] = _render_signals(
-            taxonomy, catalog, impact
+            taxonomy, catalog, impact, reach
         )
     return files
 
@@ -209,7 +211,8 @@ def _prune(root: Path, keep: set[Path]) -> None:
             path.rmdir()
 
 
-def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float]) -> str:
+def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
+                    reach: dict[str, float]) -> str:
     """Compile the routing table `scan.py` needs, so it can stay YAML-free.
 
     Everything here is derived; editing `signals.json` by hand is pointless
@@ -227,6 +230,8 @@ def _render_signals(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, floa
                 "repair": entry.refactoring.summary if entry.refactoring else "",
                 "card": f"reference/root-causes/{node.id}.md",
                 "impact": impact.get(node.id, 0.0),
+                "max_change": reach.get(node.id),
+                "reported": reach.get(node.id, MIN_MEASURED_CHANGE) >= MIN_MEASURED_CHANGE,
             }
             for node in taxonomy.root_causes
             if (entry := catalog.entries.get(node.id)) is not None
@@ -257,7 +262,7 @@ def _differs(path: Path, text: str) -> bool:
 
 
 def _report(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
-            *, written: int, changed: int) -> None:
+            reach: dict[str, float], *, written: int, changed: int) -> None:
     entries = catalog.entries.values()
     # `similar` is symmetric, so every edge is counted from both ends.
     edges = sum(len(e.similar) for e in entries) // 2
@@ -284,6 +289,10 @@ def _report(taxonomy: Taxonomy, catalog: Catalog, impact: dict[str, float],
     else:
         print(f"  all {len(taxonomy.root_causes)} root causes measured "
               f"(mean saving {sum(impact.values()) / len(impact):.0f}%)")
+    quiet = sorted((rc for rc, value in reach.items() if value < MIN_MEASURED_CHANGE),
+                   key=lambda rc: [int(part[1:]) for part in rc.split(".")])
+    print(f"  not reported by the scan (no input moved {MIN_MEASURED_CHANGE:.0f}%): "
+          f"{', '.join(quiet) or 'none'}")
     print("  arms:")
     for arm in ARMS:
         withheld = ", ".join(arm.excluded) if arm.excluded else "nothing"

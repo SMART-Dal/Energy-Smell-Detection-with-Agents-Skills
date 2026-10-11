@@ -23,12 +23,11 @@ C6.S4 need to know what the data is for.  Those are read by hand, and
 from __future__ import annotations
 
 import ast
-import builtins
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
-from ..context import (COMPREHENSION_NODES, OPAQUE_NODES,
-                       UnitContext)
+from ..context import (OPAQUE_NODES,
+                       UnitContext, is_cheap_expression)
 
 # Interpreter housekeeping: correct to call, ruinous to call repeatedly.
 RUNTIME_MANAGEMENT = {
@@ -56,18 +55,6 @@ question `all(x == y for x, y in zip(a, b))` answers without allocating and
 without reading past the first difference.  It is `str(a) == str(b)` wearing a
 different spelling, and matching only bare-name calls walked past it.
 """
-
-MIN_USES_TO_HOIST = 4
-"""Reads of one global inside a loop before hoisting it is worth mentioning.
-
-Raised from three. A module a loop reaches for three times -- `plt`, `np`, `pd`
--- is normal code, and the hoist trades one dict lookup per read against a name
-the next reader has to follow. At three the rule was one of the loudest in the
-suite and almost none of it was worth acting on."""
-
-MAX_HOISTS_PER_LOOP = 2
-"""How many names one loop may be reported for, worst first."""
-
 
 # Operators whose result type follows their operands, so one float literal
 # makes the whole expression floating point.
@@ -183,6 +170,12 @@ def float_literal_on_int_data(unit: UnitRef, ctx: UnitContext) -> Iterator[Evide
     nothing; without reading it the rule assumed every untyped name held an
     integer, which is the assumption the whole finding rests on.
     """
+    # Not in a file that imports NumPy, pandas or torch. There `img * 255.0`
+    # is usually an array, where the literal decides the result's dtype -- and
+    # on a uint8 image, whether it overflows -- rather than costing a boxing.
+    # What was measured is plain Python integers.
+    if ctx.uses_arrays:
+        return
     float_names = frozenset(_float_valued_names(ctx.node))
     for node in ast.walk(ctx.node):
         pair = _integral_float_operand(node, float_names)
@@ -392,138 +385,6 @@ def _is_mutated(scope: ast.AST, name: str) -> bool:
     return False
 
 
-# -- C10.S5  inefficient scope lookup --------------------------------------
-
-
-def global_lookup_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A name resolved through the global or builtin scope on every iteration.
-
-    A local name is an array index into the frame; a global is a dict lookup in
-    the module namespace, and a builtin is that lookup plus a second one in
-    `builtins`.  Inside a hot loop the difference is paid per iteration, and
-    binding the name once above the loop removes it.
-
-    Only names the unit never assigns are reported, since an assigned name is
-    already local.
-
-    And only names a person would actually bind.  Two kinds are excluded
-    because the repair is not something anyone writes:
-
-        _float = float          rebinding a builtin
-        _np = np                rebinding an imported module
-
-    Both are real dict lookups and both are technically hoistable, and neither
-    is advice: `float` read thirteen times in a loop is what arithmetic on
-    mixed types looks like, and aliasing `np` makes the next reader work out
-    what `_np` is. What is left is the case the card is about -- a module-level
-    table or helper the loop reaches for, where `labels = FIELD_LABELS` above
-    the loop reads as well as it runs.
-
-    The threshold below matters more than the rule. Reporting every non-local
-    name read in a loop produced 45 hits across `requests` -- more than every
-    other analyzer combined, and mostly imported helpers read once per
-    iteration, where a hoist saves one dict lookup against the cost of a
-    clearer name. Only a name read at least MIN_USES_TO_HOIST times per
-    iteration is worth binding, and only the worst two per loop are reported.
-
-    Each read is charged to the innermost loop that actually re-evaluates it.
-    Walking every loop in turn instead used to report a name inside nested
-    loops once per enclosing level, and counted the names in a `for` loop's
-    iterable, which is evaluated once before the first pass.  Annotations are
-    skipped for the same reason as the iterable: `batch: List[Order] = []` in a
-    loop reads `List` and `Order`, and a function-local annotation is never
-    evaluated, so neither read happens.
-    """
-    local = ctx.assigned_names(ctx.node) | _parameter_names(ctx.node)
-    unbindable = _NOT_WORTH_BINDING | set(ctx.module_aliases) | _imported_modules(ctx.node)
-    counts: dict[int, dict[str, int]] = {}
-    first: dict[int, dict[str, ast.AST]] = {}
-
-    for node in ast.walk(ctx.node):
-        if not (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)):
-            continue
-        if node.id in local or node.id in unbindable:
-            continue
-        if id(node) in ctx.annotation_nodes:
-            continue
-        loop = _repeating_loop(ctx, node)
-        if loop is None:
-            continue
-        seen = counts.setdefault(id(loop), {})
-        seen[node.id] = seen.get(node.id, 0) + 1
-        first.setdefault(id(loop), {}).setdefault(node.id, node)
-
-    for loop in ctx.repeat_scopes:
-        seen = counts.get(id(loop), {})
-        worst = sorted(seen.items(), key=lambda pair: -pair[1])[:MAX_HOISTS_PER_LOOP]
-        for name, uses in worst:
-            if uses < MIN_USES_TO_HOIST:
-                continue
-            yield _evidence(
-                unit, "global_lookup_in_loop", first[id(loop)][name], ("C10.S5",),
-                f"`{name}` is not local to this unit and is read {uses} times inside "
-                f"the loop, so each read costs a namespace dict lookup; binding it "
-                f"to a local above the loop turns those into frame slot reads",
-                name=name,
-                uses=uses,
-                loop_line=loop.lineno,
-            )
-
-
-_NOT_WORTH_BINDING = frozenset(dir(builtins))
-"""Builtins. Real lookups, but `_len = len` above a loop is not advice."""
-
-
-def _imported_modules(scope: ast.AST) -> set[str]:
-    """Names bound to a *module* by an import, which nobody rebinds.
-
-    `import numpy as np` makes `np` a global read on every use, and aliasing it
-    to a local is a lookup saved against a name the next reader has to chase.
-    `from numpy import array` is different -- `array` is a function, and binding
-    a function above a loop is ordinary code -- so only plain `import` counts.
-    """
-    found: set[str] = set()
-    for node in ast.walk(scope):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                found.add(alias.asname or alias.name.split(".")[0])
-    return found
-
-
-def _repeating_loop(ctx: UnitContext, node: ast.AST) -> ast.AST | None:
-    """The innermost repetition that re-evaluates `node` on every one of its passes.
-
-    A `for` loop's iterable is evaluated once, before the first pass, so a name
-    read there belongs to the loop *outside* it -- or to no loop at all when
-    there is none.  `while` tests and loop bodies repeat as expected.
-
-    Comprehensions count.  `[math.sqrt(x) for x in xs]` pays the same namespace
-    lookup per element as the statement loop it replaces, and charging only
-    statement loops meant the rule saw one and not the other.
-    """
-    scopes = ctx.repeats_around(node)
-    while scopes:
-        innermost = scopes[-1]
-        if _contains(_iterable_clause(innermost), node):
-            scopes = scopes[:-1]
-            continue
-        return innermost
-    return None
-
-
-def _iterable_clause(scope: ast.AST) -> ast.AST | None:
-    """The part of a repetition evaluated once, before the first pass."""
-    if isinstance(scope, (ast.For, ast.AsyncFor)):
-        return scope.iter
-    if isinstance(scope, COMPREHENSION_NODES) and scope.generators:
-        return scope.generators[0].iter
-    return None
-
-
-def _contains(root: ast.AST | None, node: ast.AST) -> bool:
-    return root is not None and any(child is node for child in ast.walk(root))
-
-
 def _parameter_names(node: ast.AST) -> set[str]:
     arguments = getattr(node, "args", None)
     if not isinstance(arguments, ast.arguments):
@@ -593,6 +454,14 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             # Checked before the scope walks below rather than after them: those
             # walk the whole enclosing loop, and doing it for every node inside
             # every loop made this one rule most of a scan's running time.
+            continue
+        # The copy *is* the comprehension's element: `[copy.deepcopy(layer)
+        # for _ in range(n)]` builds n independent objects on purpose, and
+        # every one of them is kept.
+        parent = ctx.parent_of(node)
+        if (isinstance(parent, (ast.ListComp, ast.SetComp, ast.GeneratorExp))
+                and parent.elt is node) or (
+                isinstance(parent, ast.DictComp) and node in (parent.key, parent.value)):
             continue
 
         # `row[:]` in a comprehension copies the element, and every copy is the
@@ -759,7 +628,9 @@ def filter_after_transform(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     """
     for node in ast.walk(ctx.node):
         if isinstance(node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
-            if _recomputed_in_test(node):
+            # `item.get(f)` tested and then kept is two dict probes; only a
+            # transform that does work is worth computing once.
+            if _recomputed_in_test(node) and not is_cheap_expression(node.elt):
                 yield _evidence(
                     unit, "filter_after_transform", node, ("C7.S4", "C1.S4"),
                     f"`{ast.unparse(node.elt)}` is computed once for the test and "
@@ -775,6 +646,11 @@ def filter_after_transform(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
             continue
         transform = _elementwise_call(node.value)
         if transform is None:
+            continue
+        # `[s.get("flags", 0) for s in spans]` costs a dict probe per element;
+        # filtering first would save that and nothing more.
+        element = getattr(node.value, "elt", None)
+        if element is not None and is_cheap_expression(element):
             continue
 
         produced = {id(n) for n in ast.walk(node.value)}
@@ -1143,6 +1019,11 @@ def dead_initialization(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
 
     Only reported for straight-line code at the top level of the unit, because
     an initialisation before a conditional or a loop is usually load-bearing.
+
+    And only when the discarded value is work. `result = []` or `count = 0`,
+    run once and overwritten, costs a store; every measured C1.S6 sample threw
+    away something built -- `[None] * len(rows)`, a loaded default -- and that
+    is the shape the root cause's numbers describe.
     """
     body = getattr(ctx.node, "body", [])
     for index, statement in enumerate(body):
@@ -1150,6 +1031,8 @@ def dead_initialization(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue
         target = statement.targets[0]
         if not isinstance(target, ast.Name) or not ctx.is_pure(statement.value):
+            continue
+        if is_cheap_expression(statement.value):
             continue
         for later in body[index + 1:]:
             if target.id in ctx.read_names(later):
@@ -1232,6 +1115,11 @@ def discarded_pure_result(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
         if not _receiver_type_is_visible(node.value):
             continue
         if _guarded_by_handler(node, ctx):
+            continue
+        # A cheap conversion dropped on the floor is a check, not waste:
+        # `int(build["sha256"], 16)` in a test fails the test on bad hex. What
+        # C1.S5 measured was real work discarded -- a `sorted(r)` per row.
+        if is_cheap_expression(node.value):
             continue
         yield _evidence(
             unit, "discarded_pure_result", node, ("C1.S5",),
@@ -1509,7 +1397,6 @@ def self_delegation_chain(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
 RULES = [
     float_literal_on_int_data,
     constant_sequence_literal,
-    global_lookup_in_loop,
     copy_in_loop,
     sort_then_slice,
     filter_after_transform,

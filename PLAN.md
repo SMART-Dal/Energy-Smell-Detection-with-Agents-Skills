@@ -338,9 +338,17 @@ between two different agents on the same repo.
 **Carried over from v2 and still valid**
 
 - 65 catalog entries: 228 measured repairs shown from the case files, 120 near-misses (33 of them behaviour-checked specimens from `validation/lookalikes/`)
-- 27 AST analyzers + a Ruff adapter, validated on 179 files of pandas source
+- 39 AST analyzers + a Ruff adapter, validated on 179 files of pandas source and
+  reviewed by hand against ten evaluation repositories (Oct 2026)
 - Findings ranked by the measured saving of their repair, averaged over our own
-  benchmark shapes — the one axis, replacing the hand-assigned strength grades
+  benchmark shapes — the one axis, replacing the hand-assigned strength grades.
+  Ruff findings are ranked the same way, by the root cause they map to. A scan
+  shows the best 100 findings, grouped by unit
+- A root cause is not reported at all when every input of every one of its
+  samples moved energy by less than 15% either way: C1.S7, C2.S2, C6.S1, C12.S4.
+  Rules also stay quiet where the measured shapes did real work and the code
+  does not — a dead store of a constant, a one-dot or bound-method lookup, a
+  `len()` hoist (Javad, Oct 2026)
 - Paired interleaved measurement, null canary, RAPL and CodeGreen meters
 - Phase-0 gate: null canary −1.1% ±4.9% (insignificant), real C10.S4 repair
   +25.9% ±3.0% (significant)

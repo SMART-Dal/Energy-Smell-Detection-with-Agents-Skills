@@ -66,3 +66,8 @@ def normalise_then_index(records):
     # Transform then consume, but the consumer has no filter at all.
     converted = [normalise(r) for r in records]
     return {c.key: c for c in converted}
+
+
+def closes(candles):
+    # Tested and kept, but the test is a dict probe: nothing to compute once.
+    return [item.get("close") for item in candles if item.get("close") is not None]

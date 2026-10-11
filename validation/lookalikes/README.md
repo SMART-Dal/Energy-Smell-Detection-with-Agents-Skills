@@ -21,8 +21,9 @@ already works this way: a unit that is not named in `EXPECTED` must come back
 with nothing, so appending one of these `before` functions asserts that the rule
 does not fire on it.
 
-Sixteen were tried. **Thirteen are now fixtures** and the rules stay quiet on
-them; they are marked (fixture) below. The rest are the more useful half of
+Sixteen were tried. **Thirteen became fixtures** and the rules stay quiet on
+them; they are marked (fixture) below. Twelve remain: `C10S5_lookalike` outlived
+its rule (see below). The rest are the more useful half of
 the result.
 
 `C2S2_lookalike` found a real gap. `method_ignores_self` fired on a method that a
@@ -32,7 +33,8 @@ override. The rule now consults `collect_overridden_methods`, and the specimen i
 a fixture.
 
 `C8S3_lookalike` did **not** find a gap, and it is worth writing down why. The
-rule reports the chain `context.limiter`, and hoisting *that* is safe: a local
+rule reported the chain `context.limiter` -- it has since stopped reporting
+one-dot chains at all -- and hoisting *that* is safe: a local
 bound to the object still sees every later write. What is unsafe is hoisting
 `context.limiter.threshold`, the value -- which is what the specimen's `after`
 does and what the rule never suggested. The caveat belongs on the card, and the
@@ -44,6 +46,12 @@ tell the throwaway buffer from the object the caller keeps -- which is the
 whole of C6.S1's own first counter-example. Most of what it did catch that was
 real was a loop-invariant expression, which `loop_invariant_expression` already
 reports. The rule is withdrawn; the specimen stays as card text.
+
+`C10S5_lookalike` outlived its rule too. `global_lookup_in_loop` was withdrawn
+in October 2026: the C10.S5 samples whose loop does any real work saved 2-9%,
+on ten real repositories it reported loggers and helper functions called in a
+loop, and it did not fire on its own measured samples. The specimen stays as
+card text.
 
 `C8S4_lookalike` is card-only for a reason nothing can fix: whether another
 process appends to the file during the call is not in the syntax. `io_call_in_loop`
@@ -70,7 +78,6 @@ The specimens that land on a rule we ship:
 | `C8S2_lookalike` | `loop_invariant_expression` | the parsed document is mutated per request |
 | `C8S3_lookalike` | `repeated_lookup_in_loop` | the loop calls something that writes the attribute |
 | `C8S4_lookalike` | `io_call_in_loop` | the file is appended to by another writer during the call |
-| `C10S5_lookalike` (fixture) | `global_lookup_in_loop` | the loop calls something that rebinds the global |
 
 The remaining fifteen -- `C1S2`, `C1S5`, `C3S6`, `C3S7`, `C4S2`, `C4S8`, `C5S3`,
 `C6S1`, `C7S5`, `C8S1`, `C9S2`, `C9S4`, `C10S6`, `C12S3`, `C12S4` -- describe

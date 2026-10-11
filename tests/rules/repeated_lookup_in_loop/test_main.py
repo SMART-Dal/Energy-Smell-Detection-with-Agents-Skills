@@ -11,7 +11,6 @@ CASES = Path(__file__).with_name("test_cases.py")
 EXPECTED = {
     "Gauge.clamp": 1,      # one chain, however many links it has
     "render_matrix": 1,    # nested loops share one chain and one finding
-    "flush_all": 1,        # bound method resolved twice a pass
     "apply_theme": 1,      # the plain two-link case
 }
 

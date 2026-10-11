@@ -99,3 +99,10 @@ def quicksort(arr, low, high):
         p = partition(arr, low, high)
         quicksort(arr, low, p - 1)
         quicksort(arr, p + 1, high)
+
+
+class PortFinder:
+    def find_available_port(self, start):
+        # A method delegating to the module-level function of the same name:
+        # inside a method a bare name is never the method itself.
+        return find_available_port(self.host, start)

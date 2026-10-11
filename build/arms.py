@@ -416,10 +416,11 @@ point at. Two labels on one fact means the shape alone does not say which; it is
 one thing to look at, not two.
 
 The list comes in a pre-computed order, based on what these repairs measured on
-other code. It is a starting point and nothing more — read in whatever order you
-think right. There is no confidence score and no per-finding number, because
-either would be a judgement about this code that the rule is in no position to
-make.
+other code, and holds only the 100 findings whose repairs measured best; a root
+cause whose repair never moved energy by 15% either way is not reported at all.
+It is a starting point and nothing more — read in whatever order you think
+right. There is no confidence score and no per-finding number, because either
+would be a judgement about this code that the rule is in no position to make.
 
 Two things follow from what a rule is, and they point in opposite directions.
 

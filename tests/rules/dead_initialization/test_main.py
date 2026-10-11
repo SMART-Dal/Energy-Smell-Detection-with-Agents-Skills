@@ -9,7 +9,6 @@ from _harness import check  # noqa: E402
 CASES = Path(__file__).with_name("test_cases.py")
 
 EXPECTED = {
-    "load": 1,       # `[]` replaced a line later
     "summarise": 1,  # a whole comprehension discarded
 }
 

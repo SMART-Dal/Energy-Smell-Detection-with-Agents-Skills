@@ -11,11 +11,14 @@ CASES = Path(__file__).with_name("test_cases.py")
 EXPECTED = {
 
     "filter_rows": 1,        # call wrapping a subscript: the outer one only
-    "take_while_small": 1,   # `len()` in a while condition really does re-run
+    "take_while_small": 1,   # a while condition really does re-run
     "cross_check": 1,        # nested loops, one expression, one report
     "score_all": 1,          # constant subscript into a module-level table
     "normalise": 1,          # `sum()` per element: a quadratic comprehension
-    "row_products": 2,       # `a[i]`, and the inner comprehension's own `range(len(b))`
+    "row_products": 1,       # `a[i]`; not the inner comprehension's own `range(len(b))`
+    "mark_missing": 1,       # `markers[arm]`; not `float("nan")`
+    "present": 1,            # `k in mapping.keys()`, a view per element
+    "keep_odd": 1,           # a set rebuilt per pass and only read
     "Service.dispatch": 1,   # a sibling attribute changing is not this one changing
 }
 

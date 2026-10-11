@@ -12,7 +12,7 @@ import re
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
-from ..context import OPAQUE_NODES, UnitContext
+from ..context import OPAQUE_NODES, UnitContext, is_cheap_expression
 
 # Calls that reach outside the process. Cheap once, ruinous per iteration.
 #
@@ -89,8 +89,20 @@ NESTING_OPAQUE = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambd
 # clause in real code: `isinstance(x, T) and x.flag` is idiomatic, not a smell.
 CHEAP_CALLS = frozenset({
     "isinstance", "issubclass", "len", "type", "id", "bool", "hasattr",
-    "callable", "getattr", "int", "str", "float", "abs", "ord", "chr",
+    "callable", "getattr", "int", "str", "float", "abs", "ord", "chr", "super",
 })
+
+LOOKUP_METHODS = frozenset({"get", "keys", "values", "items"})
+
+CHEAP_METHODS = LOOKUP_METHODS | frozenset({
+    "startswith", "endswith", "isupper", "islower", "isdigit", "isalpha",
+    "isalnum", "isspace", "istitle", "isnumeric", "isdecimal", "isidentifier",
+    "isascii", "isfinite", "isnan", "isinf",
+    "lower", "upper", "casefold", "strip", "lstrip", "rstrip",
+})
+"""Methods that cost about what a comparison costs: a dict probe, a view, a
+prefix check, a character-class test, a float classification, or a case or
+whitespace normalisation of what is almost always a short string."""
 
 SAFE_TO_PROMOTE = frozenset({
     "len", "isinstance", "issubclass", "type", "id", "bool", "hasattr", "callable",
@@ -103,7 +115,12 @@ a `ValueError`."""
 
 # Repeating one of these costs almost nothing, so seeing it twice in a scope is
 # not worth reporting as redundant computation.
-TRIVIAL_CALLS = CHEAP_CALLS | {"list", "dict", "set", "tuple", "repr"}
+TRIVIAL_CALLS = CHEAP_CALLS | {"list", "dict", "set", "tuple", "repr"} | {
+    "defaultdict", "OrderedDict", "Counter", "deque", "bytearray",
+}
+"""Calls never worth deduplicating: cheap builtins, and constructors whose every
+call is meant to build a separate object -- `by_arm = defaultdict(list)` three
+times is three dicts, not one computed thrice."""
 
 NONDETERMINISTIC_CALLS = frozenset({
     "random", "randint", "randrange", "choice", "choices", "shuffle", "sample",
@@ -269,13 +286,26 @@ def expensive_operand_first(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidenc
     game, literal or not.
     """
     conditions = _condition_slots(ctx.node)
+    returned = {id(n.value) for n in ast.walk(ctx.node)
+                if isinstance(n, ast.Return) and n.value is not None}
+    returns = getattr(ctx.node, "returns", None)
+    predicate = isinstance(returns, ast.Name) and returns.id == "bool"
     for node in ast.walk(ctx.node):
         if not isinstance(node, ast.BoolOp) or len(node.values) < 2:
             continue
-        if id(node) not in conditions and _supplies_a_default(node, ctx.node):
+        # Outside a condition the chain is a value, and swapping its operands
+        # changes which one comes back: `role = msg.get("role") or role` and
+        # `return now().tzinfo or UTC` are fallbacks, and were most of what
+        # this rule reported on real code. A `return` stays only where the
+        # function declares `-> bool`, so both operands are truth values and
+        # the order changes nothing but the cost. Every measured C4.S1 sample
+        # is a condition.
+        if id(node) not in conditions and (
+                id(node) not in returned or not predicate
+                or _supplies_a_default(node, ctx.node)):
             continue
         for position, operand in enumerate(node.values[:-1]):
-            if not _contains_expensive_call(operand):
+            if not _contains_expensive_call(operand, ctx):
                 continue
             # A later operand that reads a name an earlier one binds cannot be
             # promoted past it: `(row := load_row(x)) and row.active` used to be
@@ -347,11 +377,28 @@ def _is_cheap_operand(node: ast.AST, in_condition: bool) -> bool:
     order is its meaning -- letting the conversion call count as "cheap" there
     turned a default into a finding.
     """
+    if _scans_a_container(node):
+        return False
     calls = [n for n in ast.walk(node) if isinstance(n, ast.Call)]
     if not calls:
         return True
     return in_condition and all(
         isinstance(c.func, ast.Name) and c.func.id in SAFE_TO_PROMOTE for c in calls
+    )
+
+
+def _scans_a_container(node: ast.AST) -> bool:
+    """An `in` test against anything but a literal written out in the source.
+
+    `"```" in text` reads like a cheap test and is a substring search over the
+    whole of `text`; `x in rows` walks a list. Only a literal display --
+    `x in ("GET", "HEAD")` -- is known to be short.
+    """
+    literal = (ast.List, ast.Tuple, ast.Set, ast.Dict)
+    return any(
+        isinstance(op, (ast.In, ast.NotIn)) and not isinstance(right, literal)
+        for sub in ast.walk(node) if isinstance(sub, ast.Compare)
+        for op, right in zip(sub.ops, sub.comparators)
     )
 
 
@@ -392,13 +439,34 @@ def _walrus_targets(operands: list[ast.AST]) -> set[str]:
     }
 
 
-def _contains_expensive_call(node: ast.AST) -> bool:
-    """A call that is not one of the recognisably cheap builtins."""
+def _contains_expensive_call(node: ast.AST, ctx: UnitContext) -> bool:
+    """A call that is not one of the recognisably cheap builtins or methods."""
     return any(
-        isinstance(sub, ast.Call)
-        and not (isinstance(sub.func, ast.Name) and sub.func.id in CHEAP_CALLS)
+        isinstance(sub, ast.Call) and not _is_cheap_call(sub, ctx)
         for sub in ast.walk(node)
     )
+
+
+def _is_cheap_call(call: ast.Call, ctx: UnitContext) -> bool:
+    """A builtin from `CHEAP_CALLS`, or a method from `CHEAP_METHODS`.
+
+    `msg.get("role")`, `name.startswith("v")`, `token[0].isupper()` and
+    `math.isfinite(x)` cost about what the comparison beside them costs. What
+    C4.S1 measured were calls into the code's own functions -- `_permitted`,
+    `_expensive`, `policy.retryable_statuses` -- and treating a dict probe as
+    one of those filled the report with reorderings that save nothing.
+
+    `get` on a module is not a dict probe: `requests.get(url)` is a request.
+    """
+    func = call.func
+    if isinstance(func, ast.Name):
+        # `max(score, 0.6)` compares two values; `max(scores)` walks a sequence.
+        return func.id in CHEAP_CALLS or (func.id in {"min", "max"} and len(call.args) >= 2)
+    if isinstance(func, ast.Attribute) and func.attr in CHEAP_METHODS:
+        receiver = func.value
+        on_module = isinstance(receiver, ast.Name) and receiver.id in ctx.module_aliases
+        return not (on_module and func.attr in LOOKUP_METHODS)
+    return False
 
 
 def deep_conditional_nesting(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
@@ -477,12 +545,16 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
     name = ctx.node.name
-    # `self.fib(n - 1)` is the same recursion as `fib(n - 1)`, and matching only
-    # `ast.Name` made the rule blind to every algorithm written as a method --
-    # which is most of them in any class-shaped codebase.
+    # `self.fib(n - 1)` is the method recursing, and matching only `ast.Name`
+    # made the rule blind to every algorithm written as a method -- which is
+    # most of them in any class-shaped codebase. But inside a method a bare
+    # `fib(n - 1)` is a module-level function that happens to share the name:
+    # `def find_port(self): return find_port(self.host)` delegates, and was
+    # reported as recursion on every such wrapper.
+    is_method = unit.kind == "method"
     self_calls = [
         node for node in ast.walk(ctx.node)
-        if isinstance(node, ast.Call) and _calls_itself(node.func, name)
+        if isinstance(node, ast.Call) and _calls_itself(node.func, name, is_method)
     ]
     if not self_calls or _has_cache_decorator(ctx.node):
         return
@@ -511,11 +583,11 @@ def recursion_without_memo(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence
         )
 
 
-def _calls_itself(func: ast.AST, name: str) -> bool:
-    """`name(...)` or `self.name(...)`, which are the same call."""
+def _calls_itself(func: ast.AST, name: str, is_method: bool) -> bool:
+    """`self.name(...)` in a method, `name(...)` in a function."""
     if isinstance(func, ast.Name):
-        return func.id == name
-    return (isinstance(func, ast.Attribute) and func.attr == name
+        return not is_method and func.id == name
+    return (is_method and isinstance(func, ast.Attribute) and func.attr == name
             and isinstance(func.value, ast.Name) and func.value.id in {"self", "cls"})
 
 
@@ -703,13 +775,27 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
     real code and none of it was a finding.
     """
     seen: dict[str, list[ast.Call]] = {}
+    header = _header_nodes(ctx.node)
     for node in ctx.own_nodes():
         if not isinstance(node, ast.Call) or ctx.repeats(node):
+            continue
+        if id(node) in header:
+            continue
+        parent = ctx.parent_of(node)
+        if isinstance(parent, ast.Await):
+            parent = ctx.parent_of(parent)
+        if isinstance(parent, ast.Expr):
+            continue  # result dropped: it runs for what it does, not what it returns
+        if isinstance(parent, ast.withitem) or _inside_raise(node, ctx):
+            # `with suppress(OSError):` and `raise Corrupt("...")` need an
+            # object of their own each time, and only one raise ever runs.
             continue
         if not node.args or not _repeatable(node, ctx):
             continue
         if isinstance(node.func, ast.Name) and node.func.id in TRIVIAL_CALLS:
             continue  # recomputing len(x) twice is not worth a claim
+        if is_cheap_expression(node):
+            continue  # nor is `max(n_total, 1)`: one builtin call on scalars
         if _writes_somewhere(node.func):
             continue
         seen.setdefault(ast.unparse(node), []).append(node)
@@ -725,10 +811,40 @@ def repeated_pure_call(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue  # one arm each of the same statement: never both run
         yield _evidence(
             unit, "repeated_pure_call", calls[0], ("C1.S4",),
-            f"`{expression}` is computed {len(calls)} times in the same scope "
-            f"with nothing changing in between",
+            f"`{expression}` is computed {len(calls)} times in the same scope; "
+            f"if nothing it reads changes in between, once is enough",
             expression=expression, occurrences=len(calls),
         )
+
+
+def _inside_raise(node: ast.AST, ctx: UnitContext) -> bool:
+    current = ctx.parent_of(node)
+    while current is not None and not isinstance(current, ast.stmt):
+        current = ctx.parent_of(current)
+    return isinstance(current, ast.Raise)
+
+
+def _header_nodes(function: ast.AST) -> set[int]:
+    """Nodes in a definition's decorators, defaults and annotations.
+
+    They run once, when the `def` itself runs, in the scope around it --
+    `def start(a=Option(False), b=Option(False), c=Option(False))` is three
+    separate default objects, each of which has to exist, not one call
+    computed three times.
+    """
+    if not isinstance(function, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+        return set()
+    arguments = function.args
+    roots: list[ast.AST] = [*arguments.defaults,
+                            *(d for d in arguments.kw_defaults if d is not None)]
+    if not isinstance(function, ast.Lambda):
+        roots += function.decorator_list
+        if function.returns is not None:
+            roots.append(function.returns)
+        every = [*arguments.posonlyargs, *arguments.args, *arguments.kwonlyargs,
+                 *(a for a in (arguments.vararg, arguments.kwarg) if a is not None)]
+        roots += [a.annotation for a in every if a.annotation is not None]
+    return {id(sub) for root in roots for sub in ast.walk(root)}
 
 
 WRITING_CALLS = frozenset({"print", "write", "log", "debug", "info", "warning",

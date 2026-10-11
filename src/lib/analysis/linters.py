@@ -20,6 +20,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from .context import is_cheap_expression
 from .models import Evidence, UnitRef
 
 # Ruff rule code -> (root cause IDs it indicates, short explanation).
@@ -212,6 +213,7 @@ def evidence_from_ruff(path: Path, units: list[UnitRef],
     """Turn Ruff findings into Evidence, attributed to the unit they fall in."""
     caught = _exception_binding_lines(source)
     impure = _impure_binding_lines(source)
+    trivial = _cheap_binding_lines(source)
     findings = []
     for violation in run_ruff(path):
         code = violation.get("code")
@@ -228,7 +230,7 @@ def evidence_from_ruff(path: Path, units: list[UnitRef],
         # -- so the repair removes a store and nothing else. Reporting them
         # made "delete `as e`" the most valuable repair in a file. The lint is
         # real; the energy claim is not, so neither is reported here.
-        if code == "F841" and (line in caught or line in impure):
+        if code == "F841" and (line in caught or line in impure or line in trivial):
             continue
         unit = _owning_unit(units, line)
         if unit is None:
@@ -300,6 +302,35 @@ def _impure_binding_lines(source: str | None) -> set[int]:
             if named not in PURE_ENOUGH_TO_DELETE:
                 lines.add(node.lineno)
                 break
+    return lines
+
+
+def _cheap_binding_lines(source: str | None) -> set[int]:
+    """Lines where deleting a dead name would save next to nothing.
+
+    `col_h = prim_h - 0.66` or `namespace = marker["namespace"]`, never read,
+    cost a lookup and a store -- in a loop or not. Every measured C1.S1 sample
+    threw away real work: a `sorted()` on each pass, a whole loop. So a dead
+    store is reported only when its value is work. And a name bound by `with
+    ... as` or `:=` names something that runs regardless of the name.
+    """
+    if not source:
+        return set()
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return set()
+
+    lines: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+            if is_cheap_expression(node.value):
+                lines.add(node.lineno)
+        elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+            lines.update(n.lineno for n in ast.walk(node.optional_vars)
+                         if isinstance(n, ast.Name))
+        elif isinstance(node, ast.NamedExpr):
+            lines.add(node.target.lineno)
     return lines
 
 

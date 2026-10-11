@@ -60,6 +60,85 @@ PURE_METHODS = frozenset({
 # smells (C12) become worth probing and vectorisation (C10.S3) applies.
 ARRAY_MODULES = frozenset({"numpy", "np", "pandas", "pd", "torch", "scipy", "array"})
 
+CHEAP_BUILTIN_CALLS = frozenset({
+    "len", "int", "float", "bool", "str", "abs", "round", "ord", "chr",
+    "isinstance", "issubclass", "type", "id", "hasattr", "getattr", "callable",
+    "range", "enumerate", "zip", "reversed", "iter",
+})
+"""Builtins that cost one call and no pass over their argument.
+
+`range`, `enumerate`, `zip`, `reversed` and `iter` build a lazy object; the
+rest read a field or convert a scalar. `min` and `max` join them only when
+given separate arguments -- `max(n, 1)` -- since over one iterable they walk it."""
+
+LOOKUP_METHODS = frozenset({"get"})
+"""A method that is one dict probe: the cost of a subscript.
+
+Not `keys`, `values` or `items`, though building a view is as cheap: `key in
+mapping.keys()` inside a loop is the C4.S8 shape, measured at 35-55%, and on
+the AST arm the loop-invariant report is what points at it."""
+
+
+def is_cheap_expression(node: ast.AST) -> bool:
+    """Whether evaluating this costs a lookup or a call and nothing more.
+
+    `len(x)`, `float(config["min_score"])`, `markers[arm]`, `float("nan")`,
+    `max(n_total, 1)`, `prim_h - 0.66`, `{"left": LEFT, "right": RIGHT}`: the
+    handful of operations every Python program is made of. Removing one --
+    hoisting it, deleting it -- saves about what the one-dot lookup
+    `C8S3_bound_method_alias` saved, 10.6% in a loop doing nothing else, and
+    inside the 15% the scan treats as no effect. Rules use this to stay quiet
+    where the measured shapes of their root causes did real work: a `sorted()`,
+    a comprehension, a call into the program's own code.
+
+    Not cheap: a slice (`x[1:]` copies), a comprehension, any other call, and a
+    list or tuple repeated (`[0] * n` allocates n slots).
+    """
+    if isinstance(node, (ast.Constant, ast.Name)):
+        return True
+    if isinstance(node, ast.Attribute):
+        return is_cheap_expression(node.value)
+    if isinstance(node, ast.Subscript):
+        return (not isinstance(node.slice, ast.Slice)
+                and is_cheap_expression(node.value) and is_cheap_expression(node.slice))
+    if isinstance(node, ast.UnaryOp):
+        return is_cheap_expression(node.operand)
+    if isinstance(node, ast.BinOp):
+        repeats = isinstance(node.op, ast.Mult) and any(
+            isinstance(side, (ast.List, ast.Tuple)) for side in (node.left, node.right))
+        return (not repeats and is_cheap_expression(node.left)
+                and is_cheap_expression(node.right))
+    if isinstance(node, ast.IfExp):
+        return all(is_cheap_expression(part) for part in (node.test, node.body, node.orelse))
+    if isinstance(node, (ast.Compare, ast.BoolOp)):
+        parts = ([node.left, *node.comparators] if isinstance(node, ast.Compare)
+                 else node.values)
+        return all(is_cheap_expression(part) for part in parts)
+    if isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+        return all(is_cheap_expression(element) for element in node.elts)
+    if isinstance(node, ast.Dict):
+        return all(is_cheap_expression(part)
+                   for part in (*node.keys, *node.values) if part is not None)
+    if isinstance(node, ast.JoinedStr):
+        return all(is_cheap_expression(part.value) if isinstance(part, ast.FormattedValue)
+                   else True for part in node.values)
+    if isinstance(node, ast.Call):
+        if any(isinstance(argument, ast.Starred) for argument in node.args):
+            return False
+        func = node.func
+        if isinstance(func, ast.Name):
+            cheap_callee = (func.id in CHEAP_BUILTIN_CALLS
+                            or (func.id in {"min", "max"} and len(node.args) >= 2))
+        elif isinstance(func, ast.Attribute):
+            cheap_callee = func.attr in LOOKUP_METHODS and is_cheap_expression(func.value)
+        else:
+            cheap_callee = False
+        return cheap_callee and all(
+            is_cheap_expression(argument)
+            for argument in (*node.args, *(k.value for k in node.keywords))
+        )
+    return False
+
 
 @dataclass
 class UnitContext:
