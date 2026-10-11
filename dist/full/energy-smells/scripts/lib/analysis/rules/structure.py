@@ -13,6 +13,7 @@ from typing import Iterator
 
 from ..models import Evidence, UnitRef
 from ..context import LOOP_NODES, OPAQUE_NODES, UnitContext, is_cheap_expression
+from .loops import _looks_stringy
 
 # Calls that reach outside the process. Cheap once, ruinous per iteration.
 #
@@ -1005,6 +1006,11 @@ def _running_sum(node: ast.AugAssign, non_numeric: set[str]) -> str | None:
     name = _target_name_of(node.target)
     if name is None or name in non_numeric:
         return None
+    # Text added is text accumulated, whatever the name started as:
+    # `text += "%s" % v` after `text = str(path) + name` is a join, and
+    # `sum()` raises on strings.
+    if _looks_stringy(node.value):
+        return None
     return None if isinstance(node.value, ast.Constant) else "sum"
 
 
@@ -1028,7 +1034,7 @@ def _non_numeric_accumulators(scope: ast.AST) -> set[str]:
         target, value = node.targets[0], node.value
         if not isinstance(target, ast.Name):
             continue
-        textual = isinstance(value, ast.Constant) and isinstance(value.value, (str, bytes))
+        textual = _looks_stringy(value)
         sequence = isinstance(value, (ast.List, ast.Dict, ast.Set, ast.Tuple,
                                       ast.ListComp, ast.DictComp, ast.SetComp))
         if textual or sequence:

@@ -97,3 +97,11 @@ def any_over_limit(scores, limit):
         if s > limit:
             alert = True
     return alert
+
+
+def generate_filename(directory, original_filename, *options):
+    # Text seeded from a call and grown with `%` formatting: a join, not a sum.
+    text = str(directory.absolute()) + original_filename
+    for v in options:
+        text += "%s" % v
+    return text

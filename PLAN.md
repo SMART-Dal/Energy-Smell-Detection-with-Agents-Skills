@@ -343,7 +343,8 @@ between two different agents on the same repo.
 - Findings ranked by the measured saving of their repair, averaged over our own
   benchmark shapes — the one axis, replacing the hand-assigned strength grades.
   Ruff findings are ranked the same way, by the root cause they map to. A scan
-  shows the best 100 findings, grouped by unit
+  shows every finding, dealt one rule at a time in that order so every rule
+  appears near the top, grouped by unit
 - A root cause is not reported at all when every input of every one of its
   samples moved energy by less than 15% either way: C1.S7, C2.S2, C6.S1, C12.S4.
   Rules also stay quiet where the measured shapes did real work and the code
