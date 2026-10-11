@@ -266,13 +266,14 @@ you are at the cap, keep the ones you would actually spend an hour repairing.
 ### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
 
 Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the
-whole card: the reference's definition, what to look for, the measured
+whole card: the reference's definition, common patterns, the measured
 repairs, near-misses, and similar root causes.
 
-- **The repairs are ideas, not templates.** Real code might look like them,
-  but not necessarily: it is usually longer, and the waste — and the repair —
-  can run across several functions or classes. Waste the definition describes
-  in a form no repair shows is still a finding.
+- **The patterns and repairs are what we tested, not the whole root cause.**
+  Real code might look like them, but not necessarily: it is usually longer,
+  and the waste — and the repair — can run across several functions or
+  classes. Waste the definition describes in a form no pattern or repair shows
+  is still a finding.
 - **A matching pattern does not guarantee a saving.** The author may have had a
   reason, and the current form may already be the efficient one for this code.
   Understand what the unit does before deciding the repair fits. If you judge
@@ -280,10 +281,11 @@ repairs, near-misses, and similar root causes.
   let the measurement decide.
 - **Each repair ends with what our measurement found, and an action:**
   **Apply the after** — it saved energy; where the code has the *before*, write
-  the *after*. **Try both directions** — on some inputs the *before* was the
-  cheaper form, although the reference gives the *after*: if the code has the
-  *before*, try the *after*; if it has the *after*, try the *before*; the
-  measurement decides. **Report it; no need to measure** — nothing moved on any
+  the *after*. **Decide which form fits** — on some inputs the *before* was
+  the cheaper form, although the reference gives the *after*. Whichever form
+  the code has now, judge from this repository — the code around the unit and
+  the inputs it actually receives — whether the *before* or the *after* is
+  better here, and measure when you cannot tell. **Report it; no need to measure** — nothing moved on any
   input: accept it if it fits and record it `deferred` in step 4.
   **Measure it** — our host could not resolve it.
 - **Near-misses** (`Looks like it, but is not`) have the pattern, and there the

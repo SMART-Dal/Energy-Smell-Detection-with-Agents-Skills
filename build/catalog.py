@@ -1,4 +1,4 @@
-"""The catalog: what to look for, and the measured repairs, per root cause.
+"""The catalog: common patterns, and the measured repairs, per root cause.
 
 This is what makes the project's central rule executable:
 
@@ -8,7 +8,7 @@ This is what makes the project's central rule executable:
 An entry is mostly references. Its repairs name case files under
 `validation/taxonomy/`, whose code and measured results the card shows as they
 are; its near-misses are lookalike specimens or a sourced example. What is
-written by hand is short: what to look for, a note under a sample when it has
+written by hand is short: the common patterns, a note under a sample when it has
 something specific to say, and why each near-miss breaks under the repair.
 
 This module is *build-time only*.  It reads `catalog/*.yaml`, validates it
@@ -93,7 +93,7 @@ class CatalogEntry:
     """Evidence kinds from `scan.py` that suggest this root cause."""
 
     look_for: str = ""
-    """What to look for: three or four lines summarising the measured samples.
+    """Common patterns: three or four lines summarising the measured samples.
 
     Written from the samples and the rule fixtures, in the card's own terms,
     and only about what the root cause is -- what it is not lives in

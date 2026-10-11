@@ -11,14 +11,15 @@ card states cannot drift apart.
 The result line ends with one of four actions, explained once in SKILL.md:
 
     saved on some or all cases, nothing cost more      Apply the after.
-    cost more on some case (saving or not elsewhere)   Try both directions.
+    cost more on some case (saving or not elsewhere)   Decide which form fits.
     nothing moved on any case                          Report it; no need to measure.
     the run could not resolve it                       Measure it.
 
 A regression never means the root cause is wrong. The taxonomy is the
 reference; a few inputs on one host cannot overturn it, and the same repair
 can pay or cost depending on the code around it. What a regression changes is
-the advice: try the other direction too, and let the measurement decide.
+the advice: the agent judges, from the repository and its inputs, which form
+fits, and measures when it cannot tell.
 """
 
 from __future__ import annotations
@@ -211,5 +212,5 @@ def decision(sample: Measured) -> str:
     if kinds == {"negligible"}:
         return f"**Measured:** no change on any case ({flat}). **Report it; no need to measure.**"
     if "regressed" in kinds:
-        return f"**Measured:** {measured_text}. **Try both directions.**"
+        return f"**Measured:** {measured_text}. **Decide which form fits.**"
     return f"**Measured:** {measured_text}. **Apply the after.**"

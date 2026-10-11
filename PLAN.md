@@ -102,11 +102,11 @@ keeps the decision driven by the code in front of it.
 Level 2 is where the work is. Each card carries:
 
 - the taxonomy's own definition and example, verbatim;
-- **What to look for** — three or four lines drawn from our samples and the
+- **Common patterns** — three or four lines drawn from our samples and the
   rules' positive fixtures;
 - **Repair** — every measured sample of this root cause, before and after,
   each ending with what it measured and what to do about it (apply the after,
-  try both directions, report without measuring, or measure);
+  decide which form fits, report without measuring, or measure);
 - **Looks like it, but is not** — up to five near-misses where the repair
   would change behaviour, most of them the behaviour-checked specimens in
   `validation/lookalikes/`;

@@ -18,7 +18,7 @@ what the card says -- so nothing on a card may be a guess.
 | section | comes from |
 |---|---|
 | Definition, Example from the reference | the taxonomy spreadsheet, verbatim |
-| What to look for | `look_for` -- written |
+| Common patterns | `look_for` -- written |
 | Repair: the one-line summary | `refactoring.summary` -- written once, also in the category table |
 | Repair: each sample's title | the case file's docstring, first line after `--` |
 | Repair: before / after | the case file under `validation/taxonomy/`, extracted with its helpers |
@@ -73,7 +73,7 @@ One clause, lower case, no full stop, written as a thing to look for. It renders
 in the category table, the full index, and every card that lists this one as
 similar.
 
-### `look_for` -- what to look for
+### `look_for` -- common patterns
 
 Three or four lines: what the waste looks like in code, and what the machine
 does that it need not. Written **only** from
@@ -109,8 +109,8 @@ Never add a claim a note did not make.
 When a case file's `after` applies a *different* root cause's repair -- its
 docstring says so, or the change is plainly that root cause's -- move it from
 `repairs` to `excluded`, with a one-line `reason` naming the other root cause.
-A sample is never excluded for costing more: that is what **Try both
-directions** is for. The build checks that every case file is either shown or
+A sample is never excluded for costing more: that is what **Decide which form
+fits** is for. The build checks that every case file is either shown or
 excluded.
 
 ### `not_this` -- looks like it, but is not
@@ -172,8 +172,8 @@ wrong.** A repair that cost more on one host, in the shapes we tried, is a fact
 about those shapes.
 
 So the cards never hide a regressed sample and never explain it away. Its
-**Measured** line says what happened and tells the agent to try both
-directions; the definition stands either way.
+**Measured** line says what happened and tells the agent to decide, from the
+repository and its inputs, which form fits; the definition stands either way.
 
 ## House rules
 

@@ -128,9 +128,9 @@ def render_category(category_id: str, taxonomy: Taxonomy, catalog: Catalog) -> s
 def render_root_cause(
     root_cause_id: str, taxonomy: Taxonomy, catalog: Catalog
 ) -> str:
-    """The full working card: the reference, what to look for, and the measured repairs.
+    """The full working card: the reference, common patterns, and the measured repairs.
 
-    Five parts: the reference's definition and example, what to look for, the
+    Five parts: the reference's definition and example, common patterns, the
     measured repairs, near-misses, and similar root causes. How to read them --
     that the repairs are ideas rather than templates, what each result line
     asks for, that a near-miss means the repair would be wrong -- is said once,
@@ -154,7 +154,7 @@ def render_root_cause(
     ]
     if node.example:
         lines += ["## Example from the reference", "", node.example, ""]
-    lines += ["## What to look for", "", _paragraphs(entry.look_for), ""]
+    lines += ["## Common patterns", "", _paragraphs(entry.look_for), ""]
 
     lines += ["## Repair", ""]
     if entry.refactoring and entry.refactoring.summary:
