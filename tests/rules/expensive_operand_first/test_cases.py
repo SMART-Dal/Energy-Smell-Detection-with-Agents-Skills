@@ -118,3 +118,10 @@ def known_method(request):
 def local_timezone():
     # A fallback to a module constant: `UTC or now()...` would always be UTC.
     return datetime.now().astimezone().tzinfo or UTC
+
+
+def expired(deadline, errors):
+    # Reading the clock costs what the truth test beside it costs.
+    if time.time() >= deadline and errors:
+        return True
+    return False

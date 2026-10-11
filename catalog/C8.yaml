@@ -82,6 +82,7 @@
 - id: C8.S3
   signals:
     - repeated_lookup_in_loop
+    - repeated_subscript_in_loop
   in_one_line: |
     a name or attribute chain re-resolved every iteration for a value that never moves
   look_for: |

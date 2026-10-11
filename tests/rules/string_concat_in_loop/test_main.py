@@ -18,6 +18,7 @@ EXPECTED = {
     "build_bytes": 1,               # bytes concatenate the same way
     "build_row": 1,                 # `a = a + b + c`, three parts deep
     "grow_with_an_fstring": 1,      # f-strings never resize in place
+    "column_label": 1,              # a prepend copies every time, even a local
 }
 
 

@@ -377,6 +377,12 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
             continue
 
         loop = enclosing[-1]
+        # Nothing carries over to the next pass when the pass starts the value
+        # afresh -- `tikz = ""` or `name = item["name"]` before wrapping it --
+        # or when the target belongs to the element being visited, as in
+        # `for q in questions: q["text"] += suffix`.
+        if _restarted_each_pass(loop, target, node, ctx):
+            continue
         if isinstance(value, ast.JoinedStr):
             # No in-place path exists for an f-string, so the accumulator's
             # reference count is irrelevant and every spelling is quadratic.
@@ -400,6 +406,15 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                 accumulator=name, accumulator_kind="aliased",
                 loop_line=loop.lineno,
             )
+        elif isinstance(target, ast.Name) and _prepends(node, target.id):
+            yield _evidence(
+                unit, "string_concat_in_loop", node, ("C10.S4",),
+                f"`{target.id}` is grown by putting text in front of it inside a "
+                f"loop; CPython can only resize a string in place when it is the "
+                f"left operand, so each prepend copies the whole value",
+                accumulator=target.id, accumulator_kind="prepend",
+                loop_line=loop.lineno,
+            )
         elif isinstance(target, ast.Name):
             if _name_is_retained_in(loop, target.id, skip=node):
                 yield _evidence(
@@ -420,6 +435,40 @@ def string_concat_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]
                     accumulator=target.id, accumulator_kind="local",
                     loop_line=loop.lineno,
                 )
+
+
+def _restarted_each_pass(loop: ast.AST, target: ast.AST, node: ast.AST,
+                         ctx: UnitContext) -> bool:
+    """Whether the accumulator is a new value on every pass of `loop`.
+
+    A plain name is, when this pass of the loop assigns it something that does
+    not read it -- a reset, not a growth step. A subscript or attribute is, when
+    it hangs off the loop's own variable: each pass grows a different object.
+    """
+    if isinstance(target, ast.Name):
+        for other in ast.walk(loop):
+            if other is node or not isinstance(other, (ast.Assign, ast.AnnAssign)):
+                continue
+            if other.value is None or ctx.repeats_around(other)[-1:] != (loop,):
+                continue
+            targets = other.targets if isinstance(other, ast.Assign) else [other.target]
+            if any(isinstance(t, ast.Name) and t.id == target.id for t in targets) and \
+                    target.id not in ctx.read_names(other.value):
+                return True
+        return False
+    root = target
+    while isinstance(root, (ast.Attribute, ast.Subscript)):
+        root = root.value
+    loop_target = getattr(loop, "target", None)
+    return (isinstance(root, ast.Name) and loop_target is not None
+            and root.id in {n.id for n in ast.walk(loop_target) if isinstance(n, ast.Name)})
+
+
+def _prepends(node: ast.AST, name: str) -> bool:
+    """`s = x + s`: the accumulator on the right, where it is always copied."""
+    return (isinstance(node, ast.Assign) and isinstance(node.value, ast.BinOp)
+            and isinstance(node.value.right, ast.Name) and node.value.right.id == name
+            and _target_name(_leftmost_operand(node.value)) != name)
 
 
 def _concatenation(node: ast.AST):
@@ -793,6 +842,123 @@ def _rebound_chains(loop: ast.AST) -> set[str]:
             if chain is not None:
                 found.add(chain)
     return found
+
+
+def repeated_subscript_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
+    """The same `d[k]` read several times in one pass, its key changing per pass.
+
+        for k in keys:
+            if d[k] > limit:            three lookups of the same entry
+                total += d[k]
+                seen.append(d[k])
+
+    `loop_invariant_expression` reports a lookup whose key never changes, which
+    can leave the loop. This is the other half: the key is the loop variable or
+    something built from it, so nothing can leave the loop, but each pass can
+    still look the entry up once and reuse it -- the local caching C8.S3 is
+    about, applied to a lookup by key rather than an attribute chain.
+
+    Three reads, as for attribute chains (`MIN_RESOLUTIONS_TO_CACHE`): two is
+    the shape of ordinary code. Not reported when the pass changes the
+    container or rebinds a name the lookup reads between the reads, since the
+    reads may then see different values, nor when the reads sit in separate
+    arms of one `if`, where only one of them runs.
+    """
+    for scope in ctx.repeat_scopes:
+        bound = ctx.assigned_names(scope)
+        mutated = _mutated_paths(scope)
+        deferred = {id(inner) for lam in ast.walk(scope)
+                    if isinstance(lam, ast.Lambda) for inner in ast.walk(lam)}
+        seen: dict[str, list[ast.Subscript]] = {}
+        for node in ctx.per_iteration_nodes(scope):
+            if not (isinstance(node, ast.Subscript) and isinstance(node.ctx, ast.Load)):
+                continue
+            if isinstance(node.slice, ast.Slice) or not ctx.owns(node):
+                continue
+            if ctx.repeats_around(node)[-1:] != (scope,) or id(node) in deferred:
+                continue
+            if id(node) in ctx.annotation_nodes:
+                continue
+            reads = ctx.read_names(node)
+            # A key that never changes is `loop_invariant_expression`'s.
+            if not reads & bound:
+                continue
+            if _reads_mutated_path(ctx, node, mutated):
+                continue
+            seen.setdefault(ast.unparse(node), []).append(node)
+
+        for text, nodes in seen.items():
+            if len(nodes) < MIN_RESOLUTIONS_TO_CACHE:
+                continue
+            # `d[k]` inside `d[k][j]` is the same lookup unless it is read more.
+            longer = max((len(more) for other, more in seen.items()
+                          if other != text and other.startswith(text + "[")), default=0)
+            if len(nodes) <= longer:
+                continue
+            if _rebound_between(scope, ctx.read_names(nodes[0]), nodes):
+                continue
+            ids = {id(n) for n in nodes}
+            per_pass = (_most_on_one_path(scope.body, ids)
+                        if isinstance(scope, LOOP_NODES)
+                        else _most_on_one_path([scope], ids))
+            if per_pass < MIN_RESOLUTIONS_TO_CACHE:
+                continue  # spread over arms of an `if`: fewer run in any one pass
+            yield _evidence(
+                unit, "repeated_subscript_in_loop", nodes[0], ("C8.S3",),
+                f"`{text}` is looked up {len(nodes)} times in the same pass; its key "
+                f"changes from pass to pass, so it cannot leave the loop, but "
+                f"reading it once at the top of the pass saves the other lookups",
+                expression=text, occurrences=len(nodes),
+                loop_line=getattr(scope, "lineno", unit.lineno),
+            )
+
+
+def _most_on_one_path(nodes, targets: set[int]) -> int:
+    """The most of `targets` that one pass through `nodes` can evaluate.
+
+    Arms of an `if`, of a conditional expression and of a `match` are
+    alternatives, as are the handlers of one `try`; everything else adds up.
+    """
+    def count(node: ast.AST) -> int:
+        if id(node) in targets:
+            return 1
+        if isinstance(node, (ast.If, ast.IfExp)):
+            body = node.body if isinstance(node.body, list) else [node.body]
+            orelse = node.orelse if isinstance(node.orelse, list) else [node.orelse]
+            return count(node.test) + max(total(body), total(orelse))
+        if isinstance(node, ast.Try):
+            handlers = max((total(h.body) for h in node.handlers), default=0)
+            return (total(node.body) + max(handlers, total(node.orelse))
+                    + total(node.finalbody))
+        if isinstance(node, ast.Match):
+            return count(node.subject) + max((total(c.body) for c in node.cases), default=0)
+        if isinstance(node, OPAQUE_NODES + (ast.Lambda,)):
+            return 0
+        return sum(count(child) for child in ast.iter_child_nodes(node))
+
+    def total(items) -> int:
+        return sum(count(item) for item in items)
+
+    return total(nodes)
+
+
+def _rebound_between(scope: ast.AST, names: set[str], nodes: list[ast.AST]) -> bool:
+    """Whether a name in `names` is assigned between the first and last read.
+
+    The loop header binds the key before the pass starts, so it does not count;
+    `key = key.strip()` halfway through the pass does.
+    """
+    first, last = nodes[0].lineno, max(n.lineno for n in nodes)
+    header = set()
+    if isinstance(scope, (ast.For, ast.AsyncFor)):
+        header = {id(n) for n in ast.walk(scope.target)}
+    elif isinstance(scope, COMPREHENSION_NODES):
+        header = {id(n) for g in scope.generators for n in ast.walk(g.target)}
+    return any(
+        isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and n.id in names
+        and id(n) not in header and first <= n.lineno <= last
+        for n in ast.walk(scope)
+    )
 
 
 def _attribute_chain(node: ast.Attribute) -> str | None:
@@ -1924,6 +2090,7 @@ RULES = [
     loop_invariant_expression,
     string_concat_in_loop,
     repeated_lookup_in_loop,
+    repeated_subscript_in_loop,
     membership_test_on_sequence,
     index_based_iteration,
     append_only_loop,

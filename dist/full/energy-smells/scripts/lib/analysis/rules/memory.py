@@ -369,6 +369,11 @@ def _is_released(scope: ast.AST, names: set[str]) -> bool:
             and node.value.id in names
         ):
             return True
+        # A descriptor from `os.open` is closed by `os.close(fd)`, not a method.
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "close"
+                and any(isinstance(a, ast.Name) and a.id in names for a in node.args)):
+            return True
         if isinstance(node, (ast.With, ast.AsyncWith)):
             for item in node.items:
                 # `_passes_on`, not "mentions the name anywhere": a `with` only

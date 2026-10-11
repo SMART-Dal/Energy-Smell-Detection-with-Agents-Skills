@@ -126,3 +126,14 @@ def read_fallback():
     if (stream := open("fallback.bin", "r")):
         return stream.read()
     return None
+
+
+def silenced_stderr():
+    # A descriptor from `os.open`, closed by `os.close` in the `finally`.
+    saved = os.dup(2)
+    devnull_fd = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull_fd, 2)
+    finally:
+        os.dup2(saved, 2)
+        os.close(devnull_fd)

@@ -338,7 +338,7 @@ between two different agents on the same repo.
 **Carried over from v2 and still valid**
 
 - 65 catalog entries: 228 measured repairs shown from the case files, 120 near-misses (33 of them behaviour-checked specimens from `validation/lookalikes/`)
-- 39 AST analyzers + a Ruff adapter, validated on 179 files of pandas source and
+- 40 AST analyzers + a Ruff adapter, validated on 179 files of pandas source and
   reviewed by hand against ten evaluation repositories (Oct 2026)
 - Findings ranked by the measured saving of their repair, averaged over our own
   benchmark shapes — the one axis, replacing the hand-assigned strength grades.

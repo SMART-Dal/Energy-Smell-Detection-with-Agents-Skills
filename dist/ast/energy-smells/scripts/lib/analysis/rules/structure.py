@@ -12,7 +12,7 @@ import re
 from typing import Iterator
 
 from ..models import Evidence, UnitRef
-from ..context import OPAQUE_NODES, UnitContext, is_cheap_expression
+from ..context import LOOP_NODES, OPAQUE_NODES, UnitContext, is_cheap_expression
 
 # Calls that reach outside the process. Cheap once, ruinous per iteration.
 #
@@ -99,10 +99,12 @@ CHEAP_METHODS = LOOKUP_METHODS | frozenset({
     "isalnum", "isspace", "istitle", "isnumeric", "isdecimal", "isidentifier",
     "isascii", "isfinite", "isnan", "isinf",
     "lower", "upper", "casefold", "strip", "lstrip", "rstrip",
+    "time", "monotonic", "perf_counter", "time_ns", "monotonic_ns", "perf_counter_ns",
 })
 """Methods that cost about what a comparison costs: a dict probe, a view, a
-prefix check, a character-class test, a float classification, or a case or
-whitespace normalisation of what is almost always a short string."""
+prefix check, a character-class test, a float classification, a case or
+whitespace normalisation of what is almost always a short string, or a read
+of the clock."""
 
 SAFE_TO_PROMOTE = frozenset({
     "len", "isinstance", "issubclass", "type", "id", "bool", "hasattr", "callable",
@@ -1317,6 +1319,8 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             continue
         if _dispatched_concurrently(node, ctx):
             continue
+        if _streams_or_retries(node, ctx):
+            continue
         if isinstance(node.func, ast.Name):
             # `from urllib.request import urlopen` binds the function itself,
             # and a rule matching only `ast.Attribute` never saw it.
@@ -1339,6 +1343,45 @@ def io_call_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
             call=name,
             loop_line=getattr(ctx.repeats_around(node)[-1], "lineno", unit.lineno),
         )
+
+
+def _streams_or_retries(call: ast.Call, ctx: UnitContext) -> bool:
+    """Whether the loop around `call` is already the right shape for it.
+
+    Two loops repeat an I/O call on purpose, and batching fits neither:
+
+        while chunk := handle.read(65536):     streaming: the read is the loop's
+            digest.update(chunk)               own condition, already chunked
+
+        for attempt in range(retries):         a retry: the `try` that holds the
+            try:                               call leaves the loop on success,
+                return session.post(url)       so it runs once when it works
+            except TransientError: ...
+    """
+    loops = [s for s in ctx.repeats_around(call) if isinstance(s, LOOP_NODES)]
+    if not loops:
+        return False
+    loop = loops[-1]
+    current, parent = call, ctx.parent_of(call)
+    while parent is not None and current is not loop:
+        if isinstance(parent, ast.While) and current is parent.test:
+            return True
+        if (isinstance(parent, ast.Try) and any(current is s for s in parent.body)
+                and any(isinstance(n, (ast.Return, ast.Break))
+                        for s in (*parent.body, *parent.orelse)
+                        for n in _walk_same_loop(s))):
+            return True
+        current, parent = parent, ctx.parent_of(parent)
+    return False
+
+
+def _walk_same_loop(node: ast.AST):
+    """Walk `node` without entering nested loops or definitions."""
+    yield node
+    for child in ast.iter_child_nodes(node):
+        if isinstance(child, LOOP_NODES + OPAQUE_NODES + (ast.Lambda,)):
+            continue
+        yield from _walk_same_loop(child)
 
 
 CONCURRENT_DISPATCH = frozenset({

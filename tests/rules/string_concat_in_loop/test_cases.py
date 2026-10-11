@@ -131,3 +131,31 @@ def tally(rows):
             snapshot["message"] = "some rows were rejected"
             snapshot["invalid"] += 1
     return snapshot
+
+
+def wrap_each(items):
+    # Restarted every pass, then wrapped once: nothing grows across passes.
+    out = []
+    for item in items:
+        tikz = ""
+        if item.code:
+            tikz = item.code
+        if tikz:
+            tikz = f"\\begin{{tikzpicture}}{tikz}\\end{{tikzpicture}}"
+        out.append(tikz)
+    return out
+
+
+def append_suffix(questions, suffix):
+    # Each pass grows a different question's text, once.
+    for q in questions:
+        q["content"] += f"\n\n{suffix}"
+
+
+def column_label(n):
+    # Prepending: the accumulator is on the right, so every step copies it.
+    label = ""
+    while n > 0:
+        n, remainder = divmod(n - 1, 26)
+        label = chr(ord("A") + remainder) + label
+    return label

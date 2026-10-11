@@ -107,3 +107,23 @@ def drain_a_local_queue(items):
     pool = queue.Queue()
     for item in items:
         pool.get()
+
+
+def sha256_file(path, chunk_size):
+    # Streaming: the read is the loop's own condition and already chunked.
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while chunk := handle.read(chunk_size):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def post_with_retries(session, url, body, retries):
+    # A retry: the `try` returns on success, so the call runs once when it works.
+    for attempt in range(retries):
+        try:
+            response = session.post(url, json=body)
+            return response.json()
+        except ConnectionError:
+            time.sleep(2 ** attempt)
+    return None
