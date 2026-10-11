@@ -108,6 +108,8 @@ class UnitContext:
     def __post_init__(self) -> None:
         self._parents: dict[ast.AST, ast.AST] = {}
         self._repeat_stack: dict[ast.AST, tuple[ast.AST, ...]] = {}
+        self._assigned: dict[ast.AST, frozenset[str]] = {}
+        self._own: tuple[ast.AST, ...] | None = None
         self._index()
 
     # -- structure ---------------------------------------------------------
@@ -170,8 +172,14 @@ class UnitContext:
         return node is self.node or node in self._repeat_stack
 
     def own_nodes(self):
-        """Every node this unit is responsible for, nested definitions excluded."""
-        return (node for node in ast.walk(self.node) if self.owns(node))
+        """Every node this unit is responsible for, nested definitions excluded.
+
+        Walked once and kept: most rules start from this, and each one walking
+        the unit afresh was a large share of a scan's running time.
+        """
+        if self._own is None:
+            self._own = tuple(node for node in ast.walk(self.node) if self.owns(node))
+        return iter(self._own)
 
     def parent_of(self, node: ast.AST) -> ast.AST | None:
         return self._parents.get(node)
@@ -431,6 +439,16 @@ class UnitContext:
         the first of those reported `str(e)` inside an `except` clause as
         loop-invariant, when `e` is rebound by every iteration that raises.
         """
+        # Rules ask this of the same loop once per node inside it, and the walk
+        # is the whole loop, so it is remembered per scope. A copy goes out
+        # because callers extend what they get back.
+        cached = self._assigned.get(scope)
+        if cached is None:
+            cached = self._assigned[scope] = frozenset(self._assigned_names(scope))
+        return set(cached)
+
+    @staticmethod
+    def _assigned_names(scope: ast.AST) -> set[str]:
         names: set[str] = set()
         for node in ast.walk(scope):
             if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):

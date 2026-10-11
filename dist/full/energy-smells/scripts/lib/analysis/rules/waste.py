@@ -589,6 +589,11 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
                 described = f"{ast.unparse(func.value)}.{func.attr}()"
         elif isinstance(node, ast.Subscript) and _is_full_slice(node.slice):
             described = "a `[:]` slice"
+        if not described:
+            # Checked before the scope walks below rather than after them: those
+            # walk the whole enclosing loop, and doing it for every node inside
+            # every loop made this one rule most of a scan's running time.
+            continue
 
         # `row[:]` in a comprehension copies the element, and every copy is the
         # result; it does not duplicate a container the iterations share, so
@@ -599,9 +604,9 @@ def copy_in_loop(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
         scopes = ctx.repeats_around(node)
         rebound = ctx.assigned_names(scopes[-1]) if scopes else set()
         rebound |= _mutated_in(scopes[-1]) if scopes else set()
-        if described and _copy_is_consumed(node, ctx, scopes):
+        if _copy_is_consumed(node, ctx, scopes):
             continue
-        if described and not (ctx.read_names(node) & (ctx.iteration_names(node) | rebound)):
+        if not (ctx.read_names(node) & (ctx.iteration_names(node) | rebound)):
             yield _evidence(
                 unit, "copy_in_loop", node, ("C6.S2",),
                 f"`{ast.unparse(node)}` duplicates a container on every iteration "

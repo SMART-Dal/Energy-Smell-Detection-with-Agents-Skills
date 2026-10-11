@@ -105,6 +105,44 @@ def _ruff_command(executable: str) -> list[str]:
             "--output-format", "json", "--select", ",".join(sorted(RULE_MAP))]
 
 
+_BATCHED: dict[Path, list[dict]] = {}
+"""Violations from one Ruff run over the whole scan, by resolved file path."""
+
+BATCH_SIZE = 400
+"""Files per Ruff invocation, to stay well inside the command-line limit."""
+
+
+def prepare(paths: list[Path]) -> None:
+    """Run Ruff once over every file the scan will visit, ahead of `collect`.
+
+    One process per file was most of the time this family took -- startup, not
+    checking. A batch that fails leaves nothing behind, and `run_ruff` then runs
+    each file on its own exactly as before, so an error still surfaces per file
+    rather than vanishing into a clean report.
+    """
+    _BATCHED.clear()
+    executable = ruff_executable()
+    if executable is None or unavailable_reason() is not None:
+        return
+    found: dict[Path, list[dict]] = {path.resolve(): [] for path in paths}
+    for start in range(0, len(paths), BATCH_SIZE):
+        chunk = [str(path) for path in paths[start:start + BATCH_SIZE]]
+        try:
+            completed = subprocess.run([*_ruff_command(executable), *chunk],
+                                       capture_output=True, text=True, timeout=600,
+                                       check=False)
+            if completed.returncode not in (0, 1):
+                return
+            violations = json.loads(completed.stdout or "[]")
+        except (OSError, subprocess.SubprocessError, ValueError):
+            return
+        for violation in violations:
+            filename = violation.get("filename")
+            if filename:
+                found.setdefault(Path(filename).resolve(), []).append(violation)
+    _BATCHED.update(found)
+
+
 def run_ruff(path: Path) -> list[dict]:
     """Run Ruff over one file with only our mapped rules enabled.
 
@@ -116,6 +154,9 @@ def run_ruff(path: Path) -> list[dict]:
     it had run.  Raising is the point: the caller may drop the family, but it
     cannot mistake it for silence.
     """
+    batched = _BATCHED.get(path.resolve())
+    if batched is not None:
+        return batched
     executable = ruff_executable()
     if executable is None:
         return []

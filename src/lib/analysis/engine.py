@@ -319,6 +319,16 @@ def analyse_path(root: Path, *, only_with_evidence: bool = True,
     # can only become an edge after both files have produced their units.
     link(results, index)
 
+    # A family may want to see every file at once before being asked about
+    # each one -- Ruff, which is far cheaper run once over the tree.
+    for family in _families():
+        prepare = getattr(family, "prepare", None)
+        if callable(prepare):
+            try:
+                prepare([p[0] for p in prepared])
+            except Exception:  # noqa: BLE001, S110 -- `collect` still runs file by file
+                pass
+
     for path, units, source, imports, findings in prepared:
         _apply_rules(path, units, source, imports, findings, cross_unit=cross_unit)
 
