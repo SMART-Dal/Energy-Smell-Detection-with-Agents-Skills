@@ -279,7 +279,7 @@ repository you were pointed at stays untouched.
 
 Read `$SKILL/reference/verifying.md` before your first submission.
 
-1. **Choose what to measure.** Measuring takes about a minute a repair, so at
+1. **Choose what to measure.** Measuring takes under a minute a repair, so at
    most **20** repairs are measured — the ones you expect to save the most
    energy, across all units — unless you were asked to measure all of them, or
    a different number. Every other accepted suspicion is still a finding:
@@ -308,7 +308,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    python $SKILL/scripts/verify.py submissions.jsonl --repo .
    ```
 
-   Every line is measured in turn, about a minute each, and its result is
+   Every line is measured in turn, under a minute each, and its result is
    written into the line as `agent_measurement`: the verdict, and the joules
    and seconds of every case. Never write or edit it yourself.
 

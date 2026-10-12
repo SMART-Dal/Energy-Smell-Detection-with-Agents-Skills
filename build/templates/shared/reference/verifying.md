@@ -223,7 +223,7 @@ real effect has to clear. It is kept for the session, and taken automatically
 if you forget. If it comes back significant, something else is using the
 machine, and nothing measured until it stops means anything.
 
-The second command goes through the file once, about a minute per repair, and
+The second command goes through the file once, under a minute per repair, and
 writes each result into its line. Run it again after fixing broken lines and it
 measures only what needs it: a line never measured, a line that was
 `not_equivalent`, `invalid` or `error` and has since been fixed, and anything
@@ -252,7 +252,7 @@ it was. A different repair is a new line.
 4. **Sizing.** Times one call of each version and picks a repeat count so the
    faster one fills about a second. Both run that same count.
 5. **Paired measurement.** The two versions take turns on one thread, one
-   measured window each, five pairs per case, the order flipped every pair —
+   measured window each, three pairs per case, the order flipped every pair —
    so each pair of readings is taken back to back, on the same core, close
    enough that the machine's own drift affects both alike.
 6. **Statistics.** The energy difference is computed per pair and averaged,

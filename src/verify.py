@@ -97,11 +97,13 @@ class Profile:
 
 
 PROFILES = {
-    # Every submitted repair, by the agent and when we re-measure: about a
-    # minute each. On the development host two copies of identical code read
-    # within about 1% per case with these settings, and the session floor (ten
-    # repetitions) came out at 1-3%.
-    "fast": Profile("fast", window=1.0, reps=5, canary=False, warmup=3.0, slow_factor=2.0),
+    # Every submitted repair, by the agent and when we re-measure: under a
+    # minute each, so twenty repairs measured twice fit an hour-long run with
+    # time left for the agent (Javad, Oct 2026). Three pairs is the fewest that
+    # still gives a usable interval; on the development host a 2-input sample
+    # read +-2.3% at three pairs against +-1.6% at five, and the session floor
+    # (ten repetitions, whatever the profile) came out at about 1.5%.
+    "fast": Profile("fast", window=1.0, reps=3, canary=False, warmup=3.0, slow_factor=2.0),
     # Our validation case files only, unchanged since the first measured run,
     # so the 230 recorded results stay comparable with anything re-run.
     "validation": Profile("validation", window=3.0, reps=9, canary=True, warmup=10.0,

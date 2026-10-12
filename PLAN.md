@@ -205,7 +205,7 @@ gets fresh input, built outside the measured region.
 3. **Scale the workload.** Time one call of each version and choose a repeat
    count so the faster fills a 1 s window. Both run the same count.
 4. **Measure paired and interleaved.** The two versions alternate on one thread
-   — 5 paired repetitions, order flipped each time. Separate
+   — 3 paired repetitions, order flipped each time. Separate
    processes per version were tried twice: once early on (about 3.5× wider
    intervals) and again for this design, where identical code in two processes
    read "confirmed" in two of four runs. The pair has to share a process.
