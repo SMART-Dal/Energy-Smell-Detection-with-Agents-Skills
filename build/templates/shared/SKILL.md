@@ -254,7 +254,7 @@ repository you were pointed at stays untouched.
 Read `$SKILL/reference/verifying.md` before your first submission.
 
 1. **Choose what to measure.** Measuring takes about a minute a repair, so at
-   most **15** repairs are measured — the ones you expect to save the most
+   most **20** repairs are measured — the ones you expect to save the most
    energy, across all units — unless you were asked to measure all of them, or
    a different number. Every other accepted suspicion is still a finding:
    record it as `deferred` in step 4's record.
@@ -310,7 +310,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
      {"label": "a", "submission": "{{SUBMISSION_ID_EXAMPLE}}"},
      {"label": "b", "same_repair_as": "{{SUBMISSION_ID_EXAMPLE}}"},
      {"label": "c", "blocked": "every input needs a live database connection"},
-     {"label": "d", "deferred": "outside the 15 repairs measured"}
+     {"label": "d", "deferred": "outside the 20 repairs measured"}
    ]}
    ```
 
