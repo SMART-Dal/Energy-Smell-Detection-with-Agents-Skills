@@ -16,7 +16,25 @@ message, not a file.
 ## findings.jsonl
 
 One JSON object per line, tagged with the step that produced it, in the order
-you produced them. Shown expanded here; each is written on a single line.
+you produced them.
+
+**Every record has exactly the keys listed for it — all of them, every time,
+and no others.** A key with nothing to say is `null` or `[]`, never left out.
+The same keys in every run are what make runs comparable.
+
+| Record | One per | Keys |
+|---|---|---|
+| step 1 | run, and another whenever the list changes | `step`, `target`, `unit_limit`, `units_considered`, `will_examine` |
+| step 2 | unit on the step-1 list | `step`, `unit`, `what_it_does`, `cost_driver`, `own_hypotheses`, `suspicions`, `cleared_because` |
+| step 3 | unit with suspicions | `step`, `unit`, `decisions` |
+| step 4 | unit with an accepted suspicion | `step`, `unit`, `outcomes` |
+| a suspicion, in `suspicions` | | `label`, `lines`, `why` |
+| a decision, in `decisions` | | `label`, `lines`, `verdict`, `why` |
+| an outcome, in `outcomes` | | `label`, `outcome`, `submission`, `why` |
+
+Step 5 writes no record: its output is your final message.
+
+Shown expanded here; each is written on a single line.
 
 ```jsonc
 {"step": 1, "target": "src/", "unit_limit": 10, "units_considered": 128,
@@ -34,11 +52,12 @@ you produced them. Shown expanded here; each is written on a single line.
     "`self.columns` is re-derived inside the row loop and never changes"
   ],
   "suspicions": [
-    {"label": "a", "lines": [47],    "confidence": "high",
+    {"label": "a", "lines": [47],
      "why": "`self.buf` is grown with += once per row; nothing reads it in the loop"},
-    {"label": "b", "lines": [44,45], "confidence": "medium",
+    {"label": "b", "lines": [44,45],
      "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row"}
-  ]
+  ],
+  "cleared_because": null
 }
 ```
 
@@ -51,33 +70,58 @@ you produced them. Shown expanded here; each is written on a single line.
  "cleared_because": "no work here is proportional to input size"}
 ```
 
-Step 3 and step 4 records are shown in `SKILL.md`, at those steps: one per unit
-with suspicions, listing `decisions` and `outcomes` by `label`.
+```jsonc
+{"step": 3, "unit": "src/router.py::Router.allowed", "decisions": [
+  {
+    "label": "a", "lines": [58], "verdict": "rejected",
+    "why": "the repair belongs where the container is built, not where it is searched. Added `c` instead."
+  },
+  {
+    "label": "c", "lines": [31], "verdict": "accepted",
+    "why": "`self.blocked` is a list searched once per request, built in __init__ at line 31 and read nowhere else; as a set each search is one hash lookup"
+  }
+]}
+```
+
+```jsonc
+{"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
+  {"label": "a", "outcome": "submitted",      "submission": "render-concat", "why": null},
+  {"label": "b", "outcome": "same_repair_as", "submission": "render-concat", "why": null},
+  {"label": "c", "outcome": "blocked",        "submission": null, "why": "every input needs a live database connection"},
+  {"label": "d", "outcome": "deferred",       "submission": null, "why": "outside the 20 repairs measured"}
+]}
+```
 
 ### Field rules
 
 **`label`** names a suspicion within its unit — `a`, `b`, `c` — and is how steps
 3 and 4 refer to it. A suspicion added in step 3 gets a label of its own.
 
-**`why`** must be specific to this code. Name the variable, the line, the
-structure. "Inefficient string handling" is not a reason; "`self.buf` is grown
-with `+=` across `rows`" is.
+**`lines`** is a list of line numbers in the unit's file.
 
-**`hotness`**, on a step-3 decision, is how often the code runs and how large
-its inputs get. It is what a reader checks when a saving looks marginal, and
-what you size the five cases from.
+**`why`** is the reason, under one name everywhere. On a suspicion: what looks
+wasteful. On a decision: what decided it — for `accepted`, the mechanism, what
+work stops happening; for `rejected`, the check that failed. On an outcome: why
+it was `blocked` or `deferred`, and `null` otherwise. It must be specific to
+this code: name the variable, the line, the structure. "Inefficient string
+handling" is not a reason; "`self.buf` is grown with `+=` across `rows`" is.
+
+**`verdict`** is `"accepted"` or `"rejected"`.
 
 **`own_hypotheses`** is what you thought before naming anything. Without it there is
 no way to tell whether you read the code or the labels.
 
+**`cleared_because`** says why a unit with `"suspicions": []` is clean; it is
+`null` when there are suspicions.
+
 **`unit_limit`**, in step 1, is the number of units you were asked to
 examine, or `null` when you were not given one and examine the whole target.
 
-**`outcomes`**, in step 4, gives every accepted suspicion exactly one of:
-`submission` (an `id` in `submissions.jsonl`), `same_repair_as` (the `id` of
-the submission that already makes this edit), `blocked` (why no repair could
-be measured), or `deferred` (accepted, and not measured). A deferred
-suspicion is still a finding.
+**`outcome`**, in step 4, is one of: `submitted` (`submission` is its `id` in
+`submissions.jsonl`), `same_repair_as` (`submission` is the `id` of the
+submission that already makes this edit), `blocked` (no repair could be
+measured) or `deferred` (accepted, and not measured). A deferred suspicion is
+still a finding.
 
 Every unit from step 1 has a step-2 record, and every suspicion is accounted
 for: rejected in step 3, or given an outcome in step 4. A run that examined
@@ -88,11 +132,12 @@ distinguishable, and so do a suspicion you dropped and one you forgot.
 
 ## submissions.jsonl
 
-The fields are in `$SKILL/reference/verifying.md`. Three rules connect it to the
+Every line has every field listed in `$SKILL/reference/verifying.md` — none
+are optional, and no others are accepted. Three rules connect it to the
 findings:
 
-- every `submission` in a step-4 record names a line here, and every line here
-  is named by exactly one;
+- every step-4 outcome `submitted` names a line here, and every line here is
+  named by exactly one;
 - every line ends with the `agent_measurement` the script wrote. Never write
   or edit it, and never write a verdict anywhere yourself;
 - every measured repair stays, whatever its verdict.

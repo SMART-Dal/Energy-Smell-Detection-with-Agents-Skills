@@ -117,8 +117,15 @@ class Pair:
 
     @property
     def skipped(self) -> list[str]:
-        """Top-level statements skipped to load the unit's module, either side."""
-        return list(dict.fromkeys(self.ready["before"]["skipped"] + self.ready["after"]["skipped"]))
+        """Top-level statements skipped to load the unit's module, either side.
+
+        As the original numbers them; the patched copy's line numbers shift with
+        the repair, so its list adds only statements the original did not skip.
+        """
+        before = self.ready["before"]["skipped"]
+        seen = {entry.split(" ", 2)[-1] for entry in before}
+        return before + [entry for entry in self.ready["after"]["skipped"]
+                         if entry.split(" ", 2)[-1] not in seen]
 
     def side(self, name: str) -> "_Side":
         return _Side(self, name)

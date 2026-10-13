@@ -86,9 +86,9 @@ second problem is a second finding, or it is nothing.
 {{SUBJECT_SINGULAR}}. If the repair does not change what the machine does, it
 is out of scope here.
 
-Everything else that wastes work is in scope. Record how hot the code is,
-because it tells a reader how much the saving is worth — but a real repair on a
-cold path is still a real repair, and the measurement will say what it came to.
+Everything else that wastes work is in scope. How hot the code is tells you how
+much a saving is worth — but a real repair on a cold path is still a real
+repair, and the measurement will say what it came to.
 
 ## Energy is not time
 
@@ -109,6 +109,10 @@ must produce. Produce it before moving on, and append it to `findings.jsonl` as
 one JSON line tagged with its step — as you go, not reconstructed at the end.
 Every step after the second one is a check on what the second one wrote down,
 and a check you run against nothing checks nothing.
+
+Each record has **exactly the keys its example below shows — all of them, and
+no others**; a key with nothing to say is `null` or `[]`.
+`$SKILL/reference/output-format.md` lists every key and what it holds.
 
 ### 1. Select — *in:* a target · *out:* the units you will examine, in order
 
@@ -198,13 +202,14 @@ picked, and it only works if you do it first and record it.
   ],
   "suspicions": [
 {{SUSPICION_ROWS}}
-  ]
+  ],
+  "cleared_because": null
 }
 ```
 
 Give each suspicion a `label` — `a`, `b`, `c` — unique within the unit. Steps 3
 and 4 refer to it. A unit with nothing suspicious gets the same record with
-`"suspicions": []` and a `cleared_because`.
+`"suspicions": []` and `cleared_because` saying why.
 {{FOUND_BY_NOTE}}
 **At most 12 suspicions per unit.** The cap makes you rank rather than list. If
 you are at the cap, keep the ones you would actually spend an hour repairing.
@@ -227,11 +232,9 @@ you are at the cap, keep the ones you would actually spend an hour repairing.
 1. **State the mechanism** — what work stops happening, and why that costs
    less. "Built-ins are faster" is not a mechanism, and it is wrong often
    enough to matter.
-1. **Say how often the code runs, and how large its inputs get.** Recorded, not
-   a bar to clear: it tells a reader what the saving is worth, and it tells you
-   how to size the cases in step 4.
 
-Accept if all of them hold. Otherwise reject, and name the one that decided it.
+Accept if all of them hold, and give the mechanism as `why`. Otherwise reject,
+and give the check that decided it as `why`.
 
 ```jsonc
 {"step": 3, "unit": "src/router.py::Router.allowed", "decisions": [
@@ -273,7 +276,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    so the order does not matter, and nothing you submit changes what the next
    one is written against.
    - **The same edit as one you already wrote** for this unit: do not submit it
-     again. Record it in step 4 as `same_repair_as`, naming that submission.
+     again. Record its outcome in step 4 as `same_repair_as`, with that
+     submission's `id` as `submission`.
    - **A different edit to the same code**: submit it, and list each in the
      other's `related`.
 
@@ -308,10 +312,10 @@ Read `$SKILL/reference/verifying.md` before your first submission.
 
    ```jsonc
    {"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
-     {"label": "a", "submission": "{{SUBMISSION_ID_EXAMPLE}}"},
-     {"label": "b", "same_repair_as": "{{SUBMISSION_ID_EXAMPLE}}"},
-     {"label": "c", "blocked": "every input needs a live database connection"},
-     {"label": "d", "deferred": "outside the 20 repairs measured"}
+     {"label": "a", "outcome": "submitted",      "submission": "{{SUBMISSION_ID_EXAMPLE}}", "why": null},
+     {"label": "b", "outcome": "same_repair_as", "submission": "{{SUBMISSION_ID_EXAMPLE}}", "why": null},
+     {"label": "c", "outcome": "blocked",        "submission": null, "why": "every input needs a live database connection"},
+     {"label": "d", "outcome": "deferred",       "submission": null, "why": "outside the 20 repairs measured"}
    ]}
    ```
 
@@ -320,6 +324,8 @@ Every measured repair stays in `submissions.jsonl`, whatever its verdict.
 the wins could not be told apart from one that hid its losses.
 
 ### 5. Finish — *in:* both files · *out:* both files complete, and a short summary
+
+This step writes no record to `findings.jsonl`.
 
 Before you stop, check:
 

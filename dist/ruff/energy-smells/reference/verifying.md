@@ -24,10 +24,15 @@ One JSON object per line of `submissions.jsonl`, one line per repair:
     "src/render.py::Report.render": "def render(self):\n    return \"\".join(_row(r) for r in self.rows)"
   },
   "related": [],
+  "sole_caller_evidence": null,
+  "equivalence": "strict",
   "cases_source": "def checks():\n    ...\n\ndef cases():\n    ...",
   "notes": "C10.S4. Sizes taken from the fixtures in tests/; `_row` left as the real helper."
 }
 ```
+
+**Every line has every field below, and no others** — none is optional; the
+ones with nothing to say take the empty value shown.
 
 | Field | What it holds |
 |---|---|
@@ -35,12 +40,12 @@ One JSON object per line of `submissions.jsonl`, one line per repair:
 | `root_cause` | the root cause the repair removes, as it appears on its card |
 | `unit` | the function or method whose behaviour must be preserved, as `path::qualname` |
 | `changed` | `path::qualname` → the full replacement source of that function |
-| `related` | ids of other repairs of the same code, if any |
-| `sole_caller_evidence` | required when `changed` holds more than the unit: how you know nothing else calls or reads what you changed |
-| `equivalence` | optional; see below |
+| `related` | ids of other repairs of the same code; `[]` if none |
+| `sole_caller_evidence` | how you know nothing else calls or reads what you changed; `null` when `changed` holds only the unit |
+| `equivalence` | `"strict"`, or `"returns_only"`; see below |
 | `cases_source` | Python source defining `checks()` and `cases()` |
-| `notes` | optional, a few sentences a reader would otherwise have to guess |
-| `agent_measurement` | written by the script. Never write or edit it |
+| `notes` | a few sentences a reader would otherwise have to guess; `""` if none |
+| `agent_measurement` | written by the script, never by you |
 
 `changed` holds **source text, not a diff and not an AST**: the whole function
 as you would commit it, decorators and `def` line included, written at column

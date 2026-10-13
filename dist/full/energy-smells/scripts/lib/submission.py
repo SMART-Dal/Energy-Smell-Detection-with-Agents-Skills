@@ -11,11 +11,11 @@ result.
       "root_cause": "C5.S1",                  # absent when the arm has no taxonomy
       "unit": "src/app.py::tag_rows",         # path::qualname
       "changed": {"src/app.py::tag_rows": "def tag_rows(rows, blocked): ..."},
-      "related": ["s2"],                      # other repairs of the same code
-      "sole_caller_evidence": "...",          # required if a callee changed
-      "equivalence": "returns_only",          # optional relaxation
+      "related": ["s2"],                      # other repairs of the same code, or []
+      "sole_caller_evidence": "...",          # null unless a callee changed
+      "equivalence": "returns_only",          # or "strict"
       "cases_source": "def checks(): ...\\ndef cases(): ...",
-      "notes": "...",                         # optional
+      "notes": "...",                         # or ""
       "agent_measurement": {...}              # written by verify.py, not by hand
     }
 

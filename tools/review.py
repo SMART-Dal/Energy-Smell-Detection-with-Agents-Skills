@@ -123,7 +123,7 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
                             capture_output=True, text=True).stdout.strip()
 
     out = [f"# Energy report — {repo.name}{' @ ' + commit if commit else ''}", ""]
-    deferred = sum("deferred" in o for o in outcomes)
+    deferred = sum(o.get("outcome") == "deferred" for o in outcomes)
     out.append(f"{len(step2)} units examined ({len(cleared)} cleared) · "
                f"{len(submissions)} repairs submitted, {deferred} deferred · "
                + " · ".join(f"{n} {s}" for s, n in counts.items() if n)
@@ -167,7 +167,8 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
             if row.get("skipped"):
                 out.append("Loaded skipping failing top-level statements: "
                            + "; ".join(row["skipped"]) + ".")
-            same = [o["label"] for o in outcomes if o.get("same_repair_as") == row["id"]]
+            same = [o.get("label") for o in outcomes
+                    if o.get("outcome") == "same_repair_as" and o.get("submission") == row["id"]]
             if same:
                 out.append(f"Also the repair for suspicion(s) {', '.join(same)} of this unit.")
             if row.get("per_case"):
@@ -183,14 +184,13 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
     section("Not measured", [r for r in rows if r["status"] in ORDER[5:]])
 
     unmeasured = [(f["unit"], o) for f in findings if f.get("step") == 4
-                  for o in f.get("outcomes", []) if "blocked" in o or "deferred" in o]
+                  for o in f.get("outcomes", []) if o.get("outcome") in ("blocked", "deferred")]
     if unmeasured:
         out.extend(["## Detected, not measured", "",
                     "Accepted findings with no measurement: deferred beyond the repairs chosen "
                     "for measurement, or blocked.", ""])
         for unit, o in unmeasured:
-            kind = "blocked" if "blocked" in o else "deferred"
-            out.append(f"- `{unit}` {o['label']}: {kind} — {o[kind]}")
+            out.append(f"- `{unit}` {o.get('label')}: {o['outcome']} — {o.get('why')}")
         out.append("")
     path.write_text("\n".join(out), encoding="utf-8")
 

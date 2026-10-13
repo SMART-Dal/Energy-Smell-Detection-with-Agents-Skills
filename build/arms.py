@@ -173,16 +173,15 @@ repairs, near-misses, and similar root causes.
 - **Near-misses** (`Looks like it, but is not`) have the pattern, and there the
   repair would change what the code does or undo something done on purpose.""",
     "DECIDE_ROWS": """    "label": "a", "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
-    "why_rejected": "`Looks like it, but is not` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added `c` instead.",
+    "why": "`Looks like it, but is not` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added `c` instead.",
     "found_by": "reading"
   },
   {
     "label": "c", "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
-    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31 and read nowhere else",
-    "hotness": "one call per request; `blocked` is 400-2000 entries",
-    "repair_sketch": "build `self.blocked` as a set",
+    "why": "`self.blocked` is a list searched once per request, built in __init__ at line 31 and read nowhere else; as a set each search is one hash lookup",
     "found_by": "cards"
   }""",
+    "DECISION_KEYS": '`label`, `root_cause`, `lines`, `verdict`, `why`, `found_by`',
     "EVIDENCE_AGAINST": 'the taxonomy',
     "FAILURE_MODES_CARDS": """1. **Deciding from the label.** "Nested loops, so it must be an algorithmic
    complexity problem." Open the card; most of them are narrower than the name.
@@ -199,13 +198,8 @@ step 3. It is the difference between an analysis you did and a list you were
 handed, and it is measured across runs, so record it honestly — including the
 cases where you missed something.
 
-**`evidence`**, optional on a step-3 decision, lists any deterministic
-observation that pointed there, named exactly as it was reported to you. Leave
-it out when you found it by reading, which is the normal case.
-
-**`also_considered`**, optional on a step-3 decision, names the similar cards
-you opened and did not file this under. Not a requirement to prove one card
-excludes another — these overlap on purpose — but a record of where you looked.
+**`root_cause`** is one of the 65 IDs exactly as its card names it, such as
+`C5.S1` — never a category such as `C5`.
 
 """,
     "FOUND_BY_NOTE": """
@@ -245,10 +239,11 @@ suggests them. Nothing restricts which you may consider.
     "SUBJECT": 'energy smells',
     "SUBJECT_SINGULAR": 'an energy smell',
     "SUBMISSION_ID_EXAMPLE": 'C10S4-render-concat',
-    "SUSPICION_ROWS": """    {"label": "a", "root_cause": "C10.S4", "lines": [47],    "confidence": "high",
+    "SUSPICION_KEYS": '`label`, `root_cause`, `lines`, `why`, `found_by`',
+    "SUSPICION_ROWS": """    {"label": "a", "root_cause": "C10.S4", "lines": [47],
      "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
      "found_by": "both"},
-    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45], "confidence": "medium",
+    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45],
      "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
      "found_by": "reading"}""",
     "TITLE": 'Energy Smell Identification',
@@ -291,14 +286,13 @@ you first thought on the record, which is the part worth reading later.""",
     "DECIDE_PREAMBLE": """Read the unit a second time, now with the repair in mind. What the edit would
 have to be is usually what tells you whether your first reading was right.""",
     "DECIDE_ROWS": """    "label": "a", "lines": [58], "verdict": "rejected",
-    "why_rejected": "the repair belongs where the container is built, not where it is searched. Added `c` instead."
+    "why": "the repair belongs where the container is built, not where it is searched. Added `c` instead."
   },
   {
     "label": "c", "lines": [31], "verdict": "accepted",
-    "why": "`self.blocked` is a list searched once per request; built in __init__ at line 31 and read nowhere else",
-    "hotness": "one call per request; `blocked` is 400-2000 entries",
-    "repair_sketch": "build `self.blocked` as a set"
+    "why": "`self.blocked` is a list searched once per request, built in __init__ at line 31 and read nowhere else; as a set each search is one hash lookup"
   }""",
+    "DECISION_KEYS": '`label`, `lines`, `verdict`, `why`',
     "EVIDENCE_AGAINST": 'the repair',
     "FAILURE_MODES_CARDS": '',
     "FINDING_RULE": """> A finding is a **repair**: a concrete edit to *this* code, with a stated
@@ -322,9 +316,10 @@ goes in the output as `own_hypotheses`.""",
     "SUBJECT": 'energy waste',
     "SUBJECT_SINGULAR": 'energy waste',
     "SUBMISSION_ID_EXAMPLE": 'render-concat',
-    "SUSPICION_ROWS": """    {"label": "a", "lines": [47],    "confidence": "high",
+    "SUSPICION_KEYS": '`label`, `lines`, `why`',
+    "SUSPICION_ROWS": """    {"label": "a", "lines": [47],
      "why": "`self.buf` is grown with += once per row; nothing reads it in the loop"},
-    {"label": "b", "lines": [44,45], "confidence": "medium",
+    {"label": "b", "lines": [44,45],
      "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row"}""",
     "TITLE": 'Energy Efficiency Analysis',
     "WHEN_WRONG": """## When received wisdom is wrong
@@ -351,10 +346,10 @@ different one until something sticks.
 # places the taxonomy words did.
 _TAXONOMY_READING_WORDS = {
     **_TAXONOMY_WORDS,
-    "SUSPICION_ROWS": """    {"label": "a", "root_cause": "C10.S4", "lines": [47],    "confidence": "high",
+    "SUSPICION_ROWS": """    {"label": "a", "root_cause": "C10.S4", "lines": [47],
      "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
      "found_by": "reading"},
-    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45], "confidence": "medium",
+    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45],
      "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
      "found_by": "sweep"}""",
     "FOUND_BY_NOTE": """
@@ -369,9 +364,8 @@ the difference between an analysis you did and a list you were handed, and it
 is measured across runs, so record it honestly — including the cases where you
 missed something.
 
-**`also_considered`**, optional on a step-3 decision, names the similar cards
-you opened and did not file this under. Not a requirement to prove one card
-excludes another — these overlap on purpose — but a record of where you looked.
+**`root_cause`** is one of the 65 IDs exactly as its card names it, such as
+`C5.S1` — never a category such as `C5`.
 
 """,
 }
