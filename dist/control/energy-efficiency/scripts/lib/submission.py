@@ -164,3 +164,29 @@ def submission_hash(record: dict) -> str:
     return hashlib.sha256(
         json.dumps(content, sort_keys=True, ensure_ascii=False).encode("utf-8")
     ).hexdigest()[:16]
+
+
+def baseline_fingerprint(repo, record: dict) -> str:
+    """Identity of the original code a submission was measured against.
+
+    A digest of every file the submission names -- the unit's and each one in
+    `changed` -- as `repo` holds them. Stored beside the measurement, so a
+    number taken against an edited copy of the repository can be told apart
+    from one taken against the repository itself: the review recomputes it on
+    the pristine checkout, and a mismatch means `before` was not the real code.
+    """
+    paths = set()
+    for name in [record.get("unit") or ""] + list(record.get("changed") or {}):
+        try:
+            paths.add(split_name(name)[0])
+        except ValueError:
+            continue
+    digest = hashlib.sha256()
+    for path in sorted(paths):
+        digest.update(path.encode("utf-8") + b"\0")
+        try:
+            digest.update((repo / path).read_bytes())
+        except OSError:
+            digest.update(b"<missing>")
+        digest.update(b"\0")
+    return digest.hexdigest()[:16]

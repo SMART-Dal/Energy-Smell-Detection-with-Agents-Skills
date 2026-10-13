@@ -27,9 +27,14 @@ from `sys.modules` and `sys.path`, so a repository's own `lib` imports as itself
 
 from __future__ import annotations
 
+import __future__
+import ast
 import asyncio
 import contextlib
 import gc
+import hashlib
+import importlib
+import importlib.util
 import inspect
 import io
 import json
@@ -37,6 +42,7 @@ import os
 import statistics
 import sys
 import time
+import tokenize
 import traceback
 from pathlib import Path
 
@@ -52,16 +58,122 @@ from lib._runner import burn_cpu, run_window  # noqa: E402
 from lib.equivalence import normalise_text, render, render_json  # noqa: E402
 from lib.meters import get_meter  # noqa: E402
 from lib.splice import split_name  # noqa: E402
-from lib.stubs import StubUsed, import_with_stubs, importing  # noqa: E402
+from lib.stubs import StubUsed, import_with_stubs, importing, is_repo_module  # noqa: E402
 
 for _name in [n for n in sys.modules if n == "lib" or n.startswith("lib.")]:
     del sys.modules[_name]
 sys.path.remove(_SCRIPTS)
 
 
-def _module_name(path: str) -> str:
-    """`pkg/sub/mod.py` -> `pkg.sub.mod`; a flat script is just `mod`."""
-    return ".".join(Path(path).with_suffix("").parts)
+def _import_name(root: str, path: str) -> tuple[str, str, str]:
+    """Where Python imports this file from, the name it has there, and its old name.
+
+    The way the code itself runs. A module inside a package is imported from
+    the directory above the package's top `__init__.py`, under its dotted
+    package name: `tools/neptune_utils/streams.py` is `neptune_utils.streams`,
+    from `tools/`. A standalone script is imported from its own directory under
+    its file name, as `python tools/convert.py` finds it, so the sibling modules
+    it imports resolve too.
+
+    Naming every file from the repository root instead -- the old name, still
+    registered as an alias so inputs written that way keep working -- made a
+    package in a subdirectory import itself under a name its own absolute
+    imports do not use. Those imports then failed, or were stubbed as if the
+    repository's own package were a missing dependency.
+
+    The exception is a file with relative imports in a directory without
+    `__init__.py`, an implicit namespace package: its relative imports resolve
+    only under the old name, so it keeps that one.
+    """
+    parts = list(Path(path).with_suffix("").parts)
+    old = ".".join(parts)
+    dirs, leaf = parts[:-1], ([] if parts[-1] == "__init__" else parts[-1:])
+    depth = 0                   # how many enclosing directories are packages
+    while depth < len(dirs) and Path(root, *dirs[:len(dirs) - depth], "__init__.py").is_file():
+        depth += 1
+    name = ".".join(dirs[len(dirs) - depth:] + leaf)
+    if not name or (dirs and not depth and _has_relative_import(Path(root, path))):
+        return root, old, old
+    return str(Path(root, *dirs[:len(dirs) - depth])), name, old
+
+
+def _has_relative_import(file: Path) -> bool:
+    try:
+        tree = ast.parse(file.read_bytes())
+    except (OSError, SyntaxError, ValueError):
+        return False
+    return any(isinstance(node, ast.ImportFrom) and node.level for node in ast.walk(tree))
+
+
+def _load_module(roots: list[Path], name: str, file: Path) -> tuple[object, list, list]:
+    """Import the unit's module; if that fails, run as much of it as runs.
+
+    A module is imported by running it top to bottom, so one failing statement
+    anywhere in the file hides every function in it. Scripts do this often: a
+    stray name after `sys.exit(main())`, which running the script never
+    reaches, or arguments parsed at module level. So when the import fails, the
+    module is run again one top-level statement at a time, and the statements
+    that fail are skipped and reported -- the functions, classes and constants
+    around them still load, unchanged. Both copies load the same way.
+    """
+    try:
+        module, stubbed = import_with_stubs(roots, name)
+        return module, stubbed, []
+    except KeyboardInterrupt:
+        raise
+    except BaseException:  # noqa: BLE001 -- SystemExit too: a script's top-level code
+        sys.modules.pop(name, None)
+    skipped: list[str] = []
+    module, stubbed = import_with_stubs(
+        roots, name, load=lambda _: _run_statements(name, file, roots, skipped))
+    return module, stubbed, skipped
+
+
+def _run_statements(name: str, file: Path, roots: list[Path], skipped: list[str]):
+    """Run a module one top-level statement at a time, skipping those that fail.
+
+    A missing third-party package is still raised, so `import_with_stubs` can
+    stand in for it and start again; everything else a statement raises skips
+    that statement. `from __future__` flags carry over to the statements after
+    them, as they would in one compiled module.
+    """
+    skipped.clear()
+    with tokenize.open(file) as handle:
+        source = handle.read()
+    tree = ast.parse(source, str(file))
+    lines = source.splitlines()
+    parent_name, _, leaf = name.rpartition(".")
+    parent = importlib.import_module(parent_name) if parent_name else None
+    spec = importlib.util.spec_from_file_location(
+        name, file,
+        submodule_search_locations=[str(file.parent)] if file.stem == "__init__" else None)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    if parent is not None:
+        setattr(parent, leaf, module)
+    flags = 0
+    for node in tree.body:
+        if isinstance(node, ast.ImportFrom) and node.module == "__future__":
+            for alias in node.names:
+                flags |= getattr(__future__, alias.name).compiler_flag
+        code = compile(ast.Module(body=[node], type_ignores=[]), str(file), "exec",
+                       flags=flags, dont_inherit=True)
+        try:
+            exec(code, module.__dict__)
+        except ModuleNotFoundError as exc:
+            if exc.name and not is_repo_module(roots, exc.name):
+                raise
+            skipped.append(_statement(node, lines, exc))
+        except (Exception, SystemExit) as exc:  # noqa: BLE001
+            skipped.append(_statement(node, lines, exc))
+    return module
+
+
+def _statement(node, lines: list[str], exc: BaseException) -> str:
+    text = lines[node.lineno - 1].strip() if node.lineno <= len(lines) else "?"
+    if len(text) > 60:
+        text = text[:57] + "..."
+    return f"line {node.lineno} `{text}` ({type(exc).__name__})"
 
 
 def _owned_by(module, root: str) -> bool:
@@ -139,18 +251,30 @@ class Side:
                                     key=lambda pair: -len(pair[0])))
         self.modules: dict = {}
         self.warmed: set[int] = set()
+        self.stubbed: list = []
+        self.skipped: list = []
 
-        sys.path.insert(0, self.root)
+        try:
+            path, qualname = split_name(unit)
+            import_root, name, old_name = _import_name(self.root, path)
+        except Exception:  # noqa: BLE001
+            raise LoadFailure("import")
+        # The import root first, as Python would put it; the repository root
+        # stays on the path for inputs that import from the top.
+        self.paths = list(dict.fromkeys([import_root, self.root]))
+        self._enter_path()
         os.chdir(self.root)
         try:
             try:
-                path, qualname = split_name(unit)
-                module, self.stubbed = import_with_stubs(Path(self.root), _module_name(path))
+                module, self.stubbed, self.skipped = _load_module(
+                    [Path(entry) for entry in self.paths], name, Path(self.root, path))
+                if old_name != name:
+                    sys.modules.setdefault(old_name, module)
                 target = module
                 for piece in qualname.split("."):
                     target = getattr(target, piece)
                 self.function = _callable_unit(target)
-            except Exception:  # noqa: BLE001
+            except (Exception, SystemExit):  # noqa: BLE001
                 raise LoadFailure("import")
             try:
                 self.namespace: dict = {"__name__": "_cases", "WORKDIR": self.workdir}
@@ -169,7 +293,15 @@ class Side:
                 raise LoadFailure("cases")
         finally:
             self.set_aside()
-            sys.path.remove(self.root)
+            self._leave_path()
+
+    def _enter_path(self) -> None:
+        for entry in reversed(self.paths):
+            sys.path.insert(0, entry)
+
+    def _leave_path(self) -> None:
+        for entry in self.paths:
+            sys.path.remove(entry)
 
     def set_aside(self) -> None:
         """Take this copy's modules out of `sys.modules`, keeping them for later."""
@@ -179,12 +311,42 @@ class Side:
     def activate(self) -> None:
         """Make this copy the one every import, path and file resolves to."""
         sys.modules.update(self.modules)
-        sys.path.insert(0, self.root)
+        self._enter_path()
         os.chdir(self.root)
 
     def deactivate(self) -> None:
         self.set_aside()       # including anything imported lazily since
-        sys.path.remove(self.root)
+        self._leave_path()
+
+    def files(self) -> dict[str, tuple[int, int]]:
+        """Every file in this copy and its scratch directory: name -> (mtime, size)."""
+        found = {}
+        for base, label in ((Path(self.root), "<REPO>"), (self.workdir, "<WORKDIR>")):
+            for directory, subdirs, names in os.walk(base):
+                subdirs[:] = [d for d in subdirs if d != "__pycache__"]
+                for entry in names:
+                    full = os.path.join(directory, entry)
+                    try:
+                        stat = os.stat(full)
+                    except OSError:
+                        continue
+                    found[f"{label}/{os.path.relpath(full, base)}"] = (stat.st_mtime_ns,
+                                                                      stat.st_size)
+        return found
+
+    def digest(self, key: str) -> str:
+        """A file's content, with this copy's own paths normalised away; `absent` if none."""
+        label, _, relative = key.partition("/")
+        base = Path(self.root) if label == "<REPO>" else self.workdir
+        try:
+            data = (base / relative).read_bytes()
+        except OSError:
+            return "absent"
+        try:
+            data = normalise_text(data.decode("utf-8"), self.replace).encode("utf-8")
+        except UnicodeDecodeError:
+            pass
+        return hashlib.sha256(data).hexdigest()[:16]
 
 
 def main() -> int:
@@ -218,6 +380,7 @@ def main() -> int:
         equivalent = side.namespace.get("equivalent")
         return {
             "stubbed": list(side.stubbed),
+            "skipped": list(side.skipped),
             "cases": [label for label, _ in side.sets["cases"]],
             "checks": [label for label, _ in side.sets["checks"]],
             "has_equivalent": callable(equivalent),
@@ -244,6 +407,8 @@ def main() -> int:
                 active = side
             if op == "check":
                 reply(_check(side, request["set"], request["index"], request.get("plain", False)))
+            elif op == "digest":
+                reply({"ok": True, "digests": {key: side.digest(key) for key in request["keys"]}})
             elif op == "equivalent":
                 function = side.namespace["equivalent"]
                 reply({"ok": True, "same": bool(function(request["before"], request["after"]))})
@@ -269,9 +434,16 @@ def main() -> int:
 
 
 def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
-    """Run one input on one side and render every observable channel."""
+    """Run one input on one side and render every observable channel.
+
+    Files count as output: every file the call creates, changes or deletes, in
+    the scratch directory or in this copy of the repository, is reported with
+    a digest of what it ends up holding. Taken after the inputs are built, so a
+    thunk writing its input file is not mistaken for the unit's output.
+    """
     args = _args(side.sets[set_name][index][1])
     args_before = render_json(args, replace=side.replace)
+    files_before = side.files()
     stream = io.StringIO()
     with contextlib.redirect_stdout(stream):
         try:
@@ -281,6 +453,10 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
         except Exception as exc:  # noqa: BLE001 -- raising is behaviour to compare
             value, kind, raised = None, "raise", type(exc).__name__
     args_after = render_json(args, replace=side.replace)
+    files_after = side.files()
+    written = {key: side.digest(key) for key, stat in files_after.items()
+               if files_before.get(key) != stat}
+    written.update({key: "absent" for key in files_before.keys() - files_after.keys()})
     result = {
         "ok": True,
         "kind": kind,
@@ -290,6 +466,7 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
         "args": args_after,
         "stdout": normalise_text(stream.getvalue(), side.replace),
         "mutates": args_before != args_after,
+        "files": written,
     }
     if plain and kind == "return":
         result["plain"] = render(value, plain=True, replace=side.replace)

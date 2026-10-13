@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from lib.splice import splice_tree  # noqa: E402
-from lib.submission import submission_hash  # noqa: E402
+from lib.submission import baseline_fingerprint, submission_hash  # noqa: E402
 
 VERIFY = ROOT / "src" / "verify.py"
 ORDER = ("confirmed", "mixed", "regressed", "negligible", "inconclusive",
@@ -160,6 +160,13 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
                 out.append(f"The agent measured `{row['agent_status']}`; re-measured `{row['status']}`.")
             if not row["agent_line_unchanged"]:
                 out.append("**This line was edited after the agent measured it.**")
+            if row.get("agent_baseline_matches") is False:
+                out.append("**The agent measured this against code that differs from the "
+                           "repository's** -- its `--repo` held an edited copy -- so its "
+                           "number is not about this code.")
+            if row.get("skipped"):
+                out.append("Loaded skipping failing top-level statements: "
+                           + "; ".join(row["skipped"]) + ".")
             same = [o["label"] for o in outcomes if o.get("same_repair_as") == row["id"]]
             if same:
                 out.append(f"Also the repair for suspicion(s) {', '.join(same)} of this unit.")
@@ -186,6 +193,11 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
             out.append(f"- `{unit}` {o['label']}: {kind} — {o[kind]}")
         out.append("")
     path.write_text("\n".join(out), encoding="utf-8")
+
+
+def _baseline_matches(repo: Path, record: dict) -> bool | None:
+    stored = (record.get("agent_measurement") or {}).get("baseline_sha256")
+    return None if not stored else stored == baseline_fingerprint(repo, record)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -229,6 +241,9 @@ def main(argv: list[str] | None = None) -> int:
             # agent's number then belongs to a repair that is no longer there.
             "agent_line_unchanged": (record.get("agent_measurement") or {}).get(
                 "submission_hash") == submission_hash(record),
+            # False when the agent's `before` was not the repository's code: it
+            # measured against an edited copy. None when it recorded no digest.
+            "agent_baseline_matches": _baseline_matches(repo, record),
             "mean_saving_pct": mean_saving(result),
             "applied": decision["applied"],
             "not_applied_reason": None if decision["applied"] else decision["reason"],
@@ -237,6 +252,7 @@ def main(argv: list[str] | None = None) -> int:
             "floor_source": result.get("noise_floor_from"),
             "relaxed": result.get("equivalence_relaxed", []),
             "stubbed": result.get("stubbed", []),
+            "skipped": result.get("skipped_statements", []),
             "per_case": result.get("per_case", []),
         })
 

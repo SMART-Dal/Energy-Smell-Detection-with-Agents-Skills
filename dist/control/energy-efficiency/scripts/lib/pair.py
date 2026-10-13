@@ -115,6 +115,11 @@ class Pair:
     def stubbed(self) -> list[str]:
         return sorted(set(self.ready["before"]["stubbed"]) | set(self.ready["after"]["stubbed"]))
 
+    @property
+    def skipped(self) -> list[str]:
+        """Top-level statements skipped to load the unit's module, either side."""
+        return list(dict.fromkeys(self.ready["before"]["skipped"] + self.ready["after"]["skipped"]))
+
     def side(self, name: str) -> "_Side":
         return _Side(self, name)
 

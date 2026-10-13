@@ -42,9 +42,11 @@ called `collect` should not silently become an analyzer.
 """
 
 SKIP_DIRECTORIES = {
-    ".git", ".venv", "venv", "__pycache__", "node_modules", "build", "dist",
-    ".tox", ".mypy_cache", ".pytest_cache", "site-packages", ".eggs",
+    "venv", "__pycache__", "node_modules", "build", "dist", "site-packages",
 }
+"""Skipped by name. Any directory whose name starts with a dot is skipped too --
+`.git`, `.venv`, `.tox`, and `.claude`, where an agent's own skills live and
+once filled the whole top of a ranking -- and so is `*.egg-info`."""
 
 
 @dataclass
@@ -352,5 +354,10 @@ def _walk(root: Path):
     all -- an empty scan, reported as a clean one.
     """
     for path in root.rglob("*.py"):
-        if not any(part in SKIP_DIRECTORIES for part in path.relative_to(root).parts):
+        if not any(_skipped(part) for part in path.relative_to(root).parts[:-1]):
             yield path
+
+
+def _skipped(directory: str) -> bool:
+    return (directory in SKIP_DIRECTORIES or directory.startswith(".")
+            or directory.endswith(".egg-info"))

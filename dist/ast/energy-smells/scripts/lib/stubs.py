@@ -137,13 +137,18 @@ def importing():
         _IMPORTING = previous
 
 
-def _is_repo_module(root: Path, name: str) -> bool:
-    """Is this name part of the repository under test rather than a dependency?"""
+def is_repo_module(roots: list[Path], name: str) -> bool:
+    """Is this name part of the repository under test rather than a dependency?
+
+    `roots` are the directories the unit is imported from: the repository root
+    and, for a package in a subdirectory, the directory above that package.
+    """
     top = name.split(".")[0]
-    return (root / top).is_dir() or (root / f"{top}.py").is_file()
+    return any((root / top).is_dir() or (root / f"{top}.py").is_file() for root in roots)
 
 
-def import_with_stubs(root: Path, name: str, limit: int = 20):
+def import_with_stubs(roots: list[Path], name: str, limit: int = 20,
+                      load=importlib.import_module):
     """Import `name`, standing in for uninstalled third-party packages.
 
     A dependency-free function can sit behind a package whose `__init__`
@@ -156,6 +161,8 @@ def import_with_stubs(root: Path, name: str, limit: int = 20):
     problem and must surface. Nor is the stub silent -- the names stood in for
     are reported, and any attempt to *use* one raises `StubUsed`, so a unit
     that genuinely depends on the library is refused instead of measured.
+
+    `load` does the importing; it is called again after each new stub.
     """
     global _IMPORTING
     finder = _StubFinder()
@@ -164,10 +171,10 @@ def import_with_stubs(root: Path, name: str, limit: int = 20):
     for _ in range(limit):
         try:
             _IMPORTING = True
-            return importlib.import_module(name), sorted(stubbed)
+            return load(name), sorted(stubbed)
         except ModuleNotFoundError as exc:
             missing = exc.name
-            if not missing or _is_repo_module(root, missing):
+            if not missing or is_repo_module(roots, missing):
                 raise
             top = missing.split(".")[0]
             if top in finder.roots:

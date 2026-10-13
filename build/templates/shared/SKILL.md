@@ -249,7 +249,8 @@ step-3 records.
 applies it to a copy and reads `before` from the repository as it stands. That
 is what makes the baseline something you could not have shaped to suit the
 result. Work in a scratch copy of your own if it helps you think, but the
-repository you were pointed at stays untouched.
+repository you were pointed at stays untouched — and you measure against it,
+`--repo .`, never against a copy: a number taken on edited code is discarded.
 
 Read `$SKILL/reference/verifying.md` before your first submission.
 
@@ -293,7 +294,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    |---|---|
    | `not_equivalent` | the repair changes behaviour: fix that line |
    | `invalid` | the line is malformed, or its inputs fail to build: fix it as the message says |
-   | `error` | the environment could not run it; the next run tries again. Twice the same: record `blocked` |
+   | `error` | the environment could not run it: do what the message says — install a missing package here and run again, or record `blocked` |
    | `inconclusive` | the host was too noisy; the next run measures it again |
    | `confirmed` `mixed` `regressed` `negligible` | **final.** Do not touch the line |
 

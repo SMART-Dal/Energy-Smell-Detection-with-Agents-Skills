@@ -513,8 +513,12 @@ def _render_units(report: dict) -> str:
         "branches are taken, or anything about calls from other files -- so treat",
         "the order as a suggestion and override it when you know better.",
         "",
-        "NEXT: read these units. Form your own view of what is wasteful in them",
-        "before consulting anything else.",
+        "This list ran no rules: it found nothing, only ordered the units.",
+        "",
+        "NEXT: read these units and write down your own suspicions first (2b).",
+        "Then open the category cards (2c), run the rules with `scan.py <path>`",
+        "-- no --units -- (2d), and open the root-cause card for every suspicion",
+        "before deciding it (step 3).",
     ]
     return "\n".join(lines)
 

@@ -67,6 +67,7 @@ from lib.measure import (  # noqa: E402
 from lib.models import Comparison  # noqa: E402
 from lib.pair import LoadError, Pair, WorkerError, stage  # noqa: E402
 from lib.submission import (  # noqa: E402
+    baseline_fingerprint,
     case_count_problem,
     submission_hash,
     validate,
@@ -119,6 +120,17 @@ repair is a new line, listed in `related`."""
 REMEASURED = {"inconclusive", "error"}
 """Not a result about the repair -- a busy host, a failed environment -- so the
 next run measures the line again without it having to change."""
+
+UNLOADABLE = (
+    "If a package is missing, install it into this environment (`python -m pip "
+    "install <package>`) and run verify.py again; never install the repository's own "
+    "code. Otherwise record the suspicion as `blocked`, with this message. Do not "
+    "work around it: a copy of the repository with the failing line removed, another "
+    "`--repo` or another environment measures code the repository does not contain, "
+    "and the result is discarded."
+)
+"""What to do when the original cannot be loaded. Said in the message itself,
+because the message is what gets read at the moment it matters."""
 
 TIMING_CALLS = 5
 """Calls used to estimate per-call cost. Enough to avoid a cold-start outlier."""
@@ -265,6 +277,8 @@ class Verification:
     calibration."""
     stubbed: tuple[str, ...] = ()
     """Uninstalled packages stood in for while loading the unit, if any."""
+    skipped: tuple[str, ...] = ()
+    """Top-level statements of the unit's module skipped because they failed."""
 
     def note_coverage(self, meter: str, domains: tuple[str, ...], log) -> None:
         """Record what the readings covered, and say so once if it fell short.
@@ -328,6 +342,7 @@ class Verification:
             "reps": self.reps,
             "equivalence_relaxed": list(self.relaxations),
             "stubbed": list(self.stubbed),
+            "skipped_statements": list(self.skipped),
             "coverage": self.coverage,
             "per_case": [
                 {
@@ -386,6 +401,7 @@ class CaseFileEngine:
         self.labels = [case.label for case in self.case_file.cases]
         self.relaxations = self.case_file.relaxations
         self.stubbed: tuple[str, ...] = ()
+        self.skipped: tuple[str, ...] = ()
 
     def check(self) -> list[CheckRow]:
         rows = []
@@ -439,8 +455,8 @@ class PairEngine:
         except LoadError as exc:
             if exc.stage == "import" and exc.side == "before":
                 raise MeasurementError(
-                    f"the repository's own module does not import here: {exc}. "
-                    f"Run from the environment the repository builds in."
+                    f"the repository's own module does not load here, even skipping "
+                    f"the top-level statements that fail: {exc}. {UNLOADABLE}"
                 ) from exc
             if exc.stage == "import":
                 raise SubmissionError(f"the patched module does not import: {exc}") from exc
@@ -455,6 +471,7 @@ class PairEngine:
                 raise SubmissionError(problem)
         self.labels = self.pair.labels
         self.stubbed = tuple(self.pair.stubbed)
+        self.skipped = tuple(self.pair.skipped)
         self.has_equivalent = self.pair.side("before").ready["has_equivalent"]
         if self.has_equivalent and not self.pair.side("before").ready["equivalent_doc"]:
             self.pair.close()
@@ -476,6 +493,9 @@ class PairEngine:
         if self.stubbed:
             notes.append("loaded with these uninstalled packages stood in for: "
                          + ", ".join(self.stubbed))
+        if self.skipped:
+            notes.append("the module fails on import, so it was loaded one top-level "
+                         "statement at a time, skipping: " + "; ".join(self.skipped))
         return tuple(notes)
 
     def check(self) -> list[CheckRow]:
@@ -485,6 +505,12 @@ class PairEngine:
             for index, label in enumerate(labels):
                 a = self.pair.side("before").ask(op="check", set=set_name, index=index,
                                          plain=self.has_equivalent)
+                if self.skipped and a["kind"] == "raise" and a["raised"] == "NameError":
+                    raise MeasurementError(
+                        f"the original raised NameError on {label!r}: it uses something "
+                        f"defined by a statement skipped to load its module "
+                        f"({'; '.join(self.skipped)}). It cannot run here, so record the "
+                        f"suspicion as `blocked` with this message.")
                 b = self.pair.side("after").ask(op="check", set=set_name, index=index,
                                         plain=self.has_equivalent)
                 rows.append(CheckRow(label, set_name == "cases", self._differ(a, b),
@@ -521,9 +547,34 @@ class PairEngine:
                         f"{'does' if b['mutates'] else 'does not'}. {hint}")
             if a["mutates"] and a["args_before"] == b["args_before"] and a["args"] != b["args"]:
                 return f"both versions mutate their arguments, but leave them differently. {hint}"
+        files = self._files_differ(a.get("files", {}), b.get("files", {}))
+        if files:
+            return files
         if a["stdout"] != b["stdout"]:
             return f"different stdout: {_short(a['stdout'])} vs {_short(b['stdout'])}"
         return ""
+
+    def _files_differ(self, a: dict, b: dict) -> str:
+        """Do the files one call wrote end up the same on both sides?
+
+        Each side reports what it created, changed or deleted. A file only one
+        side touched is looked up on the other, which may hold it unchanged --
+        a repair that skips rewriting identical content leaves the same file.
+        """
+        keys = sorted(set(a) | set(b))
+        if not keys:
+            return ""
+        for side, mine in (("before", a), ("after", b)):
+            missing = [key for key in keys if key not in mine]
+            if missing:
+                mine.update(self.pair.side(side).ask(op="digest", keys=missing)["digests"])
+        different = [key for key in keys if a[key] != b[key]]
+        if not different:
+            return ""
+        shown = ", ".join(different[:4]) + (f" and {len(different) - 4} more"
+                                            if len(different) > 4 else "")
+        return (f"the files written differ: {shown}. A file the unit writes is part "
+                f"of what it does, so it has to come out the same.")
 
     def time(self, index: int, side: str) -> float:
         return self.pair.side(side).ask(op="time", index=index, calls=TIMING_CALLS)["seconds"]
@@ -580,7 +631,7 @@ def verify(engine, *, profile: Profile, meter: str = "auto",
     """
     result = Verification(case_file=engine.subject, reps=profile.reps,
                           relaxations=engine.relaxations, profile=profile.name,
-                          stubbed=engine.stubbed)
+                          stubbed=engine.stubbed, skipped=engine.skipped)
 
     log("equivalence")
     for note in result.relaxations:
@@ -1061,6 +1112,8 @@ def _run_submissions(args, profile: Profile) -> int:
         payload = _measure_one(record, repo, profile, args.meter, floor,
                                file_problems.get(sid), log)
         payload["submission_hash"] = digest
+        if isinstance(record, dict):
+            payload["baseline_sha256"] = baseline_fingerprint(repo, record)
         outputs.append(payload)
         log(f"\nVERDICT: {payload['status']}\n  {payload['reason']}")
         if not args.no_record and isinstance(record, dict):
@@ -1096,9 +1149,14 @@ def _measure_one(record, repo: Path, profile: Profile, meter: str,
         return {"id": sid, "status": "invalid", "reason": str(exc)}
     except WorkerError as exc:
         if exc.stub_used:
+            package = str(exc).split(" ", 1)[0].split(".", 1)[0]
             return {"id": sid, "status": "error", "reason": (
-                f"{exc}. The unit needs a library this environment does not have "
-                f"installed; it cannot be measured here.")}
+                f"{exc}. The unit needs `{package}`, which this environment does not "
+                f"have. Install it here -- `python -m pip install {package}` (the "
+                f"distribution's name may differ) -- and run verify.py again. If it "
+                f"will not install, record the suspicion as `blocked`. Never install "
+                f"the repository's own code, and never measure in another environment "
+                f"or against a copy of the repository.")}
         return {"id": sid, "status": "error", "reason": str(exc)}
     except (MeasurementError, LoadError, OSError) as exc:
         return {"id": sid, "status": "error", "reason": str(exc)}

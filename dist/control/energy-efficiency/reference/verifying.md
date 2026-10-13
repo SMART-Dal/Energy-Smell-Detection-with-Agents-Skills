@@ -133,13 +133,21 @@ one.
 **A method takes its instance as the first argument.** `Report.render` is
 called as a plain function, so the thunk builds the `Report` and passes it.
 
+**Import the repository's modules the way its own code does.** A package by
+its package name — `from mypkg.render import Report`, wherever `mypkg/` sits —
+and a standalone script by its file name, as if run from its own directory:
+`from convert import main` for `tools/convert.py`. A file whose name is not an
+identifier needs `importlib.import_module("csv-tool")`.
+
 **A coroutine is run, a generator is drained.** An `async def` unit is run to
 completion on an event loop of its own, and a generator's output is collected
 and compared as what it yielded — so a repair that turns a list into a
 generator counts as returning something different.
 
 **Anything the unit writes to disk goes under `WORKDIR`**, a directory the
-script gives each side.
+script gives each side. Files are output like any other: every file the unit
+creates, changes or deletes, under `WORKDIR` or inside the repository, has to
+come out the same on both sides.
 
 **Build the inputs; do not fake library objects.** If the unit needs an object
 the environment cannot construct, record the suspicion as `blocked` and say
@@ -174,7 +182,8 @@ one the repair tracks.
 ## When "identical" is stricter than "the same answer"
 
 By default the replacement must match the original on the return value, the
-state of the arguments afterwards, stdout, and the exception type. Two escape
+state of the arguments afterwards, the files it writes, stdout, and the
+exception type. Two escape
 hatches exist for when that is genuinely too strict. Both are recorded in the
 result, and both must be repeated wherever the saving is quoted.
 
@@ -234,6 +243,26 @@ A line with a measured result — `confirmed`, `mixed`, `regressed`,
 since, the script reports it `invalid` and leaves the result it had exactly as
 it was. A different repair is a new line.
 
+## When the environment gets in the way
+
+Measurements run in the environment you are in, and only there do they say
+anything about this repository.
+
+- **A package is missing** — `error`, naming it: install it into this
+  environment, `python -m pip install <package>`, and run again. Never install
+  the repository's own code: an installed copy would stand in for the copies
+  being compared. Never create another environment.
+- **The module fails while loading** — a stray line at the end of a script,
+  arguments parsed at import: the script loads it one top-level statement at a
+  time, skips the ones that fail, and lists them in the result. If the unit
+  needs one of them, the result is `error` and says so.
+- **Anything else that cannot run** is `blocked`: record it, with the message.
+
+Never measure against an edited copy of the repository, or with `--repo`
+pointing anywhere but the repository: the number would be about code the
+repository does not contain. Every result records a digest of the code it was
+measured against, and one that does not match the repository is discarded.
+
 ## What the script does
 
 1. **Stages** two fresh copies of the repository: one untouched, one with your
@@ -244,10 +273,11 @@ it was. A different repair is a new line.
    in use, so every import the unit makes resolves to its own copy. If the
    environment lacks a package the unit's module imports but the unit itself
    never uses, a stand-in is supplied, and the result says so; if the unit uses
-   it while running, the result is `error`.
+   it while running, the result is `error`. A module that fails while loading
+   is loaded one top-level statement at a time, skipping those that fail.
 3. **Equivalence.** Every input from `checks()` and `cases()` goes through both
-   versions: same return value, same argument state afterwards, same stdout,
-   same exception type. A mismatch is fatal — the repair is wrong, not the
+   versions: same return value, same argument state afterwards, same files
+   written, same stdout, same exception type. A mismatch is fatal — the repair is wrong, not the
    waste absent.
 4. **Sizing.** Times one call of each version and picks a repeat count so the
    faster one fills about a second. Both run that same count.
@@ -270,7 +300,7 @@ it was. A different repair is a new line.
 | `inconclusive` | the host's noise was too high to resolve an effect this size | nothing; the next run measures it again. It is **not** `negligible` |
 | `not_equivalent` | the replacement behaves differently from the original | fix the repair and run again |
 | `invalid` | the line is malformed, its `cases_source` fails, or a measured line was edited | fix it as the message says |
-| `error` | the environment failed: an import, the meter, a library the unit needs | the next run tries again; failing twice the same way, record `blocked` |
+| `error` | the environment failed: an import, the meter, a library the unit needs | what the message says: install a missing package and run again, or record `blocked` |
 
 Every verdict stays. A file that proposes ten repairs and has three come back
 `negligible` says more than one that quietly dropped them.
