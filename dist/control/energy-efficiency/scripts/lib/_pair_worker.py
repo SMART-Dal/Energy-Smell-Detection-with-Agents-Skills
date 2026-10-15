@@ -198,15 +198,15 @@ def _callable_unit(function):
     """
     if inspect.iscoroutinefunction(function):
         loop = asyncio.new_event_loop()
-        return lambda *args: loop.run_until_complete(function(*args))
+        return lambda *args, **kwargs: loop.run_until_complete(function(*args, **kwargs))
     if inspect.isasyncgenfunction(function):
         loop = asyncio.new_event_loop()
 
-        async def drain(*args):
-            return [item async for item in function(*args)]
-        return lambda *args: {"yielded": loop.run_until_complete(drain(*args))}
+        async def drain(*args, **kwargs):
+            return [item async for item in function(*args, **kwargs)]
+        return lambda *args, **kwargs: {"yielded": loop.run_until_complete(drain(*args, **kwargs))}
     if inspect.isgeneratorfunction(function):
-        return lambda *args: {"yielded": list(function(*args))}
+        return lambda *args, **kwargs: {"yielded": list(function(*args, **kwargs))}
     return function
 
 
@@ -223,14 +223,51 @@ def _pairs(produced, what: str) -> list[tuple[str, object]]:
     return out
 
 
-def _args(thunk) -> tuple:
+class Call:
+    """`call(rows, sep=",")` in a thunk: arguments for a unit that takes keywords.
+
+    A thunk normally returns a tuple, passed positionally. A keyword-only
+    parameter cannot be reached that way, so `cases_source` is given `call`,
+    which carries keyword arguments too.
+    """
+
+    __slots__ = ("args", "kwargs")
+
+    def __init__(self, *args, **kwargs):
+        self.args, self.kwargs = args, kwargs
+
+
+def _args(thunk) -> tuple[tuple, dict]:
+    """A thunk's arguments, as positional and keyword."""
     produced = thunk()
+    if isinstance(produced, Call):
+        return produced.args, produced.kwargs
     if not isinstance(produced, tuple):
         raise ValueError(
             f"a thunk returned {type(produced).__name__}, expected a tuple of "
-            f"arguments. A single argument needs a trailing comma: `lambda: (xs,)`"
+            f"arguments. A single argument needs a trailing comma: `lambda: (xs,)`; "
+            f"keyword arguments go through `call`: `lambda: call(xs, key=1)`"
         )
-    return produced
+    return produced, {}
+
+
+def _loop(pool: list[tuple[tuple, dict]]):
+    """The measured loop and the pool it runs over, chosen before measuring.
+
+    A pool without keyword arguments runs exactly as it always has: the shared
+    loop in `_runner`, over plain argument tuples. Only a pool with keywords
+    takes the loop that passes them.
+    """
+    if any(kwargs for _, kwargs in pool):
+        return _run_with_keywords, pool
+    return run_window, [args for args, _ in pool]
+
+
+def _run_with_keywords(function, pool: list[tuple[tuple, dict]], repeats: int) -> None:
+    size = len(pool)
+    for index in range(repeats):
+        args, kwargs = pool[index % size]
+        function(*args, **kwargs)
 
 
 class LoadFailure(Exception):
@@ -277,7 +314,8 @@ class Side:
             except (Exception, SystemExit):  # noqa: BLE001
                 raise LoadFailure("import")
             try:
-                self.namespace: dict = {"__name__": "_cases", "WORKDIR": self.workdir}
+                self.namespace: dict = {"__name__": "_cases", "WORKDIR": self.workdir,
+                                        "call": Call}
                 # Module-level code in the factory -- importing the repository's
                 # other modules -- is loading, like the unit's own import.
                 # Stand-ins pass through here; what the thunks or the unit do
@@ -416,9 +454,9 @@ def main() -> int:
                 thunk = side.sets["cases"][request["index"]][1]
                 timings = []
                 for _ in range(request.get("calls", 5)):
-                    args = _args(thunk)
+                    args, kwargs = _args(thunk)
                     start = time.perf_counter()
-                    side.function(*args)
+                    side.function(*args, **kwargs)
                     timings.append(time.perf_counter() - start)
                 # Median, not minimum: the fastest call met the warmest cache.
                 reply({"ok": True, "seconds": statistics.median(timings)})
@@ -441,18 +479,21 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
     a digest of what it ends up holding. Taken after the inputs are built, so a
     thunk writing its input file is not mistaken for the unit's output.
     """
-    args = _args(side.sets[set_name][index][1])
-    args_before = render_json(args, replace=side.replace)
+    args, kwargs = _args(side.sets[set_name][index][1])
+    # The keyword arguments are watched for mutation too; a positional-only
+    # call renders exactly as it always has.
+    watched = (args, kwargs) if kwargs else args
+    args_before = render_json(watched, replace=side.replace)
     files_before = side.files()
     stream = io.StringIO()
     with contextlib.redirect_stdout(stream):
         try:
-            value, kind, raised = side.function(*args), "return", ""
+            value, kind, raised = side.function(*args, **kwargs), "return", ""
         except StubUsed:
             raise
         except Exception as exc:  # noqa: BLE001 -- raising is behaviour to compare
             value, kind, raised = None, "raise", type(exc).__name__
-    args_after = render_json(args, replace=side.replace)
+    args_after = render_json(watched, replace=side.replace)
     files_after = side.files()
     written = {key: side.digest(key) for key, stat in files_after.items()
                if files_before.get(key) != stat}
@@ -489,13 +530,15 @@ def _window(side: Side, request: dict, meter) -> dict:
     if index not in side.warmed:
         # Warm the code once per case, so neither side pays one-off costs --
         # lazy imports, the first allocation of a size class -- inside a window.
-        run_window(side.function, pool, min(repeats, request.get("warmup_calls", 1)))
+        loop, ready = _loop(pool)
+        loop(side.function, ready, min(repeats, request.get("warmup_calls", 1)))
         side.warmed.add(index)
         if request.get("mutates"):
             pool = [_args(thunk) for _ in range(size)]
 
+    loop, ready = _loop(pool)
     gc.collect()
-    sample = meter.sample(lambda: run_window(side.function, pool, repeats))
+    sample = meter.sample(lambda: loop(side.function, ready, repeats))
     return {
         "ok": True,
         "energy_j": sample.energy_j,

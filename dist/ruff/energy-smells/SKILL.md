@@ -318,9 +318,12 @@ and 4 refer to it. A unit with nothing suspicious gets the same record with
 `"suspicions": []` and `cleared_because` saying why.
 
 `found_by` says how you came to suspect it, and is recorded honestly:
-`"reading"` from 2a–2b, `"rules"` from a tool, `"both"`, or `"sweep"` from the
-index pass. It is the difference between an analysis you did and a list you
-were handed.
+`"reading"` from 2a–2b; `"rules"` when a rule's finding on this unit names this
+root cause and you had not suspected it; `"both"` when you had, and a rule's
+finding on this unit names the same root cause; or `"sweep"` from the index
+pass. A rule that flagged the unit for a different root cause does not make it
+`"both"`. It is the difference between an analysis you did and a list you were
+handed.
 
 **At most 12 suspicions per unit.** The cap makes you rank rather than list. If
 you are at the cap, keep the ones you would actually spend an hour repairing.
@@ -451,7 +454,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    | `not_equivalent` | the repair changes behaviour: fix that line |
    | `invalid` | the line is malformed, or its inputs fail to build: fix it as the message says |
    | `error` | the environment could not run it: do what the message says — install a missing package here and run again, or record `blocked` |
-   | `inconclusive` | the host was too noisy; the next run measures it again |
+   | `inconclusive` | the readings were too noisy. A busy host: the next run measures it again. Spread readings: make every call of each case do the same work (`verifying.md`, "Thunks"), then run again |
    | `confirmed` `mixed` `regressed` `negligible` | **final.** Do not touch the line |
 
    A measured result is never revised. Editing a measured line to get a better

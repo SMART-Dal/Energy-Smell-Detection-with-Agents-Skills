@@ -92,7 +92,9 @@ its own. There is no order to take them in, and no repair is built on another.
 ## `cases_source`
 
 Python source defining two functions. Each returns `(label, thunk)` pairs, and
-the thunk returns a **tuple of arguments** for the unit.
+the thunk returns a **tuple of arguments** for the unit — or, when the unit
+takes keyword arguments, `call(...)` with them: `lambda: call(rows, sep=",")`.
+`call` is provided; do not import or define it.
 
 ```python
 from src.render import Report    # the repository's own modules, by their real names
@@ -131,9 +133,33 @@ long one element is against how many there are. Include the input each repair
 is *most likely to lose on*, because the verdict needs to see it. Every case
 counts on its own, and one that measurably loses makes the result `mixed`.
 
-**Thunks, not values.** The thunk is called again before every measured
-window, outside it, so a unit that mutates its input cannot poison the next
-one.
+**Thunks, not values — and they all run before the timing starts.** A measured
+window is hundreds of calls in a row. Before it starts, the thunk is called
+once, or once per call when the unit changes its arguments; then the calls run
+back to back, with nothing in between. So a fresh argument is never poisoned by
+the call before it — but **anything the unit changes outside its arguments**
+(a class attribute, a module global, a cache, a file) **carries over from one
+call to the next**, and resetting it inside the thunk resets it once, before
+all of them.
+
+For example, a method that skips keys it has already stored in `cls.seen`:
+a thunk that clears `cls.seen` and returns the same keys every time measures
+the first call on new keys and every other call on keys already seen — not
+the code the repair changed. Give every thunk call keys of its own, so every
+call takes the same path:
+
+```python
+import itertools
+_batch = itertools.count()
+
+def _nodes(n):
+    b = next(_batch)                      # new keys for every thunk call
+    return [{"~key": f"k{b}_{i}", "~id": f"id{i}"} for i in range(n)]
+```
+
+The equivalence check runs each input once, right after its thunk, so it
+cannot catch this; when the measurement comes back `inconclusive` because the
+readings were spread, this is the first thing to look for.
 
 **A method takes its instance as the first argument.** `Report.render` is
 called as a plain function, so the thunk builds the `Report` and passes it.
@@ -237,8 +263,10 @@ real effect has to clear. It is kept for the session, and taken automatically
 if you forget. If it comes back significant, something else is using the
 machine, and nothing measured until it stops means anything.
 
-The second command goes through the file once, under a minute per repair, and
-writes each result into its line. Run it again after fixing broken lines and it
+The second command goes through the file once — about a minute per repair,
+plus half a minute to calibrate — so give the command a timeout to match, or
+run it in the background and wait for it. It writes each result into its line,
+as `agent_measurement`, with the verdict in `agent_measurement.status`. Run it again after fixing broken lines and it
 measures only what needs it: a line never measured, a line that was
 `not_equivalent`, `invalid` or `error` and has since been fixed, and anything
 `inconclusive` or `error`, which is simply tried again.
@@ -301,8 +329,8 @@ measured against, and one that does not match the repository is discarded.
 | `confirmed` | every case that moved, moved the right way, clearing the noise floor | nothing — final |
 | `mixed` | saves energy on some cases, costs it on others — both clearing the floor | nothing — final. A trade-off: which side wins depends on the input |
 | `regressed` | every case that moved measurably, got worse | nothing — final |
-| `negligible` | measured on a clean floor, and nothing moved more than the noise | nothing — final |
-| `inconclusive` | the host's noise was too high to resolve an effect this size | nothing; the next run measures it again. It is **not** `negligible` |
+| `negligible` | measured on a clean floor, every case within ±3%, and nothing moved more than the noise | nothing — final |
+| `inconclusive` | the readings could not resolve an effect this size: a noisy host, or a case whose readings were spread | a noisy host: nothing, the next run measures it again. Spread readings: make every call of each case do the same work (see "Thunks"), then run again. It is **not** `negligible` |
 | `not_equivalent` | the replacement behaves differently from the original | fix the repair and run again |
 | `invalid` | the line is malformed, its `cases_source` fails, or a measured line was edited | fix it as the message says |
 | `error` | the environment failed: an import, the meter, a library the unit needs | what the message says: install a missing package and run again, or record `blocked` |
@@ -312,9 +340,10 @@ Every verdict stays. A file that proposes ten repairs and has three come back
 
 `negligible` and `inconclusive` are different claims. `negligible` says the
 repair does nothing, on a machine quiet enough to tell — that is evidence.
-`inconclusive` says this machine could not tell, which is a fact about the host
-and says nothing about the code. Reporting the second as the first writes a
-busy host down as evidence against {{EVIDENCE_AGAINST}}.
+`inconclusive` says this measurement could not tell — the host was busy, or a
+case's own readings were too spread — which says nothing about the code.
+Reporting the second as the first writes noise down as evidence against
+{{EVIDENCE_AGAINST}}.
 
 `mixed` is not a softer `regressed`. Both effects are real: the repair pays on
 one input and costs on another, and which one the code actually sees decides

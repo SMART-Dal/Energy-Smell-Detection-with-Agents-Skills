@@ -192,11 +192,14 @@ repairs, near-misses, and similar root causes.
 > root cause whose definition the edit matches. That it saves energy is a
 > separate claim, and only a measurement makes it.""",
     "FOUND_BY_FIELD_RULES": """**`found_by`**, on every suspicion, records how you came to suspect it:
-`reading`, `rules`, `both`, `sweep` for the index pass at the end of step 2, or
-`cards` for a root cause that first appeared while you were reading a card in
-step 3. It is the difference between an analysis you did and a list you were
-handed, and it is measured across runs, so record it honestly — including the
-cases where you missed something.
+`reading`; `rules` when a rule's finding on this unit names this root cause
+and you had not suspected it; `both` when you had, and a rule's finding on this
+unit names the same root cause; `sweep` for the index pass at the end of step
+2; or `cards` for a root cause that first appeared while you were reading a
+card in step 3. A rule that flagged the unit for a different root cause does
+not make it `both`. It is the difference between an analysis you did and a list
+you were handed, and it is measured across runs, so record it honestly —
+including the cases where you missed something.
 
 **`root_cause`** is one of the 65 IDs exactly as its card names it, such as
 `C5.S1` — never a category such as `C5`.
@@ -204,9 +207,12 @@ cases where you missed something.
 """,
     "FOUND_BY_NOTE": """
 `found_by` says how you came to suspect it, and is recorded honestly:
-`"reading"` from 2a–2b, `"rules"` from a tool, `"both"`, or `"sweep"` from the
-index pass. It is the difference between an analysis you did and a list you
-were handed.
+`"reading"` from 2a–2b; `"rules"` when a rule's finding on this unit names this
+root cause and you had not suspected it; `"both"` when you had, and a rule's
+finding on this unit names the same root cause; or `"sweep"` from the index
+pass. A rule that flagged the unit for a different root cause does not make it
+`"both"`. It is the difference between an analysis you did and a list you were
+handed.
 """,
     "NOTES_EXAMPLE": 'C10.S4. Sizes taken from the fixtures in tests/; `_row` left as the real helper.',
     "ONE_BASIS": 'one root cause',

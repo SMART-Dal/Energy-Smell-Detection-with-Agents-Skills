@@ -25,7 +25,7 @@ The verdict is the point, and there are five of them:
     mixed         helps some inputs, hurts others -- a trade-off
     regressed     every case that moved, got worse
     negligible    measured cleanly; nothing moved more than the noise
-    inconclusive  this host could not resolve an effect of this size
+    inconclusive  the readings could not resolve an effect of this size
 
 and three for when nothing was measured: `not_equivalent` (the repair is
 broken), `invalid` (the submission is malformed) and `error` (the environment
@@ -513,6 +513,16 @@ class PairEngine:
                         f"suspicion as `blocked` with this message.")
                 b = self.pair.side("after").ask(op="check", set=set_name, index=index,
                                         plain=self.has_equivalent)
+                if set_name == "cases" and a["raised"] == "TypeError" == b["raised"]:
+                    # Both sides failing the same way passes the check, and the
+                    # case would then measure an error path. A TypeError on an
+                    # input meant for measuring is nearly always arguments that
+                    # do not fit the signature.
+                    raise SubmissionError(
+                        f"the original raised TypeError on the measured case {label!r}, "
+                        f"so it would measure the error rather than the work. Usually "
+                        f"the arguments do not fit the unit's signature: keyword "
+                        f"arguments go through `call`, as in `lambda: call(xs, key=1)`.")
                 rows.append(CheckRow(label, set_name == "cases", self._differ(a, b),
                                      a["mutates"] or b["mutates"]))
         return rows
@@ -752,7 +762,11 @@ def _decide(result: Verification) -> None:
         mixed         helps some inputs, hurts others -- a trade-off
         regressed     every case that moved, got worse
         negligible    measured cleanly; nothing moved more than the noise
-        inconclusive  this host could not resolve an effect of this size
+        inconclusive  the readings could not resolve an effect of this size
+
+    `negligible` needs a quiet host *and* every case's own interval within
+    USABLE_FLOOR_PCT: a reading of +-20% on one case rules nothing out there,
+    however quiet the host was.
 
     The last two are opposite claims and must never be collapsed. `negligible`
     says the repair does nothing on a machine quiet enough to tell. That is
@@ -777,6 +791,22 @@ def _decide(result: Verification) -> None:
     elif helped:
         result.status = "confirmed"
         result.reason = _confirmed_reason(result, helped)
+    elif floor <= USABLE_FLOOR_PCT and _too_wide(result):
+        # The host was quiet, but this measurement's own readings were too
+        # spread to rule anything out. A floor says what identical code reads;
+        # it says nothing about a case whose windows wandered by +-20% --
+        # inputs rebuilt into a pool of hundreds of megabytes, say. Calling
+        # that `negligible` writes noise down as evidence that nothing moved.
+        widest = _too_wide(result)[0]
+        result.status = "inconclusive"
+        result.reason = (
+            f"the readings were too spread to rule anything out: {widest.label!r} "
+            f"measured {widest.energy_saved_pct:+.1f}% +-{widest.energy_ci_pct:.1f}%, "
+            f"and a null result needs every case within +-{USABLE_FLOOR_PCT:.1f}%. The "
+            f"host itself was quiet ({floor:.1f}% floor), so the spread came from this "
+            f"measurement -- often a case whose calls do not all do the same work, or a "
+            f"very large input rebuilt for every call. This is not evidence either way."
+        )
     elif floor > USABLE_FLOOR_PCT:
         result.status = "inconclusive"
         biggest = max(result.per_case, key=lambda c: abs(c.energy_saved_pct))
@@ -800,6 +830,12 @@ def _decide(result: Verification) -> None:
             f"saves nothing measurable, so it is not worth repairing in this "
             f"code."
         )
+
+
+def _too_wide(result: Verification) -> list[CaseOutcome]:
+    """Cases whose own interval is too wide for a null result, widest first."""
+    wide = [case for case in result.per_case if case.energy_ci_pct > USABLE_FLOOR_PCT]
+    return sorted(wide, key=lambda case: -case.energy_ci_pct)
 
 
 def _confirmed_reason(result: Verification, helped: list[CaseOutcome]) -> str:
@@ -1157,6 +1193,8 @@ def _measure_one(record, repo: Path, profile: Profile, meter: str,
                 f"will not install, record the suspicion as `blocked`. Never install "
                 f"the repository's own code, and never measure in another environment "
                 f"or against a copy of the repository.")}
+        if "a thunk returned" in str(exc):
+            return {"id": sid, "status": "invalid", "reason": str(exc)}
         return {"id": sid, "status": "error", "reason": str(exc)}
     except (MeasurementError, LoadError, OSError) as exc:
         return {"id": sid, "status": "error", "reason": str(exc)}

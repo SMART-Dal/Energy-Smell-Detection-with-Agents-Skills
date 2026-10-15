@@ -394,7 +394,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    | `not_equivalent` | the repair changes behaviour: fix that line |
    | `invalid` | the line is malformed, or its inputs fail to build: fix it as the message says |
    | `error` | the environment could not run it: do what the message says — install a missing package here and run again, or record `blocked` |
-   | `inconclusive` | the host was too noisy; the next run measures it again |
+   | `inconclusive` | the readings were too noisy. A busy host: the next run measures it again. Spread readings: make every call of each case do the same work (`verifying.md`, "Thunks"), then run again |
    | `confirmed` `mixed` `regressed` `negligible` | **final.** Do not touch the line |
 
    A measured result is never revised. Editing a measured line to get a better

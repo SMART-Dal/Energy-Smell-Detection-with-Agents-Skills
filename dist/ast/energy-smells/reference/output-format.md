@@ -119,11 +119,14 @@ no way to tell whether you read the code or the labels.
 `null` when there are suspicions.
 
 **`found_by`**, on every suspicion, records how you came to suspect it:
-`reading`, `rules`, `both`, `sweep` for the index pass at the end of step 2, or
-`cards` for a root cause that first appeared while you were reading a card in
-step 3. It is the difference between an analysis you did and a list you were
-handed, and it is measured across runs, so record it honestly — including the
-cases where you missed something.
+`reading`; `rules` when a rule's finding on this unit names this root cause
+and you had not suspected it; `both` when you had, and a rule's finding on this
+unit names the same root cause; `sweep` for the index pass at the end of step
+2; or `cards` for a root cause that first appeared while you were reading a
+card in step 3. A rule that flagged the unit for a different root cause does
+not make it `both`. It is the difference between an analysis you did and a list
+you were handed, and it is measured across runs, so record it honestly —
+including the cases where you missed something.
 
 **`root_cause`** is one of the 65 IDs exactly as its card names it, such as
 `C5.S1` — never a category such as `C5`.
