@@ -513,16 +513,20 @@ class PairEngine:
                         f"suspicion as `blocked` with this message.")
                 b = self.pair.side("after").ask(op="check", set=set_name, index=index,
                                         plain=self.has_equivalent)
-                if set_name == "cases" and a["raised"] == "TypeError" == b["raised"]:
+                if set_name == "cases" and a["kind"] == b["kind"] == "raise" \
+                        and a["raised"] == b["raised"]:
                     # Both sides failing the same way passes the check, and the
-                    # case would then measure an error path. A TypeError on an
-                    # input meant for measuring is nearly always arguments that
-                    # do not fit the signature.
+                    # case then has nothing to measure but the error: sizing
+                    # used to crash on it and report an environment `error`.
+                    hint = (" A TypeError here is usually arguments that do not fit the "
+                            "unit's signature: keyword arguments go through `call`, as in "
+                            "`lambda: call(xs, key=1)`." if a["raised"] == "TypeError" else "")
                     raise SubmissionError(
-                        f"the original raised TypeError on the measured case {label!r}, "
-                        f"so it would measure the error rather than the work. Usually "
-                        f"the arguments do not fit the unit's signature: keyword "
-                        f"arguments go through `call`, as in `lambda: call(xs, key=1)`.")
+                        f"the original raises on the measured case {label!r} "
+                        f"({a.get('message') or a['raised']}), so there is no work to "
+                        f"measure, only the error. A measured input has to run the code the "
+                        f"repair changes: choose inputs it completes on here, or record the "
+                        f"suspicion as `blocked` if none can be built.{hint}")
                 rows.append(CheckRow(label, set_name == "cases", self._differ(a, b),
                                      a["mutates"] or b["mutates"]))
         return rows

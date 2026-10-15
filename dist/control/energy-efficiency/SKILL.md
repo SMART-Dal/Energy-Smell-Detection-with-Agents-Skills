@@ -118,6 +118,8 @@ and a check you run against nothing checks nothing.
 Each record has **exactly the keys its example below shows — all of them, and
 no others**; a key with nothing to say is `null` or `[]`.
 `$SKILL/reference/output-format.md` lists every key and what it holds.
+`findings.jsonl` and `submissions.jsonl` both go in the repository's root, the
+directory you were started in — nowhere else.
 
 ### 1. Select — *in:* a target · *out:* the units you will examine, in order
 

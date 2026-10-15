@@ -270,10 +270,25 @@ def _run_with_keywords(function, pool: list[tuple[tuple, dict]], repeats: int) -
         function(*args, **kwargs)
 
 
+def _summary(exc: BaseException) -> str:
+    """`RuntimeError: first line of its message`, for a reply a person reads.
+
+    The last line of a traceback is the last line of the message, and a message
+    can run to many lines: one that embedded /proc/cpuinfo reported itself as
+    "power management:", which said nothing about what failed.
+    """
+    lines = str(exc).strip().splitlines()
+    first = lines[0].strip() if lines else ""
+    if len(first) > 200:
+        first = first[:197] + "..."
+    return f"{type(exc).__name__}: {first}" if first else type(exc).__name__
+
+
 class LoadFailure(Exception):
     def __init__(self, stage: str):
         super().__init__(traceback.format_exc(limit=6))
         self.stage = stage
+        self.summary = _summary(sys.exc_info()[1]) if sys.exc_info()[1] else ""
 
 
 class Side:
@@ -411,7 +426,8 @@ def main() -> int:
             sides[name] = Side(setup[f"{name}_root"], setup[f"{name}_workdir"],
                                setup["unit"], setup["cases_source"])
         except LoadFailure as failure:
-            reply({"ok": False, "side": name, "stage": failure.stage, "error": str(failure)})
+            reply({"ok": False, "side": name, "stage": failure.stage, "error": str(failure),
+                   "summary": failure.summary})
             return 1
 
     def described(side: Side) -> dict:
@@ -466,8 +482,8 @@ def main() -> int:
                 reply({"ok": False, "error": f"unknown op {op!r}"})
         except StubUsed as exc:
             reply({"ok": False, "stub_used": True, "error": str(exc)})
-        except Exception:  # noqa: BLE001
-            reply({"ok": False, "error": traceback.format_exc(limit=6)})
+        except Exception as exc:  # noqa: BLE001
+            reply({"ok": False, "error": traceback.format_exc(limit=6), "summary": _summary(exc)})
     return 0
 
 
@@ -486,6 +502,7 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
     args_before = render_json(watched, replace=side.replace)
     files_before = side.files()
     stream = io.StringIO()
+    message = ""
     with contextlib.redirect_stdout(stream):
         try:
             value, kind, raised = side.function(*args, **kwargs), "return", ""
@@ -493,6 +510,7 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
             raise
         except Exception as exc:  # noqa: BLE001 -- raising is behaviour to compare
             value, kind, raised = None, "raise", type(exc).__name__
+            message = _summary(exc)
     args_after = render_json(watched, replace=side.replace)
     files_after = side.files()
     written = {key: side.digest(key) for key, stat in files_after.items()
@@ -502,6 +520,7 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
         "ok": True,
         "kind": kind,
         "raised": raised,
+        "message": message,
         "value": render_json(value, replace=side.replace) if kind == "return" else "",
         "args_before": args_before,
         "args": args_after,

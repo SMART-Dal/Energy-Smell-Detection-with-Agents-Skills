@@ -1,7 +1,9 @@
 # Output format
 
-A run leaves two files in the directory it was started in. They are your
-record of the work, not edits to the code:
+A run leaves two files in the repository's root — the directory you were
+started in, next to its README — and nowhere else: not in `.energy-scan/`, not
+in a scratch directory. They are your record of the work, not edits to the
+code, so writing them there does not touch the repository:
 
 - **`findings.jsonl`** — what you did, one JSON line per step per unit,
   appended as you go.

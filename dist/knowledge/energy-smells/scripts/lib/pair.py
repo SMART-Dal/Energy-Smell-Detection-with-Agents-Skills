@@ -95,7 +95,8 @@ class Pair:
         if not ready.get("ok"):
             self.close()
             raise LoadError(ready.get("side", "before"), ready.get("stage", "start"),
-                            _last_line(ready.get("error", "")) or self._tail())
+                            ready.get("summary") or _last_line(ready.get("error", ""))
+                            or self._tail())
         self.ready = ready
         if ready["before"]["cases"] != ready["after"]["cases"] or \
                 ready["before"]["checks"] != ready["after"]["checks"]:
@@ -134,8 +135,8 @@ class Pair:
         self._send(request)
         answer = self._receive()
         if not answer.get("ok"):
-            raise WorkerError(_last_line(answer.get("error", "")) or self._tail(),
-                              stub_used=answer.get("stub_used", False))
+            raise WorkerError(answer.get("summary") or _last_line(answer.get("error", ""))
+                              or self._tail(), stub_used=answer.get("stub_used", False))
         return answer
 
     def _send(self, payload: dict) -> None:
