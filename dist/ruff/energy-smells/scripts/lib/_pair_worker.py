@@ -402,6 +402,29 @@ class Side:
         return hashlib.sha256(data).hexdigest()[:16]
 
 
+def _metric_collectors() -> set:
+    """The collectors in prometheus_client's process-wide registry, if it is loaded."""
+    registry = getattr(sys.modules.get("prometheus_client.registry"), "REGISTRY", None)
+    return set(getattr(registry, "_collector_to_names", {})) if registry else set()
+
+
+def _forget_metrics(known: set) -> None:
+    """Unregister the metrics one copy registered while it loaded.
+
+    prometheus_client keeps one registry per process and refuses a second metric
+    of the same name, so the patched copy's import of a module that defines its
+    metrics at top level failed with "Duplicated timeseries" -- every feast
+    module that reaches `feast.metrics`. The metric objects keep working
+    unregistered; the registry only collects them for export.
+    """
+    registry = getattr(sys.modules.get("prometheus_client.registry"), "REGISTRY", None)
+    for collector in _metric_collectors() - known:
+        try:
+            registry.unregister(collector)
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def main() -> int:
     protocol = os.fdopen(os.dup(1), "w", buffering=1)
     devnull = os.open(os.devnull, os.O_WRONLY)
@@ -422,6 +445,7 @@ def main() -> int:
 
     sides: dict[str, Side] = {}
     for name in ("before", "after"):
+        known = _metric_collectors()
         try:
             sides[name] = Side(setup[f"{name}_root"], setup[f"{name}_workdir"],
                                setup["unit"], setup["cases_source"])
@@ -429,6 +453,7 @@ def main() -> int:
             reply({"ok": False, "side": name, "stage": failure.stage, "error": str(failure),
                    "summary": failure.summary})
             return 1
+        _forget_metrics(known)
 
     def described(side: Side) -> dict:
         equivalent = side.namespace.get("equivalent")

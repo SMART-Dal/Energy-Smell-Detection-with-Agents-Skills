@@ -242,6 +242,7 @@ def _short(value, limit: int = 120) -> str:
 # `equivalent(before, after)` receives: lists, dicts, numbers and strings.
 
 import base64 as _base64
+import hashlib as _hashlib
 import json as _json
 import math as _math
 import re as _re
@@ -249,6 +250,38 @@ from pathlib import PurePath as _PurePath
 
 _ADDRESS = _re.compile(r" at 0x[0-9a-fA-F]+")
 _MAX_DEPTH = 8
+_DIGEST_FROM = 10_000
+"""Arrays with at least this many elements are compared by a digest of their bytes."""
+
+
+def _array_digest(value):
+    """A large numpy array or torch tensor as a digest of its bytes, or None.
+
+    Rendering element by element took 11 s for one argument -- a model holding a
+    100 000 x 50 embedding table -- and the check renders every argument twice
+    per input. The digest is the same exact equality, about 100 times faster.
+    Two differences, both at the bit level: -0.0 and 0.0 now differ, and so do
+    NaNs with different payloads. Object arrays hold pointers, so they keep the
+    element-by-element rendering, as do arrays too small to be slow.
+    """
+    try:
+        numel = getattr(value, "numel", None)
+        size = numel() if callable(numel) else int(getattr(value, "size", 0))
+        if size < _DIGEST_FROM:
+            return None
+        data = value
+        detach = getattr(data, "detach", None)
+        if callable(detach):                       # torch: the tensor's own values
+            data = detach().cpu().numpy()
+        dtype = getattr(data, "dtype", None)
+        if dtype is None or getattr(dtype, "hasobject", True):
+            return None
+        raw = data.tobytes()                       # C order, whatever the layout
+    except Exception:  # noqa: BLE001 -- bfloat16 and the like: render it the long way
+        return None
+    return {"array_sha256": _hashlib.sha256(raw).hexdigest(),
+            "shape": [int(n) for n in getattr(value, "shape", ())],
+            "dtype": str(getattr(value, "dtype", ""))}
 
 
 def render(value, *, plain: bool = False, replace: tuple = ()):
@@ -321,6 +354,9 @@ def _render(value, plain, replace, depth, seen):
 
     tolist = getattr(value, "tolist", None)
     if callable(tolist) and hasattr(value, "shape"):
+        digest = None if plain else _array_digest(value)
+        if digest is not None:
+            return digest
         try:
             data = _render(tolist(), plain, replace, deeper, seen)
             return data if plain else {"array": data, "dtype": str(getattr(value, "dtype", ""))}
