@@ -177,7 +177,7 @@ What the script writes into a line:
      "before_energy_j": 51.03, "after_energy_j": 47.29,
      "before_time_s": 1.04, "after_time_s": 0.96,
      "energy_ci_pct": 1.2, "significant": true}
-    // ... one row per case, all five
+    // ... one row per input, all four
   ],
   "submission_hash": "3f2a9c01d4e5b6a7"
   // abridged: a few more fields record provenance -- the meter, its coverage, the canary case

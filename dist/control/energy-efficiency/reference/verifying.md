@@ -25,7 +25,7 @@ One JSON object per line of `submissions.jsonl`, one line per repair:
   "related": [],
   "sole_caller_evidence": null,
   "equivalence": "strict",
-  "cases_source": "def checks():\n    ...\n\ndef cases():\n    ...",
+  "equivalent": null,
   "notes": "Sizes taken from the fixtures in tests/; `_row` left as the real helper."
 }
 ```
@@ -41,7 +41,7 @@ ones with nothing to say take the empty value shown.
 | `related` | ids of other repairs of the same code; `[]` if none |
 | `sole_caller_evidence` | how you know nothing else calls or reads what you changed; `null` when `changed` holds only the unit |
 | `equivalence` | `"strict"`, or `"returns_only"`; see below |
-| `cases_source` | Python source defining `checks()` and `cases()` |
+| `equivalent` | `null`, or the source of `def equivalent(before, after)`; see below |
 | `notes` | a few sentences a reader would otherwise have to guess; `""` if none |
 | `agent_measurement` | written by the script, never by you |
 
@@ -85,130 +85,71 @@ its own. There is no order to take them in, and no repair is built on another.
   suspicion is `same_repair_as` it.
 - **Different edits to the same code** are separate repairs. Submit each, and
   list each in the other's `related`.
-- **Every submission for one unit uses the same `cases_source`**, so their
-  savings are measured on identical inputs. The script rejects a file where
-  they differ.
+- **Every repair of one unit is measured on that unit's inputs**, so their
+  savings are measured on identical inputs and can be compared.
 
-## `cases_source`
+## The inputs
 
-Python source defining two functions. Each returns `(label, thunk)` pairs, and
-the thunk returns a **tuple of arguments** for the unit — or, when the unit
-takes keyword arguments, `call(...)` with them: `lambda: call(rows, sep=",")`.
-`call` is provided; do not import or define it.
+You do not write them. Ask for every unit you will measure, in one request:
 
-```python
-from src.render import Report    # the repository's own modules, by their real names
-
-def _rows(n, *, wide=False):
-    columns = 12 if wide else 3
-    return [{f"c{j}": i * j for j in range(columns)} for i in range(n)]
-
-def checks():                     # behaviour only, never measured
-    return [
-        ("empty",      lambda: (Report([]),)),
-        ("one-row",    lambda: (Report(_rows(1)),)),
-        ("none-value", lambda: (Report([{"c0": None}]),)),
-    ]
-
-def cases():                      # exactly five, each measured
-    return [
-        ("typical",    lambda: (Report(_rows(200)),)),
-        ("many-rows",  lambda: (Report(_rows(50_000)),)),
-        ("wide-rows",  lambda: (Report(_rows(5_000, wide=True)),)),
-        ("long-text",  lambda: (Report([{"c0": "x" * 4_000}] * 2_000),)),
-        ("worst-case", lambda: (Report(_rows(20)),)),   # where joining costs most
-    ]
+```bash
+python $SKILL/scripts/inputs.py request src/render.py::Report.render src/parse.py::tokenize
+python $SKILL/scripts/inputs.py status          # which are ready
 ```
 
-**`checks()` is for behaviour.** The edge inputs — empty, one element, `None`,
-an odd type — are run through both versions and compared, and never measured.
-On an empty list a repair can easily cost more than the code it replaces — by
-nanojoules, on an input that costs nothing either way — and measuring that
-would only make a good repair look like a trade-off.
+A generator outside this session writes each unit's inputs from the
+repository's own code — the unit, its class, what it uses, and where the
+repository calls it. It asks for more candidates than it needs, runs each on
+the original code, keeps those that complete and give the same output on a
+second, fresh run, and of those keeps the four that do the most work. They are
+fixed for the unit: every repair of it is measured on the same four, and so is
+the re-measurement after the session, which uses our own copy of them.
 
-**`cases()` is for energy: exactly five inputs, each making the unit behave
-differently.** Not five sizes of the same input — five behaviours: the paths
-the code takes, how often a lookup hits, how many duplicates there are, how
-long one element is against how many there are. Include the input each repair
-is *most likely to lose on*, because the verdict needs to see it. Every case
-counts on its own, and one that measurably loses makes the result `mixed`.
+The request returns at once, and generation takes a minute or two, every unit
+at the same time. Write the repairs meanwhile; verify.py waits for any unit
+still being generated before it measures anything. Ask once, for all the units
+at once — at most 20 in a session.
 
-**Thunks, not values — and they all run before the timing starts.** A measured
-window is hundreds of calls in a row. Before it starts, the thunk is called
-once, or once per call when the unit changes its arguments; then the calls run
-back to back, with nothing in between. So a fresh argument is never poisoned by
-the call before it — but **anything the unit changes outside its arguments**
-(a class attribute, a module global, a cache, a file) **carries over from one
-call to the next**, and resetting it inside the thunk resets it once, before
-all of them.
+Each unit's inputs are one file in `.energy-inputs/`, read-only. Read it before
+you write the repair: it is exactly what the repair will be measured on. It
+defines two functions, each returning `(label, thunk)` pairs:
 
-For example, a method that skips keys it has already stored in `cls.seen`:
-a thunk that clears `cls.seen` and returns the same keys every time measures
-the first call on new keys and every other call on keys already seen — not
-the code the repair changed. Give every thunk call keys of its own, so every
-call takes the same path:
+- **`checks()`** — edge inputs: empty, one element, `None`, an odd type. Both
+  versions run them and must behave the same; they are never measured.
+- **`cases()`** — the four measured inputs, each making the unit do different
+  work. Every one counts on its own: a repair is `confirmed` only if it saves
+  energy on all four, and one that measurably loses on any of them is `mixed`.
 
-```python
-import itertools
-_batch = itertools.count()
+A thunk returns the unit's arguments as a tuple, or `call(...)` when the unit
+takes keyword arguments. **A method takes its instance as the first
+argument**, so the thunk builds the instance and passes it.
 
-def _nodes(n):
-    b = next(_batch)                      # new keys for every thunk call
-    return [{"~key": f"k{b}_{i}", "~id": f"id{i}"} for i in range(n)]
-```
-
-The equivalence check runs each input once, right after its thunk, so it
-cannot catch this; when the measurement comes back `inconclusive` because the
-readings were spread, this is the first thing to look for.
-
-**A method takes its instance as the first argument.** `Report.render` is
-called as a plain function, so the thunk builds the `Report` and passes it.
-
-**Import the repository's modules the way its own code does.** A package by
-its package name — `from mypkg.render import Report`, wherever `mypkg/` sits —
-and a standalone script by its file name, as if run from its own directory:
-`from convert import main` for `tools/convert.py`. A file whose name is not an
-identifier needs `importlib.import_module("csv-tool")`.
+**The thunks all run before the timing starts.** A measured window is hundreds
+of calls in a row. Before it starts, the thunk is called once, or once per call
+when the unit changes its arguments; then the calls run back to back, with
+nothing in between. So a fresh argument is never poisoned by the call before
+it — but **anything the unit changes outside its arguments** (a class
+attribute, a module global, a cache, a file) **carries over from one call to
+the next**. A repair whose saving comes from remembering results across calls
+is measured on hundreds of repeats of one input, where it saves far more than
+it would on a program that sees each input once; if your repair keeps state
+between calls, say so in `notes`.
 
 **A coroutine is run, a generator is drained.** An `async def` unit is run to
 completion on an event loop of its own, and a generator's output is collected
 and compared as what it yielded — so a repair that turns a list into a
 generator counts as returning something different.
 
-**Anything the unit writes to disk goes under `WORKDIR`**, a directory the
-script gives each side. Files are output like any other: every file the unit
+**Files are output like any other.** Inputs put the files a unit reads under
+`WORKDIR`, a directory the script gives each side, and every file the unit
 creates, changes or deletes, under `WORKDIR` or inside the repository, has to
 come out the same on both sides.
 
-**Build the inputs; do not fake library objects.** If the unit needs an object
-the environment cannot construct, record the suspicion as `blocked` and say
-why. A faked object measures something nobody runs.
-
-`cases_source` may also define `equivalent()`; see below. Module-level code in
-it runs once per side, outside all measurement.
-
-## Choosing the five
-
-Sizes should come from the repository, not from convenience. If its tests,
-fixtures or documentation say what a normal input looks like, start from that.
-If nothing says, pick something you can defend in one sentence and put the
-sentence in `notes`.
-
-You do **not** need outer loops to make a short case measurable. The script
-times one call and repeats it until the window is long enough — a 40 µs case
-is simply run tens of thousands of times. Write each case at its natural size.
-
-When the effect grows with the number of *calls* rather than with input size —
-removing per-call overhead, say — give the unit many calls over a small input
-rather than one over a large one.
-
-**The shape of a case can matter as much as its size.** Two cases of one
-repair, on one host: a string accumulator fed 200 000 short parts measured
-+18.4%, and the same accumulator fed 2 000 parts ten times the total length
-measured +1.2%. Same total bytes, same code, opposite conclusions. When the
-mechanism depends on a variable — a count against a length, a hit rate, a
-duplicate ratio — vary that variable across the five, and say in `notes` which
-one the repair tracks.
+**A unit with no inputs.** When the generator cannot build inputs that run
+here — the unit needs the network, a service, credentials, hardware —
+`inputs.py status` lists it as `failed` with the reason, and verify.py reports
+its repairs as `no_inputs`. Record their suspicions as `blocked`, with that
+reason.
 
 ## When "identical" is stricter than "the same answer"
 
@@ -230,7 +171,8 @@ Use it only when you have checked the call sites and none of them relies on
 the mutation, and say so in `notes`.
 
 **The result is the same answer in a different form** — an unordered
-collection, a tolerance on a float. Define `equivalent()` in `cases_source`:
+collection, a tolerance on a float. Give the comparison in `equivalent`, as
+source text holding that one function and nothing else but imports:
 
 ```python
 def equivalent(before, after):
@@ -264,15 +206,16 @@ if you forget. If it comes back significant, something else is using the
 machine, and nothing measured until it stops means anything.
 
 The second command goes through the file once — about a minute per repair,
-plus half a minute to calibrate — so give the command a timeout to match, or
-run it in the background and wait for it. It writes each result into its line,
+plus half a minute to calibrate, after any inputs still being generated are
+ready — so give the command a timeout to match, or run it in the background
+and wait for it. It writes each result into its line,
 as `agent_measurement`, with the verdict in `agent_measurement.status`. Run it again after fixing broken lines and it
 measures only what needs it: a line never measured, a line that was
 `not_equivalent`, `invalid` or `error` and has since been fixed, and anything
 `inconclusive` or `error`, which is simply tried again.
 
-A line with a measured result — `confirmed`, `mixed`, `regressed`,
-`negligible` — is final and is never measured again. If it has been edited
+A line with a measured result — `confirmed`, `partial`, `mixed`,
+`regressed`, `negligible` — is final and is never measured again. If it has been edited
 since, the script reports it `invalid` and leaves the result it had exactly as
 it was. A different repair is a new line.
 
@@ -326,13 +269,15 @@ measured against, and one that does not match the repository is discarded.
 
 | Verdict | What it means | What to do |
 |---|---|---|
-| `confirmed` | every case that moved, moved the right way, clearing the noise floor | nothing — final |
-| `mixed` | saves energy on some cases, costs it on others — both clearing the floor | nothing — final. A trade-off: which side wins depends on the input |
+| `confirmed` | saves energy on all four inputs, each clearing the noise floor | nothing — final |
+| `partial` | saves energy on some inputs, and moves nothing beyond the noise on the others | nothing — final. A narrower claim: it pays on some of the work the unit does |
+| `mixed` | saves energy on some inputs, costs it on others — both clearing the floor | nothing — final. A trade-off: which side wins depends on the input |
 | `regressed` | every case that moved measurably, got worse | nothing — final |
-| `negligible` | measured on a clean floor, every case within ±3%, and nothing moved more than the noise | nothing — final |
-| `inconclusive` | the readings could not resolve an effect this size: a noisy host, or a case whose readings were spread | a noisy host: nothing, the next run measures it again. Spread readings: make every call of each case do the same work (see "Thunks"), then run again. It is **not** `negligible` |
+| `negligible` | measured on a clean floor, and nothing moved more than the noise | nothing — final |
+| `inconclusive` | the host's noise was too high to resolve an effect this size | nothing; the next run measures it again. It is **not** `negligible` |
 | `not_equivalent` | the replacement behaves differently from the original | fix the repair and run again |
-| `invalid` | the line is malformed, its `cases_source` fails, or a measured line was edited | fix it as the message says |
+| `invalid` | the line is malformed, the inputs do not load against the repair, or a measured line was edited | fix it as the message says |
+| `no_inputs` | the unit has no inputs: none were requested, or none could be generated | request them; if they could not be generated, record `blocked` with the message |
 | `error` | the environment failed: an import, the meter, a library the unit needs | what the message says: install a missing package and run again, or record `blocked` |
 
 Every verdict stays. A file that proposes ten repairs and has three come back
@@ -340,10 +285,9 @@ Every verdict stays. A file that proposes ten repairs and has three come back
 
 `negligible` and `inconclusive` are different claims. `negligible` says the
 repair does nothing, on a machine quiet enough to tell — that is evidence.
-`inconclusive` says this measurement could not tell — the host was busy, or a
-case's own readings were too spread — which says nothing about the code.
-Reporting the second as the first writes noise down as evidence against
-the repair.
+`inconclusive` says this machine could not tell, which is a fact about the host
+and says nothing about the code. Reporting the second as the first writes a
+busy host down as evidence against the repair.
 
 `mixed` is not a softer `regressed`. Both effects are real: the repair pays on
 one input and costs on another, and which one the code actually sees decides

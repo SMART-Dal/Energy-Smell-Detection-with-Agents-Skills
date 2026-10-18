@@ -1,10 +1,11 @@
 """What one line of `submissions.jsonl` must contain, checked before anything runs.
 
 A submission is a repair proposed against a repository the agent did not edit.
-It names the unit, gives the replacement source for the unit and for any callee
-it changed, and gives the inputs. It never gives a `before`: that is read from
-the repository, which is what stops a baseline being written to flatter the
-result.
+It names the unit and gives the replacement source for the unit and for any
+callee it changed. It never gives a `before`, which is read from the
+repository, and never gives the inputs, which are generated for the unit
+outside the session (see lib/inputs.py): either one written by the agent could
+be shaped to flatter the result.
 
     {
       "id": "s1",
@@ -14,7 +15,7 @@ result.
       "related": ["s2"],                      # other repairs of the same code, or []
       "sole_caller_evidence": "...",          # null unless a callee changed
       "equivalence": "returns_only",          # or "strict"
-      "cases_source": "def checks(): ...\\ndef cases(): ...",
+      "equivalent": null,                     # or source of `def equivalent(before, after)`
       "notes": "...",                         # or ""
       "agent_measurement": {...}              # written by verify.py, not by hand
     }
@@ -26,6 +27,7 @@ is the likeliest thing to go wrong in the whole pipeline.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import re
@@ -33,20 +35,24 @@ import re
 from .casefile import RELAXATIONS
 from .splice import split_name
 
-MEASURED_CASES = 5
-"""`cases()` returns exactly this many inputs. Five, each making the unit behave
-differently, is enough to show where a repair pays and where it does not, and
-fixing the number keeps every submission's measurement the same length."""
+MEASURED_CASES = 4
+"""`cases()` returns exactly this many inputs, and a repair is confirmed only if
+it saves energy on every one of them. Four, each making the unit do different
+work, is enough to show where a repair pays and where it does not; fixing the
+number keeps every measurement the same length and every verdict the same bar
+(Javad, Oct 2026)."""
 
 ALLOWED = {
     "id", "root_cause", "unit", "changed", "related", "sole_caller_evidence",
-    "equivalence", "cases_source", "notes", "agent_measurement",
+    "equivalence", "equivalent", "notes", "agent_measurement",
 }
-REQUIRED = ("id", "unit", "changed", "cases_source")
+REQUIRED = ("id", "unit", "changed")
 RETIRED = {
     "file": "name the file inside `unit` instead: `src/app.py::Report.render`",
     "callees_changed": "every key of `changed` other than `unit` is a changed callee",
     "subsumed": "an identical repair is recorded as `same_repair_as` in findings.jsonl",
+    "cases_source": "the inputs are generated for you: request them with inputs.py, and "
+                    "drop the field",
 }
 _ROOT_CAUSE = re.compile(r"^C\d{1,2}\.S\d{1,2}$")
 
@@ -103,28 +109,98 @@ def validate(record: dict) -> str | None:
     if root_cause is not None and not (isinstance(root_cause, str)
                                        and _ROOT_CAUSE.match(root_cause)):
         return f"`root_cause` must be an ID such as C5.S1, not {root_cause!r}"
-    if not isinstance(record["cases_source"], str):
-        return "`cases_source` must be Python source text"
+    if record.get("equivalent") is not None:
+        return equivalent_problem(record["equivalent"])
+    return None
+
+
+def equivalent_problem(source) -> str | None:
+    """`equivalent` is one comparison function and nothing else, or what is wrong.
+
+    It is appended to the generated inputs and runs beside them, so anything
+    more than imports and the one function -- module-level code, a second
+    definition -- could reach the inputs or the code under test.
+    """
+    if not isinstance(source, str) or not source.strip():
+        return "`equivalent` must be null, or the source of `def equivalent(before, after)`"
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        return f"`equivalent` does not parse: {exc}"
+    functions = [n for n in tree.body if isinstance(n, ast.FunctionDef)]
+    others = [n for n in tree.body if not isinstance(n, (ast.FunctionDef, ast.Import, ast.ImportFrom))]
+    if others or len(functions) != 1 or functions[0].name != "equivalent" \
+            or len(functions[0].args.args) != 2:
+        return ("`equivalent` must hold exactly one function, `def equivalent(before, after)`, "
+                "and nothing else but imports")
+    if not ast.get_docstring(functions[0]):
+        return ("`equivalent` needs a docstring saying what it treats as the same answer. A "
+                "comparison that always returns True would turn a broken repair into a "
+                "confirmed one with nothing in the output to show it.")
+    return replaced_code(source)
+
+
+_MOCKING = {"mock", "unittest.mock", "pytest_mock"}
+
+
+def replaced_code(source: str) -> str | None:
+    """Does this source -- generated inputs, or an `equivalent` -- swap code for its own?
+    The first case, or None.
+
+    A unit that calls the network or a native library cannot run here, and
+    the temptation is to replace that call: `module.fetch = fake`, or an
+    object assembled with `obj.process = lambda *a: 0`. Then the measurement
+    times the fake, and the saving is a fraction of something nobody runs --
+    one run reported 68% that way, of a wrapper whose real work is native.
+    So assigning a lambda, or a function defined here, onto any attribute or
+    through `setattr`, and importing a mocking library, are refused. Data put
+    on a module or object -- `pricing.args = namespace` -- is input, and allowed.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return None                     # reported when the source is run
+    defined = {node.name for node in ast.walk(tree)
+               if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+
+    def is_code(value) -> bool:
+        return isinstance(value, ast.Lambda) or (
+            isinstance(value, ast.Name) and value.id in defined)
+
+    found = None
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            names = [alias.name for alias in node.names]
+            module = node.module if isinstance(node, ast.ImportFrom) else None
+            if module in _MOCKING or any(n in _MOCKING for n in names) or \
+                    (module == "unittest" and "mock" in names):
+                found = node
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if node.value is not None and is_code(node.value) and \
+                    any(isinstance(t, ast.Attribute) for t in targets):
+                found = node
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
+                and node.func.id == "setattr" and len(node.args) == 3 \
+                and is_code(node.args[2]):
+            found = node
+        if found is not None:
+            line = source.splitlines()[found.lineno - 1].strip()
+            return (f"this source replaces code, at line {found.lineno}: `{line[:80]}`. "
+                    f"Everything measured has to run the real code -- a replaced function or "
+                    f"a mock measures something nobody runs.")
     return None
 
 
 def validate_file(records: list[dict]) -> dict[str, str]:
-    """Rules that span lines: unique ids, shared inputs, real cross-references.
+    """Rules that span lines: unique ids and real cross-references.
 
-    Every submission for one unit uses the same `cases_source`. That is what
-    makes two repairs of the same function comparable -- each one's saving is
-    measured on identical inputs -- and it is what lets the better of them be
-    chosen when only one can be applied.
+    Every repair of one unit is measured on that unit's generated inputs, so
+    two repairs of the same function are always compared on identical inputs.
     """
     problems: dict[str, str] = {}
     ids = [r.get("id") for r in records if isinstance(r, dict)]
     duplicated = {i for i in ids if ids.count(i) > 1}
-    by_unit: dict[str, set[str]] = {}
-    for record in records:
-        if not isinstance(record, dict):
-            continue
-        if record.get("unit") and isinstance(record.get("cases_source"), str):
-            by_unit.setdefault(record["unit"], set()).add(record["cases_source"])
 
     for record in records:
         if not isinstance(record, dict) or not isinstance(record.get("id"), str):
@@ -132,11 +208,6 @@ def validate_file(records: list[dict]) -> dict[str, str]:
         sid = record["id"]
         if sid in duplicated:
             problems[sid] = f"id {sid!r} is used by more than one line"
-        elif len(by_unit.get(record.get("unit"), ())) > 1:
-            problems[sid] = (
-                f"submissions for {record['unit']} do not share one `cases_source`; "
-                f"every repair of a unit is measured on the same inputs"
-            )
         else:
             dangling = sorted(set(record.get("related") or []) - set(ids))
             if dangling:
@@ -145,7 +216,7 @@ def validate_file(records: list[dict]) -> dict[str, str]:
 
 
 def case_count_problem(cases: list[str], checks: list[str]) -> str | None:
-    """`cases()` gives exactly five measured inputs; `checks()` at least one."""
+    """`cases()` gives exactly MEASURED_CASES measured inputs; `checks()` at least one."""
     if len(cases) != MEASURED_CASES:
         return (f"`cases()` returned {len(cases)} inputs; it must return exactly "
                 f"{MEASURED_CASES}, each making the unit behave differently")

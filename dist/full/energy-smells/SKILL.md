@@ -420,12 +420,26 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    a different number. Every other accepted suspicion is still a finding:
    record it as `deferred` in step 4's record.
 
-2. **For each unit with a repair to measure, write its inputs once.**
-   `checks()` holds the edge inputs — empty, one element, odd types — and is
-   only used to confirm behaviour is preserved. `cases()` holds exactly **five** inputs that make the unit behave
-   differently, including the one each repair is most likely to lose on. Every
-   submission for a unit uses that unit's text, so their savings are measured on
-   the same inputs and can be compared.
+2. **Ask for the inputs of every unit you will measure, in one request.**
+
+   ```bash
+   python $SKILL/scripts/inputs.py request src/render.py::Report.render src/parse.py::tokenize
+   ```
+
+   You do not write the inputs a repair is measured on. A generator outside
+   this session writes them for each unit: **four** measured inputs that make
+   the unit do substantial and different work, and a few edge inputs checked
+   only for identical behaviour. It keeps an input only if it runs on the
+   original code and gives the same output twice. The request returns at once
+   and generation takes a minute or two, all units together — go on to write
+   the repairs meanwhile. Each unit's file appears in `.energy-inputs/`,
+   read-only: read it to see what your repairs will face. After the session,
+   every repair is measured again on our own copy of the same inputs.
+
+   `python $SKILL/scripts/inputs.py status` shows which units are ready. A unit
+   the generator could not build inputs for — it needs the network, a service,
+   hardware — is listed as `failed` with the reason; its suspicions are
+   `blocked`, with that reason.
 
 3. **For each chosen suspicion, write the smallest repair of the original
    code** that removes its waste, as one line in `submissions.jsonl`. Every
@@ -444,9 +458,10 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    python $SKILL/scripts/verify.py submissions.jsonl --repo .
    ```
 
-   Every line is measured in turn, under a minute each, and its result is
-   written into the line as `agent_measurement`: the verdict, and the joules
-   and seconds of every case. Never write or edit it yourself.
+   It first waits for any inputs still being generated, then measures every
+   line in turn, under a minute each, on its unit's inputs, and writes the
+   result into the line as `agent_measurement`: the verdict, and the joules
+   and seconds of every input. Never write or edit it yourself.
 
 5. **Then fix only what is broken, and run the same command again.** It
    measures only the lines that need it.
@@ -454,16 +469,17 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    | Result | What you do |
    |---|---|
    | `not_equivalent` | the repair changes behaviour: fix that line |
-   | `invalid` | the line is malformed, or its inputs fail to build: fix it as the message says |
+   | `invalid` | the line is malformed, or the inputs do not load against your repair: fix it as the message says |
+   | `no_inputs` | the unit has none: request them if you have not, otherwise record `blocked` with the message |
    | `error` | the environment could not run it: do what the message says — install a missing package here and run again, or record `blocked` |
-   | `inconclusive` | the readings were too noisy. A busy host: the next run measures it again. Spread readings: make every call of each case do the same work (`verifying.md`, "Thunks"), then run again |
-   | `confirmed` `mixed` `regressed` `negligible` | **final.** Do not touch the line |
+   | `inconclusive` | the host was too noisy; the next run measures it again |
+   | `confirmed` `partial` `mixed` `regressed` `negligible` | **final.** Do not touch the line |
 
    A measured result is never revised. Editing a measured line to get a better
    number makes it `invalid`, and the result it had stays on record. If you
    think a genuinely different repair would do better, that is a new line,
    listed in `related` — both are kept. A suspicion whose repair you cannot make
-   behave identically, or whose unit you cannot build inputs for, is `blocked`.
+   behave identically, or whose unit has no inputs, is `blocked`.
 
 6. **Record what happened to every accepted suspicion**, one record per unit:
 
@@ -477,8 +493,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    ```
 
 Every measured repair stays in `submissions.jsonl`, whatever its verdict.
-`negligible`, `regressed` and `mixed` are results, and a file that kept only
-the wins could not be told apart from one that hid its losses.
+`partial`, `negligible`, `regressed` and `mixed` are results, and a file that
+kept only the wins could not be told apart from one that hid its losses.
 
 ### 5. Finish — *in:* both files · *out:* both files complete, and a short summary
 
@@ -493,7 +509,7 @@ Before you stop, check:
   settle.
 
 Then end with a short summary for whoever asked: for each submission, the unit,
-its root cause, the verdict, and what it saved across its five inputs. Lead
+its root cause, the verdict, and what it saved across its four inputs. Lead
 with what was confirmed, say plainly what was not, and say how many accepted
 suspicions were deferred unmeasured.
 

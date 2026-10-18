@@ -5,8 +5,9 @@
     python verify.py --calibrate                     this host's noise floor
     python verify.py case.py                         one of our validation files
 
-A submission names a unit in a repository and gives the replacement source and
-the inputs; `before` is read from the repository itself. A pristine copy and a
+A submission names a unit in a repository and gives the replacement source;
+`before` is read from the repository itself, and the inputs from the ones
+generated for the unit outside the session (`.energy-inputs/`, or `--inputs`). A pristine copy and a
 patched copy are imported side by side in one worker process, each under its
 real package names, and measured alternately, one window at a time. A case
 file defines `before`, `after` and `cases()` itself; it is how our own
@@ -19,16 +20,18 @@ Either way the same four stages decide the result:
     3. measurement   the two variants alternate, paired repetition by repetition
     4. noise floor   identical code against itself, to bound what the host resolves
 
-The verdict is the point, and there are five of them:
+The verdict is the point, and there are six of them:
 
-    confirmed     every case that moved, moved the right way
+    confirmed     saves energy on every input
+    partial       saves on some inputs; nothing measurable on the others
     mixed         helps some inputs, hurts others -- a trade-off
     regressed     every case that moved, got worse
     negligible    measured cleanly; nothing moved more than the noise
-    inconclusive  the readings could not resolve an effect of this size
+    inconclusive  this host could not resolve an effect of this size
 
-and three for when nothing was measured: `not_equivalent` (the repair is
-broken), `invalid` (the submission is malformed) and `error` (the environment
+and four for when nothing was measured: `not_equivalent` (the repair is
+broken), `invalid` (the submission is malformed), `no_inputs` (none could be
+generated for the unit, or none were requested) and `error` (the environment
 failed -- an import, a meter, a library the unit needs and the host lacks).
 
 `negligible` is the analysis working, not failing: the repair was built and
@@ -64,6 +67,7 @@ from lib.measure import (  # noqa: E402
     compare_case,
     noise_floor,
 )
+from lib.inputs import DIRNAME, inputs_for, wait_until_settled  # noqa: E402
 from lib.models import Comparison  # noqa: E402
 from lib.pair import LoadError, Pair, WorkerError, stage  # noqa: E402
 from lib.submission import (  # noqa: E402
@@ -111,15 +115,19 @@ PROFILES = {
                           slow_factor=5.0),
 }
 
-FINAL = {"confirmed", "mixed", "regressed", "negligible"}
+FINAL = {"confirmed", "partial", "mixed", "regressed", "negligible"}
 """A measured result. The line that produced it may not be edited afterwards:
 re-measuring an edited line would replace the result, and a repair could then
 be reshaped until it confirmed with nothing on record. A genuinely different
 repair is a new line, listed in `related`."""
 
-REMEASURED = {"inconclusive", "error"}
-"""Not a result about the repair -- a busy host, a failed environment -- so the
-next run measures the line again without it having to change."""
+REMEASURED = {"inconclusive", "error", "no_inputs"}
+"""Not a result about the repair -- a busy host, a failed environment, inputs
+not there yet -- so the next run measures the line again without it having to
+change."""
+
+INPUTS_WAIT_S = 600
+"""How long a run waits for inputs still being generated before measuring."""
 
 UNLOADABLE = (
     "If a package is missing, install it into this environment (`python -m pip "
@@ -438,9 +446,11 @@ class PairEngine:
     """A submitted repair: two copies of the repository, side by side in one worker."""
 
     subject_key = "id"
+    every_input = True
+    """A submission is confirmed only by a saving on every input; see `_decide`."""
 
     def __init__(self, repo: Path, record: dict, work: Path, *, meter: str,
-                 require_counts: bool = True):
+                 cases_source: str, require_counts: bool = True):
         self.record = record
         self.work = Path(work)
         self.subject = record.get("id", "?")
@@ -451,7 +461,7 @@ class PairEngine:
             raise SubmissionError(f"could not apply `changed`: {type(exc).__name__}: {exc}")
         try:
             self.pair = Pair(self.before_root, self.after_root, record["unit"],
-                             record["cases_source"], self.work, meter)
+                             cases_source, self.work, meter)
         except LoadError as exc:
             if exc.stage == "import" and exc.side == "before":
                 raise MeasurementError(
@@ -460,8 +470,14 @@ class PairEngine:
                 ) from exc
             if exc.stage == "import":
                 raise SubmissionError(f"the patched module does not import: {exc}") from exc
+            if exc.stage == "cases" and exc.side == "after":
+                raise SubmissionError(
+                    f"the unit's inputs do not load against the repaired code: {exc}. They "
+                    f"ran on the original, so the repair changed something they use -- a "
+                    f"constructor, a module-level name -- that its callers rely on too."
+                ) from exc
             if exc.stage == "cases":
-                raise SubmissionError(f"`cases_source` failed: {exc}") from exc
+                raise MeasurementError(f"the unit's inputs do not load here: {exc}") from exc
             raise MeasurementError(f"{exc.side} side failed to start: {exc}") from exc
 
         if require_counts:
@@ -518,15 +534,11 @@ class PairEngine:
                     # Both sides failing the same way passes the check, and the
                     # case then has nothing to measure but the error: sizing
                     # used to crash on it and report an environment `error`.
-                    hint = (" A TypeError here is usually arguments that do not fit the "
-                            "unit's signature: keyword arguments go through `call`, as in "
-                            "`lambda: call(xs, key=1)`." if a["raised"] == "TypeError" else "")
-                    raise SubmissionError(
-                        f"the original raises on the measured case {label!r} "
-                        f"({a.get('message') or a['raised']}), so there is no work to "
-                        f"measure, only the error. A measured input has to run the code the "
-                        f"repair changes: choose inputs it completes on here, or record the "
-                        f"suspicion as `blocked` if none can be built.{hint}")
+                    raise MeasurementError(
+                        f"the original raises on the measured input {label!r} "
+                        f"({a.get('message') or a['raised']}), although it completed when the "
+                        f"inputs were generated: something in this environment differs. "
+                        f"Record the suspicion as `blocked` with this message.")
                 rows.append(CheckRow(label, set_name == "cases", self._differ(a, b),
                                      a["mutates"] or b["mutates"]))
         return rows
@@ -716,7 +728,7 @@ def verify(engine, *, profile: Profile, meter: str = "auto",
         result.floor_source = "session calibration"
         log(f"\nnoise floor  +-{floor:.2f}% (session calibration)")
 
-    _decide(result)
+    _decide(result, every_input=getattr(engine, "every_input", False))
     return result
 
 
@@ -756,26 +768,31 @@ def _helped_cases(result: Verification) -> list[CaseOutcome]:
     ]
 
 
-def _decide(result: Verification) -> None:
+def _decide(result: Verification, every_input: bool = False) -> None:
     """Apply the verdict rules.
 
-    Five outcomes, and they answer five different questions. The rules below
+    Six outcomes, and they answer six different questions. The rules below
     are written so that each status means exactly one thing:
 
-        confirmed     every case that moved, moved the right way
+        confirmed     saves energy on every input, each clearing the floor
+        partial       saves on some inputs, and nothing measurable on the rest
         mixed         helps some inputs, hurts others -- a trade-off
         regressed     every case that moved, got worse
         negligible    measured cleanly; nothing moved more than the noise
-        inconclusive  the readings could not resolve an effect of this size
-
-    `negligible` needs a quiet host *and* every case's own interval within
-    USABLE_FLOOR_PCT: a reading of +-20% on one case rules nothing out there,
-    however quiet the host was.
+        inconclusive  this host could not resolve an effect of this size
 
     The last two are opposite claims and must never be collapsed. `negligible`
     says the repair does nothing on a machine quiet enough to tell. That is
     evidence. `inconclusive` says the machine was too noisy for the question,
     which is a fact about the host and no evidence about the code at all.
+
+    `confirmed` asks for a saving on every input, not on any one (Javad, Oct
+    2026): the inputs are chosen to make the unit do different work, and a
+    repair that pays on one of them and does nothing on the rest is a narrower
+    claim, reported as `partial`. On a noisy host the inputs that did not move
+    may simply not have been resolved, so there it is `inconclusive` instead.
+    Submissions only: our validation case files keep the rule their recorded
+    results were decided by, a saving on any case that moved.
     """
     if not result.per_case:
         result.status = "error"
@@ -792,25 +809,12 @@ def _decide(result: Verification) -> None:
     elif hurt:
         result.status = "regressed"
         result.reason = _regressed_reason(result, hurt)
-    elif helped:
+    elif helped and (len(helped) == len(result.per_case) or not every_input):
         result.status = "confirmed"
         result.reason = _confirmed_reason(result, helped)
-    elif floor <= USABLE_FLOOR_PCT and _too_wide(result):
-        # The host was quiet, but this measurement's own readings were too
-        # spread to rule anything out. A floor says what identical code reads;
-        # it says nothing about a case whose windows wandered by +-20% --
-        # inputs rebuilt into a pool of hundreds of megabytes, say. Calling
-        # that `negligible` writes noise down as evidence that nothing moved.
-        widest = _too_wide(result)[0]
-        result.status = "inconclusive"
-        result.reason = (
-            f"the readings were too spread to rule anything out: {widest.label!r} "
-            f"measured {widest.energy_saved_pct:+.1f}% +-{widest.energy_ci_pct:.1f}%, "
-            f"and a null result needs every case within +-{USABLE_FLOOR_PCT:.1f}%. The "
-            f"host itself was quiet ({floor:.1f}% floor), so the spread came from this "
-            f"measurement -- often a case whose calls do not all do the same work, or a "
-            f"very large input rebuilt for every call. This is not evidence either way."
-        )
+    elif helped and floor <= USABLE_FLOOR_PCT:
+        result.status = "partial"
+        result.reason = _partial_reason(result, helped)
     elif floor > USABLE_FLOOR_PCT:
         result.status = "inconclusive"
         biggest = max(result.per_case, key=lambda c: abs(c.energy_saved_pct))
@@ -836,21 +840,17 @@ def _decide(result: Verification) -> None:
         )
 
 
-def _too_wide(result: Verification) -> list[CaseOutcome]:
-    """Cases whose own interval is too wide for a null result, widest first."""
-    wide = [case for case in result.per_case if case.energy_ci_pct > USABLE_FLOOR_PCT]
-    return sorted(wide, key=lambda case: -case.energy_ci_pct)
-
-
 def _confirmed_reason(result: Verification, helped: list[CaseOutcome]) -> str:
     best = max(helped, key=lambda c: c.energy_saved_pct)
     labels = ", ".join(repr(c.label) for c in helped)
     reason = (
         f"{best.energy_saved_pct:.1f}% +-{best.energy_ci_pct:.1f}% energy saved "
         f"on {best.label!r}, clearing the {result.noise_floor_pct:.1f}% noise "
-        f"floor. Improved on {len(helped)} of {len(result.per_case)} cases "
-        f"({labels}) and measurably worse on none, with behaviour preserved "
-        f"throughout."
+        f"floor. " + (f"Saved energy on all {len(result.per_case)} inputs ({labels})"
+                      if len(helped) == len(result.per_case) else
+                      f"Improved on {len(helped)} of {len(result.per_case)} cases ({labels}) "
+                      f"and measurably worse on none")
+        + ", with behaviour preserved throughout."
     )
     if result.relaxations:
         # A confirmed verdict on a weakened check has to carry that with it,
@@ -860,6 +860,22 @@ def _confirmed_reason(result: Verification, helped: list[CaseOutcome]) -> str:
             "must repeat: " + "; ".join(result.relaxations) + "."
         )
     return reason
+
+
+def _partial_reason(result: Verification, helped: list[CaseOutcome]) -> str:
+    """Real savings, but not on every input."""
+    best = max(helped, key=lambda c: c.energy_saved_pct)
+    still = [c for c in result.per_case if c not in helped]
+    return (
+        f"saves energy on {len(helped)} of {len(result.per_case)} inputs "
+        f"({', '.join(repr(c.label) for c in helped)}; best {best.energy_saved_pct:.1f}% "
+        f"+-{best.energy_ci_pct:.1f}% on {best.label!r}), and nothing beyond the "
+        f"{result.noise_floor_pct:.1f}% noise floor on "
+        f"{', '.join(repr(c.label) for c in still)}. A confirmed repair saves on every "
+        f"input; this one pays only on some of the work the unit does."
+        + (" Behaviour was compared under a relaxed rule, which the report must repeat: "
+           + "; ".join(result.relaxations) + "." if result.relaxations else "")
+    )
 
 
 def _mixed_reason(
@@ -984,9 +1000,9 @@ def calibrate(profile: Profile, meter: str = "auto", log=print) -> dict:
             "id": "calibration",
             "unit": "canary.py::before",
             "changed": {"canary.py::before": body},
-            "cases_source": "from canary import cases\n\ndef checks():\n    return cases()\n",
         }
-        engine = PairEngine(repo, record, work / "pair", meter=meter, require_counts=False)
+        engine = PairEngine(repo, record, work / "pair", meter=meter, require_counts=False,
+                            cases_source="from canary import cases\n\ndef checks():\n    return cases()\n")
         try:
             spc = engine.time(0, "before")
             repeats = choose_repeats(spc, profile.window)
@@ -1040,6 +1056,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="submissions (.jsonl), or a validation case file (.py)")
     parser.add_argument("--repo", type=Path, default=Path("."),
                         help="the repository the submissions were written against")
+    parser.add_argument("--inputs", type=Path,
+                        help=f"the generated inputs (default: REPO/{DIRNAME})")
     parser.add_argument("--calibrate", action="store_true",
                         help="measure this host's noise floor and stop")
     parser.add_argument("--json", action="store_true")
@@ -1118,6 +1136,10 @@ def _run_submissions(args, profile: Profile) -> int:
         except ValueError as exc:
             records.append({"__unparsable__": number, "__error__": str(exc)})
     file_problems = validate_file(records)
+    inputs = (args.inputs or repo / DIRNAME).resolve()
+    left = wait_until_settled(inputs, INPUTS_WAIT_S, log)
+    if left:
+        log(f"still generating after {INPUTS_WAIT_S}s: {', '.join(left)}; measuring the rest")
 
     floor = None
     if not profile.canary:
@@ -1150,7 +1172,7 @@ def _run_submissions(args, profile: Profile) -> int:
                 continue
 
         payload = _measure_one(record, repo, profile, args.meter, floor,
-                               file_problems.get(sid), log)
+                               file_problems.get(sid), log, inputs)
         payload["submission_hash"] = digest
         if isinstance(record, dict):
             payload["baseline_sha256"] = baseline_fingerprint(repo, record)
@@ -1164,23 +1186,28 @@ def _run_submissions(args, profile: Profile) -> int:
         json.dump(outputs, sys.stdout, indent=1)
         print()
     statuses = {o.get("status") for o in outputs}
-    if statuses & {"invalid", "error"}:
+    if statuses & {"invalid", "error", "no_inputs"}:
         return 2
     return 0 if statuses <= {"confirmed"} else 1
 
 
 def _measure_one(record, repo: Path, profile: Profile, meter: str,
-                 floor: float | None, file_problem: str | None, log) -> dict:
+                 floor: float | None, file_problem: str | None, log, inputs: Path) -> dict:
     """One submission, start to finish, as a result row. Never raises."""
     sid = record.get("id", "?") if isinstance(record, dict) else "?"
     problem = validate(record) or file_problem
     if problem:
         return {"id": sid, "status": "invalid", "reason": problem}
+    source, why = inputs_for(record["unit"], inputs)
+    if source is None:
+        return {"id": sid, "unit": record["unit"], "status": "no_inputs", "reason": why}
+    if record.get("equivalent"):
+        source += "\n\n# ---- the submission's `equivalent`\n" + record["equivalent"] + "\n"
 
     work = Path(tempfile.mkdtemp(prefix=f"energy-submission-{sid}-"))
     engine = None
     try:
-        engine = PairEngine(repo, record, work, meter=meter)
+        engine = PairEngine(repo, record, work, meter=meter, cases_source=source)
         result = verify(engine, profile=profile, meter=meter, floor=floor, log=log)
         payload = {"id": sid, "unit": record["unit"], **result.to_dict()}
         payload.pop("case_file", None)

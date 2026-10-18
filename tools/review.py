@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Our side of a run: re-measure every submission, decide what to apply, report.
 
-    python tools/review.py REPO RUN_DIR                 re-measure, decide, write the report
+    python tools/review.py REPO RUN_DIR [--inputs DIR]  re-measure, decide, write the report
     python tools/review.py REPO RUN_DIR --apply         ...and write the applied repairs to REPO
     python tools/review.py REPO RUN_DIR --verdicts F    reuse a re-measurement already taken
 
@@ -11,12 +11,13 @@ RUN_DIR holds the agent's `submissions.jsonl` and `findings.jsonl`. This writes
 The agent measured its own repairs, and those numbers stay in its file as it
 wrote them. The numbers that count are taken here, with the same fast profile,
 on an idle machine, on a fresh copy of the repository, with `before` read from
-the file rather than from anything the agent supplied. Where the two disagree,
+the file rather than from anything the agent supplied, and on our own copy of
+the generated inputs (`--inputs`) rather than the one the agent could reach. Where the two disagree,
 and where a line was edited after the agent measured it, the report says so.
 
 What gets applied: each submission was written against the original code, so
 at most one per function can be. Among a function's `confirmed` submissions the
-one with the highest mean saving across its five cases is applied -- they share
+one with the highest mean saving across its four inputs is applied -- they share
 their inputs, so the means are comparable -- and every other one is recorded
 with the reason it was not. Nothing that is not `confirmed` is ever applied,
 `mixed` included: it costs energy on some input, and which input the code sees
@@ -39,8 +40,8 @@ from lib.splice import splice_tree  # noqa: E402
 from lib.submission import baseline_fingerprint, submission_hash  # noqa: E402
 
 VERIFY = ROOT / "src" / "verify.py"
-ORDER = ("confirmed", "mixed", "regressed", "negligible", "inconclusive",
-         "not_equivalent", "invalid", "error")
+ORDER = ("confirmed", "partial", "mixed", "regressed", "negligible", "inconclusive",
+         "not_equivalent", "invalid", "no_inputs", "error")
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -50,11 +51,11 @@ def read_jsonl(path: Path) -> list[dict]:
             if line.strip()]
 
 
-def remeasure(repo: Path, submissions: Path) -> list[dict]:
+def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
     """Every submission, re-measured, without touching the agent's file."""
     completed = subprocess.run(
         [sys.executable, str(VERIFY), str(submissions), "--repo", str(repo),
-         "--no-record", "--json"],
+         "--no-record", "--json"] + (["--inputs", str(inputs)] if inputs else []),
         capture_output=True, text=True,
     )
     try:
@@ -129,7 +130,7 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
                + " · ".join(f"{n} {s}" for s, n in counts.items() if n)
                + f" · {sum(r['applied'] for r in rows)} applied")
     measured = [r for r in rows if r.get("noise_floor_pct") is not None
-                and r["status"] in ORDER[:5]]
+                and r["status"] in ORDER[:6]]
     if measured:
         floors = [r["noise_floor_pct"] for r in measured]
         sources = sorted({r.get("floor_source") or "unknown" for r in measured})
@@ -180,8 +181,8 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
 
     section("Applied", [r for r in rows if r["applied"]])
     section("Confirmed, not applied", [r for r in rows if r["status"] == "confirmed" and not r["applied"]])
-    section("Measured, not confirmed", [r for r in rows if r["status"] in ORDER[1:5]])
-    section("Not measured", [r for r in rows if r["status"] in ORDER[5:]])
+    section("Measured, not confirmed", [r for r in rows if r["status"] in ORDER[1:6]])
+    section("Not measured", [r for r in rows if r["status"] in ORDER[6:]])
 
     unmeasured = [(f["unit"], o) for f in findings if f.get("step") == 4
                   for o in f.get("outcomes", []) if o.get("outcome") in ("blocked", "deferred")]
@@ -207,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("run_dir", type=Path)
     parser.add_argument("--verdicts", type=Path,
                         help="a saved `verify.py --no-record --json` output to reuse")
+    parser.add_argument("--inputs", type=Path,
+                        help="our copy of the generated inputs (default: the repository's own)")
     parser.add_argument("--apply", action="store_true",
                         help="write the applied repairs into REPO")
     args = parser.parse_args(argv)
@@ -217,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     findings = read_jsonl(args.run_dir / "findings.jsonl")
 
     measured = (json.loads(args.verdicts.read_text()) if args.verdicts
-                else remeasure(repo, submissions_path))
+                else remeasure(repo, submissions_path, args.inputs))
     (args.run_dir / "remeasured.json").write_text(json.dumps(measured, indent=1))
     ours = {r.get("id"): r for r in measured}
 
