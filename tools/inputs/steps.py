@@ -49,9 +49,9 @@ OPTIONAL = {"submissions.jsonl"}                       # a run may end with noth
 NOTE = "ROOT-CAUSE-CARDS-LOCKED.md"
 NEXT = {
     1: "Step 2: read each unit and write step2.jsonl, one record per unit.",
-    2: "Step 3: decide every suspicion and write step3.jsonl.{cards}",
-    3: "Step 4: ask for the inputs, write submissions.jsonl and step4.jsonl; inputs.py and "
-       "verify.py will run now.",
+    2: "Step 3: decide every suspicion and write step3.jsonl. inputs.py runs from now on: ask "
+       "for the inputs of a unit as soon as you know you will repair it.{cards}",
+    3: "Step 4: write submissions.jsonl and step4.jsonl; verify.py runs now.",
     4: "All four steps are finished. End with your summary.",
 }
 

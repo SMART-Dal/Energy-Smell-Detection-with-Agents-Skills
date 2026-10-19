@@ -124,8 +124,8 @@ read-only — a finished step is never changed. If a later step shows you
 something an earlier one missed, say so in the later step's file: step 3
 rejects a step-2 suspicion and adds a new one; it does not touch
 `step2.jsonl`. Do not start a step's file before the previous step is done.
-`inputs.py` and
-`verify.py` run between `done 3` and `done 4`.
+`inputs.py` runs
+from `done 2`, and `verify.py` between `done 3` and `done 4`.
 
 Every step after the second one is a check on what the second one wrote down,
 and a check you run against nothing checks nothing.
@@ -248,8 +248,10 @@ record, step 2 is finished: run `python $SKILL/scripts/step.py done 2`.
 ### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
 
 Start this step after `step.py done 2`, and write a step-3 record to
-`step3.jsonl` for every unit with suspicions. When they are all written, run
-`python $SKILL/scripts/step.py done 3`; step 4 starts after it.
+`step3.jsonl` for every unit with suspicions. As soon as you know a unit will
+be repaired, ask for its inputs (step 4, item 2): they take a minute or two to
+generate, and are then ready when you measure. When every record is written,
+run `python $SKILL/scripts/step.py done 3`; step 4 starts after it.
 
 Read the unit a second time, now with the repair in mind. What the edit would
 have to be is usually what tells you whether your first reading was right.
@@ -311,7 +313,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    a different number. Every other accepted suspicion is still a finding:
    record it as `deferred` in step 4's record.
 
-2. **Ask for the inputs of every unit you will measure, in one request.**
+2. **Ask for the inputs of every unit you will measure**, if you did not in
+   step 3 — all of them in one request.
 
    ```bash
    python $SKILL/scripts/inputs.py request src/render.py::Report.render src/parse.py::tokenize

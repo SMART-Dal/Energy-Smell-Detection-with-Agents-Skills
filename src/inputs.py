@@ -29,7 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from lib.inputs import DIRNAME, FAILED, MAX_UNITS, READY, ask, read_status  # noqa: E402
-from lib.progress import step4_refusal  # noqa: E402
+from lib.progress import step_refusal  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -42,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "request":
-        refusal = step4_refusal()
+        refusal = step_refusal(2, "Asking for inputs")
         if refusal:
             print(refusal)
             return 2
