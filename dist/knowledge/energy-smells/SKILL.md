@@ -113,10 +113,15 @@ you can find.
 
 ## Procedure
 
-Five steps, in order. Steps 2 and 3 go one unit at a time — read and suspect,
-decide, then the next unit. Step 4 starts once every unit has been through step
-3, and takes all of them at once. Each step states what it takes in and what it
-must produce. Produce it before moving on, and append it to `findings.jsonl` as
+Five steps, in order, and **each step is finished for every unit before the
+next one begins**: step 2 for every unit on your step-1 list, then step 3 for
+every unit with suspicions, then step 4 for all of them together. Do not go back
+to an earlier step once a later one has begun; if a later step shows you
+something an earlier record missed, say it in the later record. The scripts
+check this: the root-cause cards open only once step 2 is done for every unit,
+and `inputs.py` and `verify.py` will not start step 4 until steps 2 and 3 are —
+each says what is missing.
+Each step states what it takes in and what it must produce. Produce it before moving on, and append it to `findings.jsonl` as
 one JSON line tagged with its step — as you go, not reconstructed at the end.
 Every step after the second one is a check on what the second one wrote down,
 and a check you run against nothing checks nothing.
@@ -145,8 +150,8 @@ resolved to. If more than one function matches, all of them are the target.
 
 **How many:** every unit in the target, unless you were asked for a number of
 units — then at most that many, the hottest first. You may change which units
-those are at any point, if something you read later shows you a hotter one; just
-do not go over the number. It limits units and nothing else: within a unit,
+those are until step 3 begins, if something you read shows you a hotter one;
+just do not go over the number. It limits units and nothing else: within a unit,
 record every suspicion you have.
 
 Read the repository first: its entry points, what its tests exercise, what its
@@ -219,11 +224,11 @@ one lists its root causes with a line apiece, which is usually enough to tell
 whether one is worth a closer look.
 
 **Do not open root-cause cards yet.** You are producing suspicions, not
-verdicts. They are locked until then: `$SKILL/reference/root-causes/` opens
-once a unit's step-2 record is in `findings.jsonl`, stays open until that
-unit's step-3 record is, and is always open from step 4 on. If a card will not
-open, write the step-2 record first; if you have just written it, try again a
-second later.
+verdicts. The cards belong to step 3, and `$SKILL/reference/root-causes/` is
+locked until then — by design, not a fault: it opens by itself once every unit
+on your step-1 list has a step-2 record in `findings.jsonl`, and stays open
+from then on. `$SKILL/reference/ROOT-CAUSE-CARDS-LOCKED.md`, there while they
+are locked, says which units are still missing.
 
 Open the categories your reading pointed you at, and open others if the code
 suggests them. Nothing restricts which you may consider.
@@ -284,8 +289,13 @@ you are at the cap, keep the ones you would actually spend an hour repairing.
 
 ### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
 
-Open `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the
-whole card: the reference's definition, common patterns, the measured
+Start this step once every unit on your step-1 list has its step-2 record, and
+give a step-3 record to every unit with suspicions.
+
+The root-cause cards are open now that step 2 is done for every unit (if one
+will not open, a unit on your step-1 list still has no step-2 record; a second
+after you write it, they open). Open `$SKILL/reference/root-causes/<ID>.md` for
+every suspicion, and read the whole card: the reference's definition, common patterns, the measured
 repairs, near-misses, and similar root causes.
 
 - **The patterns and repairs are what we tested, not the whole root cause.**

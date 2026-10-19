@@ -12,13 +12,13 @@ seen by it:
     `submissions_all.jsonl` holds the final file plus every line it lost, and
     the review measures that. The agent's file is never touched.
 
-  * **Root-cause cards follow the protocol.** Step 2 is to be written before any
-    root-cause card is opened; step 3 opens them. Steps 2 and 3 alternate unit
-    by unit, so the cards' directory is opened and closed from the agent's own
-    records: open while some unit has a step-2 record and no step-3 record yet,
-    or once every unit on the step-1 list has been read, or once repairs exist;
-    closed otherwise. No card is locked before step 1 is written, and none is
-    ever closed during step 4.
+  * **Root-cause cards follow the protocol.** Every step is finished for every
+    unit before the next begins, and the cards belong to step 3 on. So the
+    cards' directory stays locked until every unit on the latest step-1 list
+    has a step-2 record (lib/progress.py), and opens then; while it is locked,
+    a note beside it says why and what is still missing -- a bare "Permission
+    denied" read as a permanent restriction, and the agent in the first gated
+    run never tried the cards again.
 
 No permission stops an agent running as the same user from editing its own
 files or from `chmod`; what this guarantees is that nothing it does is lost,
@@ -30,45 +30,19 @@ from __future__ import annotations
 import difflib
 import json
 import os
+import sys
 import threading
 import time
 from pathlib import Path
 
+SRC = Path(__file__).resolve().parents[2] / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from lib.progress import cards_open, parse_records, standing  # noqa: E402
+
 FILES = ("findings.jsonl", "submissions.jsonl")
-
-
-def parse_records(text: str) -> list[dict]:
-    """Every JSON object in the text, one per line or spread over several."""
-    decoder, out, i = json.JSONDecoder(), [], 0
-    while i < len(text):
-        while i < len(text) and text[i] in " \t\r\n":
-            i += 1
-        if i >= len(text):
-            break
-        try:
-            value, i = decoder.raw_decode(text, i)
-        except ValueError:
-            nl = text.find("\n", i)       # an unreadable line: skip it, keep the rest
-            i = len(text) if nl < 0 else nl + 1
-            continue
-        if isinstance(value, dict):
-            out.append(value)
-    return out
-
-
-def cards_open(records: list[dict], has_submissions: bool) -> bool:
-    """Whether the protocol lets the agent read root-cause cards right now."""
-    if has_submissions:
-        return True                                   # step 4: repairs use the cards
-    plans = [r for r in records if r.get("step") == 1]
-    if not plans:
-        return False
-    listed = [u for u in (plans[-1].get("will_examine") or []) if isinstance(u, str)]
-    read = {r.get("unit"): r for r in records if r.get("step") == 2}
-    decided = {r.get("unit") for r in records if r.get("step") == 3}
-    if any(r.get("suspicions") and unit not in decided for unit, r in read.items()):
-        return True                                   # a unit is between its step 2 and step 3
-    return bool(listed) and all(unit in read for unit in listed)  # all read: on to step 4
+NOTE = "ROOT-CAUSE-CARDS-LOCKED.md"
 
 
 class Recorder(threading.Thread):
@@ -112,8 +86,7 @@ class Recorder(threading.Thread):
                 changed = True
             if changed:
                 findings = parse_records("\n".join(self.lines["findings.jsonl"]))
-                has_subs = any(line.strip() for line in self.lines["submissions.jsonl"])
-                self._gate(cards_open(findings, has_subs))
+                self._gate(cards_open(findings), standing(findings))
 
     def _diff(self, name: str, new: list[str]) -> None:
         old = self.lines[name]
@@ -146,16 +119,41 @@ class Recorder(threading.Thread):
         if rows:
             self.store.append("events.jsonl", "".join(json.dumps(r) + "\n" for r in rows))
 
-    def _gate(self, open_: bool) -> None:
-        if self.cards is None or open_ == self.open:
+    def _gate(self, open_: bool, where: dict | None = None) -> None:
+        if self.cards is None:
+            return
+        if not open_:
+            self._note(where or {})
+        if open_ == self.open:
             return
         try:
             os.chmod(self.cards, 0o755 if open_ else 0o000)
         except OSError:
             return
+        if open_:
+            (self.cards.parent / NOTE).unlink(missing_ok=True)
         self.open = open_
         self.store.append("events.jsonl", json.dumps(
             {"t": time.time(), "file": "cards", "event": "opened" if open_ else "closed"}) + "\n")
+
+    def _note(self, where: dict) -> None:
+        """Say, beside the locked directory, why it is locked and what opens it."""
+        if not where.get("planned"):
+            missing = "No step-1 record is in findings.jsonl yet."
+        else:
+            missing = ("Still without a step-2 record: " + ", ".join(where.get("unread") or [])
+                       + "." if where.get("unread") else "")
+        text = ("# The root-cause cards are locked until step 3\n\n"
+                "They open by themselves once every unit on your latest step-1 list has a "
+                "step-2 record in `findings.jsonl`, in the repository root, and then stay open. "
+                "This is by design, not a fault: step 2 is your own reading, made before any "
+                "card. Finish step 2 for every unit, then open the cards.\n\n" + missing + "\n")
+        try:
+            path = self.cards.parent / NOTE
+            if not path.exists() or path.read_text() != text:
+                path.write_text(text)
+        except OSError:
+            pass
 
     def finish(self) -> dict:
         """A last look, every submission ever seen, and the cards left open for cleanup."""
@@ -172,6 +170,7 @@ class Recorder(threading.Thread):
             if self.cards is not None:
                 try:
                     os.chmod(self.cards, 0o755)
+                    (self.cards.parent / NOTE).unlink(missing_ok=True)
                 except OSError:
                     pass
         return {"submissions_removed": sorted(r.get("id") for r in lost)}

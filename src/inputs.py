@@ -12,7 +12,8 @@ same output twice. The files appear in `.energy-inputs/`, read-only; read them
 to see what your repair will face. After the session, every repair is measured
 again on the generator's own copy of the same inputs.
 
-`request` returns at once. Generating takes a minute or two, up to five for a
+`request` is step 4: it works once steps 2 and 3 are done for every unit on
+your step-1 list, and otherwise says what is missing. It returns at once. Generating takes a minute or two, up to five for a
 hard unit, all units at the same time, so carry on writing repairs meanwhile;
 verify.py waits (up to ten minutes) for any still being generated before it
 measures anything. The inputs cannot be changed: editing the files changes
@@ -28,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from lib.inputs import DIRNAME, FAILED, MAX_UNITS, READY, ask, read_status  # noqa: E402
+from lib.progress import gaps_message, step4_gaps  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -40,6 +42,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "request":
+        gaps = step4_gaps(Path("findings.jsonl"))
+        if gaps:
+            print(gaps_message(gaps))
+            return 2
         answer = ask({"op": "request", "units": args.units})
         if not answer.get("ok"):
             print(f"ERROR: {answer.get('error')}")
