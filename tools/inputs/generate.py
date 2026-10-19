@@ -35,12 +35,15 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import http.client
 import json
 import os
 import re
+import shutil
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -123,7 +126,34 @@ def cases():
         # ... 8 in total
     ]
 ```
-For a method such as `Report.render(self, top)`, the thunk builds the instance: `lambda: (Report(_rows(500, 4, 2)), 10)`.
+A second example, for a method `Index.lookup(self, words)` of `search/index.py`. The instance is built in the thunk and passed first; the vocabulary file it reads is created under `WORKDIR`; a module setting it reads is set on the repository's own module; and because it records the words it has seen in `self.seen`, every thunk call gets words of its own, so that every call takes the same path:
+```python
+import itertools
+import random
+import search.index
+from search.index import Index
+
+search.index.CASE_SENSITIVE = False                  # a setting the method reads: data, set on its module
+_VOCAB = WORKDIR / "vocab.txt"                       # a file it reads
+_VOCAB.write_text("\\n".join(f"w{i}" for i in range(50_000)))
+_batch = itertools.count()
+
+def _words(n, hit_ratio, seed):
+    rng = random.Random(seed)
+    b = next(_batch)                                 # fresh misses for every thunk call
+    return [f"w{rng.randrange(50_000)}" if rng.random() < hit_ratio else f"x{b}_{i}"
+            for i in range(n)]
+
+def checks():
+    return [("no-words", lambda: (Index(_VOCAB), []))]
+
+def cases():
+    return [
+        ("mostly-hits",   lambda: (Index(_VOCAB), _words(20_000, 0.9, 0))),
+        ("mostly-misses", lambda: (Index(_VOCAB), _words(20_000, 0.1, 1))),
+        # ... 8 in total
+    ]
+```
 """
 
 FEEDBACK = """We ran your inputs on the original function. Only {ok} of the {total} measured inputs can be used; we need at least {need}.
@@ -489,33 +519,52 @@ def build_context(root: Path, unit: str) -> str:
 
 # -------------------------------------------------------------------- LLM
 
+TRANSIENT_HTTP = {408, 409, 425, 429, 500, 502, 503, 504, 520, 522, 524, 529}
+RETRIES = 3                # a provider failure is retried, and is not one of the ROUNDS
+BACKOFF_S = (5, 15, 40)
+
+
 def ask_llm(messages: list[dict], key: str) -> dict:
-    """One streamed call, cut off at CALL_TIMEOUT_S. What it said, thought and cost."""
+    """One streamed call, cut off at CALL_TIMEOUT_S. What it said, thought and cost.
+
+    An error carries `transient`: True when the provider or the connection
+    failed (a 502, a rate limit, a dropped stream) rather than the model --
+    those are retried by `call_model` and do not count as a round. Our own
+    cut-off is not transient: the model was answering, too slowly.
+    OpenRouter's default routing picks the provider; none is asked for.
+    """
     body = {"model": MODEL, "messages": messages, "max_tokens": MAX_TOKENS, "stream": True,
-            "reasoning": {"effort": EFFORT}, "usage": {"include": True}, "temperature": 0.7,
-            "provider": {"sort": "throughput"}}
+            "reasoning": {"effort": EFFORT}, "usage": {"include": True}, "temperature": 0.7}
     request = urllib.request.Request(
         ENDPOINT, data=json.dumps(body).encode(),
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
     start = time.monotonic()
     content: list[str] = []
     thought: list[str] = []
-    usage, finish, provider = {}, None, None
+    usage, finish, provider, done = {}, None, None, False
 
-    def partial(error: str) -> dict:
-        return {"error": error, "seconds": round(time.monotonic() - start, 1),
+    def failed(error: str, transient: bool) -> dict:
+        return {"error": error, "transient": transient,
+                "seconds": round(time.monotonic() - start, 1),
                 "content": "".join(content), "reasoning": "".join(thought)}
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.urlopen(request, timeout=60) as response:
             for raw in response:
                 if time.monotonic() - start > CALL_TIMEOUT_S:
-                    return partial(f"timed out after {CALL_TIMEOUT_S}s")
+                    return failed(f"timed out after {CALL_TIMEOUT_S}s", transient=False)
                 line = raw.decode(errors="replace").strip()
-                if not line.startswith("data: ") or line == "data: [DONE]":
+                if line == "data: [DONE]":
+                    done = True
                     continue
+                if not line.startswith("data: "):
+                    continue                    # keep-alive comments, blank lines
                 chunk = json.loads(line[6:])
                 if "error" in chunk:
-                    return partial(json.dumps(chunk["error"])[:300])
+                    error = chunk["error"] if isinstance(chunk["error"], dict) else {}
+                    kind = str((error.get("metadata") or {}).get("error_type", ""))
+                    return failed(json.dumps(chunk["error"])[:300],
+                                  transient=error.get("code") in TRANSIENT_HTTP
+                                  or kind in ("provider_unavailable", "timeout", "rate_limit"))
                 provider = chunk.get("provider") or provider
                 usage = chunk.get("usage") or usage
                 for choice in chunk.get("choices") or []:
@@ -523,14 +572,31 @@ def ask_llm(messages: list[dict], key: str) -> dict:
                     thought.append(delta.get("reasoning") or "")
                     content.append(delta.get("content") or "")
                     finish = choice.get("finish_reason") or finish
-    except Exception as exc:  # noqa: BLE001 -- network, HTTP, a broken stream: all a failed call
-        return partial(f"{type(exc).__name__}: {str(exc)[:300]}")
+    except urllib.error.HTTPError as exc:
+        return failed(f"HTTP {exc.code}: {exc.read()[:300]!r}", transient=exc.code in TRANSIENT_HTTP)
+    except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as exc:
+        # A refused or dropped connection, a stalled socket, a stream cut mid-line.
+        return failed(f"{type(exc).__name__}: {str(exc)[:300]}", transient=True)
+    if finish is None and not done:
+        return failed("the stream ended before the answer did", transient=True)
     return {"content": "".join(content), "reasoning": "".join(thought),
             "seconds": round(time.monotonic() - start, 1), "finish": finish,
             "provider": provider, "prompt_tokens": usage.get("prompt_tokens"),
             "completion_tokens": usage.get("completion_tokens"),
             "reasoning_tokens": (usage.get("completion_tokens_details") or {}).get("reasoning_tokens"),
             "cost": usage.get("cost")}
+
+
+def call_model(messages: list[dict], key: str) -> dict:
+    """`ask_llm`, with provider failures retried: they are not the model's answer."""
+    retried = []
+    while True:
+        reply = ask_llm(messages, key)
+        if not reply.get("transient") or len(retried) == RETRIES:
+            reply["retried"] = retried
+            return reply
+        retried.append(reply["error"][:200])
+        time.sleep(BACKOFF_S[len(retried) - 1])
 
 
 def extract_source(content: str) -> str | None:
@@ -705,6 +771,17 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
     return {"fatal": None, "cases": [results[label] for label in labels], "checks": checks}
 
 
+def remove_tree(path: Path) -> None:
+    """rmtree that also removes what a unit left read-only."""
+    def writable(func, target, _):
+        os.chmod(os.path.dirname(target), 0o700)   # a read-only directory blocks its entries
+        if os.path.isdir(target):
+            os.chmod(target, 0o700)
+        func(target)
+    if Path(path).exists():
+        shutil.rmtree(path, onerror=writable)
+
+
 def first_difference(channel: str, a, b) -> str:
     """Where two renderings of one channel first part, in a few words."""
     what = {"value": "the return value", "stdout": "what it printed",
@@ -787,7 +864,7 @@ def generate(root: Path, unit: str, work: Path, key: str, record=None) -> Outcom
     best = last = None
     cannot = None
     for round_no in range(1, ROUNDS + 1):
-        reply = ask_llm(messages, key)
+        reply = call_model(messages, key)
         report["calls"].append({k: v for k, v in reply.items() if k not in ("content", "reasoning")})
         record(f"reasoning_{round_no}.md", reply.get("reasoning") or "")
         record(f"reply_{round_no}.md", reply.get("content") or reply.get("error", ""))
@@ -812,6 +889,10 @@ def generate(root: Path, unit: str, work: Path, key: str, record=None) -> Outcom
             finally:
                 if slots:
                     slots.release()
+                # Two copies of the repository per round: gone as soon as the round
+                # is judged, or twenty units would hold eighty of them until the
+                # session ends.
+                remove_tree(work / f"round_{round_no}")
             report["rounds"].append({k: v.get(k) for k in ("fatal", "cases", "checks", "validate_s")})
             last = v
             if best is None or len(usable(v)) > len(usable(best[1])):

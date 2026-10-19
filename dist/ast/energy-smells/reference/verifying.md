@@ -107,14 +107,23 @@ second, fresh run, and of those keeps the four that do the most work. They are
 fixed for the unit: every repair of it is measured on the same four, and so is
 the re-measurement after the session, which uses our own copy of them.
 
-The request returns at once, and generation takes a minute or two, every unit
-at the same time. Write the repairs meanwhile; verify.py waits for any unit
-still being generated before it measures anything. Ask once, for all the units
-at once — at most 20 in a session.
+The request returns at once. Generation runs outside this session, every unit
+at the same time, and usually takes a minute or two; a hard unit can take
+five. So ask as soon as you know which units you will measure, and write the
+repairs meanwhile. Ask for all of them in one request; a unit you add later is
+another request, and a session has at most 20.
+
+verify.py does not measure while anything is still being generated: it waits
+first, up to ten minutes, printing which units it is waiting for. Give its
+first run a timeout to match — fifteen minutes plus a minute per repair — or
+run it in the background. A unit still not ready after that comes back
+`no_inputs` and is measured by the next run.
 
 Each unit's inputs are one file in `.energy-inputs/`, read-only. Read it before
-you write the repair: it is exactly what the repair will be measured on. It
-defines two functions, each returning `(label, thunk)` pairs:
+you write the repair: it is exactly what the repair will be measured on. They
+cannot be changed or generated again, and editing the file would change
+nothing that counts — the result after the session is measured on our copy.
+The file defines two functions, each returning `(label, thunk)` pairs:
 
 - **`checks()`** — edge inputs: empty, one element, `None`, an odd type. Both
   versions run them and must behave the same; they are never measured.
@@ -134,8 +143,12 @@ it — but **anything the unit changes outside its arguments** (a class
 attribute, a module global, a cache, a file) **carries over from one call to
 the next**. A repair whose saving comes from remembering results across calls
 is measured on hundreds of repeats of one input, where it saves far more than
-it would on a program that sees each input once; if your repair keeps state
-between calls, say so in `notes`.
+it would on a program that sees each input once. So the script also times each
+version's first call on every input: when the repeated calls save far more
+than the first one does, the input is listed in the result's
+`saves_on_repeats_only` and the reason says so. If your repair keeps state
+between calls, say in `notes` whether — and where — the real program calls the
+unit again with the same input.
 
 **A coroutine is run, a generator is drained.** An `async def` unit is run to
 completion on an event loop of its own, and a generator's output is collected

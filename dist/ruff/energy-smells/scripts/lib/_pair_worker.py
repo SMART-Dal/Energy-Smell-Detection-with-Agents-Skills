@@ -529,6 +529,7 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
     stream = io.StringIO()
     message = ""
     with contextlib.redirect_stdout(stream):
+        started = time.perf_counter()
         try:
             value, kind, raised = side.function(*args, **kwargs), "return", ""
         except StubUsed:
@@ -536,6 +537,9 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
         except Exception as exc:  # noqa: BLE001 -- raising is behaviour to compare
             value, kind, raised = None, "raise", type(exc).__name__
             message = _summary(exc)
+        # This side's first call on this input: verify.py compares it with the
+        # measured, repeated calls to see whether a saving needs repetition.
+        first_call_s = time.perf_counter() - started
     args_after = render_json(watched, replace=side.replace)
     files_after = side.files()
     written = {key: side.digest(key) for key, stat in files_after.items()
@@ -552,6 +556,7 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
         "stdout": normalise_text(stream.getvalue(), side.replace),
         "mutates": args_before != args_after,
         "files": written,
+        "seconds": first_call_s,
     }
     if plain and kind == "return":
         result["plain"] = render(value, plain=True, replace=side.replace)

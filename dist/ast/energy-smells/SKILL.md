@@ -431,10 +431,11 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    the unit do substantial and different work, and a few edge inputs checked
    only for identical behaviour. It keeps an input only if it runs on the
    original code and gives the same output twice. The request returns at once
-   and generation takes a minute or two, all units together — go on to write
-   the repairs meanwhile. Each unit's file appears in `.energy-inputs/`,
-   read-only: read it to see what your repairs will face. After the session,
-   every repair is measured again on our own copy of the same inputs.
+   and generation takes a minute or two, all units together — up to five for a
+   hard unit — so ask as soon as you know the units, and write the repairs
+   meanwhile. Each unit's file appears in `.energy-inputs/`, read-only: read it
+   to see what your repairs will face. You cannot change the inputs; after the
+   session, every repair is measured again on our own copy of them.
 
    `python $SKILL/scripts/inputs.py status` shows which units are ready. A unit
    the generator could not build inputs for — it needs the network, a service,
@@ -458,10 +459,12 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    python $SKILL/scripts/verify.py submissions.jsonl --repo .
    ```
 
-   It first waits for any inputs still being generated, then measures every
-   line in turn, under a minute each, on its unit's inputs, and writes the
-   result into the line as `agent_measurement`: the verdict, and the joules
-   and seconds of every input. Never write or edit it yourself.
+   It first waits — up to ten minutes, saying for what — for any inputs still
+   being generated, then measures every line in turn, under a minute each, on
+   its unit's inputs, and writes the result into the line as
+   `agent_measurement`: the verdict, and the joules and seconds of every input.
+   Never write or edit it yourself. Give the command a timeout to match, or run
+   it in the background.
 
 5. **Then fix only what is broken, and run the same command again.** It
    measures only the lines that need it.

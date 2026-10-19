@@ -12,9 +12,11 @@ same output twice. The files appear in `.energy-inputs/`, read-only; read them
 to see what your repair will face. After the session, every repair is measured
 again on the generator's own copy of the same inputs.
 
-`request` returns at once. Generating takes a minute or two per unit, all units
-at the same time, so carry on writing repairs meanwhile; verify.py waits for
-any that are still being generated before it measures anything.
+`request` returns at once. Generating takes a minute or two, up to five for a
+hard unit, all units at the same time, so carry on writing repairs meanwhile;
+verify.py waits (up to ten minutes) for any still being generated before it
+measures anything. The inputs cannot be changed: editing the files changes
+nothing that counts, because the re-measurement uses the generator's own copy.
 """
 
 from __future__ import annotations
