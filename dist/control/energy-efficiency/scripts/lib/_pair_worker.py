@@ -340,6 +340,7 @@ class Side:
             import_root, name, old_name = _import_name(self.root, path)
         except Exception:  # noqa: BLE001
             raise LoadFailure("import")
+        self.unit_files = {os.path.join(self.root, path), os.path.realpath(os.path.join(self.root, path))}
         # The import root first, as Python would put it; the repository root
         # stays on the path for inputs that import from the top.
         self.paths = list(dict.fromkeys([import_root, self.root]))
@@ -532,6 +533,8 @@ def main() -> int:
                 reply({"ok": True, "seconds": statistics.median(timings)})
             elif op == "window":
                 reply(_window(side, request, meter))
+            elif op == "lines":
+                reply({"ok": True, "lines": _lines_run(side, request["set"], request["index"])})
             else:
                 reply({"ok": False, "error": f"unknown op {op!r}"})
         except StubUsed as exc:
@@ -585,6 +588,35 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
     if plain and kind == "return":
         result["plain"] = render(value, plain=True, replace=side.replace)
     return result
+
+
+def _lines_run(side: Side, set_name: str, index: int) -> list[int]:
+    """The lines of the unit's file that one call on one input executes.
+
+    For the input generator, which checks that its inputs reach the unit's
+    real work rather than an early return. Never used while measuring: the
+    tracing slows every line it watches.
+    """
+    args, kwargs = _args(side.sets[set_name][index][1])
+    seen: set[int] = set()
+
+    def local(frame, event, arg):
+        if event == "line":
+            seen.add(frame.f_lineno)
+        return local
+
+    def tracer(frame, event, arg):
+        return local if frame.f_code.co_filename in side.unit_files else None
+
+    sys.settrace(tracer)
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            side.function(*args, **kwargs)
+    except Exception:  # noqa: BLE001 -- what ran before it raised still counts
+        pass
+    finally:
+        sys.settrace(None)
+    return sorted(seen)
 
 
 def _window(side: Side, request: dict, meter) -> dict:

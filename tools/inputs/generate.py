@@ -19,6 +19,13 @@ published methods to a setting with no reference repair:
     than needed, and keep the most expensive. Eight are asked for and the four
     slowest that pass are kept.
 
+One more filter, borrowed from coverage-guided test generation (CoverUp,
+Altmayer Pizzorno and Berger, 2025): together the four kept inputs must execute
+at least 40% of the unit's statements. Inputs that run but stop at an early
+return -- a feature switched off, files already present -- would measure
+nothing a repair changes. Below that, the lines that never ran go back to the
+model.
+
 Behaviour is checked later, by verify.py, as output equivalence between the
 original and the repair -- GSO's `check_equivalence`, without hand-written
 assertions.
@@ -67,6 +74,7 @@ VALIDATE_BUDGET_S = 180    # pass 1, every input of one source, restarts include
 CONFIRM_BUDGET_S = 90      # pass 2, the second runs of the inputs that will be kept
 CASE_DEADLINE_S = 20       # building, running and timing one input
 OPEN_DEADLINE_S = 60       # loading the unit and the inputs' module-level code
+COVERAGE_MIN = 0.4         # share of the unit's statements the kept inputs must run, together
 SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "site-packages", "__pycache__"}
 VALIDATION_SLOTS = None
 """A semaphore bounding how many units execute candidates at once; the service sets it."""
@@ -98,7 +106,7 @@ Python source defining two functions, `checks()` and `cases()`. Each returns a l
 
 6. **Same work on every call**: the call is repeated hundreds of times with the same input. Anything the function changes outside its arguments (a class attribute, a module global, a cache, a file) carries over from one call to the next, so if it caches or records what it has seen, give every thunk call new keys (e.g. with `itertools.count()`), so every call takes the same path. If it creates files, have the thunk remove them first. No time-dependent or unseeded random behaviour.
 
-7. Import the repository's modules exactly as shown in the task. Use only the standard library, the repository itself and packages the repository already imports.
+7. Import the repository's modules exactly as shown in the task. Use only the standard library, the repository itself and packages the repository already imports. Everything you can know about the repository is in the task: do not try to recall its code from memory, and build the inputs from the classes and functions shown there.
 
 8. **If the function cannot run here at all** -- it needs network access, a remote service, credentials, special hardware, or a library that is not available -- and no input could avoid that, do not write code: reply with one line `CANNOT RUN: <the reason>`. A function whose work starts with a request to a server (an HTTP client's `get`, a database query) cannot run here, even if the rest of it only processes the answer.
 
@@ -279,7 +287,8 @@ def cap(text: str, max_lines: int) -> str:
 
 def class_outline(lines: list[str], cls: ast.ClassDef, full: set[str]) -> str:
     """The class with every method body elided except the ones named in `full`."""
-    out = [src(lines, cls).splitlines(keepends=True)[0]]
+    first = min([cls.lineno] + [d.lineno for d in cls.decorator_list])
+    out = ["".join(lines[first - 1:cls.lineno])]       # decorators, then the class line
     for child in cls.body:
         if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if child.name in full:
@@ -433,6 +442,48 @@ def call_sites(root: Path, path: str, qualname: str, unit_lines: range,
     return out
 
 
+def module_outline(lines: list[str], tree: ast.Module, shown: set[str], lineage: set[str],
+                   budget: int = 150) -> str:
+    """Every other top-level class and function of the module, a few lines each.
+
+    What exists to build inputs from: a unit taking a list of conditions needs
+    to know the condition classes and their constructors. Without them a model
+    spent 32 000 tokens, twice, trying to recall `EqOperator` from memory.
+    Classes related to the unit's class come first, then other classes, then
+    functions.
+    """
+    def header(fn) -> str:
+        first = min([fn.lineno] + [d.lineno for d in fn.decorator_list])
+        return cap("".join(lines[first - 1:max(fn.body[0].lineno - 1, fn.lineno)]), 6).rstrip() + "\n"
+
+    entries = []
+    for order, child in enumerate(tree.body):
+        if getattr(child, "name", None) in shown:
+            continue
+        if isinstance(child, ast.ClassDef):
+            text = lines[child.lineno - 1].rstrip() + "\n"
+            methods = [n for n in child.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+            init = next((n for n in methods if n.name == "__init__"), None)
+            if init:
+                text += header(init)
+            public = [n.name for n in methods if not n.name.startswith("_")]
+            if public:
+                text += (f"    # methods: {', '.join(public[:12])}"
+                         f"{', ...' if len(public) > 12 else ''}\n")
+            bases = {b.id for b in child.bases if isinstance(b, ast.Name)}
+            entries.append((0 if bases & lineage else 1, order, text))
+        elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            entries.append((2, order, header(child)))
+    out = []
+    for _, _, text in sorted(entries):
+        budget -= text.count("\n")
+        if budget < 0:
+            out.append("# ... (more not shown)\n")
+            break
+        out.append(text)
+    return "".join(out)
+
+
 def build_context(root: Path, unit: str) -> str:
     """The user message: the unit and what a model needs to build real inputs for it."""
     path, qualname = unit.split("::")
@@ -454,9 +505,28 @@ def build_context(root: Path, unit: str) -> str:
                 f"Function under test: `{qualname}` in `{path}`",
                 f"Import it as {how}.",
                 f"\n## The function\n```python\n{cap(src(lines, node), 200)}```"]
+    top_classes = {c.name: c for c in tree.body if isinstance(c, ast.ClassDef)}
+    shown = {node.name}
+    lineage: set[str] = set()
     if isinstance(owner, ast.ClassDef):
+        shown.add(owner.name)
         outline = class_outline(lines, owner, {"__init__", "__post_init__", node.name})
-        sections.append(f"\n## Its class (other method bodies elided)\n```python\n{cap(outline, 200)}```")
+        # The classes it inherits from, when this module defines them: what its
+        # constructor hands its arguments to, and the methods it does not override.
+        queue, parents = list(owner.bases), []
+        while queue and len(parents) < 3:
+            base = queue.pop(0)
+            name = base.id if isinstance(base, ast.Name) else None
+            if name in top_classes and name not in shown:
+                shown.add(name)
+                parents.append(top_classes[name])
+                queue += top_classes[name].bases
+        lineage = {owner.name} | {c.name for c in parents} | {
+            b.id for b in owner.bases if isinstance(b, ast.Name)}
+        outline = "".join(cap(class_outline(lines, c, {"__init__", "__post_init__"}), 60) + "\n"
+                          for c in reversed(parents)) + outline
+        sections.append("\n## Its class, and the classes it inherits from here (other method "
+                        f"bodies elided)\n```python\n{cap(outline, 260)}```")
     imports = [src(lines, n) for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom))]
     if imports:
         sections.append("\n## Imports of its module\n```python\n" + cap("".join(imports), 40) + "```")
@@ -473,12 +543,15 @@ def build_context(root: Path, unit: str) -> str:
             name = next((t.id for t in targets if isinstance(t, ast.Name) and t.id in used), None)
         if not name or name not in used or child is node or child is owner:
             continue
+        if name in shown:
+            continue
         body = cap(class_outline(lines, child, {"__init__"}) if isinstance(child, ast.ClassDef)
                    else src(lines, child), 60)
         budget -= body.count("\n")
         if budget < 0:
             break
         defs.append(body)
+        shown.add(name)
     # Globals the module sets somewhere other than its top level: `global args`
     # inside a setup function, or an assignment under `if __name__ == ...`.
     top = {c.name for c in tree.body if isinstance(c, (ast.FunctionDef, ast.AsyncFunctionDef,
@@ -502,6 +575,10 @@ def build_context(root: Path, unit: str) -> str:
     if defs:
         sections.append("\n## Definitions it uses from the same module\n```python\n"
                         + "\n".join(defs) + "```")
+    rest = module_outline(lines, tree, shown, lineage)
+    if rest:
+        sections.append("\n## Everything else its module defines (headers only)\n```python\n"
+                        + rest + "```")
     sigs = imported_signatures(root, path, tree, used)
     if sigs:
         sections.append("\n## Signatures of what its module imports from the repository\n"
@@ -758,6 +835,17 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
         results[label] = {"label": label, "ok": True, "seconds": seconds}
         passed += 1
 
+    coverage, missed = None, []
+    kept = [i for i, label in enumerate(labels) if results.get(label, {}).get("ok")]
+    statements = unit_statements(root, unit)
+    if passed >= KEEP and statements:
+        ran: set[int] = set()
+        for i in kept:
+            out, err = guarded(lambda p: p.side("before").ask(op="lines", set="cases", index=i))
+            ran |= set(out["lines"]) if out else set()
+        coverage = len(statements & ran) / len(statements)
+        missed = sorted(statements - ran)
+
     checks = []
     checking = time.monotonic()
     for j, label in enumerate(check_labels):
@@ -768,7 +856,33 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
         checks.append({"label": label, "ok": err is None,
                        "kind": out["kind"] if out else None, "why": err})
     pair.close()
-    return {"fatal": None, "cases": [results[label] for label in labels], "checks": checks}
+    return {"fatal": None, "cases": [results[label] for label in labels], "checks": checks,
+            "coverage": coverage, "missed": missed,
+            "too_shallow": coverage is not None and coverage < COVERAGE_MIN}
+
+
+def unit_statements(root: Path, unit: str) -> set[int]:
+    """The lines on which the unit's statements start, its docstring left out."""
+    path, qualname = unit.split("::")
+    try:
+        node, _ = find_node(ast.parse((root / path).read_text(errors="replace")), qualname)
+    except (KeyError, SyntaxError, ValueError, OSError):
+        return set()
+    doc = node.body[0] if node.body and isinstance(node.body[0], ast.Expr) and \
+        isinstance(getattr(node.body[0], "value", None), ast.Constant) else None
+    return {n.lineno for n in ast.walk(node) if isinstance(n, ast.stmt) and n is not node and n is not doc}
+
+
+def line_ranges(numbers: list[int]) -> str:
+    """[112, 113, 114, 120] -> '112-114, 120'."""
+    out, start = [], None
+    for i, n in enumerate(numbers):
+        if start is None:
+            start = n
+        if i + 1 == len(numbers) or numbers[i + 1] != n + 1:
+            out.append(f"{start}-{n}" if n != start else f"{n}")
+            start = None
+    return ", ".join(out[:12]) + (", ..." if len(out) > 12 else "")
 
 
 def remove_tree(path: Path) -> None:
@@ -797,7 +911,17 @@ def usable(v: dict) -> list[dict]:
 
 
 def succeeded(v: dict) -> bool:
-    return len(usable(v)) >= KEEP and any(c["ok"] for c in v.get("checks") or [])
+    return len(usable(v)) >= KEEP and any(c["ok"] for c in v.get("checks") or []) \
+        and not v.get("too_shallow")
+
+
+def shallow_note(v: dict) -> str:
+    return (f"Together the four inputs that ran execute only {v['coverage']:.0%} of the "
+            f"function's statements; lines {line_ranges(v['missed'])} never ran. They stop at "
+            f"an early return, a disabled setting or an error path instead of reaching the "
+            f"function's real work, so a repair of that work would measure nothing. The "
+            f"measured inputs must run the function's main work. If that work cannot run "
+            f"here, reply `CANNOT RUN: <the reason>`.")
 
 
 def feedback(v: dict) -> str:
@@ -805,11 +929,16 @@ def feedback(v: dict) -> str:
         details, ok, total = v["fatal"], 0, CANDIDATES
     else:
         rows = [f"- {c['label']}: " + ("ok" if c["ok"] else c["why"]) for c in v["cases"]]
+        if v.get("too_shallow"):
+            rows.append("- " + shallow_note(v))
         if not any(c["ok"] for c in v.get("checks") or []):
             rows.append("- checks(): none of the edge inputs could be built or run: "
                         + "; ".join(f"{c['label']}: {c['why']}" for c in v.get("checks") or [])
                         + " (they may raise inside the function, but building them must work)")
         details, ok, total = "\n".join(rows), len(usable(v)), len(v["cases"])
+    if v.get("too_shallow") and not v["fatal"] and len(usable(v)) >= KEEP:
+        return (shallow_note(v) + "\n\nReturn the complete source again, with exactly 8 measured "
+                "inputs in `cases()`. Same rules as before.")
     if "TypeError" in details:
         details += ("\n\nA TypeError usually means the thunk does not return the function's "
                     "arguments: it returns them as a tuple, or `call(...)` for keyword "
@@ -826,6 +955,10 @@ def why_failed(v: dict | None, calls: list[dict]) -> str:
         return v["fatal"][:400]
     if v["fatal"]:
         return f"the generated inputs could not be used: {v['fatal'][:300]}"
+    if v.get("too_shallow") and len(usable(v)) >= KEEP:
+        return (f"the inputs that run here reach only {v['coverage']:.0%} of the function "
+                f"(lines {line_ranges(v['missed'])} never ran), so they would not measure "
+                f"its real work")
     whys = [c["why"] for c in v["cases"] if not c["ok"]]
     common = max(set(whys), key=whys.count) if whys else ""
     return (f"only {len(usable(v))} of {len(v['cases'])} generated inputs ran and repeated "
@@ -893,7 +1026,8 @@ def generate(root: Path, unit: str, work: Path, key: str, record=None) -> Outcom
                 # is judged, or twenty units would hold eighty of them until the
                 # session ends.
                 remove_tree(work / f"round_{round_no}")
-            report["rounds"].append({k: v.get(k) for k in ("fatal", "cases", "checks", "validate_s")})
+            report["rounds"].append({k: v.get(k) for k in ("fatal", "cases", "checks", "validate_s",
+                                                            "coverage", "missed")})
             last = v
             if best is None or len(usable(v)) > len(usable(best[1])):
                 best = (code, v)
