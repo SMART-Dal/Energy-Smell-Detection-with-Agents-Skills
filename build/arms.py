@@ -236,7 +236,11 @@ one lists its root causes with a line apiece, which is usually enough to tell
 whether one is worth a closer look.
 
 **Do not open root-cause cards yet.** You are producing suspicions, not
-verdicts.
+verdicts. They are locked until then: `$SKILL/reference/root-causes/` opens
+once a unit's step-2 record is in `findings.jsonl`, stays open until that
+unit's step-3 record is, and is always open from step 4 on. If a card will not
+open, write the step-2 record first; if you have just written it, try again a
+second later.
 
 Open the categories your reading pointed you at, and open others if the code
 suggests them. Nothing restricts which you may consider.

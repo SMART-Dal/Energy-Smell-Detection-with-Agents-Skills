@@ -41,6 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import generate as gen  # noqa: E402
+from recorder import Recorder  # noqa: E402
 from lib.inputs import DIRNAME, FAILED, MAX_UNITS, PENDING, READY, STATUS, file_name  # noqa: E402
 from lib.splice import split_name  # noqa: E402
 
@@ -72,6 +73,13 @@ class Service:
         self.closing = False
         gen.VALIDATION_SLOTS = threading.BoundedSemaphore(VALIDATIONS_AT_ONCE)
         self._publish_status()
+        # Every version of findings.jsonl and submissions.jsonl, and the gate on
+        # the root-cause cards: see recorder.py.
+        self.recorder = None
+        if args.record:
+            self.recorder = Recorder(args.repo.resolve(), gen.Store(args.record),
+                                     args.cards.resolve() if args.cards else None)
+            self.recorder.start()
 
     # -- what the agent sees, and what we keep -----------------------------
 
@@ -211,7 +219,8 @@ class Service:
             for unit in left:
                 self.units[unit] = {"state": FAILED, "reason": "still generating when the session ended"}
             self._publish_status()
-        return {"ok": True, "pending_at_end": left}
+        recorded = self.recorder.finish() if self.recorder else {}
+        return {"ok": True, "pending_at_end": left, **recorded}
 
 
 def serve(service: Service, path: Path) -> None:
@@ -276,6 +285,10 @@ def main() -> int:
     parser.add_argument("--out", type=Path, required=True, help="our copy of the inputs")
     parser.add_argument("--key", type=Path, required=True, help="file holding the OpenRouter key")
     parser.add_argument("--work", type=Path, required=True, help="scratch space for candidates")
+    parser.add_argument("--record", type=Path,
+                        help="where every version of the agent's findings and submissions is kept")
+    parser.add_argument("--cards", type=Path,
+                        help="the skill's root-cause cards, opened only when the protocol allows")
     args = parser.parse_args()
     signal.signal(signal.SIGTERM, lambda *_: os._exit(0))
     serve(Service(args), args.socket)

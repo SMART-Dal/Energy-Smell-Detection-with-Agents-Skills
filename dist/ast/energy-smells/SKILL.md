@@ -127,6 +127,14 @@ no others**; a key with nothing to say is `null` or `[]`.
 `findings.jsonl` and `submissions.jsonl` both go in the repository's root, the
 directory you were started in — nowhere else.
 
+**A written line is final.** Every version of both files is kept outside this
+session as it is written, so a change is visible and nothing removed is lost.
+Never edit or delete a line of `findings.jsonl`: to correct a record, append a
+new one for the same step and unit. Never delete a line of
+`submissions.jsonl` either — a deleted repair is still measured after the
+session — and edit one only to fix what `verify.py` reported as `invalid` or
+`not_equivalent`.
+
 ### 1. Select — *in:* a target · *out:* the units you will examine, in order
 
 **The target** is what you were asked to look at: the whole repository, a
@@ -216,7 +224,11 @@ one lists its root causes with a line apiece, which is usually enough to tell
 whether one is worth a closer look.
 
 **Do not open root-cause cards yet.** You are producing suspicions, not
-verdicts.
+verdicts. They are locked until then: `$SKILL/reference/root-causes/` opens
+once a unit's step-2 record is in `findings.jsonl`, stays open until that
+unit's step-3 record is, and is always open from step 4 on. If a card will not
+open, write the step-2 record first; if you have just written it, try again a
+second later.
 
 Open the categories your reading pointed you at, and open others if the code
 suggests them. Nothing restricts which you may consider.

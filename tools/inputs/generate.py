@@ -220,6 +220,17 @@ class Store:
                 for o in opened:
                     os.close(o)
 
+    def append(self, rel: str, text: str) -> None:
+        with self._lock:
+            fd, name, opened = self._parent(rel, create=True)
+            try:
+                handle = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644, dir_fd=fd)
+                with os.fdopen(handle, "a") as out:
+                    out.write(text)
+            finally:
+                for o in opened:
+                    os.close(o)
+
     def read(self, rel: str) -> str | None:
         try:
             fd, name, opened = self._parent(rel, create=False)

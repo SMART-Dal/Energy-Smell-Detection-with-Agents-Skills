@@ -121,6 +121,14 @@ no others**; a key with nothing to say is `null` or `[]`.
 `findings.jsonl` and `submissions.jsonl` both go in the repository's root, the
 directory you were started in — nowhere else.
 
+**A written line is final.** Every version of both files is kept outside this
+session as it is written, so a change is visible and nothing removed is lost.
+Never edit or delete a line of `findings.jsonl`: to correct a record, append a
+new one for the same step and unit. Never delete a line of
+`submissions.jsonl` either — a deleted repair is still measured after the
+session — and edit one only to fix what `verify.py` reported as `invalid` or
+`not_equivalent`.
+
 ### 1. Select — *in:* a target · *out:* the units you will examine, in order
 
 **The target** is what you were asked to look at: the whole repository, a
