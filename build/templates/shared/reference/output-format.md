@@ -1,24 +1,25 @@
 # Output format
 
-A run leaves two files in the repository's root — the directory you were
+A run leaves five files in the repository's root — the directory you were
 started in, next to its README — and nowhere else: not in `.energy-scan/`, not
 in a scratch directory. They are your record of the work, not edits to the
 code, so writing them there does not touch the repository:
 
-- **`findings.jsonl`** — what you did, one JSON line per step per unit,
-  appended as you go.
-- **`submissions.jsonl`** — the repairs, one per line. The script measures each
-  and writes the result into it.
+- **`step1.jsonl`**, **`step2.jsonl`**, **`step3.jsonl`**, **`step4.jsonl`** —
+  what each step produced, one JSON line per record. Each is finished with
+  `python $SKILL/scripts/step.py done N`, and read-only after that.
+- **`submissions.jsonl`** — the repairs, one per line, written in step 4. The
+  script measures each and writes the result into it.
 
 Nothing else is written. Your summary at the end of the run is your final
 message, not a file.
 
 ---
 
-## findings.jsonl
+## step1.jsonl to step4.jsonl
 
-One JSON object per line, tagged with the step that produced it, in the order
-you produced them.
+One JSON object per line, in the file of the step that produced it, each
+tagged with its step.
 
 **Every record has exactly the keys listed for it — all of them, every time,
 and no others.** A key with nothing to say is `null` or `[]`, never left out.
@@ -26,10 +27,10 @@ The same keys in every run are what make runs comparable.
 
 | Record | One per | Keys |
 |---|---|---|
-| step 1 | run, and another whenever the list changes | `step`, `target`, `unit_limit`, `units_considered`, `will_examine` |
-| step 2 | unit on the step-1 list | `step`, `unit`, `what_it_does`, `cost_driver`, `own_hypotheses`, `suspicions`, `cleared_because` |
-| step 3 | unit with suspicions | `step`, `unit`, `decisions` |
-| step 4 | unit with an accepted suspicion | `step`, `unit`, `outcomes` |
+| step 1, in `step1.jsonl` | run | `step`, `target`, `unit_limit`, `units_considered`, `will_examine` |
+| step 2, in `step2.jsonl` | unit on the step-1 list | `step`, `unit`, `what_it_does`, `cost_driver`, `own_hypotheses`, `suspicions`, `cleared_because` |
+| step 3, in `step3.jsonl` | unit with suspicions | `step`, `unit`, `decisions` |
+| step 4, in `step4.jsonl` | unit with an accepted suspicion | `step`, `unit`, `outcomes` |
 | a suspicion, in `suspicions` | | {{SUSPICION_KEYS}} |
 | a decision, in `decisions` | | {{DECISION_KEYS}} |
 | an outcome, in `outcomes` | | `label`, `outcome`, `submission`, `why` |
@@ -127,10 +128,10 @@ distinguishable, and so do a suspicion you dropped and one you forgot.
 
 Every line has every field listed in `$SKILL/reference/verifying.md` — none
 are optional, and no others are accepted. Three rules connect it to the
-findings:
+step files:
 
-- every step-4 outcome `submitted` names a line here, and every line here is
-  named by exactly one;
+- every outcome `submitted` in `step4.jsonl` names a line here, and every line
+  here is named by exactly one;
 - every line ends with the `agent_measurement` the script wrote. Never write
   or edit it, and never write a verdict anywhere yourself;
 - every measured repair stays, whatever its verdict.

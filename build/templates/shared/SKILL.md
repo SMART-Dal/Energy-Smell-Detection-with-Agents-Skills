@@ -102,37 +102,33 @@ you can find.
 
 ## Procedure
 
-Five steps, in order, and **each step is finished for every unit you examine
-before the next one begins**: step 2 for all of them, then step 3, then step 4.
-When you finish step 2, and again when you finish step 3, say so:
+Five steps, in order. **Each step writes its own file in the repository's
+root, and when the step is finished you say so** — then the next step begins:
 
-```bash
-python $SKILL/scripts/step.py done 2
-python $SKILL/scripts/step.py done 3
-```
+| Step | Writes | When it is finished |
+|---|---|---|
+| 1. Select | `step1.jsonl` | `python $SKILL/scripts/step.py done 1` |
+| 2. Read and suspect | `step2.jsonl` | `python $SKILL/scripts/step.py done 2` |
+| 3. Decide | `step3.jsonl` | `python $SKILL/scripts/step.py done 3` |
+| 4. Repair and measure | `submissions.jsonl`, `step4.jsonl` | `python $SKILL/scripts/step.py done 4` |
+| 5. Finish | your final message | — |
 
-What `findings.jsonl` holds at that moment is kept, outside this session, as
-that step's output. {{ORDER_CHECKS}} Do not go back to an earlier step once
-you have said it is finished; if a later step shows you something an earlier
-record missed, say it in the later record. Each step states what it takes in
-and what it must produce. Produce it before moving on, and append it to `findings.jsonl` as
-one JSON line tagged with its step — as you go, not reconstructed at the end.
+While a step is open, its file is yours: write it, rewrite it, fix it. `done`
+keeps the file, outside this session, as that step's output, and makes it
+read-only — a finished step is never changed. If a later step shows you
+something an earlier one missed, say so in the later step's file: step 3
+rejects a step-2 suspicion and adds a new one; it does not touch
+`step2.jsonl`. Do not start a step's file before the previous step is done.
+{{ORDER_CHECKS}}
+
 Every step after the second one is a check on what the second one wrote down,
 and a check you run against nothing checks nothing.
 
-Each record has **exactly the keys its example below shows — all of them, and
-no others**; a key with nothing to say is `null` or `[]`.
-`$SKILL/reference/output-format.md` lists every key and what it holds.
-`findings.jsonl` and `submissions.jsonl` both go in the repository's root, the
-directory you were started in — nowhere else.
-
-**A written line is final.** Every version of both files is kept outside this
-session as it is written, so a change is visible and nothing removed is lost.
-Never edit or delete a line of `findings.jsonl`: to correct a record, append a
-new one for the same step and unit. Never delete a line of
-`submissions.jsonl` either — a deleted repair is still measured after the
-session — and edit one only to fix what `verify.py` reported as `invalid` or
-`not_equivalent`.
+Each record is one JSON line with **exactly the keys its example below shows —
+all of them, and no others**; a key with nothing to say is `null` or `[]`.
+`$SKILL/reference/output-format.md` lists every key and what it holds. Every
+file goes in the repository's root, the directory you were started in —
+nowhere else.
 
 ### 1. Select — *in:* a target · *out:* the units you will examine, in order
 
@@ -144,7 +140,7 @@ resolved to. If more than one function matches, all of them are the target.
 
 **How many:** every unit in the target, unless you were asked for a number of
 units — then at most that many, the hottest first. You may change which units
-those are until you finish step 2, if something you read shows you a hotter
+those are until you finish step 1, if something you read shows you a hotter
 one; just do not go over the number. It limits units and nothing else: within a unit,
 record every suspicion you have.
 
@@ -168,8 +164,8 @@ of the energy goes.
  "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"]}
 ```
 
-If you change the list, append another step-1 record with the list as it now
-stands; the last one is the list you examined.
+Write it to `step1.jsonl`. Rewrite it as often as you like while step 1 is
+open; when the list is final, run `python $SKILL/scripts/step.py done 1`.
 
 Keep this list. Every unit on it gets a step-2 record, including the ones you
 clear — a run that examined three functions and one that examined three
@@ -234,13 +230,13 @@ and 4 refer to it. A unit with nothing suspicious gets the same record with
 **At most 12 suspicions per unit.** The cap makes you rank rather than list. If
 you are at the cap, keep the ones you would actually spend an hour repairing.
 
-When every unit you examine has its step-2 record, step 2 is finished: run
-`python $SKILL/scripts/step.py done 2`.
+Write each unit's record to `step2.jsonl`. When every unit you examine has its
+record, step 2 is finished: run `python $SKILL/scripts/step.py done 2`.
 
 ### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
 
-Start this step after `step.py done 2`, and give a step-3 record to every unit
-with suspicions. When they are all written, run
+Start this step after `step.py done 2`, and write a step-3 record to
+`step3.jsonl` for every unit with suspicions. When they are all written, run
 `python $SKILL/scripts/step.py done 3`; step 4 starts after it.
 
 {{DECIDE_PREAMBLE}}
@@ -355,7 +351,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    listed in `related` — both are kept. A suspicion whose repair you cannot make
    behave identically, or whose unit has no inputs, is `blocked`.
 
-6. **Record what happened to every accepted suspicion**, one record per unit:
+6. **Record what happened to every accepted suspicion** in `step4.jsonl`, one
+   record per unit:
 
    ```jsonc
    {"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
@@ -366,28 +363,25 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    ]}
    ```
 
-Every measured repair stays in `submissions.jsonl`, whatever its verdict.
-`partial`, `negligible`, `regressed` and `mixed` are results, and a file that
-kept only the wins could not be told apart from one that hid its losses.
+Every measured repair stays in `submissions.jsonl`, whatever its verdict —
+one you delete is still measured after the session. `partial`, `negligible`,
+`regressed` and `mixed` are results, and a file that kept only the wins could
+not be told apart from one that hid its losses.
 
-### 5. Finish — *in:* both files · *out:* both files complete, and a short summary
+7. **Check, then finish the step.** Every suspicion accepted in step 3 has an
+   outcome in `step4.jsonl`, and every line of `submissions.jsonl` carries the
+   `agent_measurement` the script wrote, with nothing left `inconclusive` or
+   `error` that a run could still settle. Then run
+   `python $SKILL/scripts/step.py done 4`.
 
-This step writes no record to `findings.jsonl`.
+### 5. Finish — *in:* the four steps' files · *out:* a short summary
 
-Before you stop, check:
-
-- every unit chosen in step 1 has a step-2 record, cleared or not;
-- every suspicion accepted in step 3 has an outcome in a step-4 record;
-- every line of `submissions.jsonl` carries the `agent_measurement` the script
-  wrote, and nothing is left `inconclusive` or `error` that a run could still
-  settle.
-
-Then end with a short summary for whoever asked: for each submission, the unit,
+This step writes no file. End with a short summary for whoever asked: for each submission, the unit,
 {{REPAIR_BASIS}}, the verdict, and what it saved across its four inputs. Lead
 with what was confirmed, say plainly what was not, and say how many accepted
 suspicions were deferred unmeasured.
 
-`$SKILL/reference/output-format.md` has the exact shape of both files.
+`$SKILL/reference/output-format.md` has the exact shape of every file.
 
 {{CATEGORY_SECTION}}---
 

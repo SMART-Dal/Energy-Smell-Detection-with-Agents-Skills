@@ -1,11 +1,10 @@
 """Where a run stands in the procedure.
 
-Every step is finished for every unit the agent examines before the next one
-begins, and the agent says when it finishes one -- `step.py done 2`, `step.py
-done 3` -- to the input service, which keeps the findings as they are at that
-moment (tools/inputs/recorder.py). Step 4 -- asking for inputs, measuring -- may
-begin once step 3 is said to be finished; inputs.py and verify.py ask before
-they start.
+Each step writes its own file, and the agent says when it finishes one --
+`step.py done N` -- to the input service, which keeps the file as it is then
+and makes it read-only (tools/inputs/steps.py). Step 4 -- asking for inputs,
+measuring -- runs between `done 3` and `done 4`; inputs.py and verify.py ask
+before they start.
 """
 
 from __future__ import annotations
@@ -39,8 +38,11 @@ def step4_refusal() -> str | None:
     answer = ask({"op": "steps"}, timeout=10)
     if not answer.get("ok"):
         return None                           # no service: nothing to enforce here
-    if 3 in (answer.get("done") or []):
+    done = answer.get("done") or []
+    if 4 in done:
+        return "Step 4 is finished (`step.py done 4`): its files are read-only, and nothing more is measured."
+    if 3 in done:
         return None
     return ("Step 4 begins once step 3 is finished, and you say so: run\n"
             "    python $SKILL/scripts/step.py done 3\n"
-            "(it also finishes step 2, if you have not said so yet), then run this again.")
+            "(after `done 1` and `done 2`, if you have not run them), then run this again.")

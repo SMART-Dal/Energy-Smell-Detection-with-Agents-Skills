@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """Say that a step is finished.
 
-    python step.py done 2      step 2 is finished: its records are kept as they are now
-    python step.py done 3      step 3 is finished: step 4 may begin
+    python step.py done 1      step1.jsonl is finished
+    python step.py done 2      step2.jsonl is finished
+    python step.py done 3      step3.jsonl is finished
+    python step.py done 4      submissions.jsonl and step4.jsonl are finished
     python step.py status      which steps are finished
 
-Each step is finished for every unit you examine before the next one begins.
-When you finish one, say so here: what findings.jsonl holds at that moment is
-kept, outside this session, as that step's output. Records you write afterwards
-are kept too, with the time they were written.
-
-After `done 2`, the root-cause cards are open. After `done 3`, inputs.py and
-verify.py start step 4.
+Each step writes its own file in the repository's root, and you may write and
+rewrite it as you like while the step is open. When the step is finished, say
+so here: the file is kept, outside this session, as that step's output, and
+becomes read-only. Steps finish in order.
 """
 
 from __future__ import annotations
@@ -30,7 +29,7 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     done = sub.add_parser("done", help="say that a step is finished")
-    done.add_argument("step", type=int, choices=(2, 3))
+    done.add_argument("step", type=int, choices=(1, 2, 3, 4))
     sub.add_parser("status", help="which steps are finished")
     args = parser.parse_args(argv)
 

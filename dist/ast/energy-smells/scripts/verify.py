@@ -67,7 +67,7 @@ from lib.measure import (  # noqa: E402
     compare_case,
     noise_floor,
 )
-from lib.inputs import DIRNAME, SOCKET_ENV, inputs_for, wait_until_settled  # noqa: E402
+from lib.inputs import DIRNAME, SOCKET_ENV, ask, inputs_for, wait_until_settled  # noqa: E402
 from lib.progress import step4_refusal  # noqa: E402
 from lib.models import Comparison  # noqa: E402
 from lib.pair import LoadError, Pair, WorkerError, stage  # noqa: E402
@@ -1189,6 +1189,9 @@ def _run_submissions(args, profile: Profile) -> int:
         if not args.no_record and isinstance(record, dict):
             record["agent_measurement"] = payload
             _rewrite(path, records)
+            if os.environ.get(SOCKET_ENV):
+                # Kept outside the session, so a repair deleted later is still on record.
+                ask({"op": "measured", "record": record}, timeout=10)
 
     if args.json:
         json.dump(outputs, sys.stdout, indent=1)

@@ -5,8 +5,9 @@
     python tools/review.py REPO RUN_DIR --apply         ...and write the applied repairs to REPO
     python tools/review.py REPO RUN_DIR --verdicts F    reuse a re-measurement already taken
 
-RUN_DIR holds the agent's `submissions.jsonl` and `findings.jsonl`. This writes
-`results.jsonl` and `REPORT.md` beside them. It never ships inside a skill.
+RUN_DIR holds the agent's `submissions.jsonl` and `findings.jsonl` (its four
+step files, joined). This writes `results.jsonl` and `REPORT.md` beside them.
+It never ships inside a skill.
 
 The agent measured its own repairs, and those numbers stay in its file as it
 wrote them. The numbers that count are taken here, with the same fast profile,

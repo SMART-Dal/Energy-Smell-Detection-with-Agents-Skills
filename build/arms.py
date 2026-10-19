@@ -113,8 +113,8 @@ class Arm:
 
 _TAXONOMY_WORDS = {
     "ORDER_CHECKS": """The root-cause
-cards open at `done 2`, all of them, and `inputs.py` and `verify.py` start step
-4 only after `done 3`.""",
+cards open at `done 2`, all of them; `inputs.py` and `verify.py` run between
+`done 3` and `done 4`.""",
     "ATTRIBUTION_HEADING": 'One repair, one root cause',
     "ATTRIBUTION_RULE": """Attribute each repair to one root cause: the one whose definition describes the
 waste your edit removes. That is a rule about *attribution*, not about counting,
@@ -279,7 +279,7 @@ drop it and try a different root cause until one sticks.
 
 _CONTROL_WORDS = {
     "ORDER_CHECKS": """`inputs.py` and
-`verify.py` start step 4 only after `done 3`.""",
+`verify.py` run between `done 3` and `done 4`.""",
     "ATTRIBUTION_HEADING": 'One repair, one reason',
     "ATTRIBUTION_RULE": """Attribute each repair to a single reason: the thing about the code that
 explains why the edit saves energy.

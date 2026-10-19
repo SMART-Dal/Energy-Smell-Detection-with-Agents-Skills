@@ -41,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import generate as gen  # noqa: E402
-from recorder import Recorder  # noqa: E402
+from steps import StepKeeper  # noqa: E402
 from lib.inputs import DIRNAME, FAILED, MAX_UNITS, PENDING, READY, STATUS, file_name  # noqa: E402
 from lib.splice import split_name  # noqa: E402
 
@@ -73,13 +73,11 @@ class Service:
         self.closing = False
         gen.VALIDATION_SLOTS = threading.BoundedSemaphore(VALIDATIONS_AT_ONCE)
         self._publish_status()
-        # Every version of findings.jsonl and submissions.jsonl, and the gate on
-        # the root-cause cards: see recorder.py.
-        self.recorder = None
-        if args.record:
-            self.recorder = Recorder(args.repo.resolve(), gen.Store(args.record),
-                                     args.cards.resolve() if args.cards else None)
-            self.recorder.start()
+        # Each step's files, kept when the agent says the step is finished, the
+        # gate on the root-cause cards, and every repair verify.py measures:
+        # see steps.py.
+        self.steps = StepKeeper(args.repo.resolve(), gen.Store(args.record),
+                                args.cards.resolve() if args.cards else None) if args.record else None
 
     # -- what the agent sees, and what we keep -----------------------------
 
@@ -219,7 +217,7 @@ class Service:
             for unit in left:
                 self.units[unit] = {"state": FAILED, "reason": "still generating when the session ended"}
             self._publish_status()
-        recorded = self.recorder.finish() if self.recorder else {}
+        recorded = self.steps.finish() if self.steps else {}
         return {"ok": True, "pending_at_end": left, **recorded}
 
 
@@ -248,10 +246,12 @@ def serve(service: Service, path: Path) -> None:
                     answer = service.request(request.get("units"))
                 elif op == "status":
                     answer = service.status()
-                elif op == "done" and service.recorder is not None and request.get("step") in (2, 3):
-                    answer = {"ok": True, **service.recorder.declare(int(request["step"]))}
+                elif op == "done" and service.steps is not None and request.get("step") in (1, 2, 3, 4):
+                    answer = service.steps.declare(int(request["step"]))
                 elif op == "steps":
-                    answer = {"ok": True, "done": list(service.recorder.done) if service.recorder else []}
+                    answer = {"ok": True, "done": list(service.steps.done) if service.steps else []}
+                elif op == "measured" and service.steps is not None:
+                    answer = service.steps.measured(request.get("record"))
                 elif op == "finish":
                     answer = service.finish(float(request.get("wait_s", 600)))
                     done.set()
@@ -290,7 +290,7 @@ def main() -> int:
     parser.add_argument("--key", type=Path, required=True, help="file holding the OpenRouter key")
     parser.add_argument("--work", type=Path, required=True, help="scratch space for candidates")
     parser.add_argument("--record", type=Path,
-                        help="where every version of the agent's findings and submissions is kept")
+                        help="where each step's output, as the agent finished it, is kept")
     parser.add_argument("--cards", type=Path,
                         help="the skill's root-cause cards, opened only when the protocol allows")
     args = parser.parse_args()
