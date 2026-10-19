@@ -248,6 +248,10 @@ def serve(service: Service, path: Path) -> None:
                     answer = service.request(request.get("units"))
                 elif op == "status":
                     answer = service.status()
+                elif op == "done" and service.recorder is not None and request.get("step") in (2, 3):
+                    answer = {"ok": True, **service.recorder.declare(int(request["step"]))}
+                elif op == "steps":
+                    answer = {"ok": True, "done": list(service.recorder.done) if service.recorder else []}
                 elif op == "finish":
                     answer = service.finish(float(request.get("wait_s", 600)))
                     done.set()

@@ -12,13 +12,16 @@ seen by it:
     `submissions_all.jsonl` holds the final file plus every line it lost, and
     the review measures that. The agent's file is never touched.
 
-  * **Root-cause cards follow the protocol.** Every step is finished for every
-    unit before the next begins, and the cards belong to step 3 on. So the
-    cards' directory stays locked until every unit on the latest step-1 list
-    has a step-2 record (lib/progress.py), and opens then; while it is locked,
-    a note beside it says why and what is still missing -- a bare "Permission
-    denied" read as a permanent restriction, and the agent in the first gated
-    run never tried the cards again.
+  * **Each step's output, as it stood when the step ended.** The agent says
+    when it finishes a step -- `step.py done 2`, `step.py done 3` -- and the
+    findings file at that moment is copied to `steps/step<N>.findings.jsonl`.
+    That is the step's output, whatever is written or changed afterwards.
+
+  * **Root-cause cards from step 3 on.** The cards' directory is locked until
+    the agent says step 2 is done, and open from then on, all of them; which
+    units it read is the agent's own choice. While locked, a note beside it
+    says how to open it -- a bare "Permission denied" read as a permanent
+    restriction, and the agent in the first gated run never tried again.
 
 No permission stops an agent running as the same user from editing its own
 files or from `chmod`; what this guarantees is that nothing it does is lost,
@@ -39,7 +42,7 @@ SRC = Path(__file__).resolve().parents[2] / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from lib.progress import cards_open, parse_records, standing  # noqa: E402
+from lib.progress import parse_records  # noqa: E402
 
 FILES = ("findings.jsonl", "submissions.jsonl")
 NOTE = "ROOT-CAUSE-CARDS-LOCKED.md"
@@ -55,6 +58,7 @@ class Recorder(threading.Thread):
         self.seen: dict[str, tuple] = {name: (None, None) for name in FILES}
         self.lines: dict[str, list[str]] = {name: [] for name in FILES}
         self.ever: dict[str, dict] = {}               # submission id -> last version seen
+        self.done: list[int] = []                     # steps the agent has said are finished
         self.open: bool | None = None
         self.stopping = threading.Event()
         self.lock = threading.Lock()
@@ -67,7 +71,6 @@ class Recorder(threading.Thread):
 
     def poll(self) -> None:
         with self.lock:
-            changed = False
             for name in FILES:
                 path = self.repo / name
                 try:
@@ -83,10 +86,6 @@ class Recorder(threading.Thread):
                 except OSError:
                     continue
                 self._diff(name, text.splitlines())
-                changed = True
-            if changed:
-                findings = parse_records("\n".join(self.lines["findings.jsonl"]))
-                self._gate(cards_open(findings), standing(findings))
 
     def _diff(self, name: str, new: list[str]) -> None:
         old = self.lines[name]
@@ -119,11 +118,34 @@ class Recorder(threading.Thread):
         if rows:
             self.store.append("events.jsonl", "".join(json.dumps(r) + "\n" for r in rows))
 
-    def _gate(self, open_: bool, where: dict | None = None) -> None:
+    def declare(self, step: int) -> dict:
+        """The agent says `step` is finished: keep the findings as they are now."""
+        self.poll()                                   # what it wrote just before saying so
+        with self.lock:
+            new = [n for n in range(2, step + 1) if n not in self.done]
+            records = parse_records("\n".join(self.lines["findings.jsonl"]))
+            for n in new:                             # `done 3` without `done 2` finishes both
+                self.done.append(n)
+                self.store.write(f"steps/step{n}.findings.jsonl",
+                                 "".join(line + "\n" for line in self.lines["findings.jsonl"]))
+                self.store.append("events.jsonl", json.dumps(
+                    {"t": time.time(), "file": "steps", "event": "done", "step": n,
+                     "records": sum(r.get("step") == n for r in records)}) + "\n")
+            if 2 in self.done:
+                self._gate(True)
+        units = sorted({r.get("unit") for r in records if r.get("step") == step and r.get("unit")})
+        cards = " All the root-cause cards are open now." if self.cards is not None and step == 2 else ""
+        after = ("" if step == 2 else " Step 4 may begin: inputs.py and verify.py will run.")
+        already = "" if new else " (it was already recorded as finished)"
+        return {"done": list(self.done), "message":
+                f"Step {step} is recorded as finished{already}: {len(units)} unit(s) have a "
+                f"step-{step} record, kept as they are now.{cards}{after}"}
+
+    def _gate(self, open_: bool) -> None:
         if self.cards is None:
             return
         if not open_:
-            self._note(where or {})
+            self._note()
         if open_ == self.open:
             return
         try:
@@ -136,18 +158,14 @@ class Recorder(threading.Thread):
         self.store.append("events.jsonl", json.dumps(
             {"t": time.time(), "file": "cards", "event": "opened" if open_ else "closed"}) + "\n")
 
-    def _note(self, where: dict) -> None:
+    def _note(self) -> None:
         """Say, beside the locked directory, why it is locked and what opens it."""
-        if not where.get("planned"):
-            missing = "No step-1 record is in findings.jsonl yet."
-        else:
-            missing = ("Still without a step-2 record: " + ", ".join(where.get("unread") or [])
-                       + "." if where.get("unread") else "")
         text = ("# The root-cause cards are locked until step 3\n\n"
-                "They open by themselves once every unit on your latest step-1 list has a "
-                "step-2 record in `findings.jsonl`, in the repository root, and then stay open. "
                 "This is by design, not a fault: step 2 is your own reading, made before any "
-                "card. Finish step 2 for every unit, then open the cards.\n\n" + missing + "\n")
+                "card. When you have finished step 2 -- its records written to `findings.jsonl` "
+                "in the repository root -- say so:\n\n"
+                "    python $SKILL/scripts/step.py done 2\n\n"
+                "and every card in `root-causes/` opens, and stays open.\n")
         try:
             path = self.cards.parent / NOTE
             if not path.exists() or path.read_text() != text:

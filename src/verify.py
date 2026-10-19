@@ -68,7 +68,7 @@ from lib.measure import (  # noqa: E402
     noise_floor,
 )
 from lib.inputs import DIRNAME, SOCKET_ENV, inputs_for, wait_until_settled  # noqa: E402
-from lib.progress import gaps_message, step4_gaps  # noqa: E402
+from lib.progress import step4_refusal  # noqa: E402
 from lib.models import Comparison  # noqa: E402
 from lib.pair import LoadError, Pair, WorkerError, stage  # noqa: E402
 from lib.submission import (  # noqa: E402
@@ -1128,11 +1128,11 @@ def _run_submissions(args, profile: Profile) -> int:
     repo = args.repo.resolve()
     path = args.target
     if os.environ.get(SOCKET_ENV):
-        # In an agent's session, measuring is step 4, which begins once steps 2
-        # and 3 are done for every listed unit; our own review never sets this.
-        gaps = step4_gaps(repo / "findings.jsonl")
-        if gaps:
-            print(gaps_message(gaps))
+        # In an agent's session, measuring is step 4, which begins once the agent
+        # has said step 3 is finished; our own review never sets this.
+        refusal = step4_refusal()
+        if refusal:
+            print(refusal)
             return 2
     lines = path.read_text(encoding="utf-8").splitlines()
     records: list = []

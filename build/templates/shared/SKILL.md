@@ -102,12 +102,20 @@ you can find.
 
 ## Procedure
 
-Five steps, in order, and **each step is finished for every unit before the
-next one begins**: step 2 for every unit on your step-1 list, then step 3 for
-every unit with suspicions, then step 4 for all of them together. Do not go back
-to an earlier step once a later one has begun; if a later step shows you
-something an earlier record missed, say it in the later record. {{ORDER_CHECKS}}
-Each step states what it takes in and what it must produce. Produce it before moving on, and append it to `findings.jsonl` as
+Five steps, in order, and **each step is finished for every unit you examine
+before the next one begins**: step 2 for all of them, then step 3, then step 4.
+When you finish step 2, and again when you finish step 3, say so:
+
+```bash
+python $SKILL/scripts/step.py done 2
+python $SKILL/scripts/step.py done 3
+```
+
+What `findings.jsonl` holds at that moment is kept, outside this session, as
+that step's output. {{ORDER_CHECKS}} Do not go back to an earlier step once
+you have said it is finished; if a later step shows you something an earlier
+record missed, say it in the later record. Each step states what it takes in
+and what it must produce. Produce it before moving on, and append it to `findings.jsonl` as
 one JSON line tagged with its step — as you go, not reconstructed at the end.
 Every step after the second one is a check on what the second one wrote down,
 and a check you run against nothing checks nothing.
@@ -136,8 +144,8 @@ resolved to. If more than one function matches, all of them are the target.
 
 **How many:** every unit in the target, unless you were asked for a number of
 units — then at most that many, the hottest first. You may change which units
-those are until step 3 begins, if something you read shows you a hotter one;
-just do not go over the number. It limits units and nothing else: within a unit,
+those are until you finish step 2, if something you read shows you a hotter
+one; just do not go over the number. It limits units and nothing else: within a unit,
 record every suspicion you have.
 
 Read the repository first: its entry points, what its tests exercise, what its
@@ -226,10 +234,14 @@ and 4 refer to it. A unit with nothing suspicious gets the same record with
 **At most 12 suspicions per unit.** The cap makes you rank rather than list. If
 you are at the cap, keep the ones you would actually spend an hour repairing.
 
+When every unit you examine has its step-2 record, step 2 is finished: run
+`python $SKILL/scripts/step.py done 2`.
+
 ### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
 
-Start this step once every unit on your step-1 list has its step-2 record, and
-give a step-3 record to every unit with suspicions.
+Start this step after `step.py done 2`, and give a step-3 record to every unit
+with suspicions. When they are all written, run
+`python $SKILL/scripts/step.py done 3`; step 4 starts after it.
 
 {{DECIDE_PREAMBLE}}
 
