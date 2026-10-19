@@ -138,9 +138,9 @@ argument**, so the thunk builds the instance and passes it.
 **Why each input is called many times.** One call is usually too short for the
 energy meter to see, so each input is called many times in a row and the
 energy of all the calls is added up. That is the only reason for the
-repetition. Every call gets the original input — a unit that changes its input
-gets a fresh copy for each call — and the outputs are compared once, on the
-first call, before anything is measured.
+repetition. Every call gets a fresh copy of the input, built before the
+calls are measured, and the outputs are compared once, before anything is
+measured.
 
 **A coroutine is run, a generator is drained.** An `async def` unit is run to
 completion on an event loop of its own, and a generator's output is collected

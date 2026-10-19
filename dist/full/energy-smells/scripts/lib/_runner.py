@@ -71,8 +71,8 @@ POOL_LIMIT_BYTES = 2 << 30
 
 
 class PoolTooLarge(RuntimeError):
-    """A unit that changes its arguments needs a fresh set for every call in a
-    window, and these arguments are too costly to build that many times."""
+    """Every call in a window gets a fresh set of arguments, and these are too
+    costly to build that many times."""
 
 
 def _traced(make):
@@ -91,13 +91,15 @@ def _traced(make):
 def build_pool(make, size: int) -> list:
     """`size` results of `make()`: the arguments for the measured loop, built outside it.
 
-    A variant that mutates its arguments needs a fresh set per call, or the
-    workload changes shape as the loop runs; one that does not reuses a single
-    set, which keeps memory flat and the garbage collector quiet.
+    One set per call: the window repeats the call only to give the meter
+    enough energy to read, so every call starts from the input as the thunk
+    builds it. Nothing a call does to its arguments -- sorting, filling,
+    emptying them -- reaches the next call, and a thunk that makes new keys
+    each time keeps a cache outside them from answering the next call either.
 
     Repeat counts are large when one call is cheap, and that usually means
     small arguments too -- but not always: a call that looks one key up in a
-    large dict, and adds it, is cheap with arguments that are not. So the pool
+    large dict is cheap with arguments that are not. So the pool
     is projected from what the first sets cost -- the memory of the first set,
     traced; the time of the sets after it, checked at 1, 2, 4, ... more once
     they have taken long enough to time -- and refused once the projection
@@ -116,8 +118,8 @@ def build_pool(make, size: int) -> list:
                ([f"about {seconds:,.0f}s (limit {POOL_LIMIT_S:g}s)"] if seconds > POOL_LIMIT_S else [])
         if over:
             raise PoolTooLarge(
-                f"the unit changes its arguments, so each of the {size:,} calls in a "
-                f"window needs a fresh set, and building them would take "
+                f"each of the {size:,} calls in a window gets fresh arguments, "
+                f"and building them would take "
                 f"{' and '.join(over)}: one call does too little work for arguments that size")
         for _ in range(min(batch, size - len(pool))):
             pool.append(make())
@@ -150,10 +152,7 @@ def main(argv: list[str]) -> int:
     case = next(c for c in case_file.cases if c.label == spec["label"])
 
     repeats = spec["repeats"]
-    mutates = bool(spec.get("mutates"))
     variants = [(label, case_file.variant(attr)) for label, attr in spec["variants"]]
-    pool_size = repeats if mutates else 1
-    pool = build_pool(case.args, pool_size)
 
     # Warm the machine first: bring the clock and temperature to a steady
     # state before anything is measured, so the climb out of idle is not
@@ -163,8 +162,9 @@ def main(argv: list[str]) -> int:
     # Then warm the code, so neither variant pays the one-off cost of
     # import-time laziness, bytecode caching or the first allocation of a new
     # size class.
+    warm = min(repeats, spec.get("warmup_calls", 1))
     for _, function in variants:
-        run_window(function, pool, min(repeats, spec.get("warmup_calls", 1)))
+        run_window(function, build_pool(case.args, warm), warm)
 
     samples = []
     for rep in range(spec["reps"]):
@@ -172,13 +172,10 @@ def main(argv: list[str]) -> int:
         # between the variants instead of charged to whichever runs second.
         ordered = variants if rep % 2 == 0 else variants[::-1]
         for label, function in ordered:
-            # A unit that mutates its input gets a fresh pool before every
-            # window, outside the measured region. Both variants used to share
-            # one pool built once, so whichever ran second -- and every window
-            # after the first -- measured inputs already sorted, emptied or
-            # filled by the window before it.
-            if mutates:
-                pool = build_pool(case.args, pool_size)
+            # A fresh pool before every window, outside the measured region:
+            # the window before it used every set up, and is freed first.
+            pool = None
+            pool = build_pool(case.args, repeats)
             gc.collect()
             sample = meter.sample(lambda: run_window(function, pool, repeats))
             samples.append({

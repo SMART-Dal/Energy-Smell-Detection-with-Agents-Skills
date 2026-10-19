@@ -666,8 +666,7 @@ def verify(engine, *, profile: Profile, meter: str = "auto",
     rows = engine.check()
     for row in rows:
         kind = "" if row.measured else "  (check only)"
-        note = " (mutates its arguments: fresh input per call)" if row.mutates and row.measured else ""
-        log(f"  {row.label:<14} {'ok' if not row.difference else 'DIFFERS'}{kind}{note}")
+        log(f"  {row.label:<14} {'ok' if not row.difference else 'DIFFERS'}{kind}")
         if row.difference:
             log(f"  {'':<14} {row.difference}")
     broken = [row for row in rows if row.difference]

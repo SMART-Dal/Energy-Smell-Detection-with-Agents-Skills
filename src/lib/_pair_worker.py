@@ -635,26 +635,22 @@ def _lines_run(side: Side, set_name: str, index: int) -> list[int]:
 def _window(side: Side, request: dict, meter) -> dict:
     """One measured window: `repeats` calls, and nothing else.
 
-    The argument pool is rebuilt before every window, outside the measured
-    region, for a unit that mutates its input -- or the second window measures
-    the inputs the first one already sorted, emptied or filled.
+    Every call gets fresh arguments, from a pool built before the window,
+    outside the measured region (`build_pool`).
     """
     thunk = side.sets["cases"][request["index"]][1]
     repeats = request["repeats"]
-    size = repeats if request.get("mutates") else 1
-    pool = build_pool(lambda: _args(thunk), size)
 
     index = request["index"]
     if index not in side.warmed:
         # Warm the code once per case, so neither side pays one-off costs --
         # lazy imports, the first allocation of a size class -- inside a window.
-        loop, ready = _loop(pool)
-        loop(side.function, ready, min(repeats, request.get("warmup_calls", 1)))
+        warm = min(repeats, request.get("warmup_calls", 1))
+        loop, ready = _loop(build_pool(lambda: _args(thunk), warm))
+        loop(side.function, ready, warm)
         side.warmed.add(index)
-        if request.get("mutates"):
-            pool = build_pool(lambda: _args(thunk), size)
 
-    loop, ready = _loop(pool)
+    loop, ready = _loop(build_pool(lambda: _args(thunk), repeats))
     gc.collect()
     sample = meter.sample(lambda: loop(side.function, ready, repeats))
     return {
