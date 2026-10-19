@@ -111,13 +111,24 @@ class Service:
         if not file.is_file():
             return f"no file {path} in the repository"
         try:
-            node, _ = gen.find_node(ast.parse(file.read_text(errors="replace")), qualname)
+            tree = ast.parse(file.read_text(errors="replace"))
+            node, _ = gen.find_node(tree, qualname)
         except KeyError:
             return f"no function or method {qualname} in {path}"
         except (SyntaxError, ValueError) as exc:
             return f"{path} does not parse: {exc}"
         if isinstance(node, ast.ClassDef):
             return f"{qualname} is a class; name one of its methods"
+        # A function defined inside another function exists only while the outer
+        # one runs, so nothing can call it on its own: the scanner ranked one first
+        # in the pilot, and it failed only after generation had been paid for.
+        parts = qualname.split(".")
+        for depth in range(1, len(parts)):
+            outer, _ = gen.find_node(tree, ".".join(parts[:depth]))
+            if isinstance(outer, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return (f"{parts[-1]} is defined inside {'.'.join(parts[:depth])}, so it cannot "
+                        f"be called on its own; request {path}::{'.'.join(parts[:depth])}, the "
+                        f"function that contains it")
         return None
 
     def request(self, units) -> dict:

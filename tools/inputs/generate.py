@@ -959,7 +959,16 @@ def why_failed(v: dict | None, calls: list[dict]) -> str:
         return (f"the inputs that run here reach only {v['coverage']:.0%} of the function "
                 f"(lines {line_ranges(v['missed'])} never ran), so they would not measure "
                 f"its real work")
-    whys = [c["why"] for c in v["cases"] if not c["ok"]]
+    if len(usable(v)) >= KEEP:
+        failed = "; ".join(f"{c['label']}: {c['why']}" for c in v.get("checks") or [])
+        return f"none of the edge inputs could be built or run ({failed[:300]})"
+    # Spares passed and were simply not needed; they are not why it failed.
+    whys = [c["why"] for c in v["cases"] if not c["ok"] and not c.get("spare")]
+    differ = [w for w in whys if w.startswith("two runs on fresh inputs gave different output")]
+    if whys and len(differ) == len(whys):
+        return ("the function's own output changes from one run to the next on the same "
+                "input -- a timestamp, randomness, a counter -- so the original and a repair "
+                f"cannot be compared ({differ[0][len('two runs on fresh inputs gave different output: '):][:200]})")
     common = max(set(whys), key=whys.count) if whys else ""
     return (f"only {len(usable(v))} of {len(v['cases'])} generated inputs ran and repeated "
             f"on the original code (most often: {common[:300]})")
@@ -1029,7 +1038,10 @@ def generate(root: Path, unit: str, work: Path, key: str, record=None) -> Outcom
             report["rounds"].append({k: v.get(k) for k in ("fatal", "cases", "checks", "validate_s",
                                                             "coverage", "missed")})
             last = v
-            if best is None or len(usable(v)) > len(usable(best[1])):
+            # A round that succeeded wins outright; otherwise keep the one with more
+            # inputs that ran. Comparing counts alone kept a round-1 source whose
+            # edge inputs failed over a round-2 source that fixed them.
+            if succeeded(v) or best is None or len(usable(v)) > len(usable(best[1])):
                 best = (code, v)
             if succeeded(v) or v.get("environment"):
                 break

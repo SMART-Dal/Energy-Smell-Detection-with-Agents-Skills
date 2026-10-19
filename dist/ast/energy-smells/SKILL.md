@@ -461,10 +461,11 @@ Read `$SKILL/reference/verifying.md` before your first submission.
 
    It first waits — up to ten minutes, saying for what — for any inputs still
    being generated, then measures every line in turn, under a minute each, on
-   its unit's inputs, and writes the result into the line as
-   `agent_measurement`: the verdict, and the joules and seconds of every input.
-   Never write or edit it yourself. Give the command a timeout to match, or run
-   it in the background.
+   its unit's inputs, and writes the result into that line as soon as it is
+   measured, as `agent_measurement`: the verdict in `agent_measurement.status`,
+   and the joules and seconds of every input. Never write or edit it yourself.
+   Give the command a timeout to match, or run it in the background — and if it
+   is still running, wait for it before you finish.
 
 5. **Then fix only what is broken, and run the same command again.** It
    measures only the lines that need it.
@@ -578,7 +579,9 @@ never report a bare category as a finding.
 
 A **unit** is a function or a method. That is the granularity at which units are
 ranked, cleared and reported, and at which a repair is measured — the cases
-call something, and this is the something.
+call something, and this is the something. A function defined inside another
+function is not one: nothing can call it on its own, so the function around it
+is the unit.
 
 That is all it bounds. Read as far as you need in either direction, and
 repair across as many units as the waste requires. When the waste exists

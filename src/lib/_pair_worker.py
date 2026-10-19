@@ -565,7 +565,9 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
             value, kind, raised = side.function(*args, **kwargs), "return", ""
         except StubUsed:
             raise
-        except Exception as exc:  # noqa: BLE001 -- raising is behaviour to compare
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 -- raising is behaviour to compare
+            # SystemExit too: csv-gremlin's process_property calls sys.exit on a
+            # malformed row, which is what it does, and used to kill the worker.
             value, kind, raised = None, "raise", type(exc).__name__
             message = _summary(exc)
     args_after = render_json(watched, replace=side.replace)
@@ -612,7 +614,7 @@ def _lines_run(side: Side, set_name: str, index: int) -> list[int]:
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             side.function(*args, **kwargs)
-    except Exception:  # noqa: BLE001 -- what ran before it raised still counts
+    except (Exception, SystemExit):  # noqa: BLE001 -- what ran before it raised still counts
         pass
     finally:
         sys.settrace(None)

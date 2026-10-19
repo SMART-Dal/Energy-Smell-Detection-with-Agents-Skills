@@ -48,7 +48,9 @@ ones with nothing to say take the empty value shown.
 `changed` holds **source text, not a diff and not an AST**: the whole function
 as you would commit it, decorators and `def` line included, written at column
 zero even when it is a method. Each entry replaces exactly that function and
-nothing around it.
+nothing around it — so a repair that needs a module the file does not import
+yet imports it inside the function. After the first call, an `import`
+statement is a single dictionary lookup.
 
 ## You do not supply `before`
 
@@ -226,52 +228,29 @@ it was. A different repair is a new line.
 
 ## When the environment gets in the way
 
-Measurements run in the environment you are in, and only there do they say
-anything about this repository.
+- **A package is missing** — the result is `error`, naming it: install it into
+  this environment, `python -m pip install <package>`, and run again. Never
+  install the repository's own code, and never create another environment.
+- **Anything else cannot run here** — the result says what failed: record the
+  suspicion as `blocked`, with the message.
 
-- **A package is missing** — `error`, naming it: install it into this
-  environment, `python -m pip install <package>`, and run again. Never install
-  the repository's own code: an installed copy would stand in for the copies
-  being compared. Never create another environment.
-- **The module fails while loading** — a stray line at the end of a script,
-  arguments parsed at import, a package `__init__` that looks for files only an
-  installed copy has: the script loads it, or the package above it, one
-  top-level statement at a time, skips the ones that fail, and lists them in
-  the result. If the unit
-  needs one of them, the result is `error` and says so.
-- **Anything else that cannot run** is `blocked`: record it, with the message.
-
-Never measure against an edited copy of the repository, or with `--repo`
-pointing anywhere but the repository: the number would be about code the
-repository does not contain. Every result records a digest of the code it was
-measured against, and one that does not match the repository is discarded.
+Always measure with `--repo .`, against the repository itself: a result taken
+against an edited copy is discarded.
 
 ## What the script does
 
-1. **Stages** two fresh copies of the repository: one untouched, one with your
-   replacements spliced into the files they name. Nothing is renamed and no
-   import is rewritten.
-2. **Loads** both copies side by side in one Python process, each under its
-   real package names: one copy's modules are set aside while the other's are
-   in use, so every import the unit makes resolves to its own copy. If the
-   environment lacks a package the unit's module imports but the unit itself
-   never uses, a stand-in is supplied, and the result says so; if the unit uses
-   it while running, the result is `error`. A module that fails while loading,
-   or whose package does, is loaded one top-level statement at a time,
-   skipping those that fail.
-3. **Equivalence.** Every input from `checks()` and `cases()` goes through both
-   versions: same return value, same argument state afterwards, same files
-   written, same stdout, same exception type. A mismatch is fatal — the repair is wrong, not the
-   waste absent.
-4. **Sizing.** Times one call of each version and picks a repeat count so the
-   faster one fills about a second. Both run that same count.
-5. **Paired measurement.** The two versions take turns on one thread, one
-   measured window each, three pairs per case, the order flipped every pair —
-   so each pair of readings is taken back to back, on the same core, close
-   enough that the machine's own drift affects both alike.
-6. **Statistics.** The energy difference is computed per pair and averaged,
-   with a 95% confidence interval. Energy decides the verdict; wall-clock time
-   is measured and reported but never decides anything.
+1. **Stages** two fresh copies of the repository, the second with your
+   replacements spliced in, and loads both side by side in one process.
+2. **Equivalence.** Every input from `checks()` and `cases()` runs once
+   through both versions: same return value, same argument state afterwards,
+   same files written, same stdout, same exception type. A mismatch is
+   `not_equivalent`, and nothing is measured.
+3. **Measurement.** The two versions take turns, one window of about a second
+   each, three pairs per input, the order flipped every pair, so the machine's
+   own drift affects both alike.
+4. **Statistics.** The energy difference is averaged over the pairs, with a 95%
+   confidence interval. Energy decides the verdict; time is reported beside it
+   and decides nothing.
 
 ## Verdicts
 
@@ -303,21 +282,11 @@ whether it is worth having.
 
 ## What the numbers mean
 
-The meter reports whole-machine CPU package energy over each window, with
-nothing subtracted. On a many-core host much of that is idle power from cores
-doing nothing, so only a fraction of any reading is work you caused.
-
-That does not dilute the result the way it looks like it should, because the
-window is not a fixed length: a version that finishes sooner accrues less idle
-power too. What the figure cannot do is separate a change in power draw from a
-change in duration.
-
-**Every verdict is decided on energy alone.** Time and power are recorded
-beside it, and are worth reading — when energy improves while wall-clock time
-does not, you have found something more interesting than a performance bug,
-and should say so — but no rule reads them. A result carries the joules and
-seconds of each version rather than a percentage, because the percentage is a
-view of those numbers, and storing it beside them lets the two disagree.
+The meter reads the whole machine's CPU package energy over each window, idle
+cores included. A version that finishes sooner also spends less idle power, so
+the comparison holds, but it cannot tell a change in power from a change in
+duration. When energy improves while wall-clock time does not, say so — that is
+more interesting than a performance bug.
 
 ## When received wisdom is wrong
 
