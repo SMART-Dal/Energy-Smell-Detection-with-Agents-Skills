@@ -42,11 +42,12 @@ called `collect` should not silently become an analyzer.
 """
 
 SKIP_DIRECTORIES = {
-    "venv", "__pycache__", "node_modules", "build", "dist", "site-packages",
+    "venv", "__pycache__", "node_modules", "dist", "site-packages",
 }
 """Skipped by name. Any directory whose name starts with a dot is skipped too --
 `.git`, `.venv`, `.tox`, and `.claude`, where an agent's own skills live and
-once filled the whole top of a ranking -- and so is `*.egg-info`."""
+once filled the whole top of a ranking -- and so is `*.egg-info`. `build` is
+skipped only where it holds setuptools' output (`_build_output`)."""
 
 
 @dataclass
@@ -354,8 +355,21 @@ def _walk(root: Path):
     all -- an empty scan, reported as a clean one.
     """
     for path in root.rglob("*.py"):
-        if not any(_skipped(part) for part in path.relative_to(root).parts[:-1]):
+        parts = path.relative_to(root).parts[:-1]
+        if not any(_skipped(part) or _build_output(parts[index:])
+                   for index, part in enumerate(parts)):
             yield path
+
+
+def _build_output(parts: tuple[str, ...]) -> bool:
+    """`build/lib/...`, `build/lib.linux-x86_64-3.10/...`, `build/bdist.*/...`:
+    setuptools' copy of the package, which would report every finding twice.
+
+    Any other `build/` is the repository's own code. It used to be skipped by
+    name, and gedcom keeps all six of its scripts in one: its scan was empty.
+    """
+    return (len(parts) > 1 and parts[0] == "build"
+            and (parts[1] == "lib" or parts[1].startswith(("lib.", "bdist.", "scripts-"))))
 
 
 def _skipped(directory: str) -> bool:
