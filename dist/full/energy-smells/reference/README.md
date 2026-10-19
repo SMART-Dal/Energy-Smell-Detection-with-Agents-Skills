@@ -171,11 +171,8 @@ card is the claim.
 precisely what is wrong and what would fix it, once you have found something.
 Finding nothing in a category is a perfectly ordinary outcome.
 
-**Cards overlap, and each one lists similar cards for that reason.** When two
-root causes both describe what you repaired, either attribution is fine — say
-which you chose. The similar lists matter most in the other case: the code is
-clearly wasteful, the card you opened does not quite say why, and they are the
-fastest route to the ones worth trying next.
+**Cards overlap.** When two root causes both describe what you repaired,
+either attribution is fine — say which you chose.
 
 ## What tools can and cannot contribute
 

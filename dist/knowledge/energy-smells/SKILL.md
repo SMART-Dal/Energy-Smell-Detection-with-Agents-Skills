@@ -302,7 +302,7 @@ run `python $SKILL/scripts/step.py done 3`; step 4 starts after it.
 The root-cause cards are open from `step.py done 2` on. Open
 `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the whole
 card: the reference's definition, common patterns, the measured
-repairs, near-misses, and similar root causes.
+repairs, and near-misses.
 
 - **The patterns and repairs are what we tested, not the whole root cause.**
   Real code might look like them, but not necessarily: it is usually longer,
@@ -332,7 +332,7 @@ and add a new one, with a new label, for the root cause that fits, with
 `found_by: "cards"`. That keeps what you first thought on the record, which is
 the part worth reading later.
 
-The list may also **grow** here: following a card's similar list is one of the
+The list may also **grow** here: reading the cards is one of the
 better ways to find a root cause nobody suspected. Step 2's cap does not apply,
 and a rejection with a reason is as much a result as an acceptance.
 
@@ -340,8 +340,8 @@ and a rejection with a reason is as much a result as an acceptance.
 
 1. **Does it apply here?** Does the card's definition describe what this code
    does — not something adjacent? If one of its near-misses (`Looks like it,
-   but is not`) fits, reject and name it. If a card in `Similar root causes`
-   fits better, reject this one and add that.
+   but is not`) fits, reject and name it. If another root cause fits better,
+   reject this one and add that.
 1. **Can you write the repair for *this* code**, as an edit rather than a
    rewrite of the unit? No repair, no finding.
 1. **Does the repair preserve behaviour** on every input, including the edge

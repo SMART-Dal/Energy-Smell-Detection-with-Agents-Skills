@@ -221,650 +221,455 @@
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "delete the computation whose result nothing reads",
-   "card": "reference/root-causes/C1.S1.md",
-   "impact": 94.7,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C1.S1.md"
   },
   "C1.S2": {
    "name": "Redundant Assignment",
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "delete the assignment that leaves state unchanged",
-   "card": "reference/root-causes/C1.S2.md",
-   "impact": 35.2,
-   "max_change": 59.0,
-   "reported": true
+   "card": "reference/root-causes/C1.S2.md"
   },
   "C1.S3": {
    "name": "Redundant Control Flow",
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "delete the control flow that cannot change the outcome",
-   "card": "reference/root-causes/C1.S3.md",
-   "impact": 19.5,
-   "max_change": 31.6,
-   "reported": true
+   "card": "reference/root-causes/C1.S3.md"
   },
   "C1.S4": {
    "name": "Repeated Computation",
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "compute the value once, bind it, and read the binding",
-   "card": "reference/root-causes/C1.S4.md",
-   "impact": 14.0,
-   "max_change": 49.9,
-   "reported": true
+   "card": "reference/root-causes/C1.S4.md"
   },
   "C1.S5": {
    "name": "Resultless Computation",
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "delete the computation whose result nothing consumes",
-   "card": "reference/root-causes/C1.S5.md",
-   "impact": 84.0,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C1.S5.md"
   },
   "C1.S6": {
    "name": "Unnecessary Initialization",
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "move the setup inside the branch that needs it",
-   "card": "reference/root-causes/C1.S6.md",
-   "impact": 50.1,
-   "max_change": 99.9,
-   "reported": true
+   "card": "reference/root-causes/C1.S6.md"
   },
   "C1.S7": {
    "name": "Unnecessary Variable",
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "inline the single-use temporary",
-   "card": "reference/root-causes/C1.S7.md",
-   "impact": 6.9,
-   "max_change": 8.9,
-   "reported": false
+   "card": "reference/root-causes/C1.S7.md"
   },
   "C1.S8": {
    "name": "Excessive Runtime-Management Calls",
    "category": "C1",
    "category_name": "Redundant Computation",
    "repair": "remove the housekeeping call, or defer the work until it is known to be needed",
-   "card": "reference/root-causes/C1.S8.md",
-   "impact": 49.2,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C1.S8.md"
   },
   "C2.S1": {
    "name": "Unnecessary Method Delegation",
    "category": "C2",
    "category_name": "Unnecessary Call Overhead",
    "repair": "call the target directly at the hot call sites, or read the attribute directly",
-   "card": "reference/root-causes/C2.S1.md",
-   "impact": 37.2,
-   "max_change": 53.9,
-   "reported": true
+   "card": "reference/root-causes/C2.S1.md"
   },
   "C2.S2": {
    "name": "Missing Static Declaration",
    "category": "C2",
    "category_name": "Unnecessary Call Overhead",
    "repair": "declare the method `@staticmethod`, or move it to module scope",
-   "card": "reference/root-causes/C2.S2.md",
-   "impact": 0.0,
-   "max_change": 3.1,
-   "reported": false
+   "card": "reference/root-causes/C2.S2.md"
   },
   "C2.S3": {
    "name": "Excessive Modularization in Hot Path",
    "category": "C2",
    "category_name": "Unnecessary Call Overhead",
    "repair": "merge the thin layers on the hot path into one function, keeping the layers for any other caller",
-   "card": "reference/root-causes/C2.S3.md",
-   "impact": 44.1,
-   "max_change": 74.6,
-   "reported": true
+   "card": "reference/root-causes/C2.S3.md"
   },
   "C3.S1": {
    "name": "Inefficient Iteration Construct",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
    "repair": "use the iteration construct with the least per-element overhead",
-   "card": "reference/root-causes/C3.S1.md",
-   "impact": 11.1,
-   "max_change": 11009.3,
-   "reported": true
+   "card": "reference/root-causes/C3.S1.md"
   },
   "C3.S2": {
    "name": "Recomputing Loop-Invariant Values",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
    "repair": "hoist the invariant expression to just above the loop",
-   "card": "reference/root-causes/C3.S2.md",
-   "impact": 41.4,
-   "max_change": 2395.4,
-   "reported": true
+   "card": "reference/root-causes/C3.S2.md"
   },
   "C3.S3": {
    "name": "Inefficient Per-Iteration Setup",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
    "repair": "create the object once before the loop and reuse it",
-   "card": "reference/root-causes/C3.S3.md",
-   "impact": 53.5,
-   "max_change": 99.2,
-   "reported": true
+   "card": "reference/root-causes/C3.S3.md"
   },
   "C3.S4": {
    "name": "Inefficient Nested Iteration",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
    "repair": "replace the inner scan with a hash lookup, or halve a symmetric traversal",
-   "card": "reference/root-causes/C3.S4.md",
-   "impact": 41.8,
-   "max_change": 99.4,
-   "reported": true
+   "card": "reference/root-causes/C3.S4.md"
   },
   "C3.S5": {
    "name": "Missing Loop Early Exit",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
    "repair": "stop as soon as the outcome is settled, ideally with a primitive that does so",
-   "card": "reference/root-causes/C3.S5.md",
-   "impact": 27.9,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C3.S5.md"
   },
   "C3.S6": {
    "name": "Unfiltered Bulk Iteration",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
    "repair": "reduce the collection before the expensive step, not after",
-   "card": "reference/root-causes/C3.S6.md",
-   "impact": 56.5,
-   "max_change": 646.4,
-   "reported": true
+   "card": "reference/root-causes/C3.S6.md"
   },
   "C3.S7": {
    "name": "Inefficient Array Mutation in Loop",
    "category": "C3",
    "category_name": "Inefficient Iteration Patterns",
    "repair": "build the items to keep into a new collection instead of editing the one being walked",
-   "card": "reference/root-causes/C3.S7.md",
-   "impact": 52.3,
-   "max_change": 99.8,
-   "reported": true
+   "card": "reference/root-causes/C3.S7.md"
   },
   "C4.S1": {
    "name": "Poor Short-Circuit Ordering",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "put the cheap, most-decisive test first so short-circuiting can skip the rest",
-   "card": "reference/root-causes/C4.S1.md",
-   "impact": 72.5,
-   "max_change": 91.2,
-   "reported": true
+   "card": "reference/root-causes/C4.S1.md"
   },
   "C4.S2": {
    "name": "Redundant Conditional Evaluation",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "delete the condition whose result is already determined",
-   "card": "reference/root-causes/C4.S2.md",
-   "impact": 23.6,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C4.S2.md"
   },
   "C4.S3": {
    "name": "Inefficient Conditional Nesting",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "flatten with guard clauses that return early, or replace a chain of equality arms with a lookup",
-   "card": "reference/root-causes/C4.S3.md",
-   "impact": 18.0,
-   "max_change": 57.6,
-   "reported": true
+   "card": "reference/root-causes/C4.S3.md"
   },
   "C4.S4": {
    "name": "Missing Else-If",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "chain the branches with `elif` so evaluation stops at the first match",
-   "card": "reference/root-causes/C4.S4.md",
-   "impact": 35.9,
-   "max_change": 83.1,
-   "reported": true
+   "card": "reference/root-causes/C4.S4.md"
   },
   "C4.S5": {
    "name": "Expensive Comparison",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "hoist the type decision out of the loop, or dispatch polymorphically",
-   "card": "reference/root-causes/C4.S5.md",
-   "impact": 19.5,
-   "max_change": 29.9,
-   "reported": true
+   "card": "reference/root-causes/C4.S5.md"
   },
   "C4.S6": {
    "name": "Expensive Exception Control Flow",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "replace the frequently-raised exception with an explicit check",
-   "card": "reference/root-causes/C4.S6.md",
-   "impact": 0.0,
-   "max_change": 135.4,
-   "reported": true
+   "card": "reference/root-causes/C4.S6.md"
   },
   "C4.S7": {
    "name": "Missing Edge-Case Guards",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "add a cheap guard that skips the expensive path for the trivial case",
-   "card": "reference/root-causes/C4.S7.md",
-   "impact": 42.6,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C4.S7.md"
   },
   "C4.S8": {
    "name": "Non-Idiomatic Condition",
    "category": "C4",
    "category_name": "Inefficient Control Flow",
    "repair": "use the idiomatic form",
-   "card": "reference/root-causes/C4.S8.md",
-   "impact": 42.9,
-   "max_change": 56.1,
-   "reported": true
+   "card": "reference/root-causes/C4.S8.md"
   },
   "C5.S1": {
    "name": "Inefficient Data Structure Choice",
    "category": "C5",
    "category_name": "Suboptimal Data Structures",
    "repair": "swap the container type at its construction site",
-   "card": "reference/root-causes/C5.S1.md",
-   "impact": 26.5,
-   "max_change": 722.6,
-   "reported": true
+   "card": "reference/root-causes/C5.S1.md"
   },
   "C5.S2": {
    "name": "Missing Helper Type",
    "category": "C5",
    "category_name": "Suboptimal Data Structures",
    "repair": "build a lookup index once, then query it",
-   "card": "reference/root-causes/C5.S2.md",
-   "impact": 32.9,
-   "max_change": 10365.6,
-   "reported": true
+   "card": "reference/root-causes/C5.S2.md"
   },
   "C5.S3": {
    "name": "Over-Provisioned Data Type",
    "category": "C5",
    "category_name": "Suboptimal Data Structures",
    "repair": "use the lightest representation the data actually requires",
-   "card": "reference/root-causes/C5.S3.md",
-   "impact": 18.0,
-   "max_change": 32.2,
-   "reported": true
+   "card": "reference/root-causes/C5.S3.md"
   },
   "C5.S4": {
    "name": "Unnecessary Representation Change",
    "category": "C5",
    "category_name": "Suboptimal Data Structures",
    "repair": "delete the conversion and pass the value through directly",
-   "card": "reference/root-causes/C5.S4.md",
-   "impact": 42.2,
-   "max_change": 98.6,
-   "reported": true
+   "card": "reference/root-causes/C5.S4.md"
   },
   "C6.S1": {
    "name": "Unnecessary Object",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
    "repair": "create fewer objects -- reuse one, or use a literal, or do not create it at all",
-   "card": "reference/root-causes/C6.S1.md",
-   "impact": 5.5,
-   "max_change": 13.1,
-   "reported": false
+   "card": "reference/root-causes/C6.S1.md"
   },
   "C6.S2": {
    "name": "Unnecessary Copying",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
    "repair": "use a reference, a view, a slice or an in-place operation instead of copying",
-   "card": "reference/root-causes/C6.S2.md",
-   "impact": 57.0,
-   "max_change": 99.9,
-   "reported": true
+   "card": "reference/root-causes/C6.S2.md"
   },
   "C6.S3": {
    "name": "Unnecessary Data Materialization",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
    "repair": "produce the sequence lazily when it is consumed once and never indexed",
-   "card": "reference/root-causes/C6.S3.md",
-   "impact": 27.6,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C6.S3.md"
   },
   "C6.S4": {
    "name": "Oversized Data Retaining",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
    "repair": "retain the smallest thing that answers the later question",
-   "card": "reference/root-causes/C6.S4.md",
-   "impact": 35.7,
-   "max_change": 14160.3,
-   "reported": true
+   "card": "reference/root-causes/C6.S4.md"
   },
   "C6.S5": {
    "name": "Over-Allocation",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
    "repair": "size the buffer to the workload, or let the container grow",
-   "card": "reference/root-causes/C6.S5.md",
-   "impact": 53.1,
-   "max_change": 99.8,
-   "reported": true
+   "card": "reference/root-causes/C6.S5.md"
   },
   "C6.S6": {
    "name": "Leaked Resource Handles",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
    "repair": "acquire the resource in a `with` statement so it closes deterministically",
-   "card": "reference/root-causes/C6.S6.md",
-   "impact": 25.2,
-   "max_change": 85.3,
-   "reported": true
+   "card": "reference/root-causes/C6.S6.md"
   },
   "C6.S7": {
    "name": "Leaking Mutable Default Arguments",
    "category": "C6",
    "category_name": "Unnecessary Memory Usage",
    "repair": "default to `None` and create the mutable object inside the body",
-   "card": "reference/root-causes/C6.S7.md",
-   "impact": 0.8,
-   "max_change": 7847.3,
-   "reported": true
+   "card": "reference/root-causes/C6.S7.md"
   },
   "C7.S1": {
    "name": "Suboptimal Algorithm Choice",
    "category": "C7",
    "category_name": "Suboptimal Algorithmic",
    "repair": "replace the algorithm with one whose complexity fits the input size",
-   "card": "reference/root-causes/C7.S1.md",
-   "impact": 54.9,
-   "max_change": 399.4,
-   "reported": true
+   "card": "reference/root-causes/C7.S1.md"
   },
   "C7.S2": {
    "name": "Inefficient Problem Decomposition",
    "category": "C7",
    "category_name": "Suboptimal Algorithmic",
    "repair": "memoise overlapping subproblems, prune what cannot contribute, or reorder to prune sooner",
-   "card": "reference/root-causes/C7.S2.md",
-   "impact": 0.0,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C7.S2.md"
   },
   "C7.S3": {
    "name": "Avoidable Recursive Implementation",
    "category": "C7",
    "category_name": "Suboptimal Algorithmic",
    "repair": "convert the recursion to a loop, with an accumulator or an explicit stack",
-   "card": "reference/root-causes/C7.S3.md",
-   "impact": 14.1,
-   "max_change": 54.3,
-   "reported": true
+   "card": "reference/root-causes/C7.S3.md"
   },
   "C7.S4": {
    "name": "Inefficient Operation Ordering",
    "category": "C7",
    "category_name": "Suboptimal Algorithmic",
    "repair": "run the cheap, reducing operation before the expensive one",
-   "card": "reference/root-causes/C7.S4.md",
-   "impact": 52.9,
-   "max_change": 814.8,
-   "reported": true
+   "card": "reference/root-causes/C7.S4.md"
   },
   "C7.S5": {
    "name": "Unsimplified Operation",
    "category": "C7",
    "category_name": "Suboptimal Algorithmic",
    "repair": "simplify the input or the operation using a fact about the values",
-   "card": "reference/root-causes/C7.S5.md",
-   "impact": 39.1,
-   "max_change": 91.1,
-   "reported": true
+   "card": "reference/root-causes/C7.S5.md"
   },
   "C8.S1": {
    "name": "Missing Memoization Cache",
    "category": "C8",
    "category_name": "Missing Reuse",
    "repair": "cache the result, keyed on the arguments, with a lifetime you have chosen",
-   "card": "reference/root-causes/C8.S1.md",
-   "impact": 26.5,
-   "max_change": 97.2,
-   "reported": true
+   "card": "reference/root-causes/C8.S1.md"
   },
   "C8.S2": {
    "name": "Missing Derived-Value Reuse",
    "category": "C8",
    "category_name": "Missing Reuse",
    "repair": "derive the artefact once and bind it where it survives the calls that use it",
-   "card": "reference/root-causes/C8.S2.md",
-   "impact": 74.4,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C8.S2.md"
   },
   "C8.S3": {
    "name": "Missing Local Lookup Caching",
    "category": "C8",
    "category_name": "Missing Reuse",
    "repair": "bind the resolved value to a local before the hot region",
-   "card": "reference/root-causes/C8.S3.md",
-   "impact": 34.6,
-   "max_change": 73.0,
-   "reported": true
+   "card": "reference/root-causes/C8.S3.md"
   },
   "C8.S4": {
    "name": "Redundant Data Fetching",
    "category": "C8",
    "category_name": "Missing Reuse",
    "repair": "fetch once and reuse, with a lifetime and an invalidation rule you have stated",
-   "card": "reference/root-causes/C8.S4.md",
-   "impact": 66.5,
-   "max_change": 99.7,
-   "reported": true
+   "card": "reference/root-causes/C8.S4.md"
   },
   "C9.S1": {
    "name": "Fragmented I/O Calls",
    "category": "C9",
    "category_name": "Inefficient External Data Access",
    "repair": "combine the small operations into one bulk operation",
-   "card": "reference/root-causes/C9.S1.md",
-   "impact": 53.4,
-   "max_change": 99.0,
-   "reported": true
+   "card": "reference/root-causes/C9.S1.md"
   },
   "C9.S2": {
    "name": "Oversized Data Retrieval",
    "category": "C9",
    "category_name": "Inefficient External Data Access",
    "repair": "request only the fields, rows or bytes the code consumes",
-   "card": "reference/root-causes/C9.S2.md",
-   "impact": 44.0,
-   "max_change": 240.8,
-   "reported": true
+   "card": "reference/root-causes/C9.S2.md"
   },
   "C9.S3": {
    "name": "Inefficient Retrieval Paths",
    "category": "C9",
    "category_name": "Inefficient External Data Access",
    "repair": "fetch the related data in one query, or in one query per relation",
-   "card": "reference/root-causes/C9.S3.md",
-   "impact": 26.5,
-   "max_change": 674836.8,
-   "reported": true
+   "card": "reference/root-causes/C9.S3.md"
   },
   "C9.S4": {
    "name": "Expensive Query Pattern",
    "category": "C9",
    "category_name": "Inefficient External Data Access",
    "repair": "restructure the query so the engine can execute it cheaply",
-   "card": "reference/root-causes/C9.S4.md",
-   "impact": 48.3,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C9.S4.md"
   },
   "C10.S1": {
    "name": "Skipping Optimized Built-ins",
    "category": "C10",
    "category_name": "Underused Language Primitives",
    "repair": "replace the hand-written loop with the primitive that already does it",
-   "card": "reference/root-causes/C10.S1.md",
-   "impact": 36.9,
-   "max_change": 145.7,
-   "reported": true
+   "card": "reference/root-causes/C10.S1.md"
   },
   "C10.S2": {
    "name": "Inefficient Built-in Choice",
    "category": "C10",
    "category_name": "Underused Language Primitives",
    "repair": "use the cheaper construct that computes the same answer",
-   "card": "reference/root-causes/C10.S2.md",
-   "impact": 20.5,
-   "max_change": 5909.6,
-   "reported": true
+   "card": "reference/root-causes/C10.S2.md"
   },
   "C10.S3": {
    "name": "Missing Bulk Primitive Usage",
    "category": "C10",
    "category_name": "Underused Language Primitives",
    "repair": "replace the per-element operation with the batched primitive",
-   "card": "reference/root-causes/C10.S3.md",
-   "impact": 52.0,
-   "max_change": 99.5,
-   "reported": true
+   "card": "reference/root-causes/C10.S3.md"
   },
   "C10.S4": {
    "name": "Inefficient String Concatenation",
    "category": "C10",
    "category_name": "Underused Language Primitives",
    "repair": "collect the parts in a local list and join once, so the value that grows is never the aliased one",
-   "card": "reference/root-causes/C10.S4.md",
-   "impact": 30.3,
-   "max_change": 100.0,
-   "reported": true
+   "card": "reference/root-causes/C10.S4.md"
   },
   "C10.S5": {
    "name": "Inefficient Scope Lookup",
    "category": "C10",
    "category_name": "Underused Language Primitives",
    "repair": "alias the global or builtin to a local before the loop",
-   "card": "reference/root-causes/C10.S5.md",
-   "impact": 9.1,
-   "max_change": 26.1,
-   "reported": true
+   "card": "reference/root-causes/C10.S5.md"
   },
   "C10.S6": {
    "name": "Expensive Operator Overloads",
    "category": "C10",
    "category_name": "Underused Language Primitives",
    "repair": "do the arithmetic on primitives inside the loop and wrap once at the end",
-   "card": "reference/root-causes/C10.S6.md",
-   "impact": 60.4,
-   "max_change": 85.0,
-   "reported": true
+   "card": "reference/root-causes/C10.S6.md"
   },
   "C11.S1": {
    "name": "Excessive Lock Contention",
    "category": "C11",
    "category_name": "Inefficient Concurrency Management",
    "repair": "hold the lock only over the shared state, or remove the need for it",
-   "card": "reference/root-causes/C11.S1.md",
-   "impact": 18.4,
-   "max_change": 73.2,
-   "reported": true
+   "card": "reference/root-causes/C11.S1.md"
   },
   "C11.S2": {
    "name": "Forced Serial Bottleneck",
    "category": "C11",
    "category_name": "Inefficient Concurrency Management",
    "repair": "give each worker its own resource, shard the work, or stop pretending to parallelise",
-   "card": "reference/root-causes/C11.S2.md",
-   "impact": 24.3,
-   "max_change": 95.3,
-   "reported": true
+   "card": "reference/root-causes/C11.S2.md"
   },
   "C11.S3": {
    "name": "Leaked Background Threads",
    "category": "C11",
    "category_name": "Inefficient Concurrency Management",
    "repair": "give every worker a stopping condition, or reuse a bounded pool",
-   "card": "reference/root-causes/C11.S3.md",
-   "impact": 28.6,
-   "max_change": 1805.1,
-   "reported": true
+   "card": "reference/root-causes/C11.S3.md"
   },
   "C11.S4": {
    "name": "Blocking The Main Thread",
    "category": "C11",
    "category_name": "Inefficient Concurrency Management",
    "repair": "await the async equivalent, or move the blocking work off the loop",
-   "card": "reference/root-causes/C11.S4.md",
-   "impact": 0.0,
-   "max_change": 295.2,
-   "reported": true
+   "card": "reference/root-causes/C11.S4.md"
   },
   "C11.S5": {
    "name": "Missed Parallelism Opportunities",
    "category": "C11",
    "category_name": "Inefficient Concurrency Management",
    "repair": "run the independent work concurrently, with the tool the work's nature requires",
-   "card": "reference/root-causes/C11.S5.md",
-   "impact": 0.0,
-   "max_change": 48083.5,
-   "reported": true
+   "card": "reference/root-causes/C11.S5.md"
   },
   "C12.S1": {
    "name": "Inefficient Large-Stride Traversal",
    "category": "C12",
    "category_name": "Poor Hardware Locality Usage",
    "repair": "traverse along the contiguous axis, or store the array in the layout the traversal needs",
-   "card": "reference/root-causes/C12.S1.md",
-   "impact": 9.9,
-   "max_change": 55.2,
-   "reported": true
+   "card": "reference/root-causes/C12.S1.md"
   },
   "C12.S2": {
    "name": "Sparse Element Access",
    "category": "C12",
    "category_name": "Poor Hardware Locality Usage",
    "repair": "sort or group the accesses so nearby indices are visited together",
-   "card": "reference/root-causes/C12.S2.md",
-   "impact": 23.8,
-   "max_change": 2414.6,
-   "reported": true
+   "card": "reference/root-causes/C12.S2.md"
   },
   "C12.S3": {
    "name": "Unpredictable Branches",
    "category": "C12",
    "category_name": "Poor Hardware Locality Usage",
    "repair": "make the branch predictable, or replace it with branchless arithmetic",
-   "card": "reference/root-causes/C12.S3.md",
-   "impact": 0.0,
-   "max_change": 298.2,
-   "reported": true
+   "card": "reference/root-causes/C12.S3.md"
   },
   "C12.S4": {
    "name": "Inefficient Array Declaration Order",
    "category": "C12",
    "category_name": "Poor Hardware Locality Usage",
    "repair": "declare the hot fields first",
-   "card": "reference/root-causes/C12.S4.md",
-   "impact": 0.1,
-   "max_change": 2.6,
-   "reported": false
+   "card": "reference/root-causes/C12.S4.md"
   }
  },
  "categories": {

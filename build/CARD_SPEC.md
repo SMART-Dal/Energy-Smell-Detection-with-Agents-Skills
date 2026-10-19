@@ -25,7 +25,7 @@ what the card says -- so nothing on a card may be a guess.
 | Repair: the **Measured** line | the latest run in `validation/results/taxonomy.jsonl` |
 | Repair: the note under a sample | `repairs[].note` -- carried over from the old card |
 | Looks like it, but is not | `not_this`: a lookalike specimen's code and repair are read from `validation/lookalikes/`; any other is written, with a checkable `source` |
-| Similar root causes | `similar` ids; each neighbour's own `in_one_line` |
+| ~~Similar root causes~~ | not rendered since Oct 2026 (not part of the paper); `similar` stays in the catalog |
 
 How to read a card -- that the repairs are ideas rather than templates, what
 each **Measured** action means, that a matching pattern does not guarantee a
@@ -150,8 +150,9 @@ Fewer than five is fine; none is fine when no source has a good one.
 
 ### `similar` -- where else to look
 
-A list of root cause ids, rendered with each neighbour's own `in_one_line`.
-`load_catalog` mirrors every edge, and a card may end up with at most five.
+A list of root cause ids. `load_catalog` mirrors every edge, and a card may end
+up with at most five. Kept in the catalog, but not shown on the cards since
+October 2026.
 
 ### Retired keys
 

@@ -24,9 +24,8 @@ Two different questions, deliberately kept apart:
   default  answers "what did the rules notice?".  It reports *facts* -- "a
            string is grown with += inside a loop at line 45" -- one entry per
            rule per unit, tagged with every root cause that fact could
-           indicate.  Every finding is shown, dealt one rule at a time --
-           see `_rank` -- and grouped by unit.  The order is a suggestion and
-           nothing more.
+           indicate.  Every finding is shown, grouped by unit, in file and
+           line order: the order says nothing about which ones matter.
 
 Nothing here ever says a smell is present.  Whether a fact is a smell depends
 on what the code is for, how hot it is, and what the author was required to do,
@@ -53,7 +52,6 @@ from lib.signals import (  # noqa: E402
     Finding,
     SignalTable,
     group_findings,
-    impact_of,
     load_signals,
     rank_candidates,
 )
@@ -163,11 +161,6 @@ def main(argv: list[str] | None = None) -> int:
     findings = analyse_path(args.path, cross_unit=args.cross_unit)
     _report_rule_errors()
     table = load_signals()
-
-    # A root cause whose repair never moved energy by the build's 15% line is
-    # not reported, so neither is evidence that could only mean one of those.
-    for item in findings:
-        item.evidence = [e for e in item.evidence if table.reportable(e)]
     findings = [item for item in findings if item.evidence]
 
     grouped = [group_findings(item.evidence, table) for item in findings]
@@ -186,13 +179,13 @@ def main(argv: list[str] | None = None) -> int:
         print("\n".join(_render_unit(unit) for unit in wanted))
         return 0
 
-    ranked = _rank(findings, grouped, table)
-    shown = ranked[: args.top] if args.top else ranked
+    ordered = _in_source_order(findings, grouped, args.path)
+    shown = ordered[: args.top] if args.top else ordered
     report = {
         "target": str(args.path),
         "files_scanned": len(files),
         "units_with_evidence": len(findings),
-        "findings_total": len(ranked),
+        "findings_total": len(ordered),
         "findings_shown": len(shown),
         "units": [_describe(findings[index], own, table, args.path)
                   for index, own in _by_unit(shown)],
@@ -219,15 +212,15 @@ def _write_detail(report: dict, out: Path, target: Path) -> Path:
     path = out / f"{target.name or 'scan'}.txt"
     body = [
         (f"Findings for {report['target']} -- {report['findings_shown']} of "
-         f"{report['findings_total']}, in {len(report['units'])} unit(s), dealt "
-         f"one rule at a time so every rule appears early."),
+         f"{report['findings_total']}, in {len(report['units'])} unit(s), in "
+         f"file and line order."),
         "Sections are `== file:line qualname`, so one unit can be cut out with",
         "grep or sed without reading the rest.",
         "",
         "Each fact names the root causes it could be. Their cards are at",
         "reference/root-causes/<ID>.md -- open one before accepting or rejecting",
-        "anything. The order is pre-computed and is a suggestion, not a",
-        "judgement about this code: read in whatever order you think right.",
+        "anything. The order is the order of the code and says nothing about",
+        "which findings matter: read in whatever order you think right.",
     ]
     body += [_render_unit(unit) for unit in report["units"]]
     body += ["", "-" * WIDTH, _CAVEATS]
@@ -247,39 +240,18 @@ def _locate(item: UnitFindings, root: Path) -> dict:
     }
 
 
-def _rank(findings: list[UnitFindings], grouped: list[list[Finding]],
-          table: SignalTable) -> list[tuple[int, Finding]]:
-    """Every finding in the scan, as (unit index, finding), dealt one rule at a time.
+def _in_source_order(findings: list[UnitFindings], grouped: list[list[Finding]],
+                     root: Path) -> list[tuple[int, Finding]]:
+    """Every finding in the scan, as (unit index, finding): units by file and line,
+    each unit's findings by line.
 
-    Sorting by measured saving alone put one rule's findings in a block: a
-    repository with forty loop invariants showed forty of them before anything
-    else. So the list is dealt like cards. Rules are taken in order of what
-    their repairs saved when measured (`impact_of`), and each round takes the
-    next finding of every rule that has one: the first finding of each rule,
-    then the second, and so on. Every rule that fired is near the top, and a
-    rule with many findings fills the tail rather than the head.
-
-    Within a rule, the unit that runs deeper inside loops comes first, then
-    the finding seen at more places.
+    Nothing is ranked. An order by what a root cause's repair saved elsewhere
+    favoured the root causes with more, or easier, samples behind their
+    average, so the list follows the code instead.
     """
-    by_kind: dict[str, list[tuple[int, Finding]]] = {}
-    for index, own in enumerate(grouped):
-        for finding in own:
-            by_kind.setdefault(finding.kind, []).append((index, finding))
-    for pairs in by_kind.values():
-        pairs.sort(key=lambda pair: (
-            -findings[pair[0]].reached_at_depth,
-            -pair[1].count,
-            str(findings[pair[0]].unit.path),
-            pair[1].lines[0] if pair[1].lines else 0,
-        ))
-    order = sorted(by_kind, key=lambda kind: (
-        -max(impact_of(f.root_causes, table) for _, f in by_kind[kind]), kind))
-
-    ranked: list[tuple[int, Finding]] = []
-    for depth in range(max((len(pairs) for pairs in by_kind.values()), default=0)):
-        ranked += [by_kind[kind][depth] for kind in order if depth < len(by_kind[kind])]
-    return ranked
+    units = sorted(range(len(findings)), key=lambda index: (
+        _relative(findings[index].unit.path, root), findings[index].unit.lineno))
+    return [(index, finding) for index in units for finding in grouped[index]]
 
 
 def _by_unit(shown: list[tuple[int, Finding]]) -> list[tuple[int, list[Finding]]]:
@@ -292,7 +264,7 @@ def _by_unit(shown: list[tuple[int, Finding]]) -> list[tuple[int, list[Finding]]
 
 def _describe(item: UnitFindings, shown: list[Finding], table: SignalTable,
               root: Path) -> dict:
-    """One unit as a worth-ordered list of facts, each tagged with what it could mean.
+    """One unit as a list of facts in line order, each tagged with what it could mean.
 
     The earlier shape nested evidence under each candidate root cause, which
     printed a fact once per root cause it routed to: one fact routing to two
@@ -388,14 +360,10 @@ _CAVEATS = """What this output is and is not:
     these shapes is the right thing to write somewhere, so the question is
     always whether it is right *here* -- which depends on what the code is
     for and how often it runs, neither of which a rule can see.
-  - The order deals one rule at a time, rules in the order of what their
-    repairs saved when we measured them on other code, so every rule that
-    fired appears near the top. It is a starting point and not a claim
-    about this code: a small repair in a loop that runs a billion times
-    beats a large one that runs twice, and only you can see which is which
-    here. Read in whatever order you think right.
-  - Root causes whose repairs never changed energy by 15% either way, on
-    any input we measured, are not reported at all.
+  - Every finding is listed, in file and line order. The order says
+    nothing about which ones matter: a small repair in a loop that runs a
+    billion times beats a large one that runs twice, and only you can see
+    which is which here. Read in whatever order you think right.
   - The rules only recognise shapes somebody thought to describe in
     advance. Waste with no fixed shape leaves no trace here at all. What
     this output does not mention is not thereby absent, and no part of the
@@ -413,8 +381,7 @@ def _render_index(report: dict, detail: Path) -> str:
         f"{report['files_scanned']} file(s)  |  "
         f"{report['units_with_evidence']} unit(s) with evidence  |  "
         f"{report['findings_total']} finding(s)",
-        f"showing {report['findings_shown']}, dealt one rule at a time so every "
-        f"rule appears early",
+        f"showing {report['findings_shown']}, in file and line order",
         "=" * WIDTH,
     ]
 
@@ -430,10 +397,10 @@ def _render_index(report: dict, detail: Path) -> str:
 
     # One line a unit: every unit with a finding is listed, so the index is
     # kept to where it is and what fired. How it is reached is in the detail.
-    for rank, unit in enumerate(report["units"], start=1):
+    for number, unit in enumerate(report["units"], start=1):
         depth = unit["hotness"]["reached_at_depth"]
         kinds = ", ".join(_headline(f) for f in unit["findings"])
-        lines.append(f"{rank:>4}. " + _wrap(f"{unit['file']}:{unit['line']}  "
+        lines.append(f"{number:>4}. " + _wrap(f"{unit['file']}:{unit['line']}  "
                                            f"{unit['qualname']}  (depth {depth}): {kinds}", 6))
 
     lines += [
@@ -442,9 +409,9 @@ def _render_index(report: dict, detail: Path) -> str:
         f"FULL DETAIL: {detail}",
         f"ONE UNIT:    scan.py {report['target']} --unit {report['units'][0]['qualname']}",
         "",
-        "NEXT: read the units above in this order, forming your own view of what",
-        "is wasteful in each. Open a unit's findings when you have one -- they are",
-        "there to be argued with, not to be transcribed.",
+        "NEXT: read the units above, in whatever order you think right, forming",
+        "your own view of what is wasteful in each. Open a unit's findings when",
+        "you have one -- they are there to be argued with, not to be transcribed.",
     ]
     return "\n".join(lines)
 

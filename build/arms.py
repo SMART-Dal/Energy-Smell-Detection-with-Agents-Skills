@@ -140,9 +140,9 @@ Full index, with one line per root cause: `$SKILL/reference/README.md`.
    fastest way to produce confident nonsense.""",
     "DECIDE_APPLIES": """Does the card's definition describe what this code
    does — not something adjacent? If one of its near-misses (`Looks like it,
-   but is not`) fits, reject and name it. If a card in `Similar root causes`
-   fits better, reject this one and add that.""",
-    "DECIDE_GROWTH": """The list may also **grow** here: following a card's similar list is one of the
+   but is not`) fits, reject and name it. If another root cause fits better,
+   reject this one and add that.""",
+    "DECIDE_GROWTH": """The list may also **grow** here: reading the cards is one of the
 better ways to find a root cause nobody suspected. Step 2's cap does not apply,
 and a rejection with a reason is as much a result as an acceptance.""",
     "DECIDE_MOVE": """Every suspicion ends this step **accepted** or **rejected**, and nothing is
@@ -153,7 +153,7 @@ the part worth reading later.""",
     "DECIDE_PREAMBLE": """The root-cause cards are open from `step.py done 2` on. Open
 `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the whole
 card: the reference's definition, common patterns, the measured
-repairs, near-misses, and similar root causes.
+repairs, and near-misses.
 
 - **The patterns and repairs are what we tested, not the whole root cause.**
   Real code might look like them, but not necessarily: it is usually longer,
@@ -423,13 +423,10 @@ rules and reports **facts** — "a string is grown with `+=` inside a loop at li
 point at. Two labels on one fact means the shape alone does not say which; it is
 one thing to look at, not two.
 
-The list holds every finding, dealt one rule at a time: the first finding of
-each rule, then the second, and so on, rules in the order of what their repairs
-measured on other code. So every rule that fired appears near the top. A root
-cause whose repair never moved energy by 15% either way is not reported at all.
-The order is a starting point and nothing more — read in whatever order you
-think right. There is no confidence score and no per-finding number, because either
-would be a judgement about this code that the rule is in no position to make.
+The list holds every finding, in file and line order. The order says nothing
+about which findings matter — read in whatever order you think right. There is
+no confidence score and no per-finding number, because either would be a
+judgement about this code that the rule is in no position to make.
 
 Two things follow from what a rule is, and they point in opposite directions.
 

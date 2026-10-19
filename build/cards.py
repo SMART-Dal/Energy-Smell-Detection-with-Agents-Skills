@@ -130,8 +130,9 @@ def render_root_cause(
 ) -> str:
     """The full working card: the reference, common patterns, and the measured repairs.
 
-    Five parts: the reference's definition and example, common patterns, the
-    measured repairs, near-misses, and similar root causes. How to read them --
+    Four parts: the reference's definition and example, common patterns, the
+    measured repairs, and near-misses. `similar` stays in the catalog but is not
+    shown on the card (Oct 2026: not part of the paper). How to read them --
     that the repairs are ideas rather than templates, what each result line
     asks for, that a near-miss means the repair would be wrong -- is said once,
     in SKILL.md's step 3, rather than on every card.
@@ -186,14 +187,6 @@ def render_root_cause(
                 f"**Why not:** {_one_paragraph(item.why)}", "",
             ]
 
-    if entry.similar:
-        lines += ["## Similar root causes", ""]
-        for neighbour_id in entry.similar:
-            neighbour = taxonomy[neighbour_id]
-            lines.append(f"- **[{neighbour.id} {neighbour.name}]"
-                         f"(../root-causes/{neighbour.id}.md)** — "
-                         f"{catalog[neighbour_id].in_one_line}")
-        lines.append("")
     return "\n".join(lines)
 
 

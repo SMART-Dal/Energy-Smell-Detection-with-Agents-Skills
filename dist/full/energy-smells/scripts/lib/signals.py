@@ -42,25 +42,6 @@ class RootCause:
     category_name: str
     repair: str
     card: str
-    impact: float = 0.0
-    """Mean measured saving of this repair, as a percentage.
-
-    Averaged across every shape of this root cause we measured, with a shape
-    that did not confirm counting as zero -- so a repair that pays hugely on
-    some inputs and costs on others lands well below one that always pays. This
-    is the only thing that orders a scan. See `build/impact.py`."""
-    max_change: float | None = None
-    """The largest change, either way, any input of any sample measured."""
-    reported: bool = True
-    """False when that change stayed under the build's `MIN_MEASURED_CHANGE`
-    (`build/impact.py`) on every input: the repair did nothing a reader would
-    notice even on the microbenchmark built to show it, so the scan says
-    nothing about it. True when nothing was measured -- an absent measurement
-    is not evidence of no effect."""
-
-    @property
-    def reportable(self) -> bool:
-        return self.reported
 
 
 class SignalTable:
@@ -84,19 +65,6 @@ class SignalTable:
         is the reverse mapping and catches anything the analyzer did not think
         to name.
         """
-        return {rc for rc in self._known_targets(evidence)
-                if self.root_causes[rc].reportable}
-
-    def reportable(self, evidence: Evidence) -> bool:
-        """Whether this evidence points at anything the scan still reports.
-
-        False only when every root cause it could indicate is unreported (see
-        `RootCause.reported`). A kind the table does not know is kept.
-        """
-        known = self._known_targets(evidence)
-        return not known or any(self.root_causes[rc].reportable for rc in known)
-
-    def _known_targets(self, evidence: Evidence) -> set[str]:
         candidates = set(evidence.suggests) | set(self._by_signal.get(evidence.kind, ()))
         return {rc for rc in candidates if rc in self.root_causes}
 
@@ -141,7 +109,7 @@ def _support(evidence: list[Evidence]) -> int:
     return len({item.kind for item in evidence})
 
 
-# -- ranking facts rather than labels --------------------------------------
+# -- facts rather than labels ----------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -175,25 +143,8 @@ class Finding:
         return len(self.lines)
 
 
-def impact_of(root_causes, table: SignalTable) -> float:
-    """What a fact is worth: the weakest reading of an ambiguous one.
-
-    `append_only_loop` points at both C3.S1, which averaged 14% across its
-    measured shapes, and C10.S3, which averaged 69%. Taking the lower one means
-    an ambiguous fact ranks as what it is worth if it turns out to be the
-    cheaper of the two -- the conservative direction, and the one that stops a
-    single well-paying label from floating every fact that can reach it.
-
-    This is the whole of the ranking. There is no second axis: a fact is ordered
-    by what fixing it measured, and whether it is worth fixing *here* is left to
-    the reader, who can see the things a measurement cannot.
-    """
-    measured = [table.root_causes[rc].impact for rc in root_causes if rc in table]
-    return min(measured) if measured else 0.0
-
-
 def group_findings(evidence: list[Evidence], table: SignalTable) -> list[Finding]:
-    """One entry per rule per unit, worth-ordered.
+    """One entry per rule per unit, in the order the unit's lines run.
 
     Grouping is by rule rather than by root cause, which is what removes the
     duplication the by-root-cause view cannot avoid: a fact routing to two root
@@ -220,11 +171,7 @@ def group_findings(evidence: list[Evidence], table: SignalTable) -> list[Finding
             ),
         ))
 
-    return sorted(_merge_agreeing(findings), key=lambda f: (
-        -impact_of(f.root_causes, table),
-        -f.count,
-        f.kind,
-    ))
+    return sorted(_merge_agreeing(findings), key=lambda f: (f.lines[:1], f.kind))
 
 
 def _merge_agreeing(findings: list[Finding]) -> list[Finding]:
