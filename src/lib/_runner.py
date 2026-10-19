@@ -29,6 +29,7 @@ import math
 import random
 import sys
 import time
+import tracemalloc
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -62,17 +63,67 @@ def burn_cpu(seconds: float) -> float:
     return total
 
 
-def build_pool(case, size: int) -> list[tuple]:
-    """Argument tuples to feed the measured loop, built outside it.
+POOL_LIMIT_S = 5.0
+"""Longest a pool of fresh arguments may take to build, before one window."""
 
-    A variant that mutates its arguments needs a fresh tuple per iteration, or
-    the workload changes shape as the loop runs. One that does not can reuse a
-    single tuple, which keeps memory flat and the garbage collector quiet.
+POOL_LIMIT_BYTES = 2 << 30
+"""Most memory a pool of fresh arguments may take."""
 
-    The pool costs less than it looks: repeat counts are large exactly when the
-    inputs are small, because both are set by how long one call takes.
+
+class PoolTooLarge(RuntimeError):
+    """A unit that changes its arguments needs a fresh set for every call in a
+    window, and these arguments are too costly to build that many times."""
+
+
+def _traced(make):
+    """make()'s result, and the bytes it allocated that are still held."""
+    if tracemalloc.is_tracing():
+        return make(), 0
+    tracemalloc.start()
+    try:
+        before = tracemalloc.get_traced_memory()[0]
+        made = make()
+        return made, max(0, tracemalloc.get_traced_memory()[0] - before)
+    finally:
+        tracemalloc.stop()
+
+
+def build_pool(make, size: int) -> list:
+    """`size` results of `make()`: the arguments for the measured loop, built outside it.
+
+    A variant that mutates its arguments needs a fresh set per call, or the
+    workload changes shape as the loop runs; one that does not reuses a single
+    set, which keeps memory flat and the garbage collector quiet.
+
+    Repeat counts are large when one call is cheap, and that usually means
+    small arguments too -- but not always: a call that looks one key up in a
+    large dict, and adds it, is cheap with arguments that are not. So the pool
+    is projected from what the first sets cost -- the memory of the first set,
+    traced; the time of the sets after it, checked at 1, 2, 4, ... more once
+    they have taken long enough to time -- and refused once the projection
+    passes either limit: before the machine runs out of memory, not after.
     """
-    return [case.args() for _ in range(size)]
+    if size <= 1:
+        return [make() for _ in range(size)]
+    first, held = _traced(make)
+    pool, memory, seconds = [first], held * size, 0.0
+    started, batch = time.perf_counter(), 1
+    while len(pool) < size:
+        if time.perf_counter() - started < 0.05:
+            seconds = 0.0           # a few microseconds time the clock, not the build
+        over = ([f"{memory / 1e9:,.1f} GB (limit {POOL_LIMIT_BYTES / 1e9:.1f} GB)"]
+                if memory > POOL_LIMIT_BYTES else []) + \
+               ([f"about {seconds:,.0f}s (limit {POOL_LIMIT_S:g}s)"] if seconds > POOL_LIMIT_S else [])
+        if over:
+            raise PoolTooLarge(
+                f"the unit changes its arguments, so each of the {size:,} calls in a "
+                f"window needs a fresh set, and building them would take "
+                f"{' and '.join(over)}: one call does too little work for arguments that size")
+        for _ in range(min(batch, size - len(pool))):
+            pool.append(make())
+        batch *= 2
+        seconds = (time.perf_counter() - started) / (len(pool) - 1) * size
+    return pool
 
 
 def run_window(function, pool: list[tuple], repeats: int) -> None:
@@ -102,7 +153,7 @@ def main(argv: list[str]) -> int:
     mutates = bool(spec.get("mutates"))
     variants = [(label, case_file.variant(attr)) for label, attr in spec["variants"]]
     pool_size = repeats if mutates else 1
-    pool = build_pool(case, pool_size)
+    pool = build_pool(case.args, pool_size)
 
     # Warm the machine first: bring the clock and temperature to a steady
     # state before anything is measured, so the climb out of idle is not
@@ -127,7 +178,7 @@ def main(argv: list[str]) -> int:
             # after the first -- measured inputs already sorted, emptied or
             # filled by the window before it.
             if mutates:
-                pool = build_pool(case, pool_size)
+                pool = build_pool(case.args, pool_size)
             gc.collect()
             sample = meter.sample(lambda: run_window(function, pool, repeats))
             samples.append({

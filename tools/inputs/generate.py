@@ -60,6 +60,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from lib.inputs import file_name  # noqa: E402
+from lib.measure import choose_repeats  # noqa: E402
 
 MODEL = "deepseek/deepseek-v4.1-flash"
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
@@ -70,6 +71,7 @@ ROUNDS = 2
 CANDIDATES = 8
 KEEP = 4                   # every unit is measured on exactly four inputs
 MAX_CALL_S = 1.0           # one call on the original; slower inputs are dropped
+WINDOW_S = 1.0             # verify.py's "fast" window, for the calls one window makes
 VALIDATE_BUDGET_S = 180    # pass 1, every input of one source, restarts included
 CONFIRM_BUDGET_S = 90      # pass 2, the second runs of the inputs that will be kept
 CASE_DEADLINE_S = 20       # building, running and timing one input
@@ -104,7 +106,7 @@ Python source defining two functions, `checks()` and `cases()`. Each returns a l
 
 5. **Files**: if the function reads files, create them under `WORKDIR` (a provided `pathlib.Path`; do not define it), in module-level code or in the thunk. Anything the function writes must go under `WORKDIR` too.
 
-6. **Same work on every call**: the call is repeated hundreds of times with the same input. Anything the function changes outside its arguments (a class attribute, a module global, a cache, a file) carries over from one call to the next, so if it caches or records what it has seen, give every thunk call new keys (e.g. with `itertools.count()`), so every call takes the same path. If it creates files, have the thunk remove them first. No time-dependent or unseeded random behaviour.
+6. **Same work on every call**: the call is repeated hundreds of times with the same input. Anything the function changes outside its arguments (a class attribute, a module global, a cache, a file) carries over from one call to the next, so if it caches or records what it has seen, give every thunk call new keys (e.g. with `itertools.count()`), so every call takes the same path. If it creates files, have the thunk remove them first. No time-dependent or unseeded random behaviour. If it changes its arguments (adds to a dict, sorts or fills a list in place), each of those calls gets its own fresh arguments, all built before the timing starts: keep them cheap to build next to what one call does -- a call that adds one key to a dict must not get a copy of a dict with a hundred thousand keys.
 
 7. Import the repository's modules exactly as shown in the task. Use only the standard library, the repository itself and packages the repository already imports. Everything you can know about the repository is in the task: do not try to recall its code from memory, and build the inputs from the classes and functions shown there.
 
@@ -247,10 +249,13 @@ class Store:
                 os.close(o)
 
 
+CACHE_VERSION = b"2"        # raised when kept inputs could fail a new check: they are made again
+
+
 def cache_key(root: Path, repo_name: str, unit: str) -> str:
     """Per repository, unit and the content of the unit's file: an edited file is a new key."""
     path, _ = unit.split("::", 1)
-    digest = hashlib.sha256((root / path).read_bytes()).hexdigest()[:16]
+    digest = hashlib.sha256(CACHE_VERSION + (root / path).read_bytes()).hexdigest()[:16]
     return f"{repo_name}/{file_name(unit)[:-3]}-{digest}"
 
 
@@ -814,6 +819,16 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
             results[label] = {"label": label, "ok": False, "seconds": timed["seconds"],
                               "why": f"one call takes {timed['seconds']:.2f}s (limit {MAX_CALL_S}s)"}
             continue
+        if first["mutates"]:
+            # A window of calls, each on its own fresh arguments -- sized for a
+            # repair up to twice as fast, which makes twice the calls.
+            repeats = choose_repeats(timed["seconds"] / 2, WINDOW_S)
+            pool, err = guarded(lambda p: p.side("before").ask(op="pool", index=i, repeats=repeats))
+            if err or not pool["fits"]:
+                results[label] = {"label": label, "ok": False, "seconds": timed["seconds"],
+                                  "why": (err or pool["why"]) + "; give it arguments that are "
+                                  "cheaper to build, or on which one call does more of the work"}
+                continue
         candidates.append((timed["seconds"], i, label))
         firsts[label] = first
 

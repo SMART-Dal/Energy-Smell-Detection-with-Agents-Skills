@@ -54,7 +54,7 @@ _SCRIPTS = str(Path(__file__).resolve().parent.parent)
 sys.path[:] = [p for p in sys.path if p not in (_HERE, "")]
 sys.path.insert(0, _SCRIPTS)
 
-from lib._runner import burn_cpu, run_window  # noqa: E402
+from lib._runner import PoolTooLarge, build_pool, burn_cpu, run_window  # noqa: E402
 from lib.equivalence import normalise_text, render, render_json  # noqa: E402
 from lib.meters import get_meter  # noqa: E402
 from lib.splice import split_name  # noqa: E402
@@ -533,12 +533,23 @@ def main() -> int:
                 reply({"ok": True, "seconds": statistics.median(timings)})
             elif op == "window":
                 reply(_window(side, request, meter))
+            elif op == "pool":
+                # Whether a window of `repeats` calls could build its fresh
+                # arguments, for an input that is still being chosen.
+                thunk = side.sets["cases"][request["index"]][1]
+                try:
+                    build_pool(lambda: _args(thunk), request["repeats"])
+                    reply({"ok": True, "fits": True})
+                except PoolTooLarge as exc:
+                    reply({"ok": True, "fits": False, "why": str(exc)})
             elif op == "lines":
                 reply({"ok": True, "lines": _lines_run(side, request["set"], request["index"])})
             else:
                 reply({"ok": False, "error": f"unknown op {op!r}"})
         except StubUsed as exc:
             reply({"ok": False, "stub_used": True, "error": str(exc)})
+        except PoolTooLarge as exc:
+            reply({"ok": False, "error": str(exc), "summary": str(exc)})
         except Exception as exc:  # noqa: BLE001
             reply({"ok": False, "error": traceback.format_exc(limit=6), "summary": _summary(exc)})
     return 0
@@ -631,7 +642,7 @@ def _window(side: Side, request: dict, meter) -> dict:
     thunk = side.sets["cases"][request["index"]][1]
     repeats = request["repeats"]
     size = repeats if request.get("mutates") else 1
-    pool = [_args(thunk) for _ in range(size)]
+    pool = build_pool(lambda: _args(thunk), size)
 
     index = request["index"]
     if index not in side.warmed:
@@ -641,7 +652,7 @@ def _window(side: Side, request: dict, meter) -> dict:
         loop(side.function, ready, min(repeats, request.get("warmup_calls", 1)))
         side.warmed.add(index)
         if request.get("mutates"):
-            pool = [_args(thunk) for _ in range(size)]
+            pool = build_pool(lambda: _args(thunk), size)
 
     loop, ready = _loop(pool)
     gc.collect()
