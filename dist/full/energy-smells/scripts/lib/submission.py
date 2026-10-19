@@ -28,6 +28,7 @@ is the likeliest thing to go wrong in the whole pipeline.
 from __future__ import annotations
 
 import ast
+import builtins
 import hashlib
 import json
 import re
@@ -141,6 +142,8 @@ def equivalent_problem(source) -> str | None:
 
 
 _MOCKING = {"mock", "unittest.mock", "pytest_mock"}
+_PLAIN_BASES = {"NamedTuple", "TypedDict", "Enum", "IntEnum", "StrEnum", "Flag", "IntFlag"}
+"""Bases a class in the inputs may have besides built-in types: shapes for data."""
 
 
 def replaced_code(source: str) -> str | None:
@@ -153,8 +156,11 @@ def replaced_code(source: str) -> str | None:
     times the fake, and the saving is a fraction of something nobody runs --
     one run reported 68% that way, of a wrapper whose real work is native.
     So assigning a lambda, or a function defined here, onto any attribute or
-    through `setattr`, and importing a mocking library, are refused. Data put
-    on a module or object -- `pricing.args = namespace` -- is input, and allowed.
+    through `setattr` or `types.MethodType`, and importing a mocking library,
+    are refused. So is a class here that inherits from anything but a built-in
+    type and defines methods: a `TPostman` subclass whose `get` returned canned
+    JSON stood in for an HTTP client in one generated input. Data put on a
+    module or object -- `pricing.args = namespace` -- is input, and allowed.
     """
     try:
         tree = ast.parse(source)
@@ -167,9 +173,24 @@ def replaced_code(source: str) -> str | None:
         return isinstance(value, ast.Lambda) or (
             isinstance(value, ast.Name) and value.id in defined)
 
+    def plain_base(base) -> bool:
+        name = base.id if isinstance(base, ast.Name) else \
+            base.attr if isinstance(base, ast.Attribute) else None
+        return name in _PLAIN_BASES or isinstance(getattr(builtins, name or "", None), type)
+
+    def binds_method(value) -> bool:
+        func = getattr(value, "func", None)
+        return isinstance(value, ast.Call) and (
+            isinstance(func, ast.Attribute) and func.attr == "MethodType"
+            or isinstance(func, ast.Name) and func.id == "MethodType")
+
     found = None
     for node in ast.walk(tree):
-        if isinstance(node, (ast.Import, ast.ImportFrom)):
+        if isinstance(node, ast.ClassDef):
+            methods = [n for n in node.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
+            if methods and not all(plain_base(b) for b in node.bases):
+                found = node
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
             names = [alias.name for alias in node.names]
             module = node.module if isinstance(node, ast.ImportFrom) else None
             if module in _MOCKING or any(n in _MOCKING for n in names) or \
@@ -177,7 +198,7 @@ def replaced_code(source: str) -> str | None:
                 found = node
         elif isinstance(node, (ast.Assign, ast.AnnAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            if node.value is not None and is_code(node.value) and \
+            if node.value is not None and (is_code(node.value) or binds_method(node.value)) and \
                     any(isinstance(t, ast.Attribute) for t in targets):
                 found = node
         elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
@@ -187,8 +208,8 @@ def replaced_code(source: str) -> str | None:
         if found is not None:
             line = source.splitlines()[found.lineno - 1].strip()
             return (f"this source replaces code, at line {found.lineno}: `{line[:80]}`. "
-                    f"Everything measured has to run the real code -- a replaced function or "
-                    f"a mock measures something nobody runs.")
+                    f"Everything measured has to run the real code -- a replaced function, a "
+                    f"subclass overriding a method, or a mock measures something nobody runs.")
     return None
 
 

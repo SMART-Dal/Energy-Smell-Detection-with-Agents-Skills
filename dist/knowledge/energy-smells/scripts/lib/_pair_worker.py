@@ -143,7 +143,9 @@ def _run_statements(name: str, file: Path, roots: list[Path], skipped: list[str]
     tree = ast.parse(source, str(file))
     lines = source.splitlines()
     parent_name, _, leaf = name.rpartition(".")
-    parent = importlib.import_module(parent_name) if parent_name else None
+    parent = _parent_package(parent_name, file, roots, skipped) if parent_name else None
+    if name in sys.modules:
+        return sys.modules[name]        # loading the package loaded this module too
     spec = importlib.util.spec_from_file_location(
         name, file,
         submodule_search_locations=[str(file.parent)] if file.stem == "__init__" else None)
@@ -167,6 +169,33 @@ def _run_statements(name: str, file: Path, roots: list[Path], skipped: list[str]
         except (Exception, SystemExit) as exc:  # noqa: BLE001
             skipped.append(_statement(node, lines, exc))
     return module
+
+
+def _parent_package(parent_name: str, file: Path, roots: list[Path], skipped: list[str]):
+    """The package above a module, loaded statement by statement if it fails too.
+
+    A package's `__init__` can fail for a reason that has nothing to do with
+    the unit: porcupine's runs `KEYWORD_PATHS = pv_keyword_paths()`, which lists
+    a resources folder that exists only once the package is installed, so no
+    module under it could load, `PorcupineError.__str__` included. Its failing
+    statements are skipped and reported like the module's own.
+    """
+    try:
+        return importlib.import_module(parent_name)
+    except ModuleNotFoundError as exc:
+        if exc.name and not is_repo_module(roots, exc.name):
+            raise                       # a missing library: import_with_stubs stands in for it
+        failure = exc
+    except (Exception, SystemExit) as exc:  # noqa: BLE001
+        failure = exc
+    package_dir = file.parent if file.stem != "__init__" else file.parent.parent
+    init = package_dir / "__init__.py"
+    if not init.is_file():
+        raise failure
+    own: list[str] = []
+    package = _run_statements(parent_name, init, roots, own)
+    skipped.extend(f"{entry} in {parent_name.replace('.', '/')}/__init__.py" for entry in own)
+    return package
 
 
 def _statement(node, lines: list[str], exc: BaseException) -> str:

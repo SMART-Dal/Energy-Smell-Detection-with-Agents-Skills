@@ -234,8 +234,10 @@ anything about this repository.
   the repository's own code: an installed copy would stand in for the copies
   being compared. Never create another environment.
 - **The module fails while loading** — a stray line at the end of a script,
-  arguments parsed at import: the script loads it one top-level statement at a
-  time, skips the ones that fail, and lists them in the result. If the unit
+  arguments parsed at import, a package `__init__` that looks for files only an
+  installed copy has: the script loads it, or the package above it, one
+  top-level statement at a time, skips the ones that fail, and lists them in
+  the result. If the unit
   needs one of them, the result is `error` and says so.
 - **Anything else that cannot run** is `blocked`: record it, with the message.
 
@@ -254,8 +256,9 @@ measured against, and one that does not match the repository is discarded.
    in use, so every import the unit makes resolves to its own copy. If the
    environment lacks a package the unit's module imports but the unit itself
    never uses, a stand-in is supplied, and the result says so; if the unit uses
-   it while running, the result is `error`. A module that fails while loading
-   is loaded one top-level statement at a time, skipping those that fail.
+   it while running, the result is `error`. A module that fails while loading,
+   or whose package does, is loaded one top-level statement at a time,
+   skipping those that fail.
 3. **Equivalence.** Every input from `checks()` and `cases()` goes through both
    versions: same return value, same argument state afterwards, same files
    written, same stdout, same exception type. A mismatch is fatal — the repair is wrong, not the
