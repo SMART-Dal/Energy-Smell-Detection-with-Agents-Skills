@@ -256,7 +256,6 @@ def main(argv: list[str] | None = None) -> int:
             "relaxed": result.get("equivalence_relaxed", []),
             "stubbed": result.get("stubbed", []),
             "skipped": result.get("skipped_statements", []),
-            "saves_on_repeats_only": result.get("saves_on_repeats_only", []),
             "per_case": result.get("per_case", []),
         })
 

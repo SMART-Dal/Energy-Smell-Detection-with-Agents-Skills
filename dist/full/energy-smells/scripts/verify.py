@@ -226,11 +226,6 @@ class CaseOutcome:
     after_energy_j: float = 0.0
     """Mean joules per measured window. Every verdict rule is written against
     these and nothing else: not time, not power."""
-    first_before_s: float = 0.0
-    first_after_s: float = 0.0
-    """Each version's first call on this input, from the equivalence check."""
-    saves_on_repeats_only: bool = False
-    """See `_repeats_only`."""
 
     def record(self, comparison: Comparison) -> None:
         self.energy_saved_pct = comparison.energy_saved_pct
@@ -373,13 +368,9 @@ class Verification:
                     "after_s_per_call": case.after_spc,
                     "energy_ci_pct": round(case.energy_ci_pct, 2),
                     "significant": case.significant,
-                    "before_first_call_s": case.first_before_s,
-                    "after_first_call_s": case.first_after_s,
-                    "saves_on_repeats_only": case.saves_on_repeats_only,
                 }
                 for case in self.per_case
             ],
-            "saves_on_repeats_only": [c.label for c in self.per_case if c.saves_on_repeats_only],
         }
 
 
@@ -400,9 +391,6 @@ class CheckRow:
     """True for one of the measured cases; False for an equivalence-only check."""
     difference: str = ""
     mutates: bool = False
-    first_before_s: float = 0.0
-    first_after_s: float = 0.0
-    """Each version's first call on this input, timed during the check."""
 
 
 class CaseFileEngine:
@@ -552,8 +540,7 @@ class PairEngine:
                         f"inputs were generated: something in this environment differs. "
                         f"Record the suspicion as `blocked` with this message.")
                 rows.append(CheckRow(label, set_name == "cases", self._differ(a, b),
-                                     a["mutates"] or b["mutates"],
-                                     a.get("seconds", 0.0), b.get("seconds", 0.0)))
+                                     a["mutates"] or b["mutates"]))
         return rows
 
     def _differ(self, a: dict, b: dict) -> str:
@@ -692,9 +679,7 @@ def verify(engine, *, profile: Profile, meter: str = "auto",
         )
         return result
 
-    result.per_case = [CaseOutcome(label=row.label, equivalent=True, mutates_args=row.mutates,
-                                   first_before_s=row.first_before_s,
-                                   first_after_s=row.first_after_s)
+    result.per_case = [CaseOutcome(label=row.label, equivalent=True, mutates_args=row.mutates)
                        for row in rows if row.measured]
 
     log("\nsizing")
@@ -718,7 +703,6 @@ def verify(engine, *, profile: Profile, meter: str = "auto",
               "reps": outcome.reps} for index, outcome in enumerate(result.per_case)]
     for outcome, comparison in zip(result.per_case, engine.measure(plans, meter=meter)):
         outcome.record(comparison)
-        outcome.saves_on_repeats_only = _repeats_only(outcome)
         result.note_coverage(meter, comparison.domains, log)
         log(f"  {outcome.label:<14} {outcome.energy_saved_pct:+7.2f}% energy "
             f"+-{outcome.energy_ci_pct:.2f}%   "
@@ -745,40 +729,7 @@ def verify(engine, *, profile: Profile, meter: str = "auto",
         log(f"\nnoise floor  +-{floor:.2f}% (session calibration)")
 
     _decide(result, every_input=getattr(engine, "every_input", False))
-    repeats = [c.label for c in result.per_case if c.saves_on_repeats_only]
-    if repeats and result.status in ("confirmed", "partial", "mixed"):
-        result.reason += (
-            f" Caution: on {', '.join(repr(label) for label in repeats)} the repair saves far "
-            f"more on repeated calls than on its first call. It keeps something between "
-            f"calls -- a cache, a value computed once -- and each input here is called "
-            f"hundreds of times in a row, so the saving holds only where the real "
-            f"program calls it again with the same input.")
     return result
-
-
-REPEAT_SAVING_MIN = 0.30
-FIRST_CALL_SHARE = 0.25
-
-
-def _repeats_only(case: CaseOutcome) -> bool:
-    """Does the repair's saving come from calling it again on the same input?
-
-    A measured window is hundreds of calls on one input. A repair that caches
-    a result, or computes something once and keeps it, is nearly free from the
-    second call on, so it can measure a large saving that a program seeing each
-    input once would never get. Its first call -- timed for each version during
-    the equivalence check, on freshly built input -- costs about what the
-    original's does. So: flagged when the repeated calls save at least 30% of
-    the time and the first call saves less than a quarter of that. Time stands
-    in for energy because no meter resolves a single call. A flag, never a
-    verdict: memoising is a real repair where a program does repeat its inputs.
-    """
-    if min(case.first_before_s, case.first_after_s,
-           case.before_s_per_call, case.after_s_per_call) <= 0:
-        return False
-    repeated = 1 - case.after_s_per_call / case.before_s_per_call
-    first = 1 - case.first_after_s / case.first_before_s
-    return repeated >= REPEAT_SAVING_MIN and first < FIRST_CALL_SHARE * repeated
 
 
 def _harmful_cases(result: Verification) -> list[CaseOutcome]:

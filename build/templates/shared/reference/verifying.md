@@ -133,20 +133,12 @@ A thunk returns the unit's arguments as a tuple, or `call(...)` when the unit
 takes keyword arguments. **A method takes its instance as the first
 argument**, so the thunk builds the instance and passes it.
 
-**The thunks all run before the timing starts.** A measured window is hundreds
-of calls in a row. Before it starts, the thunk is called once, or once per call
-when the unit changes its arguments; then the calls run back to back, with
-nothing in between. So a fresh argument is never poisoned by the call before
-it — but **anything the unit changes outside its arguments** (a class
-attribute, a module global, a cache, a file) **carries over from one call to
-the next**. A repair whose saving comes from remembering results across calls
-is measured on hundreds of repeats of one input, where it saves far more than
-it would on a program that sees each input once. So the script also times each
-version's first call on every input: when the repeated calls save far more
-than the first one does, the input is listed in the result's
-`saves_on_repeats_only` and the reason says so. If your repair keeps state
-between calls, say in `notes` whether — and where — the real program calls the
-unit again with the same input.
+**Why each input is called many times.** One call is usually too short for the
+energy meter to see, so each input is called many times in a row and the
+energy of all the calls is added up. That is the only reason for the
+repetition. Every call gets the original input — a unit that changes its input
+gets a fresh copy for each call — and the outputs are compared once, on the
+first call, before anything is measured.
 
 **A coroutine is run, a generator is drained.** An `async def` unit is run to
 completion on an event loop of its own, and a generator's output is collected
