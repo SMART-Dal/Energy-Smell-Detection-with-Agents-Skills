@@ -1,0 +1,446 @@
+#!/usr/bin/env python3
+"""Summarize one finished run into meta.json and a row of archive/summary.csv.
+
+    summarize.py RUN_FOLDER
+
+Reads run.json (from run_all.sh), transcript.jsonl, agent/ and review/.
+
+Three audits beside the usage numbers. `leak_audit`: paths outside the run's
+own folder. `protocol`: whether the agent did the steps the skill asks for --
+cards opened, rules run, root-cause IDs that exist, `found_by` claims that a
+rule scan could back. `environment`: what it did to its environment -- /tmp,
+pip, extra venvs, measuring against another `--repo` -- and repairs whose
+measured baseline was not the repository's code.
+"""
+
+from __future__ import annotations
+
+import collections
+import csv
+import json
+import re
+import sys
+import time
+from pathlib import Path
+
+
+def read_jsonl(path: Path) -> list[dict]:
+    rows = []
+    if path.exists():
+        for line in path.read_text(errors="replace").splitlines():
+            try:
+                rows.append(json.loads(line))
+            except ValueError:
+                pass
+    return rows
+
+
+def usage(events: list[dict]) -> dict:
+    """Cost, duration, turns and tokens from the transcript's final `result` line."""
+    results = [e for e in events if e.get("type") == "result"]
+    if not results:
+        return {"result": "missing"}
+    r = results[-1]
+    tokens = collections.Counter()
+    for u in (r.get("modelUsage") or {}).values():
+        for key in ("inputTokens", "outputTokens", "cacheReadInputTokens",
+                    "cacheCreationInputTokens"):
+            tokens[key] += u.get(key) or 0
+    return {"result": r.get("subtype"), "cost_usd_estimate": r.get("total_cost_usd"),
+            "duration_ms": r.get("duration_ms"), "duration_api_ms": r.get("duration_api_ms"),
+            "num_turns": r.get("num_turns"), "tokens": dict(tokens),
+            "model_usage": r.get("modelUsage")}
+
+
+def tool_calls(events: list[dict]) -> list[tuple[str, str]]:
+    return [(c.get("name", ""), json.dumps(c.get("input", {})))
+            for e in events if e.get("type") == "assistant"
+            for c in (e.get("message") or {}).get("content") or []
+            if c.get("type") == "tool_use"]
+
+
+QUOTED = re.compile(r"""'[^']*'|"(?:[^"\\]|\\.)*\"""")
+
+
+def segments(name: str, text: str) -> list[str]:
+    """A shell command split into its commands, quoted text blanked out first,
+    so a `|` or a word inside a grep pattern is not taken for a command."""
+    if name not in ("Bash", "bash"):
+        return [text]
+    command = QUOTED.sub("''", json.loads(text).get("command", ""))
+    return [part.strip() for part in re.split(r"[;&|\n]+", command) if part.strip()]
+
+
+def audit(calls, run: dict) -> dict:
+    """Tool calls that reached outside the run's own folder.
+
+    Our folder is locked during the run, so a touch there is an attempt, not a
+    read. The development project is allowed and only counted.
+    """
+    flags = collections.defaultdict(list)
+    for name, text in calls:
+        for path in re.findall(r"/home/javad/[^\s\"'`;|&)]*", text):
+            if path.startswith(run["run"]):
+                continue
+            key = ("our_folder" if path.startswith(run["exp"]) else
+                   "development_project" if path.startswith(run["project"]) else
+                   "elsewhere_in_home")
+            flags[key].append(f"{name}: {path}")
+        if name in ("Bash", "bash") and any(
+                re.match(r"\(?\s*(sudo|chmod|chown)\b", part) for part in segments(name, text)):
+            flags["permission_commands"].append(f"{name}: {text[:200]}")
+    return {key: value[:50] for key, value in flags.items()}
+
+
+# The keys every record must carry, from the skill's output-format.md (Oct 13
+# 2026). The control arm has no taxonomy, so no `root_cause` and no `found_by`.
+RECORD_KEYS = {
+    1: {"step", "target", "unit_limit", "units_considered", "will_examine"},
+    2: {"step", "unit", "what_it_does", "cost_driver", "own_hypotheses", "suspicions",
+        "cleared_because"},
+    3: {"step", "unit", "decisions"},
+    4: {"step", "unit", "outcomes"},
+}
+ITEM_KEYS = {
+    "suspicions": {"label", "root_cause", "lines", "why", "found_by"},
+    "decisions": {"label", "root_cause", "lines", "verdict", "why", "found_by"},
+    "outcomes": {"label", "outcome", "submission", "why"},
+}
+SUBMISSION_KEYS = {"id", "root_cause", "unit", "changed", "related", "sole_caller_evidence",
+                   "equivalence", "equivalent", "notes", "agent_measurement"}
+
+
+def schema(findings: list[dict], submissions: list[dict], arm: str) -> list[str]:
+    """Every way the agent's records differ from the fixed keys, counted."""
+    untaxed = {"root_cause", "found_by"} if arm == "control" else set()
+    problems = collections.Counter()
+
+    def compare(where: str, record: dict, expected: set) -> None:
+        for key in sorted(set(record) - expected):
+            problems[f"{where}: extra `{key}`"] += 1
+        for key in sorted(expected - set(record)):
+            problems[f"{where}: missing `{key}`"] += 1
+
+    for record in findings:
+        step = record.get("step")
+        if step not in RECORD_KEYS:
+            problems[f"record with step {step!r}"] += 1
+            continue
+        compare(f"step {step}", record, RECORD_KEYS[step])
+        for name, keys in ITEM_KEYS.items():
+            for item in record.get(name) or []:
+                if isinstance(item, dict):
+                    compare(f"step {step} {name}", item, keys - untaxed)
+    for record in submissions:
+        compare("submission", record, SUBMISSION_KEYS - (untaxed & {"root_cause"}))
+    return [f"{what} (x{count})" for what, count in sorted(problems.items())]
+
+
+CARD = re.compile(r"(?<![\w.])(C\d{1,2}(?:\.S\d{1,2})?)\.md\b")
+"""A card file, however its path is spelled: `$S/C1.S5.md` and `cd root-causes;
+sed C3.S4.md` read cards as surely as the full path does."""
+
+
+SECTION = re.compile(r"^== (\S+?):\d+\s+(\S+)\s*$")
+FACT_ID = re.compile(r"^\s+(C\d+\.S\d+)\s")
+
+
+def tool_outputs(events: list[dict]) -> list[str]:
+    """The text of every tool result the agent saw."""
+    texts = []
+    for event in events:
+        content = (event.get("message") or {}).get("content") if event.get("type") == "user" else None
+        for item in content if isinstance(content, list) else []:
+            if item.get("type") != "tool_result":
+                continue
+            body = item.get("content")
+            texts.append(body if isinstance(body, str) else "\n".join(
+                part.get("text", "") for part in body or [] if isinstance(part, dict)))
+    return texts
+
+
+def rule_facts(scan_dir: Path, outputs: list[str] = ()) -> list[tuple[str, str, set]]:
+    """(file, qualname, root causes named) for every unit in the rule scans the
+    agent saw: the ones saved under .energy-scan, and the ones printed to it --
+    `scan.py --unit` prints a unit's findings and saves nothing.
+
+    Paths are relative to whatever directory was scanned, so they are matched
+    against a finding's path by suffix.
+    """
+    units = []
+    texts = [detail.read_text(errors="replace")
+             for detail in (sorted(scan_dir.glob("*.txt")) if scan_dir.is_dir() else [])]
+    for text in texts + list(outputs):
+        current = None
+        for line in text.splitlines():
+            section = SECTION.match(line)
+            if section:
+                current = (section.group(1), section.group(2), set())
+                units.append(current)
+            elif current and FACT_ID.match(line):
+                current[2].add(FACT_ID.match(line).group(1))
+    return units
+
+
+def unbacked_claims(findings: list[dict], facts) -> list[str]:
+    """`found_by` rules/both claims that no rule finding on that unit backs."""
+    unbacked = []
+    for record in findings:
+        if record.get("step") != 2 or "::" not in str(record.get("unit")):
+            continue
+        path, qualname = record["unit"].split("::", 1)
+        named = set().union(*[ids for file, name, ids in facts
+                              if name == qualname and path.endswith(file)] or [set()])
+        for item in record.get("suspicions") or []:
+            if item.get("found_by") in ("rules", "both") and item.get("root_cause") not in named:
+                unbacked.append(f"{record['unit']} {item.get('label')} "
+                                f"{item.get('root_cause')} ({item.get('found_by')}); "
+                                f"rules named {sorted(named) or 'nothing here'}")
+    return unbacked
+
+
+def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
+             scan_dir: Path, outputs: list[str] = ()) -> dict:
+    """Did the agent do the steps? Counted from its tool calls and its files."""
+    categories, root_causes = set(), set()
+    for name, text in calls:
+        # A card named only to count, list or find it was not read.
+        read = [part for part in segments(name, text)
+                if not re.match(r"(wc|ls|find|du|stat)\b", part)]
+        for card in CARD.findall(" ".join(read) if name in ("Bash", "bash") else text):
+            (root_causes if ".S" in card else categories).add(card)
+    rankings = rule_scans = 0
+    for name, text in calls:
+        if name != "Bash":
+            continue
+        runs = [part for part in re.split(r"[\n;|&]", json.loads(text).get("command", ""))
+                if re.search(r"\bpython[\d.]*\s+\S*scan\.py\b", part) and "--help" not in part]
+        if any("--units" not in part for part in runs):
+            rule_scans += 1
+        elif runs:
+            rankings += 1
+    step2 = [f for f in findings if f.get("step") == 2]
+    suspicions = [x for f in step2 for x in f.get("suspicions") or []]
+    claims = sum(x.get("found_by") in ("rules", "both") for x in suspicions)
+
+    cards = Path(run["project"]) / "dist/full/energy-smells/reference/root-causes"
+    valid = {p.stem for p in cards.glob("C*.md")}
+    used = [x.get("root_cause") for x in suspicions]
+    used += [d.get("root_cause") for f in findings if f.get("step") == 3
+             for d in f.get("decisions") or []]
+    used += [s.get("root_cause") for s in submissions]
+    invalid = sorted({str(u) for u in used if u and u not in valid}) if run["arm"] != "control" else []
+
+    off_schema = schema(findings, submissions, run["arm"])
+    unbacked = unbacked_claims(findings, rule_facts(scan_dir, outputs))
+    flags = []
+    if off_schema:
+        flags.append("keys_off_schema")
+    if claims and not rule_scans:
+        flags.append("found_by_rules_without_a_rule_scan")
+    elif unbacked:
+        flags.append("found_by_rules_not_backed_by_a_rule")
+    if invalid:
+        flags.append("root_cause_ids_not_in_taxonomy")
+    # The two things an arm is for: the full arm differs from knowledge only by
+    # its rules, and every taxonomy arm decides step 3 against the cards.
+    if run["arm"] in ("full", "ast", "ruff") and not rule_scans:
+        flags.append("no_rule_scan")
+    decided = [d for f in findings if f.get("step") == 3 for d in f.get("decisions") or []]
+    if run["arm"] != "control" and decided and not root_causes:
+        flags.append("decided_without_cards")
+    # Step 2's own taxonomy sub-steps: 2c opens category cards, 2e sweeps the
+    # README index. Sonnet's first run (Oct 20) skipped both and nothing said so.
+    index_read = any("README.md" in text and "reference" in text for _, text in calls)
+    if run["arm"] != "control" and step2 and not categories:
+        flags.append("no_category_cards")
+    if run["arm"] != "control" and step2 and not index_read:
+        flags.append("no_index_sweep")
+    return {
+        "units_examined": len({f.get("unit") for f in step2}),
+        "suspicions": len(suspicions),
+        "category_cards_opened": sorted(categories),
+        "root_cause_cards_opened": sorted(root_causes),
+        "index_read": index_read,
+        "unit_rankings": rankings,
+        "rule_scans": rule_scans,
+        "found_by_rules_or_both": claims,
+        "found_by_rules_unbacked": unbacked,
+        "invalid_root_cause_ids": invalid,
+        "keys_off_schema": off_schema,
+        "flags": flags,
+    }
+
+
+def environment(calls, out: Path, run: dict, ours: list[dict]) -> dict:
+    """What the agent did to its environment, and baselines that were not the repo."""
+    flags = collections.defaultdict(list)
+    tmp = out / "tmp_created.txt"
+    misplaced = out / "outputs_misplaced.txt"
+    if misplaced.exists():
+        flags["outputs_misplaced"] = misplaced.read_text().split()
+    created = [l for l in tmp.read_text().splitlines() if l.strip()] if tmp.exists() else []
+    if created:
+        flags["tmp_created"] = created
+    before, after = (set((out / f).read_text().splitlines()) if (out / f).exists() else set()
+                     for f in ("venv_before.txt", "venv_after.txt"))
+    if after - before or before - after:
+        flags["venv_changed"] = ([f"+ {l}" for l in sorted(after - before)]
+                                 + [f"- {l}" for l in sorted(before - after)])
+    repo_dir = f"{run['run']}/{run['repo']}"
+    for name, text in calls:
+        if name != "Bash":
+            continue
+        command = json.loads(text).get("command", "")
+        if re.search(r"\bpip3?\b[^|;&]*\b(install|uninstall)\b", command):
+            flags["pip_commands"].append(command[:200])
+        if re.search(r"-m\s+venv\b|\bvirtualenv\b", command):
+            flags["new_venv"].append(command[:200])
+        for target in re.findall(r"verify\.py\b[^|;&]*?--repo[=\s]+(\S+)", command):
+            if target.rstrip("/") not in (".", repo_dir):
+                flags["verify_against_other_repo"].append(command[:200])
+    mismatched = [r["id"] for r in ours if r.get("agent_baseline_matches") is False]
+    if mismatched:
+        flags["agent_baseline_not_the_repo"] = mismatched
+    return {key: value[:50] for key, value in flags.items()}
+
+
+def inputs(out: Path) -> dict:
+    """How input generation went: requested, ready, failed and why, cached, cost --
+    and any file in the agent's `.energy-inputs/` that differs from our copy."""
+    try:
+        units = json.loads((out / "inputs" / "status.json").read_text()).get("units", {})
+    except (OSError, ValueError):
+        units = {}
+    log = read_jsonl(out / "inputs" / "_generation" / "log.jsonl")
+    theirs = out / "agent" / ".energy-inputs"
+    differ = []
+    if theirs.is_dir():
+        for f in sorted(theirs.glob("*.py")):
+            ours = out / "inputs" / f.name
+            if not ours.exists() or ours.read_bytes() != f.read_bytes():
+                differ.append(f.name)
+    return {
+        "requested": len(units),
+        "ready": sum(u.get("state") == "ready" for u in units.values()),
+        "failed": {k: u.get("reason") for k, u in units.items() if u.get("state") == "failed"},
+        "cached": sum(bool(r.get("cached")) for r in log),
+        "cost_usd": round(sum(r.get("cost") or 0 for r in log), 4),
+        "seconds_max": max((r.get("seconds") or 0 for r in log), default=0),
+        "agent_copy_differs": differ,
+    }
+
+
+CARD_FILE = re.compile(r"root-causes/C\d+\.S\d+\.md")
+
+
+def recorded(out: Path, events: list[dict]) -> dict:
+    """How the agent moved through the steps, from record/ (tools/inputs/steps.py):
+    when it said each step was finished, any step file written before its step
+    began or changed after its step ended, measured repairs it deleted, and how
+    often a root-cause card was refused before step 3."""
+    rows = read_jsonl(out / "record" / "events.jsonl")
+    done = [r for r in rows if r.get("file") == "steps" and r.get("event") == "done"]
+    final_ids = {r.get("id") for r in read_jsonl(out / "agent" / "submissions.jsonl")}
+    measured = {(r.get("record") or {}).get("id") for r in read_jsonl(out / "record" / "measured.jsonl")}
+    # Only calls that named a card: a `find` or `grep -r` that crossed the
+    # locked directory says "Permission denied" too, and was counted as one.
+    reads_card, refused = set(), 0
+    for event in events:
+        content = event.get("message", {}).get("content")
+        for item in content if isinstance(content, list) else []:
+            if item.get("type") == "tool_use" and CARD_FILE.search(json.dumps(item.get("input"))):
+                reads_card.add(item.get("id"))
+            elif item.get("type") == "tool_result" and item.get("tool_use_id") in reads_card:
+                if "ermission denied" in json.dumps(item.get("content")):
+                    refused += 1
+    start = rows[0]["t"] if rows else 0
+    return {
+        "steps_done": [r.get("step") for r in done],
+        "step_done_at_s": {str(r.get("step")): round(r["t"] - start) for r in done},
+        "written_early": [f"{r.get('file')} during step {r.get('during_step')}" for r in rows
+                          if r.get("event") == "written_early"],
+        "changed_after_done": sorted({r.get("file") for r in rows if r.get("event") == "changed_after_done"}),
+        "submissions_removed": sorted(i for i in measured - final_ids if i),
+        "repairs_measured": len(measured - {None}),
+        "card_reads_refused": refused,
+    }
+
+
+def main() -> int:
+    out = Path(sys.argv[1])
+    run = json.loads((out / "run.json").read_text())
+    events = read_jsonl(out / "transcript.jsonl")
+    calls = tool_calls(events)
+    submissions = read_jsonl(out / "agent" / "submissions.jsonl")
+    ours = read_jsonl(out / "review" / "results.jsonl")
+    changes = [l for l in (out / "repo_changes.txt").read_text().splitlines() if l.strip()]
+
+    meta = {
+        **run,
+        "usage": usage(events),
+        "tool_calls": len(calls),
+        "tools_used": dict(collections.Counter(name for name, _ in calls)),
+        "findings_lines": len(read_jsonl(out / "agent" / "findings.jsonl")),
+        "submissions": len(submissions),
+        "agent_verdicts": dict(collections.Counter(
+            (s.get("agent_measurement") or {}).get("status", "not measured") for s in submissions)),
+        "our_verdicts": dict(collections.Counter(r.get("status") for r in ours)),
+        "repo_changes": changes,
+        "leak_audit": audit(calls, run),
+        "protocol": protocol(calls, read_jsonl(out / "agent" / "findings.jsonl"),
+                             submissions, run, out / "agent" / ".energy-scan", tool_outputs(events)),
+        "environment": environment(calls, out, run, ours),
+        "inputs": inputs(out),
+        "record": recorded(out, events),
+    }
+    (out / "meta.json").write_text(json.dumps(meta, indent=1))
+
+    u, t = meta["usage"], meta["usage"].get("tokens") or {}
+    row = {
+        "run_id": run["run_id"], "repo": run["repo"], "arm": run["arm"], "model": run["model"],
+        "status": run["status"], "agent_exit": run["agent_exit"],
+        "agent_min": round(run["agent_seconds"] / 60, 1),
+        "review_min": round(run["review_seconds"] / 60, 1),
+        "result": u.get("result"), "cost_usd": u.get("cost_usd_estimate"),
+        "turns": u.get("num_turns"), "tool_calls": meta["tool_calls"],
+        "input_tok": t.get("inputTokens"), "output_tok": t.get("outputTokens"),
+        "cache_read_tok": t.get("cacheReadInputTokens"),
+        "cache_write_tok": t.get("cacheCreationInputTokens"),
+        "findings_lines": meta["findings_lines"], "submissions": meta["submissions"],
+        "our_confirmed": meta["our_verdicts"].get("confirmed", 0),
+        "repo_files_changed": len(changes),
+        "leak_flags": ";".join(k for k in meta["leak_audit"] if k != "development_project") or "none",
+        "units_examined": meta["protocol"]["units_examined"],
+        "category_cards": len(meta["protocol"]["category_cards_opened"]),
+        "root_cause_cards": len(meta["protocol"]["root_cause_cards_opened"]),
+        "rule_scans": meta["protocol"]["rule_scans"],
+        "protocol_flags": ";".join(meta["protocol"]["flags"]) or "none",
+        "env_flags": ";".join(meta["environment"]) or "none",
+        "inputs_requested": meta["inputs"]["requested"],
+        "inputs_ready": meta["inputs"]["ready"],
+        "inputs_cost_usd": meta["inputs"]["cost_usd"],
+        "inputs_tampered": len(meta["inputs"]["agent_copy_differs"]),
+        "steps_done": " ".join(str(n) for n in meta["record"]["steps_done"]),
+        "out_of_order": len(meta["record"]["written_early"]) + len(meta["record"]["changed_after_done"]),
+        "submissions_removed": len(meta["record"]["submissions_removed"]),
+        "card_reads_refused": meta["record"]["card_reads_refused"],
+        "started": run.get("started", ""),
+    }
+    summary = out.parents[2] / "summary.csv"
+    if summary.exists():
+        with summary.open() as handle:
+            header = handle.readline().strip().split(",")
+        if header != list(row):     # the columns changed: start a new file, keep the old
+            summary.rename(summary.with_name(f"summary.before-{time.strftime('%Y%m%d-%H%M%S')}.csv"))
+    new = not summary.exists()
+    with summary.open("a", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(row))
+        if new:
+            writer.writeheader()
+        writer.writerow(row)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
