@@ -65,7 +65,7 @@ from lib.measure import choose_repeats  # noqa: E402
 MODEL = "deepseek/deepseek-v4.1-flash"
 ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 EFFORT = "medium"
-CALL_TIMEOUT_S = 150       # one call, reasoning included; a cut-off call is billed in full
+CALL_TIMEOUT_S = 300       # one call, reasoning included; a cut-off call is billed in full (8 of 104 hit 150)
 MAX_TOKENS = 32000         # reasoning and answer together
 ROUNDS = 2
 CANDIDATES = 8
