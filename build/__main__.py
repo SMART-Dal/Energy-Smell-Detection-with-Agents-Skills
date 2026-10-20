@@ -46,7 +46,6 @@ DIST_DIR = PROJECT_ROOT / "dist"
 TOKENS = {
     "{{CATEGORY_INDEX}}": lambda arm, rendered: rendered["categories"],
     "{{ROOT_CAUSE_INDEX}}": lambda arm, rendered: rendered["root_causes"],
-    "{{SCANNER_HINT}}": lambda arm, rendered: arm.scanner_hint,
     "{{STEP_EVIDENCE}}": lambda arm, rendered: arm.step_evidence,
     "{{STEP_SWEEP}}": lambda arm, rendered: arm.step_sweep,
 }

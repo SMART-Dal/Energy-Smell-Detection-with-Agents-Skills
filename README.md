@@ -81,7 +81,6 @@ python3 -m venv .venv && .venv/bin/pip install pandas openpyxl pyyaml ruff
 ## The two scripts
 
 ```bash
-python dist/full/energy-smells/scripts/scan.py PATH --units   # ranked reading list
 python dist/full/energy-smells/scripts/scan.py PATH [--top N] [--json]
 python src/verify.py --calibrate                               # this host's noise floor
 python src/verify.py SUBMISSIONS.jsonl --repo PATH             # an agent's repairs
@@ -89,12 +88,9 @@ python src/verify.py SUBMISSIONS.jsonl --repo PATH --no-record --json   # re-mea
 python src/verify.py CASE_FILE.py [--json]                     # a validation sample
 ```
 
-`scan.py` answers two questions and keeps them apart. `--units` ranks every
-function by how hot it looks and says nothing about what might be wrong with any
-of them, so it can be run before the agent has formed a view; the default report
-groups facts under the root causes they point at, never a verdict. Hotness counts
-the loops a unit is *reached* through as well as the ones it contains, so a
-helper called from inside someone else's nested loop outranks the loop itself.
+`scan.py` reports what its rules noticed: facts, one per rule per unit, each
+tagged with the root causes it could point at, in file and line order — never a
+verdict, and never a ranking of which code is worth reading.
 
 `verify.py` measures one repair against the code it replaces: it checks
 behaviour is preserved, sizes each case so its measured window is long enough,

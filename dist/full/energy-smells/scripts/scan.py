@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Static evidence for energy smells: where to look, and what to look for.
+"""Static evidence for energy smells: what the rules noticed, and where.
 
-    python scan.py PATH --units               ranked reading list, no findings
     python scan.py PATH                        an index: which units, how much
     python scan.py PATH --unit NAME            one unit in full
     python scan.py PATH --top 150 --json       machine-readable, more findings
@@ -13,23 +12,15 @@ attention on whichever rule happened to fire most.  So the default says which
 units carry what, writes the detail to a file, and leaves opening it to the
 reader -- who by then has a reason to prefer one unit over another.
 
-Two different questions, deliberately kept apart:
-
-  --units  answers "which functions are worth my time?".  It ranks every unit
-           in the target by how hot it looks -- loop nesting, including the
-           nesting of its callers, and how many places call it -- and says
-           nothing at all about what might be wrong with them.  Run this first
-           and read the code yourself.
-
-  default  answers "what did the rules notice?".  It reports *facts* -- "a
-           string is grown with += inside a loop at line 45" -- one entry per
-           rule per unit, tagged with every root cause that fact could
-           indicate.  Every finding is shown, grouped by unit, in file and
-           line order: the order says nothing about which ones matter.
+It reports *facts* -- "a string is grown with += inside a loop at line 45" --
+one entry per rule per unit, tagged with every root cause that fact could
+indicate.  Every finding is shown, grouped by unit, in file and line order.  The
+order says nothing about which ones matter; which code to read, and in what
+order, is the reader's to decide.
 
 Nothing here ever says a smell is present.  Whether a fact is a smell depends
-on what the code is for, how hot it is, and what the author was required to do,
-none of which an analyzer can see.  That judgement belongs to the reader.
+on what the code is for and what the author was required to do, neither of
+which an analyzer can see.  That judgement belongs to the reader.
 """
 
 from __future__ import annotations
@@ -60,10 +51,6 @@ DETAIL_DIR = Path(".energy-scan")
 """Where the full report is written. Beside the caller's working directory
 rather than beside the target, because the target is often somebody else's
 repository and a scan should not leave anything in it."""
-
-DEFAULT_UNITS = 15
-"""How many units `--units` lists unless `--top` says otherwise."""
-
 
 
 def _report_rule_errors() -> None:
@@ -100,12 +87,8 @@ def main(argv: list[str] | None = None) -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("path", type=Path, help="a .py file or a directory tree")
-    parser.add_argument("--units", action="store_true",
-                        help="rank units by how hot they look and stop there")
     parser.add_argument("--top", type=int, default=None,
-                        help=f"how many findings to report (default: all), or "
-                             f"with --units how many units to list (default "
-                             f"{DEFAULT_UNITS})")
+                        help="how many findings to report (default: all)")
     parser.add_argument("--unit", metavar="NAME",
                         help="print one unit's findings in full and stop; "
                              "matches on qualified name, substring allowed")
@@ -126,21 +109,6 @@ def main(argv: list[str] | None = None) -> int:
 
     files = python_files(args.path)
 
-    if args.units:
-        # The reading list keeps units nothing flagged: its whole purpose is to
-        # rank code before any rule has spoken.
-        ranked = analyse_path(args.path, only_with_evidence=False,
-                              cross_unit=args.cross_unit)
-        report = {
-            "target": str(args.path),
-            "files_scanned": len(files),
-            "units_found": len(ranked),
-            "units": [_locate(item, args.path)
-                      for item in ranked[: args.top or DEFAULT_UNITS]],
-        }
-        print(json.dumps(report, indent=1) if args.json else _render_units(report))
-        return 0
-
     analyzers = available_analyzers()
     runnable = [name for name, blocked in analyzers.items() if blocked is None]
     if not runnable:
@@ -151,8 +119,7 @@ def main(argv: list[str] | None = None) -> int:
         ) or "none are installed"
         parser.error(
             f"nothing can be analysed on this machine, so the scan would be "
-            f"silently empty rather than clean:\n  {blockers}\n"
-            f"`--units` still works -- it needs no analyzer."
+            f"silently empty rather than clean:\n  {blockers}"
         )
     for name, why in analyzers.items():
         if why is not None:
@@ -241,18 +208,6 @@ def _write_detail(report: dict, out: Path, target: Path) -> Path:
     return path
 
 
-def _locate(item: UnitFindings, root: Path) -> dict:
-    """One unit's position and hotness, with nothing about its contents."""
-    return {
-        "unit": f"{_relative(item.unit.path, root)}::{item.unit.qualname}",
-        "file": _relative(item.unit.path, root),
-        "qualname": item.unit.qualname,
-        "line": item.unit.lineno,
-        "end_line": item.unit.end_lineno,
-        "hotness": _hotness_dict(item),
-    }
-
-
 def _in_source_order(findings: list[UnitFindings], grouped: list[list[Finding]],
                      root: Path) -> list[tuple[int, Finding]]:
     """Every finding in the scan, as (unit index, finding): units by file and line,
@@ -307,7 +262,6 @@ def _describe(item: UnitFindings, shown: list[Finding], table: SignalTable,
         "qualname": item.unit.qualname,
         "line": item.unit.lineno,
         "end_line": item.unit.end_lineno,
-        "hotness": _hotness_dict(item),
         "findings": findings,
         # The by-root-cause view, for anything asking what this unit could be an
         # instance of rather than what was seen in it.
@@ -330,22 +284,6 @@ def _label(root_cause_id: str, table: SignalTable) -> dict:
     if node is None:
         return {"id": root_cause_id, "name": "", "card": ""}
     return {"id": node.id, "name": node.name, "card": node.card}
-
-
-def _hotness_dict(item: UnitFindings) -> dict:
-    """Static hotness proxies. A guess about frequency, never a measurement."""
-    return {
-        "unit_file": str(item.unit.path),
-        "own_loop_depth": item.max_repeat_depth,
-        "reached_at_depth": item.reached_at_depth,
-        "fan_in": item.fan_in,
-        "fan_out": len(item.fan_out),
-        "called_from": [
-            {"caller": site.caller, "line": site.line,
-             "repeat_depth": site.repeat_depth, "file": site.file}
-            for site in item.called_from
-        ],
-    }
 
 
 def _support_summary(supporting: list) -> str:
@@ -372,11 +310,9 @@ _CAVEATS = """What this output is and is not:
   - Every line is a fact about syntax. None of them is a verdict. Each of
     these shapes is the right thing to write somewhere, so the question is
     always whether it is right *here* -- which depends on what the code is
-    for and how often it runs, neither of which a rule can see.
+    for, and a rule cannot see that.
   - Every finding is listed, in file and line order. The order says
-    nothing about which ones matter: a small repair in a loop that runs a
-    billion times beats a large one that runs twice, and only you can see
-    which is which here. Read in whatever order you think right.
+    nothing about which ones matter. Read in whatever order you think right.
   - The rules only recognise shapes somebody thought to describe in
     advance. Waste with no fixed shape leaves no trace here at all. What
     this output does not mention is not thereby absent, and no part of the
@@ -411,10 +347,9 @@ def _render_index(report: dict, detail: Path) -> str:
     # One line a unit: every unit with a finding is listed, so the index is
     # kept to where it is and what fired. How it is reached is in the detail.
     for number, unit in enumerate(report["units"], start=1):
-        depth = unit["hotness"]["reached_at_depth"]
         kinds = ", ".join(_headline(f) for f in unit["findings"])
         lines.append(f"{number:>4}. " + _wrap(f"{unit['file']}:{unit['line']}  "
-                                           f"{unit['qualname']}  (depth {depth}): {kinds}", 6))
+                                           f"{unit['qualname']}: {kinds}", 6))
 
     lines += [
         "",
@@ -446,7 +381,7 @@ def _render_unit(unit: dict) -> str:
         "",
         "=" * WIDTH,
         f"== {unit['file']}:{unit['line']}  {unit['qualname']}",
-        f"   {unit['end_line'] - unit['line'] + 1} lines | {_hotness(unit['hotness'])}",
+        f"   {unit['end_line'] - unit['line'] + 1} lines",
     ]
 
     for finding in unit["findings"]:
@@ -471,67 +406,6 @@ def _lines(numbers: list[int]) -> str:
     shown = ", ".join(str(n) for n in numbers[:8])
     extra = len(numbers) - 8
     return f"{shown} and {extra} more" if extra > 0 else shown
-
-
-def _render_units(report: dict) -> str:
-    """The ranked reading list: where to spend attention, and why."""
-    lines = [
-        f"{report['files_scanned']} files  |  {report['units_found']} units  |  "
-        f"showing the {len(report['units'])} that look hottest",
-        "=" * WIDTH,
-    ]
-    for rank, unit in enumerate(report["units"], start=1):
-        lines.append(f"{rank:>3}. {unit['file']}:{unit['line']}  {unit['qualname']}")
-        lines.append(f"     {_hotness(unit['hotness'])}")
-
-    lines += [
-        "",
-        "-" * WIDTH,
-        "Ranked by how often the code is likely to run: loop nesting, the nesting",
-        "of the callers that reach it, and how many places call it. That is a",
-        "static guess. It cannot see how many times a loop actually trips, which",
-        "branches are taken, or anything about calls from other files -- so treat",
-        "the order as a suggestion and override it when you know better.",
-        "",
-        "This list ran no rules: it found nothing, only ordered the units.",
-        "",
-        "NEXT: read these units and write down your own suspicions first (2b).",
-        "Then open the category cards (2c), run the rules with `scan.py <path>`",
-        "-- no --units -- (2d), and open the root-cause card for every suspicion",
-        "before deciding it (step 3).",
-    ]
-    return "\n".join(lines)
-
-
-def _hotness(hotness: dict) -> str:
-    """One line on why this unit ranked where it did."""
-    parts = [f"loop depth {hotness['own_loop_depth']}"]
-    if hotness["reached_at_depth"] > hotness["own_loop_depth"]:
-        sites = [s for s in hotness["called_from"] if s["repeat_depth"] > 0]
-        # Naming every caller of a widely used helper turns one line into ten,
-        # and the reader only needs somewhere to start following the chain.
-        shown = ", ".join(f"{s['caller']}:{s['line']}" for s in sites[:3])
-        if len(sites) > 3:
-            shown += f" and {len(sites) - 3} more"
-        parts.append(
-            f"but runs at depth {hotness['reached_at_depth']} "
-            f"via {shown or 'its callers'}"
-        )
-    if hotness["fan_in"]:
-        # Callers and call sites are different numbers and the reader counts the
-        # second: two calls from one function is one caller, and printing only
-        # "3 place(s)" beside four visible calls reads as a lost edge.
-        sites = len(hotness["called_from"])
-        callers = hotness["fan_in"]
-        elsewhere = {
-            site["caller"] for site in hotness["called_from"]
-            if site.get("file") and site["file"] != hotness.get("unit_file")
-        }
-        where = f", {len(elsewhere)} in other file(s)" if elsewhere else ""
-        counted = (f"{callers} caller(s)" if sites == callers
-                   else f"{callers} caller(s), {sites} call site(s)")
-        parts.append(f"called from {counted}{where}")
-    return " | ".join(parts)
 
 
 def _wrap(text: str, indent: int) -> str:

@@ -15,7 +15,8 @@ what `$SKILL` is once, at the start, and use it throughout.
 **Time:** you have 60 minutes for the whole run, thinking and measuring
 included, and the session is stopped at 60. That is enough to be thorough, so
 do not rush: give each unit the reading it needs, and keep enough of the hour
-for step 4, where measuring takes about a minute a repair.
+for step 4, where measuring takes about a minute a repair. Run `date` when you
+start and again as you go, so you know how much of the hour is left.
 
 ---
 
@@ -102,9 +103,8 @@ second problem is a second finding, or it is nothing.
 an energy smell. If the repair does not change what the machine does, it
 is out of scope here.
 
-Everything else that wastes work is in scope. How hot the code is tells you how
-much a saving is worth — but a real repair on a cold path is still a real
-repair, and the measurement will say what it came to.
+Everything else that wastes work is in scope, wherever it is in the program:
+a real repair is a real repair, and the measurement will say what it came to.
 
 ## Energy is not time
 
@@ -148,7 +148,7 @@ all of them, and no others**; a key with nothing to say is `null` or `[]`.
 file goes in the repository's root, the directory you were started in —
 nowhere else.
 
-### 1. Select — *in:* a target · *out:* the units you will examine, in order
+### 1. Select — *in:* a target · *out:* the units you will examine
 
 **The target** is what you were asked to look at: the whole repository, a
 directory, a file, or a single unit. Choose units only from inside it; read
@@ -156,38 +156,27 @@ outside it as far as you need. A unit named loosely — "the render function" �
 is yours to pin down: find it, and record the exact `path::qualname` it
 resolved to. If more than one function matches, all of them are the target.
 
-**How many:** every unit in the target you can get through in the hour — all
-of them, if you can. Nothing else limits the units you examine or the smells
-you report: one, ten, a hundred or a thousand, whatever the code holds. Work
-through the target hottest first and miss nothing you reach. A unit with
-plainly nothing to repair is cleared in step 2 with a short reason, and still
-counts as examined. Within a unit, record every suspicion you have.
+Read the repository first — its entry points, what its tests exercise, what
+its README says it is for — so that you know what each part of it is for.
 
-If you were asked for a number of units, examine at most that many, the
-hottest first. You may change which units those are until you finish step 1,
-if something you read shows you a hotter one; just do not go over the number.
+**Then go through every unit in the target** and pick out each one where
+something looks inefficient to you: work the program does not need, work done
+more often than necessary, or work done in a more expensive way than its result
+requires. Those are the units you will examine. Nothing limits how many units
+you pick or how many smells you report — one, ten, a hundred or a thousand,
+whatever the code holds — so miss none you can reach in the hour. Within a
+unit, record every suspicion you have.
 
-Read the repository first: its entry points, what its tests exercise, what its
-README says it is for. Then find the units where energy is actually spent, in
-this order of priority:
-
-1. **work that repeats** — the deepest loop nests, and the helpers those loops
-   call, which is where a cheap-looking function gets paid thousands of times;
-2. **work proportional to input size**, rather than to a fixed constant;
-3. **the repository's own hot path** — what it benchmarks, what its main entry
-   point spends its time in.
-
-**Order them by how much energy you expect a repair to save** — how often the
-unit runs, multiplied by how much work one run does — and work from the top.
-With a number to keep to, the units you examine have to be the ones where most
-of the energy goes; without one, the order decides what the hour reaches first.
+If you were asked for a number of units, examine at most that many. You may
+change which units those are until you finish step 1; just do not go over the
+number.
 
 ```jsonc
 {"step": 1, "target": "src/", "unit_limit": null, "units_considered": 128,
  "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
                   "src/parse.py::Lexer.advance", "src/index.py::Index.add",
                   "src/index.py::Index.lookup", "src/export.py::write_rows",
-                  ...]}   // shortened here: every unit you will get through, hottest first
+                  ...]}   // shortened here: every unit where something looked inefficient
 ```
 
 Write it to `step1.jsonl`. Rewrite it as often as you like while step 1 is
@@ -210,12 +199,11 @@ outward in both directions:
   regex and rebuilding two dicts per iteration, and none of that is visible
   from the loop. Keep going until you reach the standard library or code that
   plainly does no work.
-- **Up, into what calls it.** Cost is paid per execution. A cheap function
-  called from inside someone else's nested loop is expensive; an expensive one
-  called once at startup is not.
+- **Up, into what calls it.** See what it is given and what is done with what
+  it returns: waste can sit between a unit and its callers — a result the
+  caller throws away, a shape the caller has to undo.
 
-Then write two sentences: what it computes, and what would dominate its cost on
-a large input.
+Then write two sentences: what it computes, and where its work goes.
 
 Read outward because the expensive waste is not in any one line. Some waste
 is — a conversion, a lookup, a concatenation — and you can see it where it
@@ -544,7 +532,7 @@ Failure modes, in the order they actually happen:
    That is what the cards' near-misses are for, and skipping them is the
    fastest way to produce confident nonsense.
 1. **Skipping measurement because the waste is obvious.** The obvious ones are
-   exactly where a wrong assumption about hotness hides.
+   exactly where a wrong assumption hides.
 1. **Rewriting the unit.** A patch that changes everything cannot be attributed
    to one root cause, and cannot be measured against one. Change what removes
    the waste and stop.
@@ -558,7 +546,7 @@ Python. Root cause IDs are exactly the 65 on the cards — never invent one, and
 never report a bare category as a finding.
 
 A **unit** is a function or a method. That is the granularity at which units are
-ranked, cleared and reported, and at which a repair is measured — the cases
+examined, cleared and reported, and at which a repair is measured — the cases
 call something, and this is the something. A function defined inside another
 function is not one: nothing can call it on its own, so the function around it
 is the unit.

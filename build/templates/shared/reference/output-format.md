@@ -44,7 +44,7 @@ Shown expanded here; each is written on a single line.
  "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
                   "src/parse.py::Lexer.advance", "src/index.py::Index.add",
                   "src/index.py::Index.lookup", "src/export.py::write_rows",
-                  ...]}   // shortened here: every unit you will get through, hottest first
+                  ...]}   // shortened here: every unit where something looked inefficient
 ```
 
 ```jsonc
@@ -67,10 +67,10 @@ Shown expanded here; each is written on a single line.
 ```jsonc
 {"step": 2, "unit": "src/parse.py::tokenize",
  "what_it_does": "splits a header into fields",
- "cost_driver": "one pass over a header of at most 16 bytes",
- "own_hypotheses": ["nothing here scales — the loop is bounded by the header"],
+ "cost_driver": "one split of the header, and one strip per field",
+ "own_hypotheses": ["each field is produced once, by a C-level split; nothing is converted or thrown away"],
  "suspicions": [],
- "cleared_because": "no work here is proportional to input size"}
+ "cleared_because": "every value is computed once, by the cheapest construct that gives it, and all of it is used"}
 ```
 
 ```jsonc

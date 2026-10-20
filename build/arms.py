@@ -82,7 +82,6 @@ class Arm:
     """
     omit_templates: tuple[str, ...] = field(default=())
     """Template files this arm does not ship, as paths under the tree."""
-    scanner_hint: str = ""
     """One line in step 1 pointing at the scanner. Empty where there is none."""
     step_evidence: str = ""
     """The sub-step of step 2 that runs the static rules. Empty when there are none."""
@@ -385,22 +384,6 @@ missed something.
 }
 
 
-# -- step 1's one optional line -------------------------------------------
-#
-# Step 1 is identical in every arm: read the repository, find the units, order
-# them by expected saving. An arm that ships the scanner adds a single line
-# offering it as a second opinion. It is deliberately not a step -- making the
-# agent run a tool to choose units would be a different instruction from the
-# one the other arms get, and the difference between arms has to be the
-# evidence available, not the procedure.
-
-_SCANNER_HINT = """
-`python $SKILL/scripts/scan.py <path> --units --top 100` will also list the
-units, ordered by loop nesting and how many places call them. It is a guess
-made from syntax and says nothing about what might be wrong with any of them,
-so treat it as a second opinion on the order rather than the order itself.
-"""
-
 # -- the rules sub-step, for arms that have a scanner ----------------------
 
 _SCANNER_EVIDENCE = """\
@@ -495,7 +478,6 @@ FULL = Arm(
     directory="full/energy-smells",
     question="Do the two evidence sources compose, or does one crowd out the other?",
     words=_TAXONOMY_WORDS,
-    scanner_hint=_SCANNER_HINT,
     step_evidence=_SCANNER_EVIDENCE,
     step_sweep=_sweep("e"),
 )
@@ -505,7 +487,6 @@ AST_ONLY = Arm(
     directory="ast/energy-smells",
     question="What do the taxonomy-specific analyzers contribute on their own?",
     words=_TAXONOMY_WORDS,
-    scanner_hint=_SCANNER_HINT,
     step_evidence=_SCANNER_EVIDENCE,
     step_sweep=_sweep("e"),
     excluded=("lib/analysis/linters.py",),
@@ -516,7 +497,6 @@ RUFF_ONLY = Arm(
     directory="ruff/energy-smells",
     question="How far does an off-the-shelf linter get, with the same cards and protocol?",
     words=_TAXONOMY_WORDS,
-    scanner_hint=_SCANNER_HINT,
     step_evidence=_SCANNER_EVIDENCE,
     step_sweep=_sweep("e"),
     excluded=("lib/analysis/rules",),
