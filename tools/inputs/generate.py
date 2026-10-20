@@ -84,7 +84,7 @@ VALIDATION_SLOTS = None
 SYSTEM = """You are a performance testing expert. You will write the inputs for an energy measurement of one Python function from a real repository. We run the original function and a modified version of it on your inputs, each input many times in a row, and compare their energy use and their outputs.
 
 # What to write
-Python source defining two functions, `checks()` and `cases()`. Each returns a list of `(label, thunk)` pairs with distinct labels. A thunk takes no arguments and returns a tuple of positional arguments for the function, e.g. `lambda: (rows, 3)`. For keyword arguments the thunk returns `call(...)`, e.g. `lambda: call(rows, sep=",")`; `call` is provided, do not import or define it. A method is called as a plain function: the thunk builds the instance and passes it as the first argument.
+Python source defining two functions, `checks()` and `cases()`. Each returns a list of `(label, thunk)` pairs with distinct labels. A thunk takes no arguments and returns a tuple of positional arguments for the function, e.g. `lambda: (rows, 3)`. For keyword arguments the thunk returns `call(...)`, e.g. `lambda: call(rows, sep=",")`; `call` is provided, do not import or define it. A method is called as a plain function: the thunk builds the instance and passes it as the first argument (a classmethod gets its class there, a staticmethod nothing; the task says which).
 **The thunk returns the arguments; it never calls the function under test.** We call the function with them, and time only that call.
 
 # Instructions
@@ -249,7 +249,7 @@ class Store:
                 os.close(o)
 
 
-CACHE_VERSION = b"3"        # raised when kept inputs could fail a new check: they are made again
+CACHE_VERSION = b"4"        # raised when kept inputs could fail a new check: they are made again
 
 
 def cache_key(root: Path, repo_name: str, unit: str) -> str:
@@ -515,7 +515,14 @@ def build_context(root: Path, unit: str) -> str:
         how = (f"`{parts[0]} = importlib.import_module({module!r}).{parts[0]}` "
                f"(the file name is not an identifier)")
     if len(parts) > 1:
-        how += f"; the method is called as `{qualname}(instance, ...)`"
+        kind = {d.id for d in getattr(node, "decorator_list", []) if isinstance(d, ast.Name)}
+        if "staticmethod" in kind:
+            how += f"; it is a staticmethod, called as `{qualname}(...)` with no instance"
+        elif "classmethod" in kind:
+            how += (f"; it is a classmethod, called as `{qualname}(cls, ...)`: pass the class "
+                    f"`{parts[-2]}` (or a subclass) as the first argument")
+        else:
+            how += f"; the method is called as `{qualname}(instance, ...)`"
 
     sections = [f"Repository: {root.name}",
                 f"Function under test: `{qualname}` in `{path}`",

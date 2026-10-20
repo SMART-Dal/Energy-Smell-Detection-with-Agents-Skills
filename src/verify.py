@@ -1032,8 +1032,12 @@ def session_floor(profile: Profile, meter: str, log) -> float:
     path = _calibration_path(profile)
     try:
         stored = json.loads(path.read_text())
+        # A floor too wide to resolve anything is measured again: kept for the
+        # session, it made every re-run `inconclusive`, however quiet the
+        # machine had become -- and re-running is what that verdict asks for.
         fresh = (stored.get("host") == platform.node()
-                 and time.time() - stored.get("measured_at", 0) < CALIBRATION_TTL_S)
+                 and time.time() - stored.get("measured_at", 0) < CALIBRATION_TTL_S
+                 and float(stored.get("noise_floor_pct", 0.0)) <= USABLE_FLOOR_PCT)
     except (OSError, ValueError):
         stored, fresh = {}, False
     if not fresh:

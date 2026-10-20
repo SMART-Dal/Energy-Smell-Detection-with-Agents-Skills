@@ -158,9 +158,11 @@ def main(argv: list[str] | None = None) -> int:
         if why is not None:
             print(f"note: skipping {name} -- {why}", file=sys.stderr)
 
-    findings = analyse_path(args.path, cross_unit=args.cross_unit)
+    findings = analyse_path(args.path, cross_unit=args.cross_unit,
+                            only_with_evidence=not args.unit)
     _report_rule_errors()
     table = load_signals()
+    scanned = findings
     findings = [item for item in findings if item.evidence]
 
     grouped = [group_findings(item.evidence, table) for item in findings]
@@ -172,9 +174,20 @@ def main(argv: list[str] | None = None) -> int:
         # nested helpers that happen to contain it.
         wanted = wanted or [u for u in described if args.unit in u["unit"]]
         if not wanted:
+            # Two different answers, which one message used to blur: an agent
+            # read "no unit ... has evidence" as a wrong name and tried three.
+            names = [f"{_relative(item.unit.path, args.path)}::{item.unit.qualname}"
+                     for item in scanned]
+            quiet = [n for n in names if n.split("::", 1)[1] == args.unit] or \
+                    [n for n in names if args.unit in n]
+            if quiet:
+                print("\n".join(f"{name}: no rule fired on it." for name in quiet[:5]))
+                print("That is a fact about the rules, not a verdict about the code: "
+                      "read it yourself.")
+                return 0
             parser.error(
-                f"no unit matching {args.unit!r} has evidence. Run without "
-                f"--unit for the index of the ones that do."
+                f"no unit named {args.unit!r} in {args.path}. Give it as the index "
+                f"prints it -- `path/to/file.py::Qualname`, or just `Qualname`."
             )
         print("\n".join(_render_unit(unit) for unit in wanted))
         return 0

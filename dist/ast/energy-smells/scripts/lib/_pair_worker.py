@@ -164,6 +164,9 @@ def _run_statements(name: str, file: Path, roots: list[Path], skipped: list[str]
             exec(code, module.__dict__)
         except ModuleNotFoundError as exc:
             if exc.name and not is_repo_module(roots, exc.name):
+                # The retry, with a stub, runs this module again from the top;
+                # left here, the half-run module came back as if loaded.
+                sys.modules.pop(name, None)
                 raise
             skipped.append(_statement(node, lines, exc))
         except (Exception, SystemExit) as exc:  # noqa: BLE001
@@ -352,9 +355,21 @@ class Side:
                     [Path(entry) for entry in self.paths], name, Path(self.root, path))
                 if old_name != name:
                     sys.modules.setdefault(old_name, module)
-                target = module
+                owner = target = module
                 for piece in qualname.split("."):
-                    target = getattr(target, piece)
+                    if not hasattr(target, piece) and self.skipped:
+                        # Usually a class whose statement failed, because an
+                        # import above it did: name that, not just the absence.
+                        stand_ins = (f", with stand-ins for {', '.join(self.stubbed)}"
+                                     if self.stubbed else "")
+                        raise AttributeError(f"{piece} is not defined here: loading the module "
+                                             f"skipped {'; '.join(self.skipped[:2])}{stand_ins}")
+                    owner, target = target, getattr(target, piece)
+                if isinstance(inspect.getattr_static(owner, piece, None), classmethod):
+                    # Looked up on its class, a classmethod comes back bound to
+                    # it. Called as a plain function like every other method, it
+                    # takes its class first -- what the inputs pass.
+                    target = target.__func__
                 self.function = _callable_unit(target)
             except (Exception, SystemExit):  # noqa: BLE001
                 raise LoadFailure("import")
@@ -388,7 +403,9 @@ class Side:
 
     def set_aside(self) -> None:
         """Take this copy's modules out of `sys.modules`, keeping them for later."""
-        for name in [n for n, m in sys.modules.items() if _owned_by(m, self.root)]:
+        # Over a copy: `_owned_by` reads `__file__`, and a lazily loaded module
+        # (transformers, for one) imports more modules on that read.
+        for name in [n for n, m in list(sys.modules.items()) if _owned_by(m, self.root)]:
             self.modules[name] = sys.modules.pop(name)
 
     def activate(self) -> None:

@@ -48,12 +48,29 @@ FILES = {1: ["step1.jsonl"], 2: ["step2.jsonl"], 3: ["step3.jsonl"],
 OPTIONAL = {"submissions.jsonl"}                       # a run may end with nothing to measure
 NOTE = "ROOT-CAUSE-CARDS-LOCKED.md"
 NEXT = {
-    1: "Step 2: read each unit and write step2.jsonl, one record per unit.",
-    2: "Step 3: decide every suspicion and write step3.jsonl. inputs.py runs from now on: ask "
-       "for the inputs of a unit as soon as you know you will repair it.{cards}",
+    1: "Step 2: read each unit and write step2.jsonl, one record per unit, working through "
+       "every sub-step of step 2 in SKILL.md, in order.",
+    2: "Step 3: decide every suspicion and write step3.jsonl.{cards} inputs.py runs from now "
+       "on: ask for the inputs of a unit as soon as you know you will repair it.",
     3: "Step 4: write submissions.jsonl and step4.jsonl; verify.py runs now.",
     4: "All four steps are finished. End with your summary.",
 }
+
+
+def _open_cards(records: list) -> str:
+    """The cards step 3 needs, named from the agent's own step 2.
+
+    "The cards are open now" was not enough: an agent that had met the lock in
+    step 1 wrote every decision without opening one.
+    """
+    named = sorted({str(s.get("root_cause")) for r in records if isinstance(r, dict)
+                    for s in r.get("suspicions") or [] if isinstance(s, dict) and s.get("root_cause")},
+                   key=lambda rc: [int(p) if p.isdigit() else 0 for p in rc.replace("C", "").split(".S")])
+    opened = " All the root-cause cards are open now, and stay open."
+    if not named:
+        return opened
+    return (opened + " Read the card of every root cause you suspected before deciding it: "
+            + ", ".join(f"$SKILL/reference/root-causes/{rc}.md" for rc in named) + ".")
 
 
 def digest(path: Path) -> str | None:
@@ -137,7 +154,7 @@ class StepKeeper:
             self._event(file="steps", event="done", step=step, records=len(records))
             if step == 2 and self.cards is not None:
                 self._cards(open_=True)
-        cards = " All the root-cause cards are open now." if self.cards is not None else ""
+        cards = _open_cards(records) if step == 2 and self.cards is not None else ""
         return {"ok": True, "done": list(self.done), "message":
                 f"Step {step} is finished: {', '.join(n for n in names if n in self.kept)} "
                 f"({len(records)} record(s)) kept as it is now, and read-only from here on. "

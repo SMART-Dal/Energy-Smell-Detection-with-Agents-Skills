@@ -115,7 +115,7 @@ def build_pool(make, size: int) -> list:
             seconds = 0.0           # a few microseconds time the clock, not the build
         over = ([f"{memory / 1e9:,.1f} GB (limit {POOL_LIMIT_BYTES / 1e9:.1f} GB)"]
                 if memory > POOL_LIMIT_BYTES else []) + \
-               ([f"about {seconds:,.0f}s (limit {POOL_LIMIT_S:g}s)"] if seconds > POOL_LIMIT_S else [])
+               ([f"about {seconds:,.1f}s (limit {POOL_LIMIT_S:g}s)"] if seconds > POOL_LIMIT_S else [])
         if over:
             raise PoolTooLarge(
                 f"each of the {size:,} calls in a window gets fresh arguments, "

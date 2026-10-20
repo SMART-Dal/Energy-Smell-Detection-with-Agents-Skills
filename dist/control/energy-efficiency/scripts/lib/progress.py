@@ -45,6 +45,9 @@ def step_refusal(after: int, what: str) -> str | None:
     if after in done:
         return None
     earlier = [f"`done {n}`" for n in range(1, after) if n not in done]
-    return (f"{what} begins once step {after} is finished, and you say so: run\n"
-            f"    python $SKILL/scripts/step.py done {after}\n"
-            + (f"(after {' and '.join(earlier)}), " if earlier else "") + "then run this again.")
+    # Not "run done N now": an agent told that finished step 2 on the spot,
+    # skipping its rules and its sweep, just to ask for inputs a step early.
+    return (f"{what} belongs to step {after + 1}, so it is not open yet. Carry on with "
+            f"step {after}: finish all of it, every sub-step in SKILL.md, and only then "
+            f"say so with `python $SKILL/scripts/step.py done {after}`"
+            + (f" (after {' and '.join(earlier)})" if earlier else "") + ". Run this again after that.")
