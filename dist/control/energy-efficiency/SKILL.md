@@ -13,8 +13,9 @@ Paths below are relative to this file's directory — call it `$SKILL`. Work out
 what `$SKILL` is once, at the start, and use it throughout.
 
 **Time:** you have 60 minutes for the whole run, thinking and measuring
-included, and the session is stopped at 60 — so do not deliberate at length:
-decide, write it down, and move on.
+included, and the session is stopped at 60. That is enough to be thorough, so
+do not rush: give each unit the reading it needs, and keep enough of the hour
+for step 4, where measuring takes about a minute a repair.
 
 ---
 
@@ -148,14 +149,19 @@ outside it as far as you need. A unit named loosely — "the render function" �
 is yours to pin down: find it, and record the exact `path::qualname` it
 resolved to. If more than one function matches, all of them are the target.
 
-**How many:** every unit in the target, unless you were asked for a number of
-units — then at most that many, the hottest first. You may change which units
-those are until you finish step 1, if something you read shows you a hotter
-one; just do not go over the number. It limits units and nothing else: within a unit,
-record every suspicion you have.
+**How many:** every unit in the target you can get through in the hour — all
+of them, if you can. Nothing else limits the units you examine or the smells
+you report: one, ten, a hundred or a thousand, whatever the code holds. Work
+through the target hottest first and miss nothing you reach. A unit with
+plainly nothing to repair is cleared in step 2 with a short reason, and still
+counts as examined. Within a unit, record every suspicion you have.
+
+If you were asked for a number of units, examine at most that many, the
+hottest first. You may change which units those are until you finish step 1,
+if something you read shows you a hotter one; just do not go over the number.
 
 Read the repository first: its entry points, what its tests exercise, what its
-README says it is for. Then pick the units where energy is actually spent, in
+README says it is for. Then find the units where energy is actually spent, in
 this order of priority:
 
 1. **work that repeats** — the deepest loop nests, and the helpers those loops
@@ -167,7 +173,7 @@ this order of priority:
 **Order them by how much energy you expect a repair to save** — how often the
 unit runs, multiplied by how much work one run does — and work from the top.
 With a number to keep to, the units you examine have to be the ones where most
-of the energy goes.
+of the energy goes; without one, the order decides what the hour reaches first.
 
 ```jsonc
 {"step": 1, "target": "src/", "unit_limit": 10, "units_considered": 128,
@@ -243,8 +249,8 @@ Give each suspicion a `label` — `a`, `b`, `c` — unique within the unit. Step
 and 4 refer to it. A unit with nothing suspicious gets the same record with
 `"suspicions": []` and `cleared_because` saying why.
 
-**At most 12 suspicions per unit.** The cap makes you rank rather than list. If
-you are at the cap, keep the ones you would actually spend an hour repairing.
+**Record every suspicion, however many.** Writing one down costs nothing, and
+step 3 is where each is checked: do not hold one back because you are unsure.
 
 Write each unit's record to `step2.jsonl`. When every unit you examine has its
 record, step 2 is finished: run `python $SKILL/scripts/step.py done 2`.
@@ -266,8 +272,8 @@ and add a new one, with a new label, saying what you now think. That keeps what
 you first thought on the record, which is the part worth reading later.
 
 The list may also **grow** here: reading a second time to write a repair is one
-of the better ways to notice something you missed. Step 2's cap does not apply,
-and a rejection with a reason is as much a result as an acceptance.
+of the better ways to notice something you missed. A rejection with a reason
+is as much a result as an acceptance.
 
 **For each suspicion:**
 

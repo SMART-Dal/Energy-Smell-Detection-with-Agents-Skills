@@ -143,8 +143,8 @@ Full index, with one line per root cause: `$SKILL/reference/README.md`.
    but is not`) fits, reject and name it. If another root cause fits better,
    reject this one and add that.""",
     "DECIDE_GROWTH": """The list may also **grow** here: reading the cards is one of the
-better ways to find a root cause nobody suspected. Step 2's cap does not apply,
-and a rejection with a reason is as much a result as an acceptance.""",
+better ways to find a root cause nobody suspected. A rejection with a reason
+is as much a result as an acceptance.""",
     "DECIDE_MOVE": """Every suspicion ends this step **accepted** or **rejected**, and nothing is
 edited in place. If the card says a suspicion belongs somewhere else, reject it
 and add a new one, with a new label, for the root cause that fits, with
@@ -291,8 +291,8 @@ explains why the edit saves energy.
     "DECIDE_APPLIES": """Does your account of the waste still hold on a second
    reading, or was it the shape of the code rather than what it does?""",
     "DECIDE_GROWTH": """The list may also **grow** here: reading a second time to write a repair is one
-of the better ways to notice something you missed. Step 2's cap does not apply,
-and a rejection with a reason is as much a result as an acceptance.""",
+of the better ways to notice something you missed. A rejection with a reason
+is as much a result as an acceptance.""",
     "DECIDE_MOVE": """Every suspicion ends this step **accepted** or **rejected**, and nothing is
 edited in place. If the second reading changes your mind, reject the suspicion
 and add a new one, with a new label, saying what you now think. That keeps what
@@ -387,7 +387,7 @@ missed something.
 
 # -- step 1's one optional line -------------------------------------------
 #
-# Step 1 is identical in every arm: read the repository, pick the units, order
+# Step 1 is identical in every arm: read the repository, find the units, order
 # them by expected saving. An arm that ships the scanner adds a single line
 # offering it as a second opinion. It is deliberately not a step -- making the
 # agent run a tool to choose units would be a different instruction from the
@@ -395,7 +395,7 @@ missed something.
 # evidence available, not the procedure.
 
 _SCANNER_HINT = """
-`python $SKILL/scripts/scan.py <path> --units --top 20` will also list the
+`python $SKILL/scripts/scan.py <path> --units --top 100` will also list the
 units, ordered by loop nesting and how many places call them. It is a guess
 made from syntax and says nothing about what might be wrong with any of them,
 so treat it as a second opinion on the order rather than the order itself.
