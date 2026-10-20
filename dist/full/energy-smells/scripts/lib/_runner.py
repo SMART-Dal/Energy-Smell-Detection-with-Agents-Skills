@@ -63,7 +63,7 @@ def burn_cpu(seconds: float) -> float:
     return total
 
 
-POOL_LIMIT_S = 5.0
+POOL_LIMIT_S = 10.0
 """Longest a pool of fresh arguments may take to build, before one window."""
 
 POOL_LIMIT_BYTES = 2 << 30
