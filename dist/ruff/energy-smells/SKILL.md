@@ -12,6 +12,10 @@ the program does.
 Paths below are relative to this file's directory — call it `$SKILL`. Work out
 what `$SKILL` is once, at the start, and use it throughout.
 
+**Time:** you have 60 minutes for the whole run, thinking and measuring
+included, and the session is stopped at 60 — so do not deliberate at length:
+decide, write it down, and move on.
+
 ---
 
 ## What counts as a finding
