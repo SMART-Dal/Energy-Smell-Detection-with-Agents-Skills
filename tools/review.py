@@ -135,7 +135,8 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
     if measured:
         floors = [r["noise_floor_pct"] for r in measured]
         sources = sorted({r.get("floor_source") or "unknown" for r in measured})
-        out.append(f"Noise floor {min(floors):.1f}–{max(floors):.1f}% "
+        low, high = f"{min(floors):.1f}", f"{max(floors):.1f}"
+        out.append(f"Noise floor {low if low == high else f'{low}–{high}'}% "
                    f"(from: {', '.join(sources)}).")
     out.append("")
 

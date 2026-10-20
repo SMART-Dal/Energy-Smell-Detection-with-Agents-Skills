@@ -698,16 +698,17 @@ def verify(engine, *, profile: Profile, meter: str = "auto",
             f"  ->  {outcome.repeats:,} repeats{note}")
 
     engine.warm(profile.warmup)
-    log(f"\nmeasurement  ({profile.reps} paired reps, ~{profile.window:g}s windows)")
+    log(f"\nmeasurement  ({profile.reps} paired reps, ~{profile.window:g}s windows; "
+        f"saved is before minus after, so negative means the repair costs more)")
     plans = [{"index": index, "repeats": outcome.repeats, "mutates": outcome.mutates_args,
               "reps": outcome.reps} for index, outcome in enumerate(result.per_case)]
     for outcome, comparison in zip(result.per_case, engine.measure(plans, meter=meter)):
         outcome.record(comparison)
         result.note_coverage(meter, comparison.domains, log)
-        log(f"  {outcome.label:<14} {outcome.energy_saved_pct:+7.2f}% energy "
-            f"+-{outcome.energy_ci_pct:.2f}%   "
-            f"{'significant' if outcome.significant else 'not significant':<16}"
-            f"time {outcome.time_saved_pct:+.2f}% +-{outcome.time_ci_pct:.2f}%")
+        # "saved", spelled out: "-4.76% energy" read as a saving when it was a loss.
+        log(f"  {outcome.label:<14} {outcome.energy_saved_pct:+7.2f}% +-{outcome.energy_ci_pct:.2f}% "
+            f"energy saved   {'significant' if outcome.significant else 'not significant':<16}"
+            f"{outcome.time_saved_pct:+.2f}% +-{outcome.time_ci_pct:.2f}% time saved")
 
     if profile.canary and result.per_case:
         # The floor has to be measured on one case, and measuring it on every
