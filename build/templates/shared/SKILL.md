@@ -170,8 +170,11 @@ With a number to keep to, the units you examine have to be the ones where most
 of the energy goes; without one, the order decides what the hour reaches first.
 
 ```jsonc
-{"step": 1, "target": "src/", "unit_limit": 10, "units_considered": 128,
- "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"]}
+{"step": 1, "target": "src/", "unit_limit": null, "units_considered": 128,
+ "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
+                  "src/parse.py::Lexer.advance", "src/index.py::Index.add",
+                  "src/index.py::Index.lookup", "src/export.py::write_rows",
+                  ...]}   // shortened here: every unit you will get through, hottest first
 ```
 
 Write it to `step1.jsonl`. Rewrite it as often as you like while step 1 is

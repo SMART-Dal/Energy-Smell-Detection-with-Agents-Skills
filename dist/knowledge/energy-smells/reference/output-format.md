@@ -40,8 +40,11 @@ Step 5 writes no record: its output is your final message.
 Shown expanded here; each is written on a single line.
 
 ```jsonc
-{"step": 1, "target": "src/", "unit_limit": 10, "units_considered": 128,
- "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize"]}
+{"step": 1, "target": "src/", "unit_limit": null, "units_considered": 128,
+ "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
+                  "src/parse.py::Lexer.advance", "src/index.py::Index.add",
+                  "src/index.py::Index.lookup", "src/export.py::write_rows",
+                  ...]}   // shortened here: every unit you will get through, hottest first
 ```
 
 ```jsonc
