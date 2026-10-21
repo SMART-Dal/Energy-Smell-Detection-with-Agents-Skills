@@ -95,13 +95,14 @@ def audit(calls, run: dict) -> dict:
 # The keys every record must carry, from the skill's output-format.md (Oct 13
 # 2026). The control arm has no taxonomy, so no `root_cause` and no `found_by`.
 RECORD_KEYS = {
-    1: {"step", "target", "unit_limit", "units_considered", "will_examine"},
+    1: {"step", "target", "unit_limit", "units_considered", "will_examine", "passed_over"},
     2: {"step", "unit", "what_it_does", "cost_driver", "own_hypotheses", "suspicions",
         "cleared_because"},
     3: {"step", "unit", "decisions"},
     4: {"step", "unit", "outcomes"},
 }
 ITEM_KEYS = {
+    "passed_over": {"unit", "why"},
     "suspicions": {"label", "root_cause", "lines", "why", "found_by"},
     "decisions": {"label", "root_cause", "lines", "verdict", "why", "found_by"},
     "outcomes": {"label", "outcome", "submission", "why"},
@@ -199,6 +200,55 @@ def unbacked_claims(findings: list[dict], facts) -> list[str]:
     return unbacked
 
 
+def target_units(run: dict) -> set[str] | None:
+    """Every unit of the repository as the skill counts them: functions and
+    methods, `path::qualname`, not a function defined inside another function.
+    Found with the scanner's own file walk, so it sees the files the agent's
+    scan sees. None when the clean clone or the project's code is not there."""
+    root = Path(run["exp"]) / "pristine" / run["repo"]
+    src = str(Path(run["project"]) / "src")
+    if not root.is_dir():
+        return None
+    if src not in sys.path:
+        sys.path.insert(0, src)
+    try:
+        from lib.analysis.engine import python_files
+        from lib.analysis.units import iter_units, parse_file
+    except ImportError:
+        return None
+    names = set()
+    for path in python_files(root):
+        tree = parse_file(path)
+        if tree is None:
+            continue
+        units = [unit for unit, _ in iter_units(path, tree) if unit.kind != "class"]
+        functions = {unit.qualname for unit in units}
+        for unit in units:
+            parts = unit.qualname.split(".")
+            if not any(".".join(parts[:i]) in functions for i in range(1, len(parts))):
+                names.add(f"{path.relative_to(root)}::{unit.qualname}")
+    return names
+
+
+def step1_coverage(findings: list[dict], run: dict) -> dict:
+    """Step 1's decision on every unit: picked, passed over, or neither (missed)."""
+    step1 = next((f for f in findings if f.get("step") == 1), {})
+    def name(unit) -> str:
+        return str(unit).strip().removeprefix("./")
+
+    picked = {name(u) for u in step1.get("will_examine") or []}
+    passed = {name(p.get("unit")) for p in step1.get("passed_over") or [] if isinstance(p, dict)}
+    units = target_units(run)
+    known = (picked | passed) & units if units is not None else picked | passed
+    return {
+        "units_in_target": len(units) if units is not None else None,
+        "units_picked": len(picked),
+        "units_passed_over": len(passed),
+        "units_decided": len(known),
+        "units_missed": len(units - known) if units is not None else None,
+    }
+
+
 def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
              scan_dir: Path, outputs: list[str] = ()) -> dict:
     """Did the agent do the steps? Counted from its tool calls and its files."""
@@ -256,7 +306,13 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
         flags.append("no_category_cards")
     if run["arm"] != "control" and step2 and not index_read:
         flags.append("no_index_sweep")
+    # Step 1 decides every unit of the target: picked, or passed over with a
+    # reason (Oct 21). A unit in neither list was never looked at.
+    coverage = step1_coverage(findings, run)
+    if coverage["units_missed"]:
+        flags.append("units_not_decided")
     return {
+        **coverage,
         "units_examined": len({f.get("unit") for f in step2}),
         "suspicions": len(suspicions),
         "category_cards_opened": sorted(categories),
@@ -412,6 +468,8 @@ def main() -> int:
         "repo_files_changed": len(changes),
         "leak_flags": ";".join(k for k in meta["leak_audit"] if k != "development_project") or "none",
         "units_examined": meta["protocol"]["units_examined"],
+        "units_in_target": meta["protocol"]["units_in_target"],
+        "units_decided": meta["protocol"]["units_decided"],
         "category_cards": len(meta["protocol"]["category_cards_opened"]),
         "root_cause_cards": len(meta["protocol"]["root_cause_cards_opened"]),
         "rule_scans": meta["protocol"]["rule_scans"],
