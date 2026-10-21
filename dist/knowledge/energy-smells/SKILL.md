@@ -15,6 +15,14 @@ a few that turn up early in one or two files. A run that stops after two or
 three findings has not done it. Keep going until every file has been read, and
 report what you find whether or not it can be measured here.
 
+Why this matters more than speed: a smell in code you never read is never
+found. Nothing later in the procedure goes back to code left out of step 1, and
+the report then reads as if that code were clean, so a missed inefficiency
+costs more than any minutes spent reading. Keep working until all of it is
+done — every file read, every suspicion decided, every accepted one given an
+outcome. Do not stop partway to report progress or to ask whether to go on;
+stop to ask only when you cannot continue without an answer.
+
 Paths below are relative to this file's directory — call it `$SKILL`. Work out
 what `$SKILL` is once, at the start, and use it throughout.
 
@@ -173,6 +181,21 @@ read, and work through that list file by file, reading every function and
 method in each. Do not stop at the first files that turn something up: the
 target is not done until every file in it has been read.
 
+**The list you finish step 1 with is final.** No later step can add a unit to
+it, so a file not read here is a file no one examines.
+
+**You may hand the reading to subagents** — on a large target it is the
+quickest way to read all of it. If you can start subagents (in Claude Code, the
+Agent tool; its read-only `Explore` type fits), split the file list into groups
+and start one subagent per group, all in the same turn so they read in
+parallel. Tell each to read every function and method in its files in full, and
+to report for each its `path::qualname`, its lines, and anything in it that
+looks like work the program does not need, work done more often than needed, or
+work done more expensively than its result requires. Their reports are leads
+for your list, not findings: you choose the units, you read every unit you
+choose yourself in step 2, and only you write the step files and run the
+scripts.
+
 **Leave nothing out because of what you expect later.** Code that calls a
 network or a service, code you doubt any input could be generated for, a
 script, a long file: read it all the same, and pick what looks inefficient in
@@ -201,6 +224,8 @@ number.
 
 Write it to `step1.jsonl`. Rewrite it as often as you like while step 1 is
 open; when the list is final, run `python $SKILL/scripts/step.py done 1`.
+Before you do, check the file list: every file on it has been read, by you or
+by a subagent. If one has not, step 1 is not finished.
 
 Keep this list. Every unit on it gets a step-2 record, including the ones you
 clear — a run that examined three functions and one that examined three
@@ -543,7 +568,8 @@ Failure modes, in the order they actually happen:
 
 1. **Stopping early.** Reading a few files, picking two or three units from
    them and taking those through to the end. It feels like progress and leaves
-   most of the target unread. Read every file first, and pick from all of them.
+   most of the target unread, and the list cannot grow after step 1. Read every
+   file first, yourself or through subagents, and pick from all of them.
 1. **Deciding from the label.** "Nested loops, so it must be an algorithmic
    complexity problem." Open the card; most of them are narrower than the name.
 1. **One label dominating.** If a third of your findings share a root cause,
