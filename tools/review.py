@@ -32,6 +32,7 @@ import json
 import statistics
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,7 +54,34 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
-    """Every submission, re-measured, without touching the agent's file."""
+    """Every submission, re-measured, without touching the agent's file.
+
+    A line left `inconclusive` -- the host's noise floor too high to resolve
+    anything -- is measured once more, after a fresh calibration: a passing
+    burst of noise (Oct 21) left a 58% saving inconclusive here, minutes after
+    the agent measured it on a 1.5% floor. The agent re-runs verify.py for such
+    lines; the review, which runs once, did not.
+    """
+    results = _verify(repo, submissions, inputs)
+    again = {r.get("id") for r in results if r.get("status") == "inconclusive"}
+    if not again:
+        return results
+    lines = []
+    for line in submissions.read_text(encoding="utf-8").splitlines():
+        try:
+            if json.loads(line).get("id") in again:
+                lines.append(line)
+        except ValueError:
+            continue
+    with tempfile.TemporaryDirectory() as scratch:
+        subset = Path(scratch) / "submissions.jsonl"
+        subset.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
+        retried = {r.get("id"): {**r, "measured_twice": True}
+                   for r in _verify(repo, subset, inputs)}
+    return [retried.get(r.get("id"), r) for r in results]
+
+
+def _verify(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
     completed = subprocess.run(
         [sys.executable, str(VERIFY), str(submissions), "--repo", str(repo),
          "--no-record", "--json"] + (["--inputs", str(inputs)] if inputs else []),
