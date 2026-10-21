@@ -40,15 +40,24 @@ def usage(events: list[dict]) -> dict:
     results = [e for e in events if e.get("type") == "result"]
     if not results:
         return {"result": "missing"}
+    # A session can end more than once: a background command that finishes
+    # after the agent's last turn wakes it for another (Opus, Oct 21: 50 turns,
+    # then 1). Cost and modelUsage are the session's totals on every line, so
+    # the last line has them; turns and duration are per line, so they add up.
     r = results[-1]
     tokens = collections.Counter()
     for u in (r.get("modelUsage") or {}).values():
         for key in ("inputTokens", "outputTokens", "cacheReadInputTokens",
                     "cacheCreationInputTokens"):
             tokens[key] += u.get(key) or 0
-    return {"result": r.get("subtype"), "cost_usd_estimate": r.get("total_cost_usd"),
-            "duration_ms": r.get("duration_ms"), "duration_api_ms": r.get("duration_api_ms"),
-            "num_turns": r.get("num_turns"), "tokens": dict(tokens),
+    errors = sorted({str(e["api_error_status"]) for e in results if e.get("api_error_status")})
+    return {"result": f"api_error {','.join(errors)}" if errors else r.get("subtype"),
+            "api_error": next((str(e.get("result"))[:300] for e in results
+                               if e.get("api_error_status")), None),
+            "cost_usd_estimate": r.get("total_cost_usd"),
+            "duration_ms": sum(e.get("duration_ms") or 0 for e in results),
+            "duration_api_ms": r.get("duration_api_ms"),
+            "num_turns": sum(e.get("num_turns") or 0 for e in results), "tokens": dict(tokens),
             "model_usage": r.get("modelUsage")}
 
 
@@ -157,6 +166,8 @@ def schema(findings: list[dict], submissions: list[dict], arm: str) -> list[str]
 
 
 CARD = re.compile(r"(?<![\w.])(C\d{1,2}(?:\.S\d{1,2})?)\.md\b")
+LOOPED_CARD = re.compile(r"\$\{?\w+\}?\.md\b")
+"""A card file named through a shell variable, as a `for` loop over IDs reads them."""
 """A card file, however its path is spelled: `$S/C1.S5.md` and `cd root-causes;
 sed C3.S4.md` read cards as surely as the full path does."""
 
@@ -229,6 +240,15 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
                 if not re.match(r"(wc|ls|find|du|stat)\b", part)]
         for card in CARD.findall(" ".join(read) if name in ("Bash", "bash") else text):
             (root_causes if ".S" in card else categories).add(card)
+        # Cards read through a loop variable -- `for c in C7.S5 C3.S2 ...; do
+        # cat $c.md; done` -- name no file: the IDs are in the loop's list.
+        # Opus read 24 cards that way on Oct 21 and was counted as reading 2.
+        joined = " ".join(read)
+        if name in ("Bash", "bash") and LOOPED_CARD.search(joined):
+            if "root-causes" in joined:
+                root_causes.update(re.findall(r"(?<![\w.])C\d{1,2}\.S\d{1,2}(?![\w.])", joined))
+            if "categories" in joined:
+                categories.update(re.findall(r"(?<![\w.])C\d{1,2}(?![\w.])", joined))
     rankings = rule_scans = 0
     for name, text in calls:
         if name != "Bash":

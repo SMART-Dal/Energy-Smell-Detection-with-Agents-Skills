@@ -266,7 +266,12 @@ run_one() {  # repo, arm, model
     (cd "$RUN/$repo" && claude_run "$model" "${PROMPT[$arm]}") >&3 2>&4
   fi
   rc=$?
+  # Our folder's mode as the agent left it, before we open it again: anything
+  # but 000 means the agent (same user) unlocked it. summarize.py flags it.
+  local exp_mode
+  exp_mode=$(stat -c %a "$EXP")
   unlock
+  [ "$exp_mode" = 0 ] || log "WARNING $id: $EXP was mode $exp_mode when the agent ended, not 000"
   exec 3>&- 4>&-
   local agent_s=$((SECONDS - start))
   log "agent done $id: exit $rc after $((agent_s / 60)) min"
@@ -301,8 +306,8 @@ run_one() {  # repo, arm, model
 
   printf '{"run_id":"%s","repo":"%s","repo_commit":"%s","arm":"%s","model":"%s","effort":"%s",' \
     "$id" "$repo" "$(awk -v r="$repo" '$1 == r {print $3}' "$HARNESS/repos.tsv")" "$arm" "$model" "$EFFORT" > "$out/run.json"
-  printf '"status":"%s","agent_exit":%d,"agent_seconds":%d,"review_seconds":%d,"started":"%s",' \
-    "$status" "$rc" "$agent_s" "$((SECONDS - review_start))" "$started" >> "$out/run.json"
+  printf '"status":"%s","agent_exit":%d,"agent_seconds":%d,"review_seconds":%d,"started":"%s","exp_mode_at_end":"%s",' \
+    "$status" "$rc" "$agent_s" "$((SECONDS - review_start))" "$started" "$exp_mode" >> "$out/run.json"
   printf '"project_commit":"%s","project_uncommitted_files":%d,"claude_version":"%s","exp":"%s","run":"%s","project":"%s"}\n' \
     "$(git -C "$PROJECT" rev-parse HEAD)" "$(git -C "$PROJECT" status --porcelain -- src build dist tools | wc -l)" \
     "$("$CLAUDE" --version)" "$EXP" "$RUN" "$PROJECT" >> "$out/run.json"
