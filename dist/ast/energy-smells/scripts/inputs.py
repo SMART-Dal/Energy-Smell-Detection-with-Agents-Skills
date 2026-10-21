@@ -53,6 +53,8 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         for unit in answer.get("accepted", []):
             print(f"  requested  {unit}")
+        for unit in answer.get("again", []):
+            print(f"  again      {unit}  (it failed before; generating it once more)")
         for unit in answer.get("already", []):
             print(f"  already    {unit}")
         for row in answer.get("rejected", []):

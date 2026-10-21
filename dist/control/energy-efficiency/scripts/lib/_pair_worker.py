@@ -331,7 +331,13 @@ class Side:
         self.workdir = Path(workdir).resolve()
         self.workdir.mkdir(parents=True, exist_ok=True)
         # Longest first, so a scratch directory inside the copy is not half-replaced.
-        self.replace = tuple(sorted(((self.root, "<REPO>"), (str(self.workdir), "<WORKDIR>")),
+        # The scratch directory relative to the copy (calls run with the copy as
+        # cwd) differs between the sides too: an input built with os.path.relpath
+        # printed `../io-before/...` beside `../io-after/...`, and a correct
+        # repair came back not_equivalent (Oct 21).
+        relative = os.path.relpath(self.workdir, self.root)
+        self.replace = tuple(sorted(((self.root, "<REPO>"), (str(self.workdir), "<WORKDIR>"),
+                                     (relative, "<WORKDIR>")),
                                     key=lambda pair: -len(pair[0])))
         self.modules: dict = {}
         self.warmed: set[int] = set()

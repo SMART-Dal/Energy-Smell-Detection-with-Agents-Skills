@@ -352,7 +352,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    `python $SKILL/scripts/inputs.py status` shows which units are ready. A unit
    the generator could not build inputs for — it needs the network, a service,
    hardware — is listed as `failed` with the reason; its suspicions are
-   `blocked`, with that reason.
+   `blocked`, with that reason. When the reason is a package missing from this
+   environment, install it into this venv and request the unit again first.
 
 3. **For each chosen suspicion, write the smallest repair of the original
    code** that removes its waste, as one line in `submissions.jsonl`. Every

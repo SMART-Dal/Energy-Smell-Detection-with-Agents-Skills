@@ -121,10 +121,23 @@ first run a timeout to match — fifteen minutes plus a minute per repair — or
 run it in the background. A unit still not ready after that comes back
 `no_inputs` and is measured by the next run.
 
+**A module that does work when it is imported can still be measured** — a
+script that reads `sys.argv`, opens files or calls a server at its top level.
+When importing it fails, it is loaded one top-level statement at a time: the
+statements that fail are skipped and reported, and the unit is measured if it
+is still defined. So ask for its inputs rather than assuming it cannot run; the
+generator says so when it cannot.
+
+**A unit listed as `failed` can be asked for again** once you have fixed what
+stopped it. If the reason is a package missing from this environment, install
+it into this venv — whatever you install stays for the re-measurement after
+the session — and request the unit again; it is generated once more, up to
+three times a session.
+
 Each unit's inputs are one file in `.energy-inputs/`, read-only. Read it before
 you write the repair: it is exactly what the repair will be measured on. They
-cannot be changed or generated again, and editing the file would change
-nothing that counts — the result after the session is measured on our copy.
+cannot be changed, and editing the file would change nothing that counts —
+the result after the session is measured on our copy.
 The file defines two functions, each returning `(label, thunk)` pairs:
 
 - **`checks()`** — edge inputs: empty, one element, `None`, an odd type. Both

@@ -45,6 +45,10 @@ from steps import StepKeeper  # noqa: E402
 from lib.inputs import DIRNAME, FAILED, MAX_UNITS, PENDING, READY, STATUS, file_name  # noqa: E402
 from lib.splice import split_name  # noqa: E402
 
+MAX_ATTEMPTS = 3
+"""Times one unit may be generated in a session: a failed unit can be asked for
+again, after the agent fixes what stopped it, but not without end."""
+
 VALIDATIONS_AT_ONCE = 8
 """Candidates executing at the same time. The LLM calls all run at once; executing
 twenty sets of candidates at once, each in a worker holding two copies of the
@@ -140,25 +144,35 @@ class Service:
     def request(self, units) -> dict:
         if not isinstance(units, list):
             return {"ok": False, "error": "`units` must be a list of path::qualname strings"}
-        accepted, already, rejected = [], [], []
+        accepted, again, already, rejected = [], [], [], []
         with self.lock:
             if self.closing:
                 return {"ok": False, "error": "the session is over; no more requests"}
             for unit in dict.fromkeys(units):
                 problem = self._check_unit(unit)
+                entry = self.units.get(unit)
                 if problem:
                     rejected.append({"unit": unit, "why": problem})
-                elif unit in self.units:
+                elif entry and entry["state"] == FAILED and entry.get("attempts", 1) < MAX_ATTEMPTS:
+                    # A unit that failed may load now: the agent may install a
+                    # missing package into this venv, which the generator runs in.
+                    # Asked again, it is generated again (Oct 21: colpali_engine).
+                    self.units[unit] = {"state": PENDING, "requested": time.time(),
+                                        "attempts": entry.get("attempts", 1) + 1}
+                    self.futures.append(self.pool.submit(self._job, unit))
+                    again.append(unit)
+                elif entry:
                     already.append(unit)
                 elif len(self.units) >= MAX_UNITS:
                     rejected.append({"unit": unit, "why": f"at most {MAX_UNITS} units a session"})
                 else:
-                    self.units[unit] = {"state": PENDING, "requested": time.time()}
+                    self.units[unit] = {"state": PENDING, "requested": time.time(), "attempts": 1}
                     self.futures.append(self.pool.submit(self._job, unit))
                     accepted.append(unit)
-            if accepted:
+            if accepted or again:
                 self._publish_status()
-        return {"ok": True, "accepted": accepted, "already": already, "rejected": rejected}
+        return {"ok": True, "accepted": accepted, "again": again, "already": already,
+                "rejected": rejected}
 
     def _job(self, unit: str) -> None:
         started = time.monotonic()
@@ -189,12 +203,13 @@ class Service:
             row.update(ready=False)
         row.update(seconds=round(time.monotonic() - started, 1), reason=reason or None)
         with self.lock:
+            attempts = self.units.get(unit, {}).get("attempts", 1)
             if source:
                 self.out.write(file_name(unit), source)
                 self._write_agent(file_name(unit), source)
-                self.units[unit] = {"state": READY, "file": file_name(unit)}
+                self.units[unit] = {"state": READY, "file": file_name(unit), "attempts": attempts}
             else:
-                self.units[unit] = {"state": FAILED, "reason": reason}
+                self.units[unit] = {"state": FAILED, "reason": reason, "attempts": attempts}
             self._publish_status()
         self._log(row)
 

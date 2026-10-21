@@ -60,7 +60,9 @@ def inputs_for(unit: str, directory: Path) -> tuple[str | None, str]:
     if entry.get("state") == FAILED:
         return None, (
             f"no inputs could be generated for {unit}: {entry.get('reason') or 'unknown'}. "
-            f"Its repairs cannot be measured here: record their suspicions as `blocked`, "
+            f"If that is a package missing from this environment, install it into this "
+            f"venv and request the unit again (`inputs.py request {unit}`); otherwise its "
+            f"repairs cannot be measured here: record their suspicions as `blocked`, "
             f"with this reason.")
     if entry.get("state") != READY:
         return None, f"the inputs for {unit} are still being generated; run verify.py again"
