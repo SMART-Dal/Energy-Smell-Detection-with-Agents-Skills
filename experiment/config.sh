@@ -7,8 +7,11 @@ RUN=${ENERGY_RUN:-$HOME/energy-run}   # the current run only: repo copy, venv, C
 
 MODELS=(claude-opus-5-5 claude-sonnet-5-5 claude-haiku-5-5)
 ARMS=(full knowledge control)
-EFFORT=medium                   # every model alike: the default of Opus 5.5 and Haiku 5.5 (Sonnet 5.5's is
-                                # high), and the level Anthropic suggests starting agentic tool use at
+EFFORT=medium                   # the default of Opus 5.5 and Haiku 5.5 (Sonnet 5.5's is high), and the
+                                # level Anthropic suggests starting agentic tool use at
+# A model listed here runs at its own level instead. Sonnet at medium stopped
+# after 2-3 units in every run (Oct 20-21); Javad moved it to high, its default.
+declare -A EFFORT_OF=([claude-sonnet-5-5]=high)
 
 AGENT_TIMEOUT=60m               # the agent's whole session, its own measurements included.
                                 # SKILL.md tells the agent "60 minutes" (build/templates/shared/SKILL.md): change both.

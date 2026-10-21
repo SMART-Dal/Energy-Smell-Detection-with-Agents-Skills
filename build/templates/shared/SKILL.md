@@ -12,7 +12,8 @@ the program does.
 **The task is to cover everything you were asked to look at** — every file,
 every function and every method — and to report every case you find there, not
 a few that turn up early in one or two files. A run that stops after two or
-three findings has not done it.
+three findings has not done it. Keep going until every file has been read, and
+report what you find whether or not it can be measured here.
 
 Paths below are relative to this file's directory — call it `$SKILL`. Work out
 what `$SKILL` is once, at the start, and use it throughout.
@@ -156,6 +157,12 @@ file.** List the target's Python files first, so you know what there is to
 read, and work through that list file by file, reading every function and
 method in each. Do not stop at the first files that turn something up: the
 target is not done until every file in it has been read.
+
+**Leave nothing out because of what you expect later.** Code that calls a
+network or a service, code you doubt any input could be generated for, a
+script, a long file: read it all the same, and pick what looks inefficient in
+it. Whether a repair can be measured is step 4's question, and one that cannot
+is still a finding, recorded as `blocked` with the reason.
 
 As you read, pick out every unit where something looks inefficient to you:
 work the program does not need, work done more often than necessary, or work
@@ -403,6 +410,9 @@ suspicions were deferred unmeasured.
 
 Failure modes, in the order they actually happen:
 
+1. **Stopping early.** Reading a few files, picking two or three units from
+   them and taking those through to the end. It feels like progress and leaves
+   most of the target unread. Read every file first, and pick from all of them.
 {{FAILURE_MODES_CARDS}}1. **Repeating what you have read about Python performance.** Much of it is
    out of date, and some of it was never true. Every claim here gets measured,
    and the ones you are most certain about are the ones worth measuring first.

@@ -71,7 +71,7 @@ claude_run() {  # model, prompt
     TMPDIR="$RUN/tmp" ENERGY_INPUTS_SOCKET="$RUN/inputs.sock" \
     CLAUDE_CONFIG_DIR="$RUN/claude-config" CLAUDE_CODE_API_KEY_HELPER_TTL_MS=86400000 \
     timeout -k 2m -s INT "$AGENT_TIMEOUT" \
-    "$CLAUDE" -p "$2" --model "$1" --effort "$EFFORT" \
+    "$CLAUDE" -p "$2" --model "$1" --effort "${EFFORT_OF[$1]:-$EFFORT}" \
       --permission-mode bypassPermissions --permission-prompts none \
       --output-format stream-json --verbose < /dev/null
 }
@@ -305,7 +305,7 @@ run_one() {  # repo, arm, model
   fi
 
   printf '{"run_id":"%s","repo":"%s","repo_commit":"%s","arm":"%s","model":"%s","effort":"%s",' \
-    "$id" "$repo" "$(awk -v r="$repo" '$1 == r {print $3}' "$HARNESS/repos.tsv")" "$arm" "$model" "$EFFORT" > "$out/run.json"
+    "$id" "$repo" "$(awk -v r="$repo" '$1 == r {print $3}' "$HARNESS/repos.tsv")" "$arm" "$model" "${EFFORT_OF[$model]:-$EFFORT}" > "$out/run.json"
   printf '"status":"%s","agent_exit":%d,"agent_seconds":%d,"review_seconds":%d,"started":"%s","exp_mode_at_end":"%s",' \
     "$status" "$rc" "$agent_s" "$((SECONDS - review_start))" "$started" "$exp_mode" >> "$out/run.json"
   printf '"project_commit":"%s","project_uncommitted_files":%d,"claude_version":"%s","exp":"%s","run":"%s","project":"%s"}\n' \
