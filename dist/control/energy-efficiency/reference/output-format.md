@@ -27,11 +27,10 @@ The same keys in every run are what make runs comparable.
 
 | Record | One per | Keys |
 |---|---|---|
-| step 1, in `step1.jsonl` | run | `step`, `target`, `unit_limit`, `units_considered`, `will_examine`, `passed_over` |
-| step 2, in `step2.jsonl` | unit in `will_examine` | `step`, `unit`, `what_it_does`, `cost_driver`, `own_hypotheses`, `suspicions`, `cleared_because` |
+| step 1, in `step1.jsonl` | run | `step`, `target`, `unit_limit`, `units_considered`, `will_examine` |
+| step 2, in `step2.jsonl` | unit on the step-1 list | `step`, `unit`, `what_it_does`, `cost_driver`, `own_hypotheses`, `suspicions`, `cleared_because` |
 | step 3, in `step3.jsonl` | unit with suspicions | `step`, `unit`, `decisions` |
 | step 4, in `step4.jsonl` | unit with an accepted suspicion | `step`, `unit`, `outcomes` |
-| a unit not picked, in `passed_over` | | `unit`, `why` |
 | a suspicion, in `suspicions` | | `label`, `lines`, `why` |
 | a decision, in `decisions` | | `label`, `lines`, `verdict`, `why` |
 | an outcome, in `outcomes` | | `label`, `outcome`, `submission`, `why` |
@@ -45,11 +44,7 @@ Shown expanded here; each is written on a single line.
  "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
                   "src/parse.py::Lexer.advance", "src/index.py::Index.add",
                   "src/index.py::Index.lookup", "src/export.py::write_rows",
-                  ...],
- "passed_over": [
-   {"unit": "src/cli.py::main", "why": "parses three flags and calls run(); does no work of its own"},
-   {"unit": "src/config.py::Config.__init__", "why": "stores four arguments as attributes, once"},
-   ...]}   // shortened here: the two lists hold all 128 units, each once
+                  ...]}   // shortened here: every unit where something looked inefficient
 ```
 
 ```jsonc
@@ -129,9 +124,7 @@ no way to tell whether you read the code or the labels.
 examine, or `null` when you were not given one and examine the whole target.
 
 **`units_considered`**, in step 1, is how many units — functions and methods,
-not files — the target holds. `will_examine` is the ones you picked, and
-`passed_over` every other one, each with its `why`: what you saw that told you
-nothing in it looked inefficient. Together they hold every unit, each once.
+not files — the target holds; `will_examine` is the ones you picked from them.
 
 **`outcome`**, in step 4, is one of: `submitted` (`submission` is its `id` in
 `submissions.jsonl`), `same_repair_as` (`submission` is the `id` of the
@@ -139,8 +132,7 @@ submission that already makes this edit), `blocked` (no repair could be
 measured) or `deferred` (accepted, and not measured). A deferred suspicion is
 still a finding.
 
-Every unit of the target is in `will_examine` or `passed_over`, every unit in
-`will_examine` has a step-2 record, and every suspicion is accounted
+Every unit from step 1 has a step-2 record, and every suspicion is accounted
 for: rejected in step 3, or given an outcome in step 4. A run that examined
 three functions and one that examined three hundred have to be
 distinguishable, and so do a suspicion you dropped and one you forgot.

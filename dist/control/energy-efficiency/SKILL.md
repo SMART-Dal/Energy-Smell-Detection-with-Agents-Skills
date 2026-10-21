@@ -157,13 +157,8 @@ something looks inefficient to you: work the program does not need, work done
 more often than necessary, or work done in a more expensive way than its result
 requires. Those are the units you will examine. Nothing limits how many units
 you pick or how many smells you report — one, ten, a hundred or a thousand,
-whatever the code holds. Within a unit, record every suspicion you have.
-
-**Every unit gets a decision, written down.** The ones you pick go in
-`will_examine`; every other unit of the target goes in `passed_over`, with a
-few words on why nothing in it looked inefficient. Together the two lists hold
-every unit of the target, each once — a unit in neither was not passed over, it
-was missed.
+whatever the code holds — so miss none you can reach in the hour. Within a
+unit, record every suspicion you have.
 
 If you were asked for a number of units, examine at most that many. You may
 change which units those are until you finish step 1; just do not go over the
@@ -174,19 +169,15 @@ number.
  "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
                   "src/parse.py::Lexer.advance", "src/index.py::Index.add",
                   "src/index.py::Index.lookup", "src/export.py::write_rows",
-                  ...],
- "passed_over": [
-   {"unit": "src/cli.py::main", "why": "parses three flags and calls run(); does no work of its own"},
-   {"unit": "src/config.py::Config.__init__", "why": "stores four arguments as attributes, once"},
-   ...]}   // shortened here: the two lists hold all 128 units, each once
+                  ...]}   // shortened here: every unit where something looked inefficient
 ```
 
 Write it to `step1.jsonl`. Rewrite it as often as you like while step 1 is
 open; when the list is final, run `python $SKILL/scripts/step.py done 1`.
 
-Keep this list. Every unit in `will_examine` gets a step-2 record, including
-the ones you clear — a run that examined three functions and one that examined
-three hundred have to be distinguishable.
+Keep this list. Every unit on it gets a step-2 record, including the ones you
+clear — a run that examined three functions and one that examined three
+hundred have to be distinguishable.
 
 ### 2. Read and suspect — *in:* one unit · *out:* one record, with `suspicions[]`
 
