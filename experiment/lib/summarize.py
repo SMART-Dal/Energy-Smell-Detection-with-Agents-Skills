@@ -230,25 +230,49 @@ def unbacked_claims(findings: list[dict], facts) -> list[str]:
     return unbacked
 
 
+def refused_cards(events: list[dict]) -> list[set[str]]:
+    """Per tool call, in `tool_calls` order: the cards its output says it could
+    not read. Root-cause cards are locked until step 2 is done; on Oct 21 a
+    Sonnet run's only card "read" was refused, it decided step 3 without any,
+    and the card counted as opened kept `decided_without_cards` from firing."""
+    denied = {}
+    for event in events:
+        content = (event.get("message") or {}).get("content") if event.get("type") == "user" else None
+        for item in content if isinstance(content, list) else []:
+            if item.get("type") != "tool_result":
+                continue
+            body = item.get("content")
+            body = body if isinstance(body, str) else "\n".join(
+                part.get("text", "") for part in body or [] if isinstance(part, dict))
+            denied[item.get("tool_use_id")] = {card for line in body.splitlines()
+                                               if "ermission denied" in line
+                                               for card in CARD.findall(line)}
+    return [denied.get(c.get("id"), set())
+            for e in events if e.get("type") == "assistant"
+            for c in (e.get("message") or {}).get("content") or []
+            if c.get("type") == "tool_use"]
+
+
 def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
-             scan_dir: Path, outputs: list[str] = ()) -> dict:
+             scan_dir: Path, outputs: list[str] = (), refused: list[set[str]] = ()) -> dict:
     """Did the agent do the steps? Counted from its tool calls and its files."""
     categories, root_causes = set(), set()
-    for name, text in calls:
+    for index, (name, text) in enumerate(calls):
         # A card named only to count, list or find it was not read.
         read = [part for part in segments(name, text)
                 if not re.match(r"(wc|ls|find|du|stat)\b", part)]
-        for card in CARD.findall(" ".join(read) if name in ("Bash", "bash") else text):
-            (root_causes if ".S" in card else categories).add(card)
+        named = set(CARD.findall(" ".join(read) if name in ("Bash", "bash") else text))
         # Cards read through a loop variable -- `for c in C7.S5 C3.S2 ...; do
         # cat $c.md; done` -- name no file: the IDs are in the loop's list.
         # Opus read 24 cards that way on Oct 21 and was counted as reading 2.
         joined = " ".join(read)
         if name in ("Bash", "bash") and LOOPED_CARD.search(joined):
             if "root-causes" in joined:
-                root_causes.update(re.findall(r"(?<![\w.])C\d{1,2}\.S\d{1,2}(?![\w.])", joined))
+                named.update(re.findall(r"(?<![\w.])C\d{1,2}\.S\d{1,2}(?![\w.])", joined))
             if "categories" in joined:
-                categories.update(re.findall(r"(?<![\w.])C\d{1,2}(?![\w.])", joined))
+                named.update(re.findall(r"(?<![\w.])C\d{1,2}(?![\w.])", joined))
+        for card in named - (refused[index] if index < len(refused) else set()):
+            (root_causes if ".S" in card else categories).add(card)
     rankings = rule_scans = 0
     for name, text in calls:
         if name != "Bash":
@@ -445,7 +469,8 @@ def main() -> int:
         "repo_changes": changes,
         "leak_audit": audit(calls, run),
         "protocol": protocol(calls, read_jsonl(out / "agent" / "findings.jsonl"),
-                             submissions, run, out / "agent" / ".energy-scan", tool_outputs(events)),
+                             submissions, run, out / "agent" / ".energy-scan", tool_outputs(events),
+                             refused_cards(events)),
         "environment": environment(calls, out, run, ours),
         "inputs": inputs(out),
         "record": recorded(out, events),

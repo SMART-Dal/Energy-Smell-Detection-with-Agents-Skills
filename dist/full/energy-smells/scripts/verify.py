@@ -1213,6 +1213,15 @@ def _run_submissions(args, profile: Profile) -> int:
                 # Kept outside the session, so a repair deleted later is still on record.
                 ask({"op": "measured", "record": record}, timeout=10)
 
+    if len(outputs) > 1:
+        # Every verdict again, last: on Oct 21 an agent read this output through
+        # `tail -30`, lost the first repair's numbers, and reported it without them.
+        log(f"\n=== all {len(outputs)} lines of {path.name}")
+        for out in outputs:
+            first = str(out.get("reason") or "").split(". ")[0]
+            log(f"  {out.get('status', '?'):12} {out.get('id')}: "
+                f"{first[:160]}{'...' if len(first) > 160 else ''}")
+
     if args.json:
         json.dump(outputs, sys.stdout, indent=1)
         print()
