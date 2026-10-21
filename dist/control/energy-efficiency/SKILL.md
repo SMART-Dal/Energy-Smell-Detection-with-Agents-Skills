@@ -169,8 +169,9 @@ target is not done until every file in it has been read.
 **Leave nothing out because of what you expect later.** Code that calls a
 network or a service, code you doubt any input could be generated for, a
 script, a long file: read it all the same, and pick what looks inefficient in
-it. Whether a repair can be measured is step 4's question, and one that cannot
-is still a finding, recorded as `blocked` with the reason.
+it. Whether a repair can be measured is step 4's question — ask for its inputs
+and let the generator say — and one that cannot is still a finding, recorded
+as `blocked` with the message that showed it.
 
 As you read, pick out every unit where something looks inefficient to you:
 work the program does not need, work done more often than necessary, or work
@@ -356,6 +357,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    hardware — is listed as `failed` with the reason; its suspicions are
    `blocked`, with that reason. When the reason is a package missing from this
    environment, install it into this venv and request the unit again first.
+   A failed unit does not count toward the 20 units with inputs: ask for
+   another in its place — up to 30 different units in all.
 
 3. **For each chosen suspicion, write the smallest repair of the original
    code** that removes its waste, as one line in `submissions.jsonl`. Every
@@ -397,8 +400,12 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    A measured result is never revised. Editing a measured line to get a better
    number makes it `invalid`, and the result it had stays on record. If you
    think a genuinely different repair would do better, that is a new line,
-   listed in `related` — both are kept. A suspicion whose repair you cannot make
-   behave identically, or whose unit has no inputs, is `blocked`.
+   listed in `related` — both are kept. A suspicion is `blocked` only when the
+   tools showed it cannot be measured: its unit's inputs could not be generated,
+   its module does not load, or its repair cannot be made to behave identically
+   — quote that message as `why`. One you did not try, because you expect it
+   cannot run or it is outside the 20, is `deferred`: ask for its inputs instead
+   whenever you can.
 
 6. **Record what happened to every accepted suspicion** in `step4.jsonl`, one
    record per unit:
@@ -407,7 +414,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    {"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
      {"label": "a", "outcome": "submitted",      "submission": "render-concat", "why": null},
      {"label": "b", "outcome": "same_repair_as", "submission": "render-concat", "why": null},
-     {"label": "c", "outcome": "blocked",        "submission": null, "why": "every input needs a live database connection"},
+     {"label": "c", "outcome": "blocked",        "submission": null, "why": "inputs.py: no inputs could be generated: every call opens a database connection"},
      {"label": "d", "outcome": "deferred",       "submission": null, "why": "outside the 20 repairs measured"}
    ]}
    ```

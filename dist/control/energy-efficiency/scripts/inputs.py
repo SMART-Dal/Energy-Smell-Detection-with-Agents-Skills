@@ -29,7 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from lib.inputs import DIRNAME, FAILED, MAX_UNITS, READY, ask, read_status  # noqa: E402
+from lib.inputs import DIRNAME, FAILED, MAX_REQUESTED, MAX_UNITS, READY, ask, read_status  # noqa: E402
 from lib.progress import step_refusal  # noqa: E402
 
 
@@ -59,9 +59,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  already    {unit}")
         for row in answer.get("rejected", []):
             print(f"  REJECTED   {row['unit']}: {row['why']}")
-        print(f"\nGenerating in the background, at most {MAX_UNITS} units a session. "
-              f"Carry on; `inputs.py status` shows progress, and verify.py waits for "
-              f"them before measuring.")
+        print(f"\nGenerating in the background. A session has inputs for at most {MAX_UNITS} "
+              f"units; one whose generation failed does not count, so another can take its "
+              f"place, up to {MAX_REQUESTED} different units in all. Carry on; `inputs.py "
+              f"status` shows progress, and verify.py waits for them before measuring.")
         return 1 if answer.get("rejected") else 0
 
     units = read_status(Path(DIRNAME))

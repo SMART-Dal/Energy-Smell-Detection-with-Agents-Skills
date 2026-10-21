@@ -93,7 +93,7 @@ Shown expanded here; each is written on a single line.
 {"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
   {"label": "a", "outcome": "submitted",      "submission": "render-concat", "why": null},
   {"label": "b", "outcome": "same_repair_as", "submission": "render-concat", "why": null},
-  {"label": "c", "outcome": "blocked",        "submission": null, "why": "every input needs a live database connection"},
+  {"label": "c", "outcome": "blocked",        "submission": null, "why": "inputs.py: no inputs could be generated: every call opens a database connection"},
   {"label": "d", "outcome": "deferred",       "submission": null, "why": "outside the 20 repairs measured"}
 ]}
 ```
@@ -128,9 +128,12 @@ not files — the target holds; `will_examine` is the ones you picked from them.
 
 **`outcome`**, in step 4, is one of: `submitted` (`submission` is its `id` in
 `submissions.jsonl`), `same_repair_as` (`submission` is the `id` of the
-submission that already makes this edit), `blocked` (no repair could be
-measured) or `deferred` (accepted, and not measured). A deferred suspicion is
-still a finding.
+submission that already makes this edit), `blocked` (the tools showed no repair
+can be measured here — inputs that could not be generated, a module that does
+not load, a repair that cannot be made to behave identically — and `why`
+quotes that message) or `deferred` (accepted, and not measured: outside the 20,
+or never tried). A suspicion you did not ask inputs for is `deferred`, not
+`blocked`. A deferred suspicion is still a finding.
 
 Every unit from step 1 has a step-2 record, and every suspicion is accounted
 for: rejected in step 3, or given an outcome in step 4. A run that examined

@@ -407,6 +407,22 @@ def recorded(out: Path, events: list[dict]) -> dict:
     }
 
 
+def blocked_unrequested(findings: list[dict], out: Path) -> list[str]:
+    """Units with a `blocked` outcome that no inputs were ever asked for.
+
+    `blocked` needs the tools' evidence -- failed generation, a module that does
+    not load, a repair that cannot be made equivalent -- and every one of those
+    starts with a request. Sonnet blocked 15 units on its own expectation (Oct 21).
+    """
+    try:
+        requested = set(json.loads((out / "inputs" / "status.json").read_text()).get("units", {}))
+    except (OSError, ValueError):
+        return []
+    return sorted({f.get("unit") for f in findings if f.get("step") == 4
+                   for o in f.get("outcomes") or [] if isinstance(o, dict)
+                   and o.get("outcome") == "blocked" and f.get("unit") not in requested})
+
+
 def main() -> int:
     out = Path(sys.argv[1])
     run = json.loads((out / "run.json").read_text())
@@ -434,6 +450,10 @@ def main() -> int:
         "inputs": inputs(out),
         "record": recorded(out, events),
     }
+    unrequested = blocked_unrequested(read_jsonl(out / "agent" / "findings.jsonl"), out)
+    meta["protocol"]["blocked_unrequested"] = unrequested
+    if unrequested:
+        meta["protocol"]["flags"].append("blocked_without_request")
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
 
     # Claude's numbers as it gave them: tokens from its modelUsage entry for the

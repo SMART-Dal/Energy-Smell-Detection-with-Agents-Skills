@@ -107,7 +107,9 @@ The request returns at once. Generation runs outside this session, every unit
 at the same time, and usually takes a minute or two; a hard unit can take
 five. So ask as soon as you know which units you will measure, and write the
 repairs meanwhile. Ask for all of them in one request; a unit you add later is
-another request, and a session has at most 20.
+another request. A session has inputs for at most 20 units; a unit whose
+generation failed does not count toward them, so you can ask for another in
+its place — up to 30 different units in all.
 
 verify.py does not measure while anything is still being generated: it waits
 first, up to ten minutes, printing which units it is waiting for. Give its
@@ -165,7 +167,15 @@ come out the same on both sides.
 here — the unit needs the network, a service, credentials, hardware —
 `inputs.py status` lists it as `failed` with the reason, and verify.py reports
 its repairs as `no_inputs`. Record their suspicions as `blocked`, with that
-reason.
+reason — and, if you like, ask for another unit in its place.
+
+**`blocked` needs that evidence.** A suspicion is `blocked` only when the tools
+showed it cannot be measured here: its inputs could not be generated, its
+module does not load, the result is `error` for something you cannot install,
+or the repair cannot be made to behave identically. Quote the message as
+`why`. One you did not ask inputs for — because you expect it cannot run, or
+because it is outside the 20 — is `deferred`, not blocked: ask for its inputs
+instead whenever you can, and let the generator say whether it runs.
 
 ## What "the same" means
 

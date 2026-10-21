@@ -25,7 +25,12 @@ DIRNAME = ".energy-inputs"
 STATUS = "status.json"
 SOCKET_ENV = "ENERGY_INPUTS_SOCKET"
 MAX_UNITS = 20
-"""Units one session may request: the most repairs a session measures."""
+"""Units one session may have inputs for, ready or being generated: the most
+repairs a session measures. A unit whose generation failed does not count."""
+
+MAX_REQUESTED = 30
+"""Different units one session may ask for, failed ones included: room to replace
+units that could not be generated, without generating without end (Oct 21)."""
 
 PENDING, READY, FAILED = "pending", "ready", "failed"
 
