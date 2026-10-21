@@ -36,29 +36,29 @@ def read_jsonl(path: Path) -> list[dict]:
 
 
 def usage(events: list[dict]) -> dict:
-    """Cost, duration, turns and tokens from the transcript's final `result` line."""
+    """Claude's own accounting, copied from its `result` lines -- nothing computed here.
+
+    Cost and modelUsage (tokens per model) are the session's totals as Claude
+    reports them, from its last result line. A session can end more than once
+    -- a background command finishing wakes it for another turn (Opus, Oct 21:
+    50 turns, then 1 that hit the API usage limit) -- so the fields Claude
+    reports per line are kept as a list, one value per line, never added up.
+    """
     results = [e for e in events if e.get("type") == "result"]
     if not results:
         return {"result": "missing"}
-    # A session can end more than once: a background command that finishes
-    # after the agent's last turn wakes it for another (Opus, Oct 21: 50 turns,
-    # then 1). Cost and modelUsage are the session's totals on every line, so
-    # the last line has them; turns and duration are per line, so they add up.
     r = results[-1]
-    tokens = collections.Counter()
-    for u in (r.get("modelUsage") or {}).values():
-        for key in ("inputTokens", "outputTokens", "cacheReadInputTokens",
-                    "cacheCreationInputTokens"):
-            tokens[key] += u.get(key) or 0
-    errors = sorted({str(e["api_error_status"]) for e in results if e.get("api_error_status")})
-    return {"result": f"api_error {','.join(errors)}" if errors else r.get("subtype"),
-            "api_error": next((str(e.get("result"))[:300] for e in results
-                               if e.get("api_error_status")), None),
-            "cost_usd_estimate": r.get("total_cost_usd"),
-            "duration_ms": sum(e.get("duration_ms") or 0 for e in results),
-            "duration_api_ms": r.get("duration_api_ms"),
-            "num_turns": sum(e.get("num_turns") or 0 for e in results), "tokens": dict(tokens),
-            "model_usage": r.get("modelUsage")}
+    return {
+        "result": r.get("subtype"),
+        "is_error": [e.get("is_error") for e in results],
+        "api_error_status": [e.get("api_error_status") for e in results],
+        "terminal_reason": [e.get("terminal_reason") for e in results],
+        "num_turns": [e.get("num_turns") for e in results],
+        "duration_ms": [e.get("duration_ms") for e in results],
+        "duration_api_ms": r.get("duration_api_ms"),
+        "cost_usd_estimate": r.get("total_cost_usd"),
+        "model_usage": r.get("modelUsage"),
+    }
 
 
 def tool_calls(events: list[dict]) -> list[tuple[str, str]]:
@@ -436,14 +436,21 @@ def main() -> int:
     }
     (out / "meta.json").write_text(json.dumps(meta, indent=1))
 
-    u, t = meta["usage"], meta["usage"].get("tokens") or {}
+    # Claude's numbers as it gave them: tokens from its modelUsage entry for the
+    # run's model, per-line fields joined rather than summed ("50+1").
+    u = meta["usage"]
+    t = (u.get("model_usage") or {}).get(run["model"]) or {}
+    errors = [str(status) for status in u.get("api_error_status") or [] if status]
     row = {
         "run_id": run["run_id"], "repo": run["repo"], "arm": run["arm"], "model": run["model"],
         "status": run["status"], "agent_exit": run["agent_exit"],
         "agent_min": round(run["agent_seconds"] / 60, 1),
         "review_min": round(run["review_seconds"] / 60, 1),
-        "result": u.get("result"), "cost_usd": u.get("cost_usd_estimate"),
-        "turns": u.get("num_turns"), "tool_calls": meta["tool_calls"],
+        "result": u.get("result") + (f" (is_error, api_error_status {','.join(errors)})"
+                                     if errors else ""),
+        "cost_usd": u.get("cost_usd_estimate"),
+        "turns": "+".join(str(n) for n in u.get("num_turns") or []),
+        "tool_calls": meta["tool_calls"],
         "input_tok": t.get("inputTokens"), "output_tok": t.get("outputTokens"),
         "cache_read_tok": t.get("cacheReadInputTokens"),
         "cache_write_tok": t.get("cacheCreationInputTokens"),
