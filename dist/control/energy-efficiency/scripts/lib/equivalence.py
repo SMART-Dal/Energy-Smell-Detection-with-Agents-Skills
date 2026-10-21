@@ -244,6 +244,7 @@ def _short(value, limit: int = 120) -> str:
 import base64 as _base64
 import hashlib as _hashlib
 import json as _json
+import logging as _logging
 import math as _math
 import re as _re
 from pathlib import PurePath as _PurePath
@@ -362,6 +363,15 @@ def _render(value, plain, replace, depth, seen):
             return data if plain else {"array": data, "dtype": str(getattr(value, "dtype", ""))}
         except Exception:  # noqa: BLE001
             pass
+
+    # A logger is configuration, not data. Its insides -- a cache of which levels
+    # are enabled, filled by the first call that logs -- change as a side effect of
+    # logging, and read as an argument the repair "mutated" (Oct 21). What a call
+    # logs is compared on its own channel.
+    if isinstance(value, _logging.Logger):
+        return value.name if plain else {"logger": value.name}
+    if isinstance(value, (_logging.Handler, _logging.Manager, _logging.PlaceHolder)):
+        return type(value).__name__ if plain else {"logging": type(value).__name__}
 
     attributes = getattr(value, "__dict__", None)
     slots = getattr(type(value), "__slots__", None)

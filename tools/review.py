@@ -62,12 +62,15 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
     the agent measured it on a 1.5% floor. The agent re-runs verify.py for such
     lines; the review, which runs once, did not.
     """
-    results = _verify(repo, submissions, inputs)
+    with tempfile.TemporaryDirectory() as scratch:
+        current = Path(scratch) / "submissions.jsonl"
+        current.write_text(_without_retired(submissions), encoding="utf-8")
+        results = _verify(repo, current, inputs)
     again = {r.get("id") for r in results if r.get("status") == "inconclusive"}
     if not again:
         return results
     lines = []
-    for line in submissions.read_text(encoding="utf-8").splitlines():
+    for line in _without_retired(submissions).splitlines():
         try:
             if json.loads(line).get("id") in again:
                 lines.append(line)
@@ -79,6 +82,27 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
         retried = {r.get("id"): {**r, "measured_twice": True}
                    for r in _verify(repo, subset, inputs)}
     return [retried.get(r.get("id"), r) for r in results]
+
+
+RETIRED = ("equivalence", "equivalent")
+"""Fields a submission could relax the check with until Oct 21. A run from before
+is re-measured under today's rule -- everything compared -- so they are dropped
+from the copy verify.py reads; the agent's own file is left as it was."""
+
+
+def _without_retired(submissions: Path) -> str:
+    out = []
+    for line in submissions.read_text(encoding="utf-8").splitlines():
+        try:
+            record = json.loads(line)
+        except ValueError:
+            out.append(line)            # verify.py reports it as it is
+            continue
+        if isinstance(record, dict):
+            for key in RETIRED:
+                record.pop(key, None)
+        out.append(json.dumps(record))
+    return "".join(line + "\n" for line in out)
 
 
 def _verify(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
@@ -203,10 +227,20 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
             if same:
                 out.append(f"Also the repair for suspicion(s) {', '.join(same)} of this unit.")
             if row.get("per_case"):
-                out.extend(["", "| case | before J | after J | saved |", "|---|---:|---:|---:|"])
+                # The +- and whether the verdict counted the case: a mean saving
+                # above the floor whose pairs disagreed is not a saving, and the
+                # table alone read as one (Oct 21).
+                out.extend(["", "| case | before J | after J | saved | +- (95%) | counted |",
+                            "|---|---:|---:|---:|---:|---|"])
+                floor = row.get("noise_floor_pct") or 0.0
                 for c in row["per_case"]:
                     b, a = c["before_energy_j"], c["after_energy_j"]
-                    out.append(f"| {c['label']} | {b:.2f} | {a:.2f} | {100 * (b - a) / b:+.1f}% |")
+                    saved = 100 * (b - a) / b
+                    ci = c.get("energy_ci_pct")
+                    counted = ("no: pairs disagree" if c.get("significant") is False else
+                               "no: within the floor" if abs(saved) <= floor else "yes")
+                    out.append(f"| {c['label']} | {b:.2f} | {a:.2f} | {saved:+.1f}% | "
+                               f"{'' if ci is None else f'{ci:.1f}%'} | {counted} |")
             out.append("")
 
     section("Applied", [r for r in rows if r["applied"]])

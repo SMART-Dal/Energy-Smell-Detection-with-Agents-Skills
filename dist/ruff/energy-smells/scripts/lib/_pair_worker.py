@@ -38,7 +38,9 @@ import importlib.util
 import inspect
 import io
 import json
+import logging
 import os
+import re
 import statistics
 import sys
 import time
@@ -55,7 +57,7 @@ sys.path[:] = [p for p in sys.path if p not in (_HERE, "")]
 sys.path.insert(0, _SCRIPTS)
 
 from lib._runner import PoolTooLarge, build_pool, burn_cpu, run_window  # noqa: E402
-from lib.equivalence import normalise_text, render, render_json  # noqa: E402
+from lib.equivalence import normalise_text, render_json  # noqa: E402
 from lib.meters import get_meter  # noqa: E402
 from lib.splice import split_name  # noqa: E402
 from lib.stubs import StubUsed, import_with_stubs, importing, is_repo_module  # noqa: E402
@@ -323,6 +325,101 @@ class LoadFailure(Exception):
         self.summary = _summary(sys.exc_info()[1]) if sys.exc_info()[1] else ""
 
 
+_ABSENT = object()
+
+WATCH_LIMIT = 100_000
+"""A watched container larger than this is compared by its type and size only:
+rendering it twice for every checked call would cost more than the check."""
+
+_DIGITS = re.compile(r"\d+")
+
+
+def _is_data(value) -> bool:
+    """Something a call can change, as opposed to code: not a module, class or function."""
+    return not (inspect.ismodule(value) or inspect.isclass(value) or inspect.isroutine(value)
+                or isinstance(value, (staticmethod, classmethod, property)))
+
+
+def _code_names(function, module, owner) -> set[str]:
+    """Every name the function's code uses -- globals and attributes alike -- and
+    those of the functions it calls in its own module and class, a few levels down:
+    where a write to state outside the arguments would be."""
+    names: set[str] = set()
+    queue, seen = [function], set()
+    while queue and len(seen) < 64:
+        try:
+            code = getattr(inspect.unwrap(queue.pop()), "__code__", None)
+        except ValueError:          # a wrapper cycle
+            continue
+        if code is None or code in seen:
+            continue
+        seen.add(code)
+        own, stack = set(), [code]
+        while stack:                # nested code: comprehensions, lambdas, inner defs
+            current = stack.pop()
+            own.update(current.co_names)
+            stack.extend(const for const in current.co_consts if inspect.iscode(const))
+        names |= own
+        for name in own:
+            for space in (vars(module), vars(owner) if owner is not None else {}):
+                callee = space.get(name)
+                if isinstance(callee, (staticmethod, classmethod)):
+                    callee = callee.__func__
+                if inspect.isfunction(callee) and callee.__module__ == module.__name__:
+                    queue.append(callee)
+    return names
+
+
+def _watch(function, module, owner) -> list[tuple[str, str]]:
+    """The module globals and class attributes to compare after every checked call.
+
+    Only those the original's code names: a write to anything else would have to
+    go through a name the code does not contain. Read from the original, so a
+    new global the repair keeps for itself -- a cache -- is its own business.
+    """
+    names = _code_names(function, module, owner)
+    keys = [("global", name) for name in sorted(names)
+            if not name.startswith("__") and name in vars(module) and _is_data(vars(module)[name])]
+    classes = {owner.__qualname__: owner} if owner is not None else {}
+    for name in names:
+        value = vars(module).get(name)
+        if inspect.isclass(value) and value.__module__ == module.__name__:
+            classes[value.__qualname__] = value
+    for qualname, cls in sorted(classes.items()):
+        keys += [("class", f"{qualname}.{name}") for name in sorted(names)
+                 if not name.startswith("__") and name in vars(cls) and _is_data(vars(cls)[name])]
+    return keys
+
+
+def _watched_render(value, replace: tuple) -> str:
+    if value is _ABSENT:
+        return "absent"
+    try:
+        size = len(value)
+    except Exception:  # noqa: BLE001 -- no length: render it
+        size = None
+    if size is not None and size > WATCH_LIMIT and not isinstance(value, (str, bytes)):
+        return f"{type(value).__qualname__} of {size}"
+    return render_json(value, replace=replace)
+
+
+class _LogRecords(logging.Handler):
+    """Every log record a call emits: logger, level and message, digits blanked
+    so that a duration or a timestamp in the text does not count as a difference."""
+
+    def __init__(self, replace: tuple):
+        super().__init__(logging.NOTSET)
+        self.replace, self.lines = replace, []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            message = record.getMessage()
+        except Exception:  # noqa: BLE001 -- a malformed call to the logger
+            message = str(record.msg)
+        message = _DIGITS.sub("N", normalise_text(message, self.replace))
+        self.lines.append(f"{record.name} {record.levelname}: {message}")
+
+
 class Side:
     """One copy: its unit, its inputs, and the modules it was loaded from."""
 
@@ -377,6 +474,9 @@ class Side:
                     # takes its class first -- what the inputs pass.
                     target = target.__func__
                 self.function = _callable_unit(target)
+                self.module, self.target = module, target
+                self.owner = owner if inspect.isclass(owner) else None
+                self.watched: list[tuple[str, str]] = []
             except (Exception, SystemExit):  # noqa: BLE001
                 raise LoadFailure("import")
             try:
@@ -398,6 +498,21 @@ class Side:
         finally:
             self.set_aside()
             self._leave_path()
+
+    def state(self) -> dict[str, str]:
+        """The watched module- and class-level values on this side, rendered."""
+        out = {}
+        for kind, name in self.watched:
+            if kind == "global":
+                value = vars(self.module).get(name, _ABSENT)
+            else:
+                qualname, _, attribute = name.rpartition(".")
+                owner = self.module
+                for piece in qualname.split("."):
+                    owner = getattr(owner, piece, None)
+                value = vars(owner).get(attribute, _ABSENT) if inspect.isclass(owner) else _ABSENT
+            out[f"{kind}:{name}"] = _watched_render(value, self.replace)
+        return out
 
     def _enter_path(self) -> None:
         for entry in reversed(self.paths):
@@ -507,16 +622,17 @@ def main() -> int:
                    "summary": failure.summary})
             return 1
         _forget_metrics(known)
+    watched = _watch(sides["before"].target, sides["before"].module, sides["before"].owner)
+    for side in sides.values():
+        side.watched = watched
 
     def described(side: Side) -> dict:
-        equivalent = side.namespace.get("equivalent")
         return {
             "stubbed": list(side.stubbed),
             "skipped": list(side.skipped),
             "cases": [label for label, _ in side.sets["cases"]],
             "checks": [label for label, _ in side.sets["checks"]],
-            "has_equivalent": callable(equivalent),
-            "equivalent_doc": (getattr(equivalent, "__doc__", "") or "").strip(),
+            "watched": [f"{kind}:{name}" for kind, name in side.watched],
         }
 
     reply({"ok": True, "before": described(sides["before"]),
@@ -538,12 +654,9 @@ def main() -> int:
                 side.activate()
                 active = side
             if op == "check":
-                reply(_check(side, request["set"], request["index"], request.get("plain", False)))
+                reply(_check(side, request["set"], request["index"]))
             elif op == "digest":
                 reply({"ok": True, "digests": {key: side.digest(key) for key in request["keys"]}})
-            elif op == "equivalent":
-                function = side.namespace["equivalent"]
-                reply({"ok": True, "same": bool(function(request["before"], request["after"]))})
             elif op == "time":
                 thunk = side.sets["cases"][request["index"]][1]
                 timings = []
@@ -578,7 +691,7 @@ def main() -> int:
     return 0
 
 
-def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
+def _check(side: Side, set_name: str, index: int) -> dict:
     """Run one input on one side and render every observable channel.
 
     Files count as output: every file the call creates, changes or deletes, in
@@ -591,20 +704,27 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
     # call renders exactly as it always has.
     watched = (args, kwargs) if kwargs else args
     args_before = render_json(watched, replace=side.replace)
+    state_before = side.state()
     files_before = side.files()
     stream = io.StringIO()
     message = ""
-    with contextlib.redirect_stdout(stream):
-        try:
-            value, kind, raised = side.function(*args, **kwargs), "return", ""
-        except StubUsed:
-            raise
-        except (Exception, SystemExit) as exc:  # noqa: BLE001 -- raising is behaviour to compare
-            # SystemExit too: csv-gremlin's process_property calls sys.exit on a
-            # malformed row, which is what it does, and used to kill the worker.
-            value, kind, raised = None, "raise", type(exc).__name__
-            message = _summary(exc)
+    records = _LogRecords(side.replace)
+    logging.getLogger().addHandler(records)
+    try:
+        with contextlib.redirect_stdout(stream):
+            try:
+                value, kind, raised = side.function(*args, **kwargs), "return", ""
+            except StubUsed:
+                raise
+            except (Exception, SystemExit) as exc:  # noqa: BLE001 -- raising is behaviour to compare
+                # SystemExit too: csv-gremlin's process_property calls sys.exit on a
+                # malformed row, which is what it does, and used to kill the worker.
+                value, kind, raised = None, "raise", type(exc).__name__
+                message = _summary(exc)
+    finally:
+        logging.getLogger().removeHandler(records)
     args_after = render_json(watched, replace=side.replace)
+    state_after = side.state()
     files_after = side.files()
     written = {key: side.digest(key) for key, stat in files_after.items()
                if files_before.get(key) != stat}
@@ -620,9 +740,13 @@ def _check(side: Side, set_name: str, index: int, plain: bool) -> dict:
         "stdout": normalise_text(stream.getvalue(), side.replace),
         "mutates": args_before != args_after,
         "files": written,
+        # Module globals and class attributes the original's code names, and
+        # what the call logged: behaviour outside the return value and the
+        # arguments, which a repair could otherwise drop to look cheaper.
+        "state": {key: rendered for key, rendered in state_after.items()
+                  if state_before.get(key) != rendered},
+        "log": records.lines,
     }
-    if plain and kind == "return":
-        result["plain"] = render(value, plain=True, replace=side.replace)
     return result
 
 

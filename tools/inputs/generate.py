@@ -854,7 +854,10 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
             results[label] = {"label": label, "ok": False, "why": "second run failed: "
                               + (err or second.get("message") or second["raised"])}
             continue
-        differ = [k for k in ("value", "stdout", "files") if first[k] != second[k]]
+        # Log records too, since verify.py compares them: an input whose run logs
+        # differently each time (an id in the message) would fail every repair.
+        # Not module- or class-level state, which a counter changes on every call.
+        differ = [k for k in ("value", "stdout", "files", "log") if first.get(k) != second.get(k)]
         if first["mutates"] != second["mutates"] or (
                 first["mutates"] and first["args_before"] == second["args_before"]
                 and first["args"] != second["args"]):
@@ -930,7 +933,7 @@ def remove_tree(path: Path) -> None:
 
 def first_difference(channel: str, a, b) -> str:
     """Where two renderings of one channel first part, in a few words."""
-    what = {"value": "the return value", "stdout": "what it printed",
+    what = {"value": "the return value", "stdout": "what it printed", "log": "what it logged",
             "args": "its arguments after the call", "files": "the files it wrote"}[channel]
     a, b = str(a), str(b)
     i = next((k for k in range(min(len(a), len(b))) if a[k] != b[k]), min(len(a), len(b)))

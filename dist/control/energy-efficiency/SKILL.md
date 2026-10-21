@@ -71,8 +71,10 @@ The edit should be as small as removing the waste allows. That bounds its
 **size**, never its location, and never how much code you may read to decide.
 
 **What must survive is the unit's contract**: the same return value, the same
-effect on its arguments, the same output, the same exception type. That is what
-gets checked, and it is the whole of what callers are entitled to.
+effect on its arguments and on the module- and class-level values it uses, the
+same printed and logged output, the same files, the same exception type. That
+is what gets checked, for every repair, and it is the whole of what callers are
+entitled to.
 
 Anything **only the unit depends on** is implementation detail: a helper
 nothing else calls, state nothing else reads. You may change a helper's

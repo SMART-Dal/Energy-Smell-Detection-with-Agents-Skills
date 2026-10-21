@@ -24,8 +24,6 @@ One JSON object per line of `submissions.jsonl`, one line per repair:
   },
   "related": [],
   "sole_caller_evidence": null,
-  "equivalence": "strict",
-  "equivalent": null,
   "notes": "Sizes taken from the fixtures in tests/; `_row` left as the real helper."
 }
 ```
@@ -40,8 +38,6 @@ ones with nothing to say take the empty value shown.
 | `changed` | `path::qualname` → the full replacement source of that function |
 | `related` | ids of other repairs of the same code; `[]` if none |
 | `sole_caller_evidence` | how you know nothing else calls or reads what you changed; `null` when `changed` holds only the unit |
-| `equivalence` | `"strict"`, or `"returns_only"`; see below |
-| `equivalent` | `null`, or the source of `def equivalent(before, after)`; see below |
 | `notes` | a few sentences a reader would otherwise have to guess; `""` if none |
 | `agent_measurement` | written by the script, never by you |
 
@@ -67,8 +63,8 @@ one reason and the result is unusable.
 
 ## Changing more than the unit
 
-The unit's **contract** is what has to survive: the same return value, the
-same effect on its arguments, the same output, the same exception type.
+The unit's **contract** is what has to survive: everything a caller can see,
+listed under "What "the same" means" below.
 Anything only the unit depends on — a helper nothing else calls, state nothing
 else reads — is implementation detail, and may change.
 
@@ -171,45 +167,25 @@ here — the unit needs the network, a service, credentials, hardware —
 its repairs as `no_inputs`. Record their suspicions as `blocked`, with that
 reason.
 
-## When "identical" is stricter than "the same answer"
+## What "the same" means
 
-By default the replacement must match the original on the return value, the
-state of the arguments afterwards, the files it writes, stdout, and the
-exception type. Two escape
-hatches exist for when that is genuinely too strict. Both are recorded in the
-result, and both must be repeated wherever the saving is quoted.
+The replacement must do everything the original does, on every input:
 
-**The repair stops mutating the caller's data** — `lst.sort()` becomes
-`sorted(lst)`, `a.extend(b)` becomes `a + b`. The answer is the same; the side
-effect is not.
+- the same **return value**;
+- the same effect on its **arguments**, an object's own attributes included;
+- the same changes to the **module-level and class-level values** the
+  original's code uses;
+- the same **files** written;
+- the same **printed output** and the same **log records**;
+- the same **exception** type.
 
-```jsonc
-"equivalence": "returns_only"
-```
-
-Use it only when you have checked the call sites and none of them relies on
-the mutation, and say so in `notes`.
-
-**The result is the same answer in a different form** — an unordered
-collection, a tolerance on a float. Give the comparison in `equivalent`, as
-source text holding that one function and nothing else but imports:
-
-```python
-def equivalent(before, after):
-    """Same set of matches; the repair returns them in hash order."""
-    return sorted(before) == sorted(after)
-```
-
-It receives the two results as plain data — lists, dicts, numbers and
-strings — because each version's objects are instances of its own copy of the
-code and would never compare equal as they are. A set or tuple arrives as a
-list, an object as a dict of its attributes. The docstring is required, because a
-comparison that always returns `True` would turn a broken repair into a
-confirmed one with nothing in the output to show it.
-
-Neither hatch covers a repair that computes something different. Returning
-indices where the original returned values, or being off by one, is a bug in
-your repair — fix it.
+Nothing in a submission relaxes this. A repair that stops changing the
+caller's data — `lst.sort()` becomes `sorted(lst)` — stops updating a
+module-level cache, or drops a log call changes what callers can see, and
+comes back `not_equivalent`; so does one that returns the same answer in a
+different form. Two things are left out on purpose: the numbers inside a log
+message, so a logged duration is not behaviour, and a new module-level value
+the repair keeps for itself, such as a cache only it reads.
 
 ## Running it
 
@@ -255,9 +231,8 @@ against an edited copy is discarded.
 1. **Stages** two fresh copies of the repository, the second with your
    replacements spliced in, and loads both side by side in one process.
 2. **Equivalence.** Every input from `checks()` and `cases()` runs once
-   through both versions: same return value, same argument state afterwards,
-   same files written, same stdout, same exception type. A mismatch is
-   `not_equivalent`, and nothing is measured.
+   through both versions, and everything in "What "the same" means" above is
+   compared. A mismatch is `not_equivalent`, and nothing is measured.
 3. **Measurement.** The two versions take turns, one window of about a second
    each, three pairs per input, the order flipped every pair, so the machine's
    own drift affects both alike.

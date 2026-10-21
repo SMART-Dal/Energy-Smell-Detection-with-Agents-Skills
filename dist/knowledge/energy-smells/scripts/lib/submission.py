@@ -14,8 +14,6 @@ be shaped to flatter the result.
       "changed": {"src/app.py::tag_rows": "def tag_rows(rows, blocked): ..."},
       "related": ["s2"],                      # other repairs of the same code, or []
       "sole_caller_evidence": "...",          # null unless a callee changed
-      "equivalence": "returns_only",          # or "strict"
-      "equivalent": null,                     # or source of `def equivalent(before, after)`
       "notes": "...",                         # or ""
       "agent_measurement": {...}              # written by verify.py, not by hand
     }
@@ -33,7 +31,6 @@ import hashlib
 import json
 import re
 
-from .casefile import RELAXATIONS
 from .splice import split_name
 
 MEASURED_CASES = 4
@@ -45,7 +42,7 @@ number keeps every measurement the same length and every verdict the same bar
 
 ALLOWED = {
     "id", "root_cause", "unit", "changed", "related", "sole_caller_evidence",
-    "equivalence", "equivalent", "notes", "agent_measurement",
+    "notes", "agent_measurement",
 }
 REQUIRED = ("id", "unit", "changed")
 RETIRED = {
@@ -54,6 +51,14 @@ RETIRED = {
     "subsumed": "an identical repair is recorded as `same_repair_as` in step4.jsonl",
     "cases_source": "the inputs are generated for you: request them with inputs.py, and "
                     "drop the field",
+    # Oct 21: the check can no longer be relaxed by the submission. Everything a
+    # call does is compared for every repair; a repair that needs a weaker check
+    # changes behaviour that callers can see.
+    "equivalence": "the check is no longer relaxed for any repair: drop the field. Return "
+                   "value, arguments, printed and logged output, files and module- and "
+                   "class-level state are all compared",
+    "equivalent": "a repair can no longer supply its own comparison: drop the field. The "
+                  "return values are compared as they are",
 }
 _ROOT_CAUSE = re.compile(r"^C\d{1,2}\.S\d{1,2}$")
 
@@ -98,9 +103,6 @@ def validate(record: dict) -> str | None:
             "anything else broken by the change would pass every check here."
         )
 
-    relaxation = record.get("equivalence", "strict")
-    if relaxation not in RELAXATIONS:
-        return f"`equivalence` must be one of {sorted(RELAXATIONS)}, not {relaxation!r}"
     related = record.get("related", [])
     if not isinstance(related, list) or not all(isinstance(r, str) for r in related):
         return "`related` must be a list of submission ids"
@@ -110,35 +112,7 @@ def validate(record: dict) -> str | None:
     if root_cause is not None and not (isinstance(root_cause, str)
                                        and _ROOT_CAUSE.match(root_cause)):
         return f"`root_cause` must be an ID such as C5.S1, not {root_cause!r}"
-    if record.get("equivalent") is not None:
-        return equivalent_problem(record["equivalent"])
     return None
-
-
-def equivalent_problem(source) -> str | None:
-    """`equivalent` is one comparison function and nothing else, or what is wrong.
-
-    It is appended to the generated inputs and runs beside them, so anything
-    more than imports and the one function -- module-level code, a second
-    definition -- could reach the inputs or the code under test.
-    """
-    if not isinstance(source, str) or not source.strip():
-        return "`equivalent` must be null, or the source of `def equivalent(before, after)`"
-    try:
-        tree = ast.parse(source)
-    except SyntaxError as exc:
-        return f"`equivalent` does not parse: {exc}"
-    functions = [n for n in tree.body if isinstance(n, ast.FunctionDef)]
-    others = [n for n in tree.body if not isinstance(n, (ast.FunctionDef, ast.Import, ast.ImportFrom))]
-    if others or len(functions) != 1 or functions[0].name != "equivalent" \
-            or len(functions[0].args.args) != 2:
-        return ("`equivalent` must hold exactly one function, `def equivalent(before, after)`, "
-                "and nothing else but imports")
-    if not ast.get_docstring(functions[0]):
-        return ("`equivalent` needs a docstring saying what it treats as the same answer. A "
-                "comparison that always returns True would turn a broken repair into a "
-                "confirmed one with nothing in the output to show it.")
-    return replaced_code(source)
 
 
 _MOCKING = {"mock", "unittest.mock", "pytest_mock"}
@@ -147,7 +121,7 @@ _PLAIN_BASES = {"NamedTuple", "TypedDict", "Enum", "IntEnum", "StrEnum", "Flag",
 
 
 def replaced_code(source: str) -> str | None:
-    """Does this source -- generated inputs, or an `equivalent` -- swap code for its own?
+    """Does this source -- generated inputs -- swap code for its own?
     The first case, or None.
 
     A unit that calls the network or a native library cannot run here, and

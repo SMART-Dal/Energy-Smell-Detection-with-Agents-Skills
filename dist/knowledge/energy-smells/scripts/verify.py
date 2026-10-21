@@ -58,7 +58,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from lib import equivalence  # noqa: E402
 from lib import meters  # noqa: E402
-from lib.casefile import RELAXATIONS, Case, CaseFile, CaseFileError, load_case_file  # noqa: E402
+from lib.casefile import Case, CaseFile, CaseFileError, load_case_file  # noqa: E402
 from lib.measure import (  # noqa: E402
     DEFAULT_REPS,
     MeasurementError,
@@ -489,24 +489,13 @@ class PairEngine:
         self.labels = self.pair.labels
         self.stubbed = tuple(self.pair.stubbed)
         self.skipped = tuple(self.pair.skipped)
-        self.has_equivalent = self.pair.side("before").ready["has_equivalent"]
-        if self.has_equivalent and not self.pair.side("before").ready["equivalent_doc"]:
-            self.pair.close()
-            raise SubmissionError(
-                "`equivalent()` needs a docstring saying what it treats as the same "
-                "answer. A comparison that always returns True would turn a broken "
-                "repair into a confirmed one with nothing in the output to show it."
-            )
-        self.strict = record.get("equivalence", "strict") == "strict"
         self.relaxations = self._relaxations()
 
     def _relaxations(self) -> tuple[str, ...]:
+        """What weakened the check, from this environment -- never from the
+        submission, which can no longer relax it (Oct 21: `equivalence` and
+        `equivalent` are gone; every channel is compared for every repair)."""
         notes = []
-        if RELAXATIONS.get(self.record.get("equivalence", "strict")):
-            notes.append(RELAXATIONS[self.record["equivalence"]])
-        if self.has_equivalent:
-            doc = self.pair.side("before").ready["equivalent_doc"].splitlines()[0]
-            notes.append(f"return values compared by the submission's own `equivalent()`: {doc}")
         if self.stubbed:
             notes.append("loaded with these uninstalled packages stood in for: "
                          + ", ".join(self.stubbed))
@@ -520,16 +509,14 @@ class PairEngine:
         for set_name in ("checks", "cases"):
             labels = self.pair.check_labels if set_name == "checks" else self.labels
             for index, label in enumerate(labels):
-                a = self.pair.side("before").ask(op="check", set=set_name, index=index,
-                                         plain=self.has_equivalent)
+                a = self.pair.side("before").ask(op="check", set=set_name, index=index)
                 if self.skipped and a["kind"] == "raise" and a["raised"] == "NameError":
                     raise MeasurementError(
                         f"the original raised NameError on {label!r}: it uses something "
                         f"defined by a statement skipped to load its module "
                         f"({'; '.join(self.skipped)}). It cannot run here, so record the "
                         f"suspicion as `blocked` with this message.")
-                b = self.pair.side("after").ask(op="check", set=set_name, index=index,
-                                        plain=self.has_equivalent)
+                b = self.pair.side("after").ask(op="check", set=set_name, index=index)
                 if set_name == "cases" and a["kind"] == b["kind"] == "raise" \
                         and a["raised"] == b["raised"]:
                     # Both sides failing the same way passes the check, and the
@@ -551,34 +538,49 @@ class PairEngine:
         if a["kind"] == "raise":
             return "" if a["raised"] == b["raised"] else \
                 f"before raised {a['raised']}, after raised {b['raised']}"
-        if self.has_equivalent:
-            same = self.pair.side("before").ask(op="equivalent", before=a["plain"],
-                                        after=b["plain"])["same"]
-            if not same:
-                return (f"`equivalent()` says the results differ: before -> "
-                        f"{_short(a['value'])}, after -> {_short(b['value'])}")
-        elif a["value"] != b["value"]:
+        if a["value"] != b["value"]:
             return (f"different return value: before -> {_short(a['value'])}, "
                     f"after -> {_short(b['value'])}")
-        if self.strict:
-            # The effect of the call on its arguments, not their insides. When
-            # the repair changed a constructor the unit's arguments are built
-            # differently on the two sides before the call is ever made -- an
-            # object holding a set instead of a list -- and that is the repair,
-            # not a side effect of the call.
-            hint = ("If that is deliberate and no call site depends on the "
-                    "mutation, set `\"equivalence\": \"returns_only\"` and give the reason.")
-            if a["mutates"] != b["mutates"]:
-                return (f"the original {'mutates' if a['mutates'] else 'does not mutate'} "
-                        f"its arguments and the repair "
-                        f"{'does' if b['mutates'] else 'does not'}. {hint}")
-            if a["mutates"] and a["args_before"] == b["args_before"] and a["args"] != b["args"]:
-                return f"both versions mutate their arguments, but leave them differently. {hint}"
+        # The effect of the call on its arguments -- `self` and its attributes
+        # included -- not their insides. When the repair changed a constructor
+        # the unit's arguments are built differently on the two sides before the
+        # call is ever made -- an object holding a set instead of a list -- and
+        # that is the repair, not a side effect of the call.
+        if a["mutates"] != b["mutates"]:
+            return (f"the original {'changes' if a['mutates'] else 'does not change'} its "
+                    f"arguments (or the object's attributes) and the repair "
+                    f"{'does' if b['mutates'] else 'does not'}: callers can see that")
+        if a["mutates"] and a["args_before"] == b["args_before"] and a["args"] != b["args"]:
+            return ("both versions change their arguments (or the object's attributes), "
+                    "but leave them differently")
+        state = self._state_differs(a.get("state", {}), b.get("state", {}))
+        if state:
+            return state
         files = self._files_differ(a.get("files", {}), b.get("files", {}))
         if files:
             return files
         if a["stdout"] != b["stdout"]:
             return f"different stdout: {_short(a['stdout'])} vs {_short(b['stdout'])}"
+        if a.get("log", []) != b.get("log", []):
+            return (f"different log records: before -> {_short(a.get('log'))}, "
+                    f"after -> {_short(b.get('log'))}")
+        return ""
+
+    @staticmethod
+    def _state_differs(a: dict, b: dict) -> str:
+        """Do both sides change the same module- and class-level values the same way?
+
+        Each side reports the watched values -- the globals and class attributes
+        the original's code names -- that one call changed, with what they hold
+        after it.
+        """
+        for key in sorted(set(a) | set(b)):
+            if a.get(key) != b.get(key):
+                kind, _, name = key.partition(":")
+                what = f"the global `{name}`" if kind == "global" else f"the class attribute `{name}`"
+                def did(change): return "leaves it as it was" if change is None else \
+                    f"sets it to {_short(change)}"
+                return f"{what}: the original {did(a.get(key))}, the repair {did(b.get(key))}"
         return ""
 
     def _files_differ(self, a: dict, b: dict) -> str:
@@ -863,6 +865,20 @@ def _confirmed_reason(result: Verification, helped: list[CaseOutcome]) -> str:
     return reason
 
 
+def _not_counted(case: CaseOutcome, floor: float) -> str:
+    """One input whose reading is not counted as a saving, and why, in words.
+
+    Two different reasons, and the report said only the second: a +3.6% reading
+    whose three pairs ranged over +-6.5% was described as "nothing beyond the
+    1.6% noise floor", which a reader comparing it with the table took for a
+    measurement error (Oct 21).
+    """
+    reading = f"{case.label!r} {case.energy_saved_pct:+.1f}% +-{case.energy_ci_pct:.1f}%"
+    if not case.significant:
+        return f"{reading} (its pairs disagree too much to tell)"
+    return f"{reading} (within the {floor:.1f}% noise floor)"
+
+
 def _partial_reason(result: Verification, helped: list[CaseOutcome]) -> str:
     """Real savings, but not on every input."""
     best = max(helped, key=lambda c: c.energy_saved_pct)
@@ -870,10 +886,10 @@ def _partial_reason(result: Verification, helped: list[CaseOutcome]) -> str:
     return (
         f"saves energy on {len(helped)} of {len(result.per_case)} inputs "
         f"({', '.join(repr(c.label) for c in helped)}; best {best.energy_saved_pct:.1f}% "
-        f"+-{best.energy_ci_pct:.1f}% on {best.label!r}), and nothing beyond the "
-        f"{result.noise_floor_pct:.1f}% noise floor on "
-        f"{', '.join(repr(c.label) for c in still)}. A confirmed repair saves on every "
-        f"input; this one pays only on some of the work the unit does."
+        f"+-{best.energy_ci_pct:.1f}% on {best.label!r}), and no saving that can be "
+        f"told from noise on the rest: "
+        f"{'; '.join(_not_counted(c, result.noise_floor_pct) for c in still)}. A confirmed "
+        f"repair saves on every input; this one pays only on some of the work the unit does."
         + (" Behaviour was compared under a relaxed rule, which the report must repeat: "
            + "; ".join(result.relaxations) + "." if result.relaxations else "")
     )
@@ -1216,8 +1232,6 @@ def _measure_one(record, repo: Path, profile: Profile, meter: str,
     source, why = inputs_for(record["unit"], inputs)
     if source is None:
         return {"id": sid, "unit": record["unit"], "status": "no_inputs", "reason": why}
-    if record.get("equivalent"):
-        source += "\n\n# ---- the submission's `equivalent`\n" + record["equivalent"] + "\n"
 
     work = Path(tempfile.mkdtemp(prefix=f"energy-submission-{sid}-"))
     engine = None

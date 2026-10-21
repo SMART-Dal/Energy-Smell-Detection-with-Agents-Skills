@@ -136,7 +136,7 @@ ITEM_KEYS = {
     "outcomes": {"label", "outcome", "submission", "why"},
 }
 SUBMISSION_KEYS = {"id", "root_cause", "unit", "changed", "related", "sole_caller_evidence",
-                   "equivalence", "equivalent", "notes", "agent_measurement"}
+                   "notes", "agent_measurement"}
 
 
 def schema(findings: list[dict], submissions: list[dict], arm: str) -> list[str]:

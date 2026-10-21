@@ -151,7 +151,7 @@ What the script writes into a line:
   "profile": "fast",
   "noise_floor_pct": 1.4,
   "noise_floor_from": "session calibration",
-  "equivalence_relaxed": [],      // weakenings of the check; repeat them wherever the saving is quoted
+  "equivalence_relaxed": [],      // what this environment weakened (stand-in packages, skipped statements); repeat wherever the saving is quoted
   "stubbed": [],                  // uninstalled packages stood in for while loading; normally empty
   "per_case": [
     {"label": "typical", "repeats": 9500, "clamped": false,
