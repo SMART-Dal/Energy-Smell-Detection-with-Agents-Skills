@@ -9,6 +9,11 @@ You are finding **energy smells**: code that spends energy on work the program
 does not need, and that a specific refactoring can remove without changing what
 the program does.
 
+**The task is to cover everything you were asked to look at** — every file,
+every function and every method — and to report every case you find there, not
+a few that turn up early in one or two files. A run that stops after two or
+three findings has not done it.
+
 Paths below are relative to this file's directory — call it `$SKILL`. Work out
 what `$SKILL` is once, at the start, and use it throughout.
 
@@ -159,12 +164,17 @@ resolved to. If more than one function matches, all of them are the target.
 Read the repository first — its entry points, what its tests exercise, what
 its README says it is for — so that you know what each part of it is for.
 
-**Then go through every unit in the target** and pick out each one where
-something looks inefficient to you: work the program does not need, work done
-more often than necessary, or work done in a more expensive way than its result
-requires. Those are the units you will examine. Nothing limits how many units
-you pick or how many smells you report — one, ten, a hundred or a thousand,
-whatever the code holds — so miss none you can reach in the hour. Within a
+**Then you must go through every file in the target, and every unit in each
+file.** List the target's Python files first, so you know what there is to
+read, and work through that list file by file, reading every function and
+method in each. Do not stop at the first files that turn something up: the
+target is not done until every file in it has been read.
+
+As you read, pick out every unit where something looks inefficient to you:
+work the program does not need, work done more often than necessary, or work
+done in a more expensive way than its result requires. Those are the units you
+will examine. Nothing limits how many units you pick or how many smells you
+report — one, ten, a hundred or a thousand, whatever the code holds. Within a
 unit, record every suspicion you have.
 
 If you were asked for a number of units, examine at most that many. You may
