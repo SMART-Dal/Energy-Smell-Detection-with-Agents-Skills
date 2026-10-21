@@ -12,12 +12,14 @@ published methods to a setting with no reference repair:
     repository's own code -- here the unit, its class, what it uses and where
     the repository calls it -- split into untimed setup and a timed call, and
     a candidate is kept only if it executes (execution-based rejection
-    sampling). GSO keeps tests on which a known developer optimization is
-    faster; there is no such repair here, so a candidate is kept if it runs on
-    the original code and gives the same output on a second, fresh run.
+    sampling). GSO retains the commits whose developer optimization is faster
+    on its tests; there is no such repair here, so a candidate is kept if it
+    runs on the original code and gives the same output on a second, fresh run.
   * COFFE / STGen (Peng et al., 2025): ask for stressful, diverse inputs, more
-    than needed, and keep the most expensive. Eight are asked for and the four
-    slowest that pass are kept.
+    than needed, and keep the most expensive (20 asked, the 5 with the highest
+    CPU instruction count kept). Eight are asked for here, and the four that
+    pass and use the most energy on the original are kept -- energy, since
+    that is what verify.py compares, each reading taken alone (`metering`).
 
 One more filter, borrowed from coverage-guided test generation (CoverUp,
 Altmayer Pizzorno and Berger, 2025): together the four kept inputs must execute
@@ -41,6 +43,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import contextlib
+import fcntl
 import hashlib
 import http.client
 import json
@@ -48,6 +52,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import threading
 import time
 import urllib.error
@@ -71,7 +76,7 @@ ROUNDS = 2
 CANDIDATES = 8
 KEEP = 4                   # every unit is measured on exactly four inputs
 MAX_CALL_S = 1.0           # one call on the original; slower inputs are dropped
-WINDOW_S = 1.0             # verify.py's "fast" window, for the calls one window makes
+WINDOW_S = 1.0             # verify.py's "fast" window: the calls one window makes, and the ranking reading
 VALIDATE_BUDGET_S = 180    # pass 1, every input of one source, restarts included
 CONFIRM_BUDGET_S = 90      # pass 2, the second runs of the inputs that will be kept
 CASE_DEADLINE_S = 20       # building, running and timing one input
@@ -80,6 +85,9 @@ COVERAGE_MIN = 0.4         # share of the unit's statements the kept inputs must
 SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "site-packages", "__pycache__"}
 VALIDATION_SLOTS = None
 """A semaphore bounding how many units execute candidates at once; the service sets it."""
+METER_LOCK = Path(tempfile.gettempdir()) / "energy-inputs-meter.lock"
+TURNSTILE = METER_LOCK.with_suffix(".turnstile")
+"""Locked by every process generating inputs on this host: the service's threads, batch.py's processes."""
 
 SYSTEM = """You are a performance testing expert. You will write the inputs for an energy measurement of one Python function from a real repository. We run the original function and a modified version of it on your inputs, each input many times in a row, and compare their energy use and their outputs.
 
@@ -709,16 +717,52 @@ def extract_source(content: str) -> str | None:
 _ENVIRONMENT = re.compile(r"environ\s*(\[\s*['\"]PATH|\.update|\.setdefault\s*\(\s*['\"]PATH)|putenv")
 
 
+@contextlib.contextmanager
+def _flock(path: Path, mode: int):
+    fd = os.open(path, os.O_RDWR | os.O_CREAT, 0o666)
+    try:
+        fcntl.flock(fd, mode)
+        yield
+    finally:
+        os.close(fd)                    # closing it releases the lock
+
+
+@contextlib.contextmanager
+def executing():
+    """Held, shared, while candidate code runs -- by every unit at once.
+
+    The meter reads the whole machine, so an energy reading must not overlap
+    what another unit executes: `metering` waits for these to end, and none
+    starts until it is done. Passing the turnstile first lets a waiting
+    reading in ahead of new work.
+    """
+    with _flock(TURNSTILE, fcntl.LOCK_EX):
+        pass
+    with _flock(METER_LOCK, fcntl.LOCK_SH):
+        yield
+
+
+@contextlib.contextmanager
+def metering():
+    """Held alone, for one energy reading: one at a time, and nothing else running."""
+    with _flock(TURNSTILE, fcntl.LOCK_EX), _flock(METER_LOCK, fcntl.LOCK_EX):
+        yield
+
+
 def validate(root: Path, unit: str, source: str, work: Path) -> dict:
     """Run the candidates on the original, the way verify.py will run them.
 
-    Pass 1, every input: it runs without raising, and how long one call takes.
-    Pass 2, the most expensive first: a second run on fresh inputs gives the
+    Pass 1, every input: it runs without raising, how long one call takes, and
+    the energy of one window of calls, read alone (`metering`).
+    Pass 2, the most energy first: a second run on fresh inputs gives the
     same output, compared as verify.py compares the two versions -- the value,
     what it printed, the files it wrote, and its effect on its arguments (not
     the arguments themselves, which may carry a construction timestamp).
     Stops once KEEP have passed: rendering a large argument twice more for an
     input that will not be kept is most of the cost.
+
+    Time spent waiting for another unit's reading is not charged to the
+    budgets: they bound this unit's own inputs.
     """
     from lib.pair import LoadError, Pair, WorkerError, stage
     from lib.submission import replaced_code
@@ -730,7 +774,22 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
     if problem:
         return {"fatal": f"refused: {problem}", "cases": [], "checks": []}
     work = work.resolve()
-    before, after = stage(root.resolve(), {}, work)
+    waited = 0.0
+
+    @contextlib.contextmanager
+    def gated(gate):
+        nonlocal waited
+        asked = time.monotonic()
+        with gate():
+            waited += time.monotonic() - asked
+            yield
+
+    def clock() -> float:
+        """Seconds of this unit's own work."""
+        return time.monotonic() - waited
+
+    with gated(executing):
+        before, after = stage(root.resolve(), {}, work)
     trace: dict = {}
 
     class TracedPair(Pair):
@@ -759,9 +818,10 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
         killed = []
         timer = threading.Timer(OPEN_DEADLINE_S, lambda: (killed.append(1), trace["proc"].kill())
                                 if trace.get("proc") else None)
-        timer.start()
         try:
-            return TracedPair(before, after, unit, source, work, meter="auto")
+            with gated(executing):
+                timer.start()
+                return TracedPair(before, after, unit, source, work, meter="auto")
         except LoadError as exc:
             if killed:
                 raise LoadError("before", "cases", f"loading took over {OPEN_DEADLINE_S}s "
@@ -781,13 +841,14 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
                 "cases": [], "checks": []}
     labels, check_labels = list(pair.labels), list(pair.check_labels)
 
-    def guarded(fn):
-        """fn(pair) with a deadline; on a timeout the worker is killed and reopened."""
+    def guarded(fn, gate=executing):
+        """fn(pair) under `gate`, with a deadline; on a timeout the worker is killed and reopened."""
         nonlocal pair
         timer = threading.Timer(CASE_DEADLINE_S, pair.process.kill)
-        timer.start()
         try:
-            return fn(pair), None
+            with gated(gate):
+                timer.start()           # from the gate on: waiting for it is not the input's time
+                return fn(pair), None
         except WorkerError as exc:
             if pair.process.poll() is not None:
                 timed_out = not timer.is_alive()
@@ -799,12 +860,12 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
         finally:
             timer.cancel()
 
-    started = time.monotonic()
+    started = clock()
 
     def out_of_time() -> bool:
-        return time.monotonic() - started > VALIDATE_BUDGET_S
+        return clock() - started > VALIDATE_BUDGET_S
 
-    results, candidates, firsts = {}, [], {}
+    results, candidates, firsts, domains = {}, [], {}, set()
     for i, label in enumerate(labels):
         if out_of_time():
             results[label] = {"label": label, "ok": False, "why": "not checked: the inputs "
@@ -835,17 +896,28 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
                               "why": (err or pool["why"]) + "; give it arguments that are "
                               "cheaper to build, or on which one call does more of the work"}
             continue
-        candidates.append((timed["seconds"], i, label))
+        # The energy of one window of calls, each on fresh arguments as in
+        # verify.py, read with nothing else of any unit running.
+        repeats = choose_repeats(timed["seconds"], WINDOW_S)
+        reading, err = guarded(lambda p: p.side("before").ask(
+            op="window", index=i, repeats=repeats, warmup_calls=1), gate=metering)
+        if err:
+            results[label] = {"label": label, "ok": False, "seconds": timed["seconds"],
+                              "why": f"the energy reading failed: {err}"}
+            continue
+        domains |= set(reading["domains"])
+        candidates.append((reading["energy_j"] / repeats, i, label, timed["seconds"]))
         firsts[label] = first
 
     passed = 0
-    confirming = time.monotonic()
-    for seconds, i, label in sorted(candidates, reverse=True):
+    confirming = clock()
+    for joules, i, label, seconds in sorted(candidates, reverse=True):     # the most energy first
         if passed >= KEEP:
-            results[label] = {"label": label, "ok": False, "seconds": seconds, "spare": True,
-                              "why": f"not needed: {KEEP} more expensive inputs passed"}
+            results[label] = {"label": label, "ok": False, "joules": joules, "seconds": seconds,
+                              "spare": True, "why": f"not needed: {KEEP} inputs that use more "
+                                                    "energy passed"}
             continue
-        if time.monotonic() - confirming > CONFIRM_BUDGET_S:
+        if clock() - confirming > CONFIRM_BUDGET_S:
             results[label] = {"label": label, "ok": False, "why": "not checked: out of time"}
             continue
         first = firsts[label]
@@ -867,7 +939,7 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
                               "why": "two runs on fresh inputs gave different output: "
                                      + first_difference(differ[0], first[differ[0]], second[differ[0]])}
             continue
-        results[label] = {"label": label, "ok": True, "seconds": seconds}
+        results[label] = {"label": label, "ok": True, "joules": joules, "seconds": seconds}
         passed += 1
 
     coverage, missed = None, []
@@ -882,9 +954,9 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
         missed = sorted(statements - ran)
 
     checks = []
-    checking = time.monotonic()
+    checking = clock()
     for j, label in enumerate(check_labels):
-        if time.monotonic() - checking > 60:
+        if clock() - checking > 60:
             checks.append({"label": label, "ok": False, "kind": None, "why": "not checked: out of time"})
             continue
         out, err = guarded(lambda p: p.side("before").ask(op="check", set="checks", index=j))
@@ -893,7 +965,8 @@ def validate(root: Path, unit: str, source: str, work: Path) -> dict:
     pair.close()
     return {"fatal": None, "cases": [results[label] for label in labels], "checks": checks,
             "coverage": coverage, "missed": missed,
-            "too_shallow": coverage is not None and coverage < COVERAGE_MIN}
+            "too_shallow": coverage is not None and coverage < COVERAGE_MIN,
+            "energy_domains": sorted(domains), "waited_s": round(waited, 1)}
 
 
 def unit_statements(root: Path, unit: str) -> set[int]:
@@ -1010,8 +1083,8 @@ def why_failed(v: dict | None, calls: list[dict]) -> str:
 
 
 def final_source(source: str, keep: list[str], checks: list[str], unit: str) -> str:
-    return (f"# Inputs for {unit}, generated outside the session: the {KEEP} most\n"
-            f"# expensive of {CANDIDATES} candidates that ran and repeated on the original.\n\n"
+    return (f"# Inputs for {unit}, generated outside the session: the {KEEP} that used\n"
+            f"# the most energy of {CANDIDATES} candidates that ran and repeated on the original.\n\n"
             + source.rstrip() + "\n\n\n# ---- the selection\n"
             "_generated_cases, _generated_checks = cases, checks\n"
             f"_KEEP = {keep!r}\n_KEEP_CHECKS = {checks!r}\n\n\n"
@@ -1069,9 +1142,11 @@ def generate(root: Path, unit: str, work: Path, key: str, record=None) -> Outcom
                 # Two copies of the repository per round: gone as soon as the round
                 # is judged, or twenty units would hold eighty of them until the
                 # session ends.
-                remove_tree(work / f"round_{round_no}")
+                with executing():
+                    remove_tree(work / f"round_{round_no}")
             report["rounds"].append({k: v.get(k) for k in ("fatal", "cases", "checks", "validate_s",
-                                                            "coverage", "missed")})
+                                                            "coverage", "missed", "energy_domains",
+                                                            "waited_s")})
             last = v
             # A round that succeeded wins outright; otherwise keep the one with more
             # inputs that ran. Comparing counts alone kept a round-1 source whose
@@ -1093,8 +1168,13 @@ def generate(root: Path, unit: str, work: Path, key: str, record=None) -> Outcom
     report["seconds"] = round(time.monotonic() - started, 1)
     report["cost"] = round(sum(c.get("cost") or 0 for c in report["calls"]), 5)
     if best and succeeded(best[1]):
-        ranked = sorted(usable(best[1]), key=lambda c: -c["seconds"])[:KEEP]
-        report["kept"] = [[c["label"], round(c["seconds"] * 1000, 3)] for c in ranked]
+        ranked = sorted(usable(best[1]), key=lambda c: -c["joules"])[:KEEP]
+        # Joules per call from a reading of the whole machine (`energy_domains`
+        # names its counters; none means the meter only timed, so the ranking
+        # is by time).
+        report["kept"] = [{"label": c["label"], "mj_per_call": round(c["joules"] * 1000, 4),
+                           "ms_per_call": round(c["seconds"] * 1000, 3)} for c in ranked]
+        report["energy_domains"] = best[1].get("energy_domains")
         source = final_source(best[0], [c["label"] for c in ranked],
                               [c["label"] for c in best[1]["checks"] if c["ok"]], unit)
         return Outcome(unit, True, source, "", report)
