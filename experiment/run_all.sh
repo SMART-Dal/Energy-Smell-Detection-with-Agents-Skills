@@ -8,6 +8,7 @@
 #
 # Options: --repos "a b"   --arms "full control"   --models "claude-haiku-5-5"
 #          --again   re-run finished runs; the previous one is kept as <model>.1, .2, ...
+#          --effort medium   one level for every model, instead of config.sh's EFFORT / EFFORT_OF
 #
 # One run = one repo x one arm x one model:
 #   1. $RUN gets a fresh copy of the repo (with the arm's skill in .claude/skills),
@@ -34,6 +35,7 @@ while [ $# -gt 0 ]; do
     --repos)   read -r -a REPOS <<< "$2"; shift 2 ;;
     --arms)    read -r -a ARMS <<< "$2"; shift 2 ;;
     --models)  read -r -a MODELS <<< "$2"; shift 2 ;;
+    --effort)  EFFORT="$2"; EFFORT_OF=(); shift 2 ;;   # every model, this invocation only
     --dry-run) DRY=1; shift ;;
     --check)   CHECK=1; shift ;;
     --again)   AGAIN=1; shift ;;
