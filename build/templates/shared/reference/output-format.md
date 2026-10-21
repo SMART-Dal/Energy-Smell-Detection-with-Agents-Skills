@@ -114,6 +114,9 @@ no way to tell whether you read the code or the labels.
 {{FOUND_BY_FIELD_RULES}}**`unit_limit`**, in step 1, is the number of units you were asked to
 examine, or `null` when you were not given one and examine the whole target.
 
+**`units_considered`**, in step 1, is how many units — functions and methods,
+not files — the target holds; `will_examine` is the ones you picked from them.
+
 **`outcome`**, in step 4, is one of: `submitted` (`submission` is its `id` in
 `submissions.jsonl`), `same_repair_as` (`submission` is the `id` of the
 submission that already makes this edit), `blocked` (no repair could be
