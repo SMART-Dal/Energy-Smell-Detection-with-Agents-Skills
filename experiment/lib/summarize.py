@@ -17,6 +17,7 @@ written by run_all.sh), in every arm.
 
 from __future__ import annotations
 
+import ast
 import collections
 import csv
 import json
@@ -63,9 +64,14 @@ def usage(events: list[dict]) -> dict:
     }
 
 
-def tool_calls(events: list[dict]) -> list[tuple[str, str]]:
+def tool_calls(events: list[dict], who: str = "all") -> list[tuple[str, str]]:
+    """(tool, input) of every call; `who` is "all", "main" (the agent itself) or
+    "sub" (its subagents, whose events carry `parent_tool_use_id`). The audits
+    read all of them -- a subagent's command is still a command run in the
+    session -- and the counts say whose they were (Oct 22: 60 + 49)."""
     return [(c.get("name", ""), json.dumps(c.get("input", {})))
             for e in events if e.get("type") == "assistant"
+            and (who == "all" or bool(e.get("parent_tool_use_id")) == (who == "sub"))
             for c in (e.get("message") or {}).get("content") or []
             if c.get("type") == "tool_use"]
 
@@ -233,14 +239,44 @@ def refused_cards(events: list[dict]) -> list[set[str]]:
             if c.get("type") == "tool_use"]
 
 
+def missing_units(step1: list[dict], root: Path) -> list[str]:
+    """Listed units that name no function or method in the untouched repository
+    (Oct 22: `main.py::fetch_results`, a web route whose function is `get`)."""
+    if not root.is_dir():
+        return []
+    missing = []
+    for unit in sorted({str(f.get("unit")) for f in step1}):
+        path, _, qualname = unit.partition("::")
+        try:
+            node = ast.parse((root / path).read_text(errors="replace"))
+        except (OSError, SyntaxError, ValueError):
+            missing.append(unit)
+            continue
+        for part in qualname.split("."):
+            node = next((c for c in getattr(node, "body", []) if getattr(c, "name", None) == part
+                         and isinstance(c, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))), None)
+            if node is None:
+                break
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            missing.append(unit)
+    return missing
+
+
 def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
              refused: list[set[str]] = ()) -> dict:
     """Did the agent do the steps? Counted from its tool calls and its files."""
-    categories, root_causes = set(), set()
+    categories, root_causes, cut, full = set(), set(), set(), set()
     for index, (name, text) in enumerate(calls):
         # A card named only to count, list or find it was not read.
         read = [part for part in segments(name, text)
                 if not re.match(r"(wc|ls|find|du|stat)\b", part)]
+        # Read through `head -70`, `sed -n`, `grep` or a Read with a limit: part of
+        # the card. Sonnet (Oct 22) read six cards to line 70; every near-miss
+        # section starts after line 80, so it saw none.
+        partial = (any(re.match(r"(head|tail|sed|awk|grep|less|more|cut)\b", part) for part in read)
+                   if name in ("Bash", "bash") else
+                   any(key in json.loads(text) for key in ("limit", "offset")) if name == "Read"
+                   else False)
         named = set(CARD.findall(" ".join(read) if name in ("Bash", "bash") else text))
         # Cards read through a loop variable -- `for c in C7.S5 C3.S2 ...; do
         # cat $c.md; done` -- name no file: the IDs are in the loop's list.
@@ -253,6 +289,8 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
                 named.update(re.findall(r"(?<![\w.])C\d{1,2}(?![\w.])", joined))
         for card in named - (refused[index] if index < len(refused) else set()):
             (root_causes if ".S" in card else categories).add(card)
+            if ".S" in card:
+                (cut if partial else full).add(card)
     rankings = rule_scans = 0
     for name, text in calls:
         if name != "Bash":
@@ -297,12 +335,20 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
               if run["arm"] != "control" else [])
     if unread and root_causes:
         flags.append("decided_without_their_card")
+    cut_short = sorted(cut - full)
+    if run["arm"] != "control" and set(cut_short) & {str(d.get("root_cause")) for d in decided}:
+        flags.append("cards_cut_short")
+    missing = missing_units(step1, Path(run["exp"]) / "pristine" / run["repo"])
+    if missing:
+        flags.append("units_not_found")
     return {
         "units_examined": len({f.get("unit") for f in step1}),
         "suspicions": len(suspicions),
         "decisions": len(decided),
         "accepted": sum(d.get("verdict") == "accepted" for d in decided),
         "decided_without_card": unread,
+        "root_cause_cards_cut_short": cut_short,
+        "units_not_found": missing,
         "category_cards_opened": sorted(categories),
         "root_cause_cards_opened": sorted(root_causes),
         "index_read": index_read,
@@ -430,6 +476,7 @@ def main() -> int:
     run = json.loads((out / "run.json").read_text())
     events = read_jsonl(out / "transcript.jsonl")
     calls = tool_calls(events)
+    own, delegated = tool_calls(events, "main"), tool_calls(events, "sub")
     submissions = read_jsonl(out / "agent" / "submissions.jsonl")
     ours = read_jsonl(out / "review" / "results.jsonl")
     changes = [l for l in (out / "repo_changes.txt").read_text().splitlines() if l.strip()]
@@ -437,8 +484,10 @@ def main() -> int:
     meta = {
         **run,
         "usage": usage(events),
-        "tool_calls": len(calls),
-        "tools_used": dict(collections.Counter(name for name, _ in calls)),
+        "tool_calls": len(own),
+        "tools_used": dict(collections.Counter(name for name, _ in own)),
+        "subagent_tool_calls": len(delegated),
+        "subagent_tools_used": dict(collections.Counter(name for name, _ in delegated)),
         "findings_lines": len(read_jsonl(out / "agent" / "findings.jsonl")),
         "submissions": len(submissions),
         "agent_verdicts": dict(collections.Counter(
@@ -475,6 +524,7 @@ def main() -> int:
         "cost_usd": u.get("cost_usd_estimate"),
         "turns": "+".join(str(n) for n in u.get("num_turns") or []),
         "tool_calls": meta["tool_calls"],
+        "subagent_tool_calls": meta["subagent_tool_calls"],
         "input_tok": t.get("inputTokens"), "output_tok": t.get("outputTokens"),
         "cache_read_tok": t.get("cacheReadInputTokens"),
         "cache_write_tok": t.get("cacheCreationInputTokens"),

@@ -1068,6 +1068,10 @@ def session_floor(profile: Profile, meter: str, log) -> float:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Every line as it is printed, also into a file: run in the background with
+    # its output redirected (Oct 22), the log stayed empty for 18 minutes until
+    # the run ended, and the agent polled submissions.jsonl instead.
+    sys.stdout.reconfigure(line_buffering=True)
     parser = argparse.ArgumentParser(
         prog="verify.py",
         description=__doc__,

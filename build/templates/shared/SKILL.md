@@ -298,8 +298,11 @@ Read `$SKILL/reference/verifying.md` before your first submission.
 1. **Choose what to measure.** Measuring takes under a minute a repair, so at
    most **20** repairs are measured — the ones you expect to save the most
    energy, across all units — unless you were asked to measure all of them, or
-   a different number. Every other accepted suspicion is still a finding:
-   record it as `deferred` in step 3's record.
+   a different number. A place is used only by a repair that gets a verdict
+   (`confirmed`, `partial`, `mixed`, `regressed`, `negligible`): one whose unit
+   gets no inputs, or that cannot be made to behave identically, frees its
+   place, so take the next accepted suspicion instead. Every other accepted
+   suspicion is still a finding: record it as `deferred` in step 3's record.
 
 2. **Ask for the inputs of every unit you will measure**, if you did not in
    step 2 — all of them in one request.

@@ -61,12 +61,18 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
     burst of noise (Oct 21) left a 58% saving inconclusive here, minutes after
     the agent measured it on a 1.5% floor. The agent re-runs verify.py for such
     lines; the review, which runs once, did not.
+
+    So is a line with a noisy input (`_noisy`): on Oct 22 one bad pair of three
+    gave an input +66% +-82%, and a repair that saved 88-91% on the other three
+    came out `partial`. The retry replaces the first measurement whatever it
+    says, as for `inconclusive`, so keeping the better of two is never an option;
+    the first verdict is kept beside it as `first_status`.
     """
     with tempfile.TemporaryDirectory() as scratch:
         current = Path(scratch) / "submissions.jsonl"
         current.write_text(_without_retired(submissions), encoding="utf-8")
         results = _verify(repo, current, inputs)
-    again = {r.get("id") for r in results if r.get("status") == "inconclusive"}
+    again = {r.get("id") for r in results if r.get("status") == "inconclusive" or _noisy(r)}
     if not again:
         return results
     lines = []
@@ -81,7 +87,22 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
         subset.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
         retried = {r.get("id"): {**r, "measured_twice": True}
                    for r in _verify(repo, subset, inputs)}
-    return [retried.get(r.get("id"), r) for r in results]
+    return [{**retried[r.get("id")], "first_status": r.get("status")} if r.get("id") in retried
+            else r for r in results]
+
+
+NOISY = 3.0
+"""An input is noisy when its 95% interval is wider than this many noise floors
+and it did not count: too wide to say anything, on a host that can resolve far less."""
+
+
+def _noisy(result: dict) -> bool:
+    """Whether a measured line has an input that only noise kept from counting."""
+    floor = result.get("noise_floor_pct") or 0.0
+    if floor <= 0 or result.get("status") not in ("partial", "mixed", "negligible", "regressed"):
+        return False
+    return any(c.get("significant") is False and (c.get("energy_ci_pct") or 0.0) > NOISY * floor
+               for c in result.get("per_case") or [])
 
 
 RETIRED = ("equivalence", "equivalent")
@@ -214,6 +235,9 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
                            + "; ".join(note.rstrip(".") for note in row["relaxed"]) + ".")
             if row.get("stubbed"):
                 out.append("Loaded with uninstalled packages stood in for: " + ", ".join(row["stubbed"]) + ".")
+            if row.get("measured_twice"):
+                out.append(f"Measured twice: the first measurement came out `{row.get('first_status')}` "
+                           f"with an input too noisy to read, and this is the second.")
             if row["agent_status"] != row["status"]:
                 out.append(f"The agent measured `{row['agent_status']}`; re-measured `{row['status']}`.")
             if not row["agent_line_unchanged"]:
@@ -324,6 +348,8 @@ def main(argv: list[str] | None = None) -> int:
             "stubbed": result.get("stubbed", []),
             "skipped": result.get("skipped_statements", []),
             "per_case": result.get("per_case", []),
+            "measured_twice": bool(result.get("measured_twice")),
+            "first_status": result.get("first_status"),
         })
 
     (args.run_dir / "results.jsonl").write_text(

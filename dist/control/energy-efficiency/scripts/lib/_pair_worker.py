@@ -598,12 +598,20 @@ def main() -> int:
     devnull = os.open(os.devnull, os.O_WRONLY)
     os.dup2(devnull, 1)
     sys.stdout = open(os.devnull, "w")
+    # Requests come in on a copy of stdin; the code under test gets an empty one.
+    # A script that asks for a key at import time (`os.getenv(...) or input(...)`)
+    # read our protocol pipe, blocked until the 60 s load deadline, and was
+    # reported as "builds too much" (Oct 22). Now its input() ends at once.
+    requests = os.fdopen(os.dup(0), "r")
+    nothing = os.open(os.devnull, os.O_RDONLY)
+    os.dup2(nothing, 0)
+    sys.stdin = open(os.devnull, "r")
 
     def reply(payload: dict) -> None:
         protocol.write(json.dumps(payload) + "\n")
         protocol.flush()
 
-    setup = json.loads(sys.stdin.readline())
+    setup = json.loads(requests.readline())
     try:
         meter = get_meter(setup.get("meter", "auto"))
     except Exception:  # noqa: BLE001
@@ -639,7 +647,7 @@ def main() -> int:
            "after": described(sides["after"])})
 
     active: Side | None = None
-    for line in sys.stdin:
+    for line in requests:
         request = json.loads(line)
         op = request["op"]
         try:

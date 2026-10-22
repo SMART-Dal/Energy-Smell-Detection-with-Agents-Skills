@@ -112,16 +112,19 @@ fake_agent() {  # dry run: write what an agent writes, and test the lock
 
 # What the agent left in /tmp, listed in the run folder and deleted, so the next
 # run cannot read this one's repairs. Only entries that did not exist when the
-# agent started and that belong to us; Claude Code's own folders stay.
-clean_tmp() {  # run folder
-  local out=$1
+# agent started and that belong to us; Claude Code's own folders stay. Run again
+# around our review, into its own list: a repository's module-level code can
+# write to an absolute /tmp path while verify.py loads it (Oct 22:
+# colbert-long/scripts/convert.py opened /tmp/vespa_feed_file_en.json).
+clean_tmp() {  # run folder, list file
+  local out=$1 list=${2:-tmp_created.txt}
   ls -A /tmp | sort | comm -13 "$out/.tmp_before" - \
     | grep -v -E '^(claude-|cc-daemon-|tmux-|systemd-private-)' \
     | while read -r name; do
         [ -O "/tmp/$name" ] || continue
         echo "/tmp/$name"
         rm -rf -- "/tmp/$name"
-      done > "$out/tmp_created.txt"
+      done > "$out/$list"
   rm -f "$out/.tmp_before"
 }
 
@@ -295,6 +298,7 @@ run_one() {  # repo, arm, model
     status=dry_run
   elif [ -s "$out/record/submissions_all.jsonl" ] || [ -s "$out/agent/submissions.jsonl" ]; then
     log "review $id"
+    ls -A /tmp | sort > "$out/.tmp_before"
     mkdir -p "$out/review"
     # Every repair the agent ever wrote: its final file, plus any line it
     # removed during the session, as last seen (record/submissions_all.jsonl).
@@ -310,6 +314,7 @@ run_one() {  # repo, arm, model
     else
       status=review_failed
     fi
+    clean_tmp "$out" tmp_created_review.txt
   fi
 
   printf '{"run_id":"%s","repo":"%s","repo_commit":"%s","arm":"%s","model":"%s","effort":"%s",' \
