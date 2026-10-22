@@ -119,6 +119,24 @@ no progress. A blocked event loop keeps a core hot for nothing. Judge energy,
 and when the two diverge, say so — those cases are the most interesting ones
 you can find.
 
+## Measuring for yourself
+
+At any step, whenever you are unsure — whether some code costs anything,
+whether a change would save energy or only time, whether a version still does
+the same work — measure it. `$SKILL/scripts/energy.py` takes one energy reading
+of any Python call:
+
+```python
+import sys; sys.path.insert(0, "...")    # $SKILL/scripts, written out in full
+from energy import measure
+r = measure(my_function, data)          # r.joules, r.seconds, r.watts, r.result
+```
+
+What you run, on what data, how many times and how you compare is up to you;
+the script's docstring says what one reading holds. These readings are for
+your own judgement, and nothing records them: a repair is still measured by
+`verify.py`, in step 3, on the inputs generated for it.
+
 ---
 
 ## Procedure

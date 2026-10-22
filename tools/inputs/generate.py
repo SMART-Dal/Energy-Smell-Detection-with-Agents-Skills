@@ -87,7 +87,8 @@ VALIDATION_SLOTS = None
 """A semaphore bounding how many units execute candidates at once; the service sets it."""
 METER_LOCK = Path(tempfile.gettempdir()) / "energy-inputs-meter.lock"
 TURNSTILE = METER_LOCK.with_suffix(".turnstile")
-"""Locked by every process generating inputs on this host: the service's threads, batch.py's processes."""
+"""Locked by every process generating inputs on this host: the service's threads, batch.py's
+processes; and by the agent's own readings (src/energy.py), which the service tells where it is."""
 
 SYSTEM = """You are a performance testing expert. You will write the inputs for an energy measurement of one Python function from a real repository. We run the original function and a modified version of it on your inputs, each input many times in a row, and compare their energy use and their outputs.
 

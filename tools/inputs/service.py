@@ -15,6 +15,9 @@ The agent asks through `inputs.py`, one JSON line per connection on the socket:
     {"op": "status"}                   every requested unit and its state
     {"op": "finish", "wait_s": N}      waits for what is pending, answers, and exits
 
+`energy.py`, which takes the agent's own readings, asks `{"op": "meter_lock"}`
+for the generator's meter lock, and holds it for each reading as `metering` does.
+
 Each unit's inputs go to two places with the same layout -- `status.json` and
 one file per unit: the repository's `.energy-inputs/`, read-only, for the
 agent; and `--out`, where the agent cannot reach, which is what the review
@@ -281,6 +284,10 @@ def serve(service: Service, path: Path) -> None:
                     answer = {"ok": True, "done": list(service.steps.done) if service.steps else []}
                 elif op == "measured" and service.steps is not None:
                     answer = service.steps.measured(request.get("record"))
+                elif op == "meter_lock":
+                    for path in (gen.TURNSTILE, gen.METER_LOCK):
+                        path.touch(exist_ok=True)
+                    answer = {"ok": True, "turnstile": str(gen.TURNSTILE), "lock": str(gen.METER_LOCK)}
                 elif op == "finish":
                     answer = service.finish(float(request.get("wait_s", 600)))
                     done.set()

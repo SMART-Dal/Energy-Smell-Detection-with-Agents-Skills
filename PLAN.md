@@ -22,6 +22,7 @@ skill/
   scripts/
     scan.py                      static evidence  (optional, ablatable)
     verify.py                    equivalence + paired energy measurement
+    energy.py                    one energy reading of any call, for the agent's own checks
     lib/                         the code both scripts use
 ```
 

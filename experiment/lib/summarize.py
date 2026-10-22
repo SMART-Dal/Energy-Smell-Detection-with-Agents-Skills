@@ -98,6 +98,12 @@ No leading word boundary: in the transcript a line break is the text `\\n`, so
 `\\nshutil.chown` has a letter right before the name."""
 
 
+# Code that uses the skill's energy.py, the agent's own readings at any step:
+# a command or a script written for one. Reading the file is not using it. No
+# leading word boundary, as in PERMISSION_CODE: a line break is the text `\\n`.
+ENERGY_API = re.compile(r"from energy import\b|import energy\b")
+
+
 # What a Claude credential looks like: sk-ant-api03-... (API key) or
 # sk-ant-oat01-... (the subscription token from `claude setup-token`).
 CREDENTIAL = re.compile(r"sk-ant-[a-z]+\d+-[A-Za-z0-9_-]{20}")
@@ -498,6 +504,7 @@ def main() -> int:
         "tools_used": dict(collections.Counter(name for name, _ in own)),
         "subagent_tool_calls": len(delegated),
         "subagent_tools_used": dict(collections.Counter(name for name, _ in delegated)),
+        "energy_api_calls": sum(bool(ENERGY_API.search(text)) for _, text in calls),
         "findings_lines": len(read_jsonl(out / "agent" / "findings.jsonl")),
         "submissions": len(submissions),
         "agent_verdicts": dict(collections.Counter(
@@ -536,6 +543,7 @@ def main() -> int:
         "turns": "+".join(str(n) for n in u.get("num_turns") or []),
         "tool_calls": meta["tool_calls"],
         "subagent_tool_calls": meta["subagent_tool_calls"],
+        "energy_api_calls": meta["energy_api_calls"],
         "input_tok": t.get("inputTokens"), "output_tok": t.get("outputTokens"),
         "cache_read_tok": t.get("cacheReadInputTokens"),
         "cache_write_tok": t.get("cacheCreationInputTokens"),
