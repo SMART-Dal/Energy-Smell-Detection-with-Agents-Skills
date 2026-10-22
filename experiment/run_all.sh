@@ -134,7 +134,7 @@ start_inputs() {  # repo, run folder, root-cause cards folder (empty when the ar
   local repo=$1 out=$2 cards=$3 waited=0
   rm -f "$RUN/inputs.sock"
   # It also keeps each step's files when the agent says the step is finished,
-  # every repair verify.py measures, and opens the root-cause cards at step 3
+  # every repair verify.py measures, and opens the root-cause cards at step 2
   # (tools/inputs/steps.py), all in $out/record.
   "$RUN/venv/bin/python" "$PROJECT/tools/inputs/service.py" --repo-name "$repo" \
     --pristine "$EXP/pristine/$repo" --repo "$RUN/$repo" --socket "$RUN/inputs.sock" \
@@ -169,7 +169,7 @@ PY
 save_outputs() {  # repo dir, run folder
   local w=$1 out=$2
   mkdir -p "$out/agent"
-  for f in step1.jsonl step2.jsonl step3.jsonl step4.jsonl submissions.jsonl; do
+  for f in step1.jsonl step2.jsonl step3.jsonl submissions.jsonl; do
     if [ -f "$w/$f" ]; then
       cp "$w/$f" "$out/agent/"
       continue
@@ -184,10 +184,10 @@ save_outputs() {  # repo dir, run folder
       echo "${found#"$w"/}" >> "$out/outputs_misplaced.txt"
     fi
   done
-  # The four steps' output, in order, as one findings.jsonl: what the review
+  # The three steps' output, in order, as one findings.jsonl: what the review
   # and the summary read. A finished step is our copy from `done`
   # ($out/record/steps); an unfinished one is the file as the session left it.
-  for n in 1 2 3 4; do
+  for n in 1 2 3; do
     for f in "$out/record/steps/step$n.jsonl" "$out/record/steps/unfinished/step$n.jsonl" \
              "$out/agent/step$n.jsonl"; do
       [ -f "$f" ] && { cat "$f"; break; }
@@ -281,6 +281,12 @@ run_one() {  # repo, arm, model
   [ -n "$cards" ] && chmod u+rwx "$cards" 2>/dev/null   # the service opens them; in case it died
 
   save_outputs "$RUN/$repo" "$out"
+  # Every rule, on the untouched repository, in every arm: which of the agent's
+  # findings a rule also flags is measured here (summarize.py), not asked of the
+  # agent. The full arm's scanner has every rule.
+  (cd "$out" && "$RUN/venv/bin/python" "$PROJECT/dist/full/energy-smells/scripts/scan.py" \
+     "$EXP/pristine/$repo" --json --out "$out/rules-detail" > "$out/rules.json" 2> "$out/rules.log") \
+    || log "rule scan failed for $id: $(tail -1 "$out/rules.log")"
   "$RUN/venv/bin/python" -m pip freeze > "$out/venv_after.txt" 2>/dev/null
   clean_tmp "$out"
 

@@ -1148,9 +1148,9 @@ def _run_submissions(args, profile: Profile) -> int:
     repo = args.repo.resolve()
     path = args.target
     if os.environ.get(SOCKET_ENV):
-        # In an agent's session, measuring is step 4, which begins once the agent
-        # has said step 3 is finished; our own review never sets this.
-        refusal = step_refusal(3, "Measuring")
+        # In an agent's session, measuring is step 3, which begins once the agent
+        # has said step 2 is finished; our own review never sets this.
+        refusal = step_refusal(2, "Measuring")
         if refusal:
             print(refusal)
             return 2
@@ -1178,6 +1178,9 @@ def _run_submissions(args, profile: Profile) -> int:
         if "__unparsable__" in record:
             outputs.append({"id": f"line {record['__unparsable__']}", "status": "invalid",
                             "reason": f"not valid JSON: {record['__error__']}"})
+            # Said, not only counted: a file whose one line was malformed used to
+            # print nothing at all and exit 2.
+            log(f"\n=== line {record['__unparsable__']}\n  INVALID: {outputs[-1]['reason']}")
             continue
         sid = record.get("id") if isinstance(record, dict) else None
         log(f"\n=== {sid}  {record.get('unit', '?') if isinstance(record, dict) else ''}")

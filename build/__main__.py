@@ -47,14 +47,14 @@ TOKENS = {
     "{{CATEGORY_INDEX}}": lambda arm, rendered: rendered["categories"],
     "{{ROOT_CAUSE_INDEX}}": lambda arm, rendered: rendered["root_causes"],
     "{{STEP_EVIDENCE}}": lambda arm, rendered: arm.step_evidence,
-    "{{STEP_SWEEP}}": lambda arm, rendered: arm.step_sweep,
 }
 """Placeholders substituted into templates, and what fills each one.
 
 Two kinds. `{{CATEGORY_INDEX}}` and `{{ROOT_CAUSE_INDEX}}` are the taxonomy
-rendered as tables, identical in every arm that ships it. The `STEP_*` tokens
-are the parts of the protocol that differ by arm -- which is the whole
-experiment, so they live on the arm rather than in the template.
+rendered as tables, identical in every arm that ships it. `{{STEP_EVIDENCE}}`
+is the part of the protocol that differs by arm -- the rules, in step 1 --
+which is the whole experiment, so it lives on the arm rather than in the
+template.
 """
 
 
@@ -106,7 +106,7 @@ def _render_arm(arm: Arm, taxonomy: Taxonomy, catalog: Catalog) -> dict[Path, st
     """Every file of one arm's skill directory, as path -> contents.
 
     The cards and the verifier are identical in every arm that ships them: only
-    the template tree, the two substituted steps and the set of shipped
+    the template words, the rules part of step 1 and the set of shipped
     analyzers change, which is what makes a difference between two arms
     attributable to the evidence rather than to the instructions.
     """

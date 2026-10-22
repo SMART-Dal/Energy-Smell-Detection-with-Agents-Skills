@@ -2,9 +2,10 @@
 
 Each step writes its own file, and the agent says when it finishes one --
 `step.py done N` -- to the input service, which keeps the file as it is then
-and makes it read-only (tools/inputs/steps.py). Step 4 -- asking for inputs,
-measuring -- runs between `done 3` and `done 4`, and inputs may be asked for
-from `done 2`; inputs.py and verify.py ask before they start.
+and makes it read-only (tools/inputs/steps.py). Step 3 -- measuring -- runs
+between `done 2` and `done 3`, and inputs may be asked for from `done 1`, as
+soon as step 2 accepts a suspicion; inputs.py and verify.py ask before they
+start.
 """
 
 from __future__ import annotations
@@ -12,6 +13,9 @@ from __future__ import annotations
 import json
 
 from .inputs import ask
+
+LAST_STEP = 3
+"""The last step that writes a file; `done 3` closes the run's measuring."""
 
 
 def parse_records(text: str) -> list[dict]:
@@ -34,20 +38,21 @@ def parse_records(text: str) -> list[dict]:
 
 
 def step_refusal(after: int, what: str) -> str | None:
-    """None when `what` may run -- from `done <after>` until `done 4`; otherwise
-    what the agent should do first."""
+    """None when `what` may run -- from `done <after>` until `done LAST_STEP`;
+    otherwise what the agent should do first."""
     answer = ask({"op": "steps"}, timeout=10)
     if not answer.get("ok"):
         return None                           # no service: nothing to enforce here
     done = answer.get("done") or []
-    if 4 in done:
-        return "Step 4 is finished (`step.py done 4`): its files are read-only, and nothing more is requested or measured."
+    if LAST_STEP in done:
+        return (f"Step {LAST_STEP} is finished (`step.py done {LAST_STEP}`): its files are "
+                f"read-only, and nothing more is requested or measured.")
     if after in done:
         return None
     earlier = [f"`done {n}`" for n in range(1, after) if n not in done]
-    # Not "run done N now": an agent told that finished step 2 on the spot,
-    # skipping its rules and its sweep, just to ask for inputs a step early.
+    # Not "run done N now": an agent told that once finished a step on the spot,
+    # skipping the rest of it, just to ask for inputs a step early.
     return (f"{what} belongs to step {after + 1}, so it is not open yet. Carry on with "
-            f"step {after}: finish all of it, every sub-step in SKILL.md, and only then "
+            f"step {after}: finish all of it, everything SKILL.md asks of it, and only then "
             f"say so with `python $SKILL/scripts/step.py done {after}`"
             + (f" (after {' and '.join(earlier)})" if earlier else "") + ". Run this again after that.")

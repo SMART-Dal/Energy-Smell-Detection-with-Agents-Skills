@@ -83,7 +83,7 @@ class CatalogEntry:
     """What this root cause hunts for, in a single clause.
 
     Written once and reused in three places: the category card's table, the
-    full index the agent sweeps at step 2e, and every *other* card that lists
+    full index the agent finds with in step 1, and every *other* card that lists
     this one as similar.  Writing it once is what keeps those three consistent;
     it also means a card describes its neighbours in the neighbours' own words
     rather than in its own.

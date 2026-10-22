@@ -41,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import generate as gen  # noqa: E402
-from steps import StepKeeper  # noqa: E402
+from steps import FILES as STEP_FILES, StepKeeper  # noqa: E402
 from lib.inputs import (DIRNAME, FAILED, MAX_REQUESTED, MAX_UNITS, PENDING, READY,  # noqa: E402
                         STATUS, file_name)
 from lib.splice import split_name  # noqa: E402
@@ -275,7 +275,7 @@ def serve(service: Service, path: Path) -> None:
                     answer = service.request(request.get("units"))
                 elif op == "status":
                     answer = service.status()
-                elif op == "done" and service.steps is not None and request.get("step") in (1, 2, 3, 4):
+                elif op == "done" and service.steps is not None and request.get("step") in STEP_FILES:
                     answer = service.steps.declare(int(request["step"]))
                 elif op == "steps":
                     answer = {"ok": True, "done": list(service.steps.done) if service.steps else []}

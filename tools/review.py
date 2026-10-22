@@ -5,7 +5,7 @@
     python tools/review.py REPO RUN_DIR --apply         ...and write the applied repairs to REPO
     python tools/review.py REPO RUN_DIR --verdicts F    reuse a re-measurement already taken
 
-RUN_DIR holds the agent's `submissions.jsonl` and `findings.jsonl` (its four
+RUN_DIR holds the agent's `submissions.jsonl` and `findings.jsonl` (its three
 step files, joined). This writes `results.jsonl` and `REPORT.md` beside them.
 It never ships inside a skill.
 
@@ -169,16 +169,19 @@ def decide(submissions: list[dict], ours: dict[str, dict]) -> dict[str, dict]:
 
 def write_report(path: Path, repo: Path, submissions: list[dict], findings: list[dict],
                  rows: list[dict]) -> None:
-    step2 = [f for f in findings if f.get("step") == 2]
-    cleared = [f for f in step2 if not f.get("suspicions")]
-    outcomes = [o for f in findings if f.get("step") == 4 for o in f.get("outcomes", [])]
+    listed = {f.get("unit") for f in findings if f.get("step") == 1}
+    with_accepted = {f.get("unit") for f in findings if f.get("step") == 2
+                     and any(isinstance(d, dict) and d.get("verdict") == "accepted"
+                             for d in f.get("decisions") or [])}
+    outcomes = [o for f in findings if f.get("step") == 3 for o in f.get("outcomes", [])]
     counts = {status: sum(r["status"] == status for r in rows) for status in ORDER}
     commit = subprocess.run(["git", "-C", str(repo), "rev-parse", "--short", "HEAD"],
                             capture_output=True, text=True).stdout.strip()
 
     out = [f"# Energy report — {repo.name}{' @ ' + commit if commit else ''}", ""]
     deferred = sum(o.get("outcome") == "deferred" for o in outcomes)
-    out.append(f"{len(step2)} units examined ({len(cleared)} cleared) · "
+    out.append(f"{len(listed)} units listed, {len(listed & with_accepted)} with an accepted "
+               f"suspicion · "
                f"{len(submissions)} repairs submitted, {deferred} deferred · "
                + " · ".join(f"{n} {s}" for s, n in counts.items() if n)
                + f" · {sum(r['applied'] for r in rows)} applied")
@@ -248,7 +251,7 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
     section("Measured, not confirmed", [r for r in rows if r["status"] in ORDER[1:6]])
     section("Not measured", [r for r in rows if r["status"] in ORDER[6:]])
 
-    unmeasured = [(f["unit"], o) for f in findings if f.get("step") == 4
+    unmeasured = [(f["unit"], o) for f in findings if f.get("step") == 3
                   for o in f.get("outcomes", []) if o.get("outcome") in ("blocked", "deferred")]
     if unmeasured:
         out.extend(["## Detected, not measured", "",

@@ -1,16 +1,20 @@
 # The taxonomy, in full
 
-Twelve categories, sixty-five root causes.
+An **energy smell** is code that spends energy on work the program does not
+need, and that a specific refactoring can remove without changing what the
+program does. This taxonomy names them: twelve categories, sixty-five root
+causes.
 
-Two indexes follow, and they are for different moments. The **category table**
-is for choosing where to look: open a category card, and it lists its members
-with a line each, which is usually enough to drop most of them. The **root
-cause table** below it is the whole taxonomy on one page, for the sweep at the
-end of step 2 — reading it against code you have already formed a view about,
-to catch what you noticed and could not name.
+This page is what to look for in step 1. Read it before you read the code, and
+keep it beside you: of every function, ask whether any of these is happening
+there. The **category table** says what each family of waste covers; the
+**root cause table** below it lists all sixty-five, one line each — enough to
+recognise one, not enough to decide it. Deciding is step 2, with the root
+cause's card.
 
-Cards live at `reference/categories/<ID>.md` and
-`reference/root-causes/<ID>.<S>.md`.
+Cards live at `reference/categories/<ID>.md` — a category's root causes, with
+the repair for each — and `reference/root-causes/<ID>.<S>.md`, which open at
+`step.py done 1`.
 
 ## Categories
 
@@ -31,9 +35,9 @@ than they sound like. The one-line summaries here are index entries, precise
 enough to recognise something by and not enough to decide anything from. The
 card is the claim.
 
-**The taxonomy is a vocabulary, not a checklist.** Its job is to let you say
-precisely what is wrong and what would fix it, once you have found something.
-Finding nothing in a category is a perfectly ordinary outcome.
+**The index tells you what to look for, not what you will find.** A unit goes
+on your list because of what its code does, not because a line here sounds
+like it. Finding nothing in a category is a perfectly ordinary outcome.
 
 **Cards overlap.** When two root causes both describe what you repaired,
 either attribution is fine — say which you chose.

@@ -12,8 +12,8 @@ same output twice. The files appear in `.energy-inputs/`, read-only; read them
 to see what your repair will face. After the session, every repair is measured
 again on the generator's own copy of the same inputs.
 
-`request` works once you have said step 2 is finished (`step.py done 2`): ask
-for a unit's inputs in step 3, as soon as you know you will repair it. It
+`request` works once you have said step 1 is finished (`step.py done 1`): ask
+for a unit's inputs in step 2, as soon as you know you will repair it. It
 returns at once. Generating takes a minute or two, up to five for a hard unit,
 all units at the same time, so carry on meanwhile;
 verify.py waits (up to ten minutes) for any still being generated before it
@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "request":
-        refusal = step_refusal(2, "Asking for inputs")
+        refusal = step_refusal(1, "Asking for inputs")
         if refusal:
             print(refusal)
             return 2

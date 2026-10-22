@@ -7,17 +7,15 @@ it holds the protocol rather than per-node knowledge.
     level 1  categories/C7.md  is the smell anywhere in this category?
     level 2  root-causes/…     is it *this* one, and what exactly would fix it?
 
-The point of the split is not saving tokens.  It is suppressing the label
-prior: shown all sixty-five root causes at once, a model gravitates to whichever
-labels feel most central, which is visible in the published LeetCode labelling
-where C7.S1 alone took 27% of assignments and C11 took 0.07%.  Narrowing the
-candidate set *before* the choice is made keeps the decision driven by the code
-in front of it.
-
-The one place all sixty-five appear together is `render_root_cause_index`, and
-it is deliberately positioned late in the protocol -- the agent sweeps it only
-after it has read the code and written its own account of what is wrong, so the
-list is a check for omissions rather than a menu to choose from.
+The split separates recognising from deciding.  The one place all sixty-five
+appear together is `render_root_cause_index`, one line each, and since Oct 21
+2026 the agent reads it first, in step 1, as what to look for while it reads
+every file: agents that were given no notion of what waste looks like listed
+two to four units and stopped.  A line is enough to recognise a root cause and
+not enough to decide one, and that is deliberate -- the label prior is real
+(in the published LeetCode labelling C7.S1 alone took 27% of assignments and
+C11 took 0.07%), so the decision is made in step 2 against the level-2 card,
+with its definition and near-misses, and then measured.
 
 Cards are generated, never hand-edited, so `catalog/*.yaml` and the taxonomy
 spreadsheet stay the single source of truth.
@@ -54,10 +52,10 @@ def render_category_index(taxonomy: Taxonomy, catalog: Catalog) -> str:
 def render_root_cause_index(taxonomy: Taxonomy, catalog: Catalog) -> str:
     """All sixty-five root causes, one line each, grouped by category.
 
-    This is the list the agent reads at the end of step 2, against code it has
-    already formed a view about.  One line per root cause is the right width
-    for that: enough to recognise something already noticed and dismissed as
-    unnameable, not enough to decide anything from.
+    This is the list the agent reads in step 1, before and while it reads the
+    code.  One line per root cause is the right width for that: enough to
+    recognise a kind of waste in code, not enough to decide anything from --
+    step 2 does that with the level-2 card.
     """
     lines = []
     for category in taxonomy.categories:
@@ -135,7 +133,7 @@ def render_root_cause(
     shown on the card (Oct 2026: not part of the paper). How to read them --
     that the repairs are ideas rather than templates, what each result line
     asks for, that a near-miss means the repair would be wrong -- is said once,
-    in SKILL.md's step 3, rather than on every card.
+    in SKILL.md's step 2, rather than on every card.
     """
     node = taxonomy[root_cause_id]
     entry = catalog[root_cause_id]

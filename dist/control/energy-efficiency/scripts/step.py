@@ -3,8 +3,7 @@
 
     python step.py done 1      step1.jsonl is finished
     python step.py done 2      step2.jsonl is finished
-    python step.py done 3      step3.jsonl is finished
-    python step.py done 4      submissions.jsonl and step4.jsonl are finished
+    python step.py done 3      submissions.jsonl and step3.jsonl are finished
     python step.py status      which steps are finished
 
 Each step writes its own file in the repository's root, and you may write and
@@ -29,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
     done = sub.add_parser("done", help="say that a step is finished")
-    done.add_argument("step", type=int, choices=(1, 2, 3, 4))
+    done.add_argument("step", type=int, choices=(1, 2, 3))
     sub.add_parser("status", help="which steps are finished")
     args = parser.parse_args(argv)
 

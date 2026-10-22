@@ -48,7 +48,7 @@ REQUIRED = ("id", "unit", "changed")
 RETIRED = {
     "file": "name the file inside `unit` instead: `src/app.py::Report.render`",
     "callees_changed": "every key of `changed` other than `unit` is a changed callee",
-    "subsumed": "an identical repair is recorded as `same_repair_as` in step4.jsonl",
+    "subsumed": "an identical repair is recorded as `same_repair_as` in step3.jsonl",
     "cases_source": "the inputs are generated for you: request them with inputs.py, and "
                     "drop the field",
     # Oct 21: the check can no longer be relaxed by the submission. Everything a

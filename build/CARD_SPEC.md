@@ -29,7 +29,7 @@ what the card says -- so nothing on a card may be a guess.
 
 How to read a card -- that the repairs are ideas rather than templates, what
 each **Measured** action means, that a matching pattern does not guarantee a
-saving -- is said once in SKILL.md's step 3, never on a card.
+saving -- is said once in SKILL.md's step 2, never on a card.
 
 ## Fields
 

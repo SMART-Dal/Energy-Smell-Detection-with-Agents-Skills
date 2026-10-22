@@ -29,7 +29,7 @@ what `$SKILL` is once, at the start, and use it throughout.
 **Time:** you have 60 minutes for the whole run, thinking and measuring
 included, and the session is stopped at 60. That is enough to be thorough, so
 do not rush: give each unit the reading it needs, and keep enough of the hour
-for step 4, where measuring takes about a minute a repair. Run `date` when you
+for step 3, where measuring takes about a minute a repair. Run `date` when you
 start and again as you go, so you know how much of the hour is left.
 
 ---
@@ -134,29 +134,31 @@ you can find.
 
 ## Procedure
 
-Five steps, in order. **Each step writes its own file in the repository's
+Four steps, in order. **Each step writes its own file in the repository's
 root, and when the step is finished you say so** — then the next step begins:
 
 | Step | Writes | When it is finished |
 |---|---|---|
-| 1. Select | `step1.jsonl` | `python $SKILL/scripts/step.py done 1` |
-| 2. Read and suspect | `step2.jsonl` | `python $SKILL/scripts/step.py done 2` |
-| 3. Decide | `step3.jsonl` | `python $SKILL/scripts/step.py done 3` |
-| 4. Repair and measure | `submissions.jsonl`, `step4.jsonl` | `python $SKILL/scripts/step.py done 4` |
-| 5. Finish | your final message | — |
+| 1. Find | `step1.jsonl` | `python $SKILL/scripts/step.py done 1` |
+| 2. Decide | `step2.jsonl` | `python $SKILL/scripts/step.py done 2` |
+| 3. Repair and measure | `submissions.jsonl`, `step3.jsonl` | `python $SKILL/scripts/step.py done 3` |
+| 4. Finish | your final message | — |
+
+Step 1 is breadth: every file read, and every unit where something may be
+wasteful put on a list. Steps 2 and 3 are depth, for the units on that list.
 
 While a step is open, its file is yours: write it, rewrite it, fix it. `done`
 keeps the file, outside this session, as that step's output, and makes it
 read-only — a finished step is never changed. If a later step shows you
-something an earlier one missed, say so in the later step's file: step 3
-rejects a step-2 suspicion and adds a new one; it does not touch
-`step2.jsonl`. Do not start a step's file before the previous step is done.
+something an earlier one missed, say so in the later step's file: step 2
+rejects a step-1 suspicion and adds a new one; it does not touch
+`step1.jsonl`. Do not start a step's file before the previous step is done.
 The root-cause
-cards open at `done 2`, all of them. `inputs.py` runs from `done 2`, and
-`verify.py` between `done 3` and `done 4`.
+cards open at `done 1`, all of them. `inputs.py` runs from `done 1`, and
+`verify.py` between `done 2` and `done 3`.
 
-Every step after the second one is a check on what the second one wrote down,
-and a check you run against nothing checks nothing.
+Every step after the first is a check on what the first wrote down, and a
+check you run against nothing checks nothing.
 
 Each record is one JSON line with **exactly the keys its example below shows —
 all of them, and no others**; a key with nothing to say is `null` or `[]`.
@@ -164,7 +166,7 @@ all of them, and no others**; a key with nothing to say is `null` or `[]`.
 file goes in the repository's root, the directory you were started in —
 nowhere else.
 
-### 1. Select — *in:* a target · *out:* the units you will examine
+### 1. Find — *in:* a target · *out:* every unit where something may be wasteful, with its suspicions
 
 **The target** is what you were asked to look at: the whole repository, a
 directory, a file, or a single unit. Choose units only from inside it; read
@@ -174,6 +176,18 @@ resolved to. If more than one function matches, all of them are the target.
 
 Read the repository first — its entry points, what its tests exercise, what
 its README says it is for — so that you know what each part of it is for.
+
+**Know what you are looking for.** Read `$SKILL/reference/README.md` before
+you read any code. Its twelve categories and sixty-five root causes, one line
+each, are the kinds of waste this skill finds: keep them beside you as you
+read, and ask of every function whether any of them is happening there. They
+are for recognising waste, not for deciding it — code that does what a line
+describes is reason enough to list a suspicion, and step 2 settles it with the
+root cause's card.
+`$SKILL/reference/root-causes/` stays locked until then, by design, not by
+fault: it opens, all of it, at `python $SKILL/scripts/step.py done 1`. Waste
+you see that no line names is still a suspicion: give it the root cause that
+comes closest, and say in `why` what you saw.
 
 **Then you must go through every file in the target, and every unit in each
 file.** List the target's Python files first, so you know what there is to
@@ -188,110 +202,38 @@ it, so a file not read here is a file no one examines.
 quickest way to read all of it. If you can start subagents (in Claude Code, the
 Agent tool; its read-only `Explore` type fits), split the file list into groups
 and start one subagent per group, all in the same turn so they read in
-parallel. Tell each to read every function and method in its files in full, and
-to report for each its `path::qualname`, its lines, and anything in it that
-looks like work the program does not need, work done more often than needed, or
-work done more expensively than its result requires. Their reports are leads
-for your list, not findings: you choose the units, you read every unit you
-choose yourself in step 2, and only you write the step files and run the
-scripts.
+parallel. Tell each to read every function and method in its files in full,
+looking for the root causes listed in `$SKILL/reference/README.md` (give them its full path), and to report for each its `path::qualname`, its
+lines, and what looks wasteful in it. Their reports are leads, not findings:
+look at the code of every lead before you list it, and only you write the step
+files and run the scripts.
 
 **Leave nothing out because of what you expect later.** Code that calls a
 network or a service, code you doubt any input could be generated for, a
-script, a long file: read it all the same, and pick what looks inefficient in
-it. Whether a repair can be measured is step 4's question — ask for its inputs
+script, a long file: read it all the same, and list what looks wasteful in
+it. Whether a repair can be measured is step 3's question — ask for its inputs
 and let the generator say — and one that cannot is still a finding, recorded
 as `blocked` with the message that showed it.
 
-As you read, pick out every unit where something looks inefficient to you:
-work the program does not need, work done more often than necessary, or work
-done in a more expensive way than its result requires. Those are the units you
-will examine. Nothing limits how many units you pick or how many smells you
-report — one, ten, a hundred or a thousand, whatever the code holds. Within a
-unit, record every suspicion you have.
+**Record every unit where something may be wasteful**, and in it every
+suspicion: the root cause from the index it looks like, the lines, and why. A suspicion is a reason to look closer, not a
+verdict — step 2 decides — so write it down whenever you have the reason, and
+do not hold one back because you are unsure. Nothing limits how many units or
+suspicions you record — one, ten, a hundred or a thousand, whatever the code
+holds. A unit where nothing looks wasteful gets no record.
 
-If you were asked for a number of units, examine at most that many. You may
-change which units those are until you finish step 1; just do not go over the
-number.
-
-```jsonc
-{"step": 1, "target": "src/", "unit_limit": null, "units_considered": 128,
- "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
-                  "src/parse.py::Lexer.advance", "src/index.py::Index.add",
-                  "src/index.py::Index.lookup", "src/export.py::write_rows",
-                  ...]}   // shortened here: every unit where something looked inefficient
-```
-
-Write it to `step1.jsonl`. Rewrite it as often as you like while step 1 is
-open; when the list is final, run `python $SKILL/scripts/step.py done 1`.
-Before you do, check the file list: every file on it has been read, by you or
-by a subagent. If one has not, step 1 is not finished.
-
-Keep this list. Every unit on it gets a step-2 record, including the ones you
-clear — a run that examined three functions and one that examined three
-hundred have to be distinguishable.
-
-### 2. Read and suspect — *in:* one unit · *out:* one record, with `suspicions[]`
-
-Work through the sub-steps in the order given. That order is the whole point:
-you write down what you think before anything tells you what to think.
-
-**2a. Read the code and say what it does.** Read the whole unit, then follow it
-outward in both directions:
-
-- **Down, into what it calls.** If the unit calls something you have not read,
-  read it. A three-line loop body calling `normalise(row)` may be compiling a
-  regex and rebuilding two dicts per iteration, and none of that is visible
-  from the loop. Keep going until you reach the standard library or code that
-  plainly does no work.
-- **Up, into what calls it.** See what it is given and what is done with what
-  it returns: waste can sit between a unit and its callers — a result the
-  caller throws away, a shape the caller has to undo.
-
-Then write two sentences: what it computes, and where its work goes.
-
-Read outward because the expensive waste is not in any one line. Some waste
-is — a conversion, a lookup, a concatenation — and you can see it where it
-sits. The larger kind is in the *arrangement*: a value computed in one place
-and thrown away in another; a shape chosen early that every later step has to
-compensate for; six functions doing what a different split does in two; a
-result recomputed on each of three paths that each look reasonable alone. No
-single statement shows any of it.
-
-**2b. Say what looks wasteful, in your own words, before opening any card.**
-No IDs yet. Just: which work here does not need to happen, is done more often
-than necessary, or is done in a more expensive way than the result requires?
-Write this down — it goes in the output as `own_hypotheses`.
-
-This is the only defence against reading code through a label you have already
-picked, and it only works if you do it first and record it.
-
-**2c. Now match against the taxonomy, at the shallow level only.** Read the
-category index at the bottom of this file. Open
-`$SKILL/reference/categories/<ID>.md` for any category that might apply — each
-one lists its root causes with a line apiece, which is usually enough to tell
-whether one is worth a closer look.
-
-**Do not open root-cause cards yet.** You are producing suspicions, not
-verdicts. The cards belong to step 3, and `$SKILL/reference/root-causes/` is
-locked until then — by design, not a fault. It opens, all of it, when you have
-finished step 2 and run `python $SKILL/scripts/step.py done 2`, and stays open.
-
-Open the categories your reading pointed you at, and open others if the code
-suggests them. Nothing restricts which you may consider.
-
-**2d. Now, and only now, run the rules.**
+**When you have been through every file, run the rules** — after your own
+reading, so that what you list first is what you saw:
 
 ```bash
 python $SKILL/scripts/scan.py <path>              # index: which units, what was seen
 python $SKILL/scripts/scan.py <path> --unit NAME  # one unit's findings in full
 ```
 
-The first command prints an **index** and writes the detail to a file. That is
-deliberate: read the index, pick the units you already care about, and open
-those. Do not open every unit, and do not read the detail file end to end — the
-whole of it is longer than your account of the code should be, and a list read
-in full becomes the account instead of checking it.
+The first command prints an **index** and writes the detail to a file. Go
+through the index once: for every unit it flags that is not on your list, and
+every root cause it names that you have not suspected in a unit, open that
+unit's findings and read its code.
 
 This is an assistant, not an authority. It applies a fixed set of deterministic
 rules and reports **facts** — "a string is grown with `+=` inside a loop at line
@@ -319,85 +261,70 @@ anything.
 So reconcile it against the list you already wrote, and keep your own judgement:
 
 - **it agrees with you** — you now have two independent reasons;
-- **it saw something you did not** — read that code again and decide for
-  yourself. Being pointed at a line is not being told it is wrong;
+- **it saw something you did not** — read that code and decide for yourself,
+  and add the suspicion, or the unit, if you agree. Being pointed at a line is
+  not being told it is wrong;
 - **it flags something you judged fine** — you may well be right. Keep your
   judgement and move on;
 - **it is silent where you are suspicious** — that means nothing at all. Keep
-  the suspicion and carry it forward.
+  the suspicion.
 
-Add `found_by` to every suspicion: `"reading"`, `"rules"`, or `"both"`.
+Do this before step 1 is finished: the rules can add a unit only while the list
+is still open.
 
-**2e. Sweep the full index for what you have not named.**
-
-Read `$SKILL/reference/README.md`, which lists all sixty-five root causes with
-one line each. Go down it once, against this unit, asking a single question:
-
-> is any of these happening here, that I have not already written down?
-
-You are looking for two things in particular. Waste you *noticed* while reading
-but could not name, which is what this index is for. And waste you did not
-notice at all, where the one-line description makes you go back and look.
-
-Add anything you find to `suspicions` with `found_by: "sweep"`. Do not revise
-anything already on the list, and do not drop items because the sweep did not
-independently produce them — the point of doing this last is that your own
-reading stays the primary account and this only adds to it.
-
-Expect most sweeps to add nothing. That is a normal outcome and not a sign you
-did it wrong.
-
-**Output of this step.** For each unit, one record:
+If you were asked for a number of units, list at most that many. You may
+change which units those are until you finish step 1; just do not go over the
+number.
 
 ```jsonc
-{
-  "step": 2,
-  "unit": "src/render.py::Report.render",
-  "what_it_does": "renders one HTML table from a list of row dicts",
-  "cost_driver": "one pass per row, and string building across all rows",
-  "own_hypotheses": [
-    "the output string is rebuilt on every row",
-    "`self.columns` is re-derived inside the row loop and never changes"
-  ],
-  "suspicions": [
-    {"label": "a", "root_cause": "C10.S4", "lines": [47],
-     "why": "`self.buf` is grown with += once per row; nothing reads it in the loop",
-     "found_by": "both"},
-    {"label": "b", "root_cause": "C3.S2",  "lines": [44,45],
-     "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row",
-     "found_by": "reading"}
-  ],
-  "cleared_because": null
-}
+{"step": 1, "unit": "src/render.py::Report.render", "suspicions": [
+  {"label": "a", "root_cause": "C10.S4", "lines": [47],
+   "why": "`self.buf` is grown with += once per row; nothing reads it in the loop"},
+  {"label": "b", "root_cause": "C3.S2",  "lines": [44,45],
+   "why": "`sorted(self.columns)` is recomputed per row and does not depend on the row"}
+]}
 ```
 
-Give each suspicion a `label` — `a`, `b`, `c` — unique within the unit. Steps 3
-and 4 refer to it. A unit with nothing suspicious gets the same record with
-`"suspicions": []` and `cleared_because` saying why.
+Give each suspicion a `label` — `a`, `b`, `c` — unique within the unit. Steps 2
+and 3 refer to it by that label.
 
-`found_by` says how you came to suspect it, and is recorded honestly:
-`"reading"` from 2a–2b; `"rules"` when a rule's finding on this unit names this
-root cause and you had not suspected it; `"both"` when you had, and a rule's
-finding on this unit names the same root cause; or `"sweep"` from the index
-pass. A rule that flagged the unit for a different root cause does not make it
-`"both"`. It is the difference between an analysis you did and a list you were
-handed.
+Write one record per unit to `step1.jsonl`, and rewrite it as often as you like
+while step 1 is open. Before you finish, check the file list: every file on it
+has been read, by you or by a subagent. If one has not, step 1 is not finished.
+Then run `python $SKILL/scripts/step.py done 1`.
 
-**Record every suspicion, however many.** Writing one down costs nothing, and
-step 3 is where each is checked: do not hold one back because you are unsure.
+### 2. Decide — *in:* each unit on the list, with its suspicions · *out:* one record per unit, each suspicion accepted or rejected
 
-Write each unit's record to `step2.jsonl`. When every unit you examine has its
-record, step 2 is finished: run `python $SKILL/scripts/step.py done 2`.
-
-### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
-
-Start this step after `step.py done 2`, and write a step-3 record to
-`step3.jsonl` for every unit with suspicions. As soon as you know a unit will
-be repaired, ask for its inputs (step 4, item 2): they take a minute or two to
+Start this step after `step.py done 1`, and write one step-2 record to
+`step2.jsonl` for every unit on your list. As soon as you know a unit will be
+repaired, ask for its inputs (step 3, item 2): they take a minute or two to
 generate, and are then ready when you measure. When every record is written,
-run `python $SKILL/scripts/step.py done 3`; step 4 starts after it.
+run `python $SKILL/scripts/step.py done 2`; step 3 starts after it.
 
-The root-cause cards are open from `step.py done 2` on. Open
+**First, read the unit properly.** Read the whole unit, then follow it
+outward in both directions:
+
+- **Down, into what it calls.** If the unit calls something you have not read,
+  read it. A three-line loop body calling `normalise(row)` may be compiling a
+  regex and rebuilding two dicts per iteration, and none of that is visible
+  from the loop. Keep going until you reach the standard library or code that
+  plainly does no work.
+- **Up, into what calls it.** See what it is given and what is done with what
+  it returns: waste can sit between a unit and its callers — a result the
+  caller throws away, a shape the caller has to undo.
+
+Then say in one sentence what it computes and where its work goes: that is
+`what_it_does`.
+
+Read outward because the expensive waste is not in any one line. Some waste
+is — a conversion, a lookup, a concatenation — and you can see it where it
+sits. The larger kind is in the *arrangement*: a value computed in one place
+and thrown away in another; a shape chosen early that every later step has to
+compensate for; six functions doing what a different split does in two; a
+result recomputed on each of three paths that each look reasonable alone. No
+single statement shows any of it.
+
+The root-cause cards are open from `step.py done 1` on. Open
 `$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the whole
 card: the reference's definition, common patterns, the measured
 repairs, and near-misses.
@@ -419,20 +346,20 @@ repairs, and near-misses.
   the code has now, judge from this repository — the code around the unit and
   the inputs it actually receives — whether the *before* or the *after* is
   better here, and measure when you cannot tell. **Report it; no need to measure** — nothing moved on any
-  input: accept it if it fits and record it `deferred` in step 4.
+  input: accept it if it fits and record it `deferred` in step 3.
   **Measure it** — our host could not resolve it.
 - **Near-misses** (`Looks like it, but is not`) have the pattern, and there the
   repair would change what the code does or undo something done on purpose.
 
 Every suspicion ends this step **accepted** or **rejected**, and nothing is
 edited in place. If the card says a suspicion belongs somewhere else, reject it
-and add a new one, with a new label, for the root cause that fits, with
-`found_by: "cards"`. That keeps what you first thought on the record, which is
-the part worth reading later.
+and add a new one, with a new label, for the root cause that fits. That keeps
+what you first thought on the record, which is the part worth reading later.
 
-The list may also **grow** here: reading the cards is one of the
-better ways to find a root cause nobody suspected. A rejection with a reason
-is as much a result as an acceptance.
+A unit's suspicions may also **grow** here: reading the cards is one of the
+better ways to find a root cause nobody suspected. Its units do not — they
+were settled in step 1. A rejection with a reason is as much a result as an
+acceptance.
 
 **For each suspicion:**
 
@@ -452,24 +379,28 @@ Accept if all of them hold, and give the mechanism as `why`. Otherwise reject,
 and give the check that decided it as `why`.
 
 ```jsonc
-{"step": 3, "unit": "src/router.py::Router.allowed", "decisions": [
+{"step": 2, "unit": "src/router.py::Router.allowed",
+ "what_it_does": "checks each request against `self.blocked`, a list built once in __init__",
+ "decisions": [
   {
     "label": "a", "root_cause": "C5.S2", "lines": [58], "verdict": "rejected",
-    "why": "`Looks like it, but is not` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added `c` instead.",
-    "found_by": "reading"
+    "why": "`Looks like it, but is not` — nothing needs the list's order, so the container's type changes rather than an index being added beside it. Added `b` instead."
   },
   {
-    "label": "c", "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
-    "why": "`self.blocked` is a list searched once per request, built in __init__ at line 31 and read nowhere else; as a set each search is one hash lookup",
-    "found_by": "cards"
+    "label": "b", "root_cause": "C5.S1", "lines": [31], "verdict": "accepted",
+    "why": "`self.blocked` is a list searched once per request, built in __init__ at line 31 and read nowhere else; as a set each search is one hash lookup"
   }
 ]}
 ```
 
-### 4. Repair and measure — *in:* every accepted suspicion · *out:* `submissions.jsonl`, measured, and one record per unit
+Every suspicion from step 1 gets a decision under its label, and a unit whose
+suspicions are all rejected still gets its record — a run that examined three
+functions and one that examined three hundred have to be distinguishable.
 
-Start this step once every unit has been through step 3, and work from their
-step-3 records.
+### 3. Repair and measure — *in:* every accepted suspicion · *out:* `submissions.jsonl`, measured, and one record per unit
+
+Start this step once every unit has been through step 2, and work from their
+step-2 records.
 
 **You do not edit the repository.** You describe each repair; the script
 applies it to a copy and reads `before` from the repository as it stands. That
@@ -484,10 +415,10 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    most **20** repairs are measured — the ones you expect to save the most
    energy, across all units — unless you were asked to measure all of them, or
    a different number. Every other accepted suspicion is still a finding:
-   record it as `deferred` in step 4's record.
+   record it as `deferred` in step 3's record.
 
 2. **Ask for the inputs of every unit you will measure**, if you did not in
-   step 3 — all of them in one request.
+   step 2 — all of them in one request.
 
    ```bash
    python $SKILL/scripts/inputs.py request src/render.py::Report.render src/parse.py::tokenize
@@ -518,7 +449,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    so the order does not matter, and nothing you submit changes what the next
    one is written against.
    - **The same edit as one you already wrote** for this unit: do not submit it
-     again. Record its outcome in step 4 as `same_repair_as`, with that
+     again. Record its outcome in step 3 as `same_repair_as`, with that
      submission's `id` as `submission`.
    - **A different edit to the same code**: submit it, and list each in the
      other's `related`.
@@ -559,11 +490,11 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    cannot run or it is outside the 20, is `deferred`: ask for its inputs instead
    whenever you can.
 
-6. **Record what happened to every accepted suspicion** in `step4.jsonl`, one
+6. **Record what happened to every accepted suspicion** in `step3.jsonl`, one
    record per unit:
 
    ```jsonc
-   {"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
+   {"step": 3, "unit": "src/render.py::Report.render", "outcomes": [
      {"label": "a", "outcome": "submitted",      "submission": "C10S4-render-concat", "why": null},
      {"label": "b", "outcome": "same_repair_as", "submission": "C10S4-render-concat", "why": null},
      {"label": "c", "outcome": "blocked",        "submission": null, "why": "inputs.py: no inputs could be generated: every call opens a database connection"},
@@ -576,13 +507,13 @@ one you delete is still measured after the session. `partial`, `negligible`,
 `regressed` and `mixed` are results, and a file that kept only the wins could
 not be told apart from one that hid its losses.
 
-7. **Check, then finish the step.** Every suspicion accepted in step 3 has an
-   outcome in `step4.jsonl`, and every line of `submissions.jsonl` carries the
+7. **Check, then finish the step.** Every suspicion accepted in step 2 has an
+   outcome in `step3.jsonl`, and every line of `submissions.jsonl` carries the
    `agent_measurement` the script wrote, with nothing left `inconclusive` or
    `error` that a run could still settle. Then run
-   `python $SKILL/scripts/step.py done 4`.
+   `python $SKILL/scripts/step.py done 3`.
 
-### 5. Finish — *in:* the four steps' files · *out:* a short summary
+### 4. Finish — *in:* the three steps' files · *out:* a short summary
 
 This step writes no file. End with a short summary for whoever asked: for each submission, the unit,
 its root cause, the verdict, and what it saved across its four inputs. Lead
@@ -622,6 +553,9 @@ Failure modes, in the order they actually happen:
    them and taking those through to the end. It feels like progress and leaves
    most of the target unread, and the list cannot grow after step 1. Read every
    file first, yourself or through subagents, and pick from all of them.
+1. **Listing from the index instead of the code.** A line in the index sounds
+   like something, and the unit goes on the list without its code doing it.
+   The index tells you what to look for; what the code does is what you list.
 1. **Deciding from the label.** "Nested loops, so it must be an algorithmic
    complexity problem." Open the card; most of them are narrower than the name.
 1. **One label dominating.** If a third of your findings share a root cause,

@@ -1,12 +1,11 @@
-"""Keep each step's output as the agent leaves it, and open the root-cause cards at step 3.
+"""Keep each step's output as the agent leaves it, and open the root-cause cards at step 2.
 
 The agent writes one file per step in the repository's root and says when the
 step is finished:
 
     step 1   step1.jsonl                          python $SKILL/scripts/step.py done 1
     step 2   step2.jsonl                          python $SKILL/scripts/step.py done 2
-    step 3   step3.jsonl                          python $SKILL/scripts/step.py done 3
-    step 4   submissions.jsonl, step4.jsonl       python $SKILL/scripts/step.py done 4
+    step 3   submissions.jsonl, step3.jsonl       python $SKILL/scripts/step.py done 3
 
 Nothing is watched in between. While a step is open its file is the agent's to
 write and rewrite as it likes. At `done N` the service copies that step's files
@@ -16,10 +15,11 @@ step's output. Steps finish in order, one after the other.
 
 Two more things, both event-driven:
 
-  * the root-cause cards are locked until `done 2`, with a note beside them
-    saying how they open -- a bare "Permission denied" read as permanent;
+  * the root-cause cards are locked until `done 1`, with a note beside them
+    saying how they open -- a bare "Permission denied" read as permanent.
+    Step 1 finds with the one-line index; the cards are for deciding;
   * verify.py reports every repair it measures (`measured.jsonl`), so a repair
-    the agent deletes during step 4 is still kept, and the review measures it
+    the agent deletes during step 3 is still kept, and the review measures it
     (`submissions_all.jsonl`).
 
 The agent runs as the same user and could undo a chmod; at every `done` and at
@@ -43,22 +43,22 @@ if str(SRC) not in sys.path:
 
 from lib.progress import parse_records  # noqa: E402
 
-FILES = {1: ["step1.jsonl"], 2: ["step2.jsonl"], 3: ["step3.jsonl"],
-         4: ["step4.jsonl", "submissions.jsonl"]}
+FILES = {1: ["step1.jsonl"], 2: ["step2.jsonl"], 3: ["step3.jsonl", "submissions.jsonl"]}
+LAST = max(FILES)
+CARDS_OPEN_AT = 1                                      # done 1: step 2 decides with the cards
 OPTIONAL = {"submissions.jsonl"}                       # a run may end with nothing to measure
 NOTE = "ROOT-CAUSE-CARDS-LOCKED.md"
 NEXT = {
-    1: "Step 2: read each unit and write step2.jsonl, one record per unit, working through "
-       "every sub-step of step 2 in SKILL.md, in order.",
-    2: "Step 3: decide every suspicion and write step3.jsonl.{cards} inputs.py runs from now "
-       "on: ask for the inputs of a unit as soon as you know you will repair it.",
-    3: "Step 4: write submissions.jsonl and step4.jsonl; verify.py runs now.",
-    4: "All four steps are finished. End with your summary.",
+    1: "Step 2: read each unit on your list and decide every suspicion, and write step2.jsonl, "
+       "one record per unit.{cards} inputs.py runs from now on: ask for the inputs of a unit "
+       "as soon as you know you will repair it.",
+    2: "Step 3: write submissions.jsonl and step3.jsonl; verify.py runs now.",
+    3: "All three steps are finished. End with your summary.",
 }
 
 
 def _open_cards(records: list) -> str:
-    """The cards step 3 needs, named from the agent's own step 2.
+    """The cards step 2 needs, named from the agent's own step 1.
 
     "The cards are open now" was not enough: an agent that had met the lock in
     step 1 wrote every decision without opening one.
@@ -102,10 +102,11 @@ class StepKeeper:
                 note.unlink(missing_ok=True)
             else:
                 note.write_text(
-                    "# The root-cause cards are locked until step 3\n\n"
-                    "This is by design, not a fault: step 2 is your own reading, made before any "
-                    "card. When step 2 is finished, run\n\n"
-                    "    python $SKILL/scripts/step.py done 2\n\n"
+                    "# The root-cause cards are locked until step 2\n\n"
+                    "This is by design, not a fault: step 1 finds, with the one-line index in "
+                    "`reference/README.md`; the cards are for deciding, in step 2. When step 1 "
+                    "is finished, run\n\n"
+                    "    python $SKILL/scripts/step.py done 1\n\n"
                     "and every card in `root-causes/` opens, and stays open.\n")
         except OSError:
             return
@@ -136,7 +137,7 @@ class StepKeeper:
             if not records:
                 return {"ok": False, "error": f"{names[0]} has no record in it yet"}
             self._changed_since_kept()
-            early = [n for later in range(step + 1, 5) for n in FILES[later]
+            early = [n for later in range(step + 1, LAST + 1) for n in FILES[later]
                      if n not in OPTIONAL and (self.repo / n).exists()]
             for name in early:
                 self._event(file=name, event="written_early", during_step=step)
@@ -152,9 +153,9 @@ class StepKeeper:
                     pass
             self.done.append(step)
             self._event(file="steps", event="done", step=step, records=len(records))
-            if step == 2 and self.cards is not None:
+            if step == CARDS_OPEN_AT and self.cards is not None:
                 self._cards(open_=True)
-        cards = _open_cards(records) if step == 2 and self.cards is not None else ""
+        cards = _open_cards(records) if step == CARDS_OPEN_AT and self.cards is not None else ""
         return {"ok": True, "done": list(self.done), "message":
                 f"Step {step} is finished: {', '.join(n for n in names if n in self.kept)} "
                 f"({len(records)} record(s)) kept as it is now, and read-only from here on. "

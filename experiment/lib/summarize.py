@@ -7,10 +7,12 @@ Reads run.json (from run_all.sh), transcript.jsonl, agent/ and review/.
 
 Three audits beside the usage numbers. `leak_audit`: paths outside the run's
 own folder. `protocol`: whether the agent did the steps the skill asks for --
-cards opened, rules run, root-cause IDs that exist, `found_by` claims that a
-rule scan could back. `environment`: what it did to its environment -- /tmp,
-pip, extra venvs, measuring against another `--repo` -- and repairs whose
-measured baseline was not the repository's code.
+the index read, cards opened, rules run, root-cause IDs that exist.
+`environment`: what it did to its environment -- /tmp, pip, extra venvs,
+measuring against another `--repo` -- and repairs whose measured baseline was
+not the repository's code. And `rules_overlap`: which of the agent's units and
+accepted findings a rule also flags on the untouched repository (rules.json,
+written by run_all.sh), in every arm.
 """
 
 from __future__ import annotations
@@ -121,18 +123,16 @@ def audit(calls, run: dict) -> dict:
     return {key: value[:50] for key, value in flags.items()}
 
 
-# The keys every record must carry, from the skill's output-format.md (Oct 13
-# 2026). The control arm has no taxonomy, so no `root_cause` and no `found_by`.
+# The keys every record must carry, from the skill's output-format.md (Oct 21
+# 2026: find, decide, repair). The control arm has no taxonomy, so no `root_cause`.
 RECORD_KEYS = {
-    1: {"step", "target", "unit_limit", "units_considered", "will_examine"},
-    2: {"step", "unit", "what_it_does", "cost_driver", "own_hypotheses", "suspicions",
-        "cleared_because"},
-    3: {"step", "unit", "decisions"},
-    4: {"step", "unit", "outcomes"},
+    1: {"step", "unit", "suspicions"},
+    2: {"step", "unit", "what_it_does", "decisions"},
+    3: {"step", "unit", "outcomes"},
 }
 ITEM_KEYS = {
-    "suspicions": {"label", "root_cause", "lines", "why", "found_by"},
-    "decisions": {"label", "root_cause", "lines", "verdict", "why", "found_by"},
+    "suspicions": {"label", "root_cause", "lines", "why"},
+    "decisions": {"label", "root_cause", "lines", "verdict", "why"},
     "outcomes": {"label", "outcome", "submission", "why"},
 }
 SUBMISSION_KEYS = {"id", "root_cause", "unit", "changed", "related", "sole_caller_evidence",
@@ -141,7 +141,7 @@ SUBMISSION_KEYS = {"id", "root_cause", "unit", "changed", "related", "sole_calle
 
 def schema(findings: list[dict], submissions: list[dict], arm: str) -> list[str]:
     """Every way the agent's records differ from the fixed keys, counted."""
-    untaxed = {"root_cause", "found_by"} if arm == "control" else set()
+    untaxed = {"root_cause"} if arm == "control" else set()
     problems = collections.Counter()
 
     def compare(where: str, record: dict, expected: set) -> None:
@@ -172,69 +172,40 @@ LOOPED_CARD = re.compile(r"\$\{?\w+\}?\.md\b")
 sed C3.S4.md` read cards as surely as the full path does."""
 
 
-SECTION = re.compile(r"^== (\S+?):\d+\s+(\S+)\s*$")
-FACT_ID = re.compile(r"^\s+(C\d+\.S\d+)\s")
+def rules_overlap(findings: list[dict], rules_path: Path) -> dict | None:
+    """What every rule flags on the untouched repository, against the agent's work.
 
-
-def tool_outputs(events: list[dict]) -> list[str]:
-    """The text of every tool result the agent saw."""
-    texts = []
-    for event in events:
-        content = (event.get("message") or {}).get("content") if event.get("type") == "user" else None
-        for item in content if isinstance(content, list) else []:
-            if item.get("type") != "tool_result":
-                continue
-            body = item.get("content")
-            texts.append(body if isinstance(body, str) else "\n".join(
-                part.get("text", "") for part in body or [] if isinstance(part, dict)))
-    return texts
-
-
-def rule_facts(scan_dir: Path, outputs: list[str] = ()) -> list[tuple[str, str, set]]:
-    """(file, qualname, root causes named) for every unit in the rule scans the
-    agent saw: the ones saved under .energy-scan, and the ones printed to it --
-    `scan.py --unit` prints a unit's findings and saves nothing.
-
-    Paths are relative to whatever directory was scanned, so they are matched
-    against a finding's path by suffix.
+    `found_by` used to ask the agent whether its reading or a rule found each
+    suspicion; agents ran the scan before reading anyway (Oct 21), so it is now
+    measured instead. run_all.sh scans the pristine repository with every rule,
+    in every arm, and an accepted finding counts as named by a rule when a rule's
+    finding on that unit names its root cause. None when there is no scan.
     """
-    units = []
-    texts = [detail.read_text(errors="replace")
-             for detail in (sorted(scan_dir.glob("*.txt")) if scan_dir.is_dir() else [])]
-    for text in texts + list(outputs):
-        current = None
-        for line in text.splitlines():
-            section = SECTION.match(line)
-            if section:
-                current = (section.group(1), section.group(2), set())
-                units.append(current)
-            elif current and FACT_ID.match(line):
-                current[2].add(FACT_ID.match(line).group(1))
-    return units
-
-
-def unbacked_claims(findings: list[dict], facts) -> list[str]:
-    """`found_by` rules/both claims that no rule finding on that unit backs."""
-    unbacked = []
-    for record in findings:
-        if record.get("step") != 2 or "::" not in str(record.get("unit")):
-            continue
-        path, qualname = record["unit"].split("::", 1)
-        named = set().union(*[ids for file, name, ids in facts
-                              if name == qualname and path.endswith(file)] or [set()])
-        for item in record.get("suspicions") or []:
-            if item.get("found_by") in ("rules", "both") and item.get("root_cause") not in named:
-                unbacked.append(f"{record['unit']} {item.get('label')} "
-                                f"{item.get('root_cause')} ({item.get('found_by')}); "
-                                f"rules named {sorted(named) or 'nothing here'}")
-    return unbacked
+    try:
+        report = json.loads(rules_path.read_text())
+    except (OSError, ValueError):
+        return None
+    flagged = {u.get("unit"): {c.get("id") for c in u.get("candidates") or []}
+               for u in report.get("units") or []}
+    listed = {f.get("unit") for f in findings if f.get("step") == 1}
+    accepted = [(f.get("unit"), d.get("root_cause")) for f in findings if f.get("step") == 2
+                for d in f.get("decisions") or []
+                if isinstance(d, dict) and d.get("verdict") == "accepted"]
+    return {
+        "units_rules_flag": len(flagged),
+        "units_listed": len(listed),
+        "units_listed_and_flagged": len(listed & set(flagged)),
+        "accepted": len(accepted),
+        "accepted_unit_flagged": sum(unit in flagged for unit, _ in accepted),
+        "accepted_root_cause_named": sum(rc in flagged.get(unit, ()) for unit, rc in accepted),
+    }
 
 
 def refused_cards(events: list[dict]) -> list[set[str]]:
     """Per tool call, in `tool_calls` order: the cards its output says it could
-    not read. Root-cause cards are locked until step 2 is done; on Oct 21 a
-    Sonnet run's only card "read" was refused, it decided step 3 without any,
-    and the card counted as opened kept `decided_without_cards` from firing."""
+    not read. Root-cause cards are locked until step 1 is done; on Oct 21 a
+    Sonnet run's only card "read" was refused, it decided without any, and the
+    card counted as opened kept `decided_without_cards` from firing."""
     denied = {}
     for event in events:
         content = (event.get("message") or {}).get("content") if event.get("type") == "user" else None
@@ -254,7 +225,7 @@ def refused_cards(events: list[dict]) -> list[set[str]]:
 
 
 def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
-             scan_dir: Path, outputs: list[str] = (), refused: list[set[str]] = ()) -> dict:
+             refused: list[set[str]] = ()) -> dict:
     """Did the agent do the steps? Counted from its tool calls and its files."""
     categories, root_causes = set(), set()
     for index, (name, text) in enumerate(calls):
@@ -283,53 +254,44 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
             rule_scans += 1
         elif runs:
             rankings += 1
-    step2 = [f for f in findings if f.get("step") == 2]
-    suspicions = [x for f in step2 for x in f.get("suspicions") or []]
-    claims = sum(x.get("found_by") in ("rules", "both") for x in suspicions)
+    step1 = [f for f in findings if f.get("step") == 1]
+    suspicions = [x for f in step1 for x in f.get("suspicions") or [] if isinstance(x, dict)]
+    decided = [d for f in findings if f.get("step") == 2
+               for d in f.get("decisions") or [] if isinstance(d, dict)]
 
     cards = Path(run["project"]) / "dist/full/energy-smells/reference/root-causes"
     valid = {p.stem for p in cards.glob("C*.md")}
     used = [x.get("root_cause") for x in suspicions]
-    used += [d.get("root_cause") for f in findings if f.get("step") == 3
-             for d in f.get("decisions") or []]
+    used += [d.get("root_cause") for d in decided]
     used += [s.get("root_cause") for s in submissions]
     invalid = sorted({str(u) for u in used if u and u not in valid}) if run["arm"] != "control" else []
 
     off_schema = schema(findings, submissions, run["arm"])
-    unbacked = unbacked_claims(findings, rule_facts(scan_dir, outputs))
     flags = []
     if off_schema:
         flags.append("keys_off_schema")
-    if claims and not rule_scans:
-        flags.append("found_by_rules_without_a_rule_scan")
-    elif unbacked:
-        flags.append("found_by_rules_not_backed_by_a_rule")
     if invalid:
         flags.append("root_cause_ids_not_in_taxonomy")
-    # The two things an arm is for: the full arm differs from knowledge only by
-    # its rules, and every taxonomy arm decides step 3 against the cards.
+    # What an arm is for: the full arm differs from knowledge only by its rules,
+    # every taxonomy arm finds with the index (step 1) and decides against the
+    # cards (step 2).
     if run["arm"] in ("full", "ast", "ruff") and not rule_scans:
         flags.append("no_rule_scan")
-    decided = [d for f in findings if f.get("step") == 3 for d in f.get("decisions") or []]
+    index_read = any("README.md" in text and "reference" in text for _, text in calls)
+    if run["arm"] != "control" and step1 and not index_read:
+        flags.append("no_index_read")
     if run["arm"] != "control" and decided and not root_causes:
         flags.append("decided_without_cards")
-    # Step 2's own taxonomy sub-steps: 2c opens category cards, 2e sweeps the
-    # README index. Sonnet's first run (Oct 20) skipped both and nothing said so.
-    index_read = any("README.md" in text and "reference" in text for _, text in calls)
-    if run["arm"] != "control" and step2 and not categories:
-        flags.append("no_category_cards")
-    if run["arm"] != "control" and step2 and not index_read:
-        flags.append("no_index_sweep")
     return {
-        "units_examined": len({f.get("unit") for f in step2}),
+        "units_examined": len({f.get("unit") for f in step1}),
         "suspicions": len(suspicions),
+        "decisions": len(decided),
+        "accepted": sum(d.get("verdict") == "accepted" for d in decided),
         "category_cards_opened": sorted(categories),
         "root_cause_cards_opened": sorted(root_causes),
         "index_read": index_read,
         "unit_rankings": rankings,
         "rule_scans": rule_scans,
-        "found_by_rules_or_both": claims,
-        "found_by_rules_unbacked": unbacked,
         "invalid_root_cause_ids": invalid,
         "keys_off_schema": off_schema,
         "flags": flags,
@@ -402,7 +364,7 @@ def recorded(out: Path, events: list[dict]) -> dict:
     """How the agent moved through the steps, from record/ (tools/inputs/steps.py):
     when it said each step was finished, any step file written before its step
     began or changed after its step ended, measured repairs it deleted, and how
-    often a root-cause card was refused before step 3."""
+    often a root-cause card was refused before step 2 (they open at `done 1`)."""
     rows = read_jsonl(out / "record" / "events.jsonl")
     done = [r for r in rows if r.get("file") == "steps" and r.get("event") == "done"]
     final_ids = {r.get("id") for r in read_jsonl(out / "agent" / "submissions.jsonl")}
@@ -442,7 +404,7 @@ def blocked_unrequested(findings: list[dict], out: Path) -> list[str]:
         requested = set(json.loads((out / "inputs" / "status.json").read_text()).get("units", {}))
     except (OSError, ValueError):
         return []
-    return sorted({f.get("unit") for f in findings if f.get("step") == 4
+    return sorted({f.get("unit") for f in findings if f.get("step") == 3
                    for o in f.get("outcomes") or [] if isinstance(o, dict)
                    and o.get("outcome") == "blocked" and f.get("unit") not in requested})
 
@@ -469,8 +431,9 @@ def main() -> int:
         "repo_changes": changes,
         "leak_audit": audit(calls, run),
         "protocol": protocol(calls, read_jsonl(out / "agent" / "findings.jsonl"),
-                             submissions, run, out / "agent" / ".energy-scan", tool_outputs(events),
-                             refused_cards(events)),
+                             submissions, run, refused_cards(events)),
+        "rules_overlap": rules_overlap(read_jsonl(out / "agent" / "findings.jsonl"),
+                                       out / "rules.json"),
         "environment": environment(calls, out, run, ours),
         "inputs": inputs(out),
         "record": recorded(out, events),
@@ -504,6 +467,8 @@ def main() -> int:
         "repo_files_changed": len(changes),
         "leak_flags": ";".join(k for k in meta["leak_audit"] if k != "development_project") or "none",
         "units_examined": meta["protocol"]["units_examined"],
+        "accepted": meta["protocol"]["accepted"],
+        "accepted_rule_named": (meta["rules_overlap"] or {}).get("accepted_root_cause_named", ""),
         "category_cards": len(meta["protocol"]["category_cards_opened"]),
         "root_cause_cards": len(meta["protocol"]["root_cause_cards_opened"]),
         "rule_scans": meta["protocol"]["rule_scans"],

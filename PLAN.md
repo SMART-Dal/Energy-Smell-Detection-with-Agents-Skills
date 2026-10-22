@@ -123,23 +123,29 @@ level 1, add a level. This is a thing to test, not to argue about.
 
 ## 5. The protocol in `SKILL.md`
 
-Five steps, matching the shipped `SKILL.md` exactly. Each has one input and one
-output, stated in the skill itself so the agent cannot drift, and each output is
-appended to `findings.jsonl` as it is produced:
+Four steps, matching the shipped `SKILL.md`. Each has one input and one
+output, stated in the skill itself so the agent cannot drift; each writes its
+own file, and `step.py done N` keeps it, read-only, outside the session:
 
 | # | Step | In | Out |
 |---|---|---|---|
-| 1 | **Select** | repo path | ranked list of units worth examining |
-| 2 | **Read and suspect** | one unit's source | what it computes, where work concentrates, `suspicions[]` — written before any card is opened |
-| 3 | **Decide** | `suspicions[]` | each one accepted or rejected, **with the clause that decided it** |
-| 4 | **Repair and measure** | one unit's accepted suspicions | one submission per suspicion, each measured; an outcome for every one |
-| 5 | **Finish** | both files | both complete, and a short summary |
+| 1 | **Find** | the target, and the one-line index (`reference/README.md`) | every unit where something may be wasteful, with its suspicions (`step1.jsonl`); the list is final at `done 1` |
+| 2 | **Decide** | each listed unit and its suspicions, with the root-cause cards | what it does, and each suspicion accepted or rejected **with the clause that decided it** (`step2.jsonl`) |
+| 3 | **Repair and measure** | the accepted suspicions | one submission per suspicion, each measured; an outcome for every one (`submissions.jsonl`, `step3.jsonl`) |
+| 4 | **Finish** | the three files | a short summary |
 
-The agent does not edit the repository. Step 4 produces submissions — the unit,
-the replacement source for it and for any callee changed, and a factory that
-builds the inputs — and `before` is read from the repository rather than
-supplied. That is what stops a fabricated baseline, and it is why the artifact
-is re-run on our side before anything is believed or applied.
+Step 1 is breadth and steps 2-3 are depth. The index is read first, as what to
+look for, because agents given no notion of what waste looks like listed two to
+four units and stopped (Oct 2026); a line in it is enough to recognise a root
+cause and not enough to decide one, which is why the root-cause cards stay
+locked until `done 1` and step 2 decides against them. The agent may hand the
+reading of step 1 to subagents.
+
+The agent does not edit the repository. Step 3 produces submissions — the unit
+and the replacement source for it and for any function changed — and `before`
+is read from the repository rather than supplied, on inputs a generator outside
+the session writes. That is what stops a fabricated baseline, and it is why the
+artifact is re-run on our side before anything is believed or applied.
 
 Every repair is written against the original code, never on top of another, so
 the order the agent takes them in does not matter and each one's saving is its
@@ -147,24 +153,16 @@ own. A suspicion whose repair is the identical edit to one already submitted is
 recorded as `same_repair_as`; different edits to the same code are each
 submitted and list each other as `related`. Since each is written against the
 original, at most one per function can be applied, and `tools/review.py` picks
-the confirmed one with the highest mean saving across the five shared cases.
+the confirmed one with the highest mean saving across the four shared inputs.
 
-Step 1 is where `scan.py` enters, and it is the ablation point:
-
-```
-scripts/scan.py PATH --mode full   # AST rules + ruff        (default)
-scripts/scan.py PATH --mode ast    # AST rules only
-scripts/scan.py PATH --mode ruff   # ruff only
-scripts/scan.py PATH --mode off    # emits: static analysis disabled
-```
-
-In `--mode off` the script prints an explicit instruction to select and read
-units manually using the same criteria. The knowledge-only arm therefore runs a
-*complete* protocol with a missing accelerator, not a broken one.
-
-Steps 2–4 never see the whole taxonomy or the whole repository. That bound is
-what keeps this runnable on a small model, and it is the property to protect if
-the prompts are ever rewritten.
+The rules enter at the end of step 1, after the agent's own reading and before
+the list closes, so they can add units the reading missed. That is the
+ablation point, and each arm ships only the analyzers its condition allows
+(`build/arms.py`): full (AST rules and ruff), ast, ruff, knowledge (no
+scanner), control (no scanner and no taxonomy). Whether a rule also flags a
+finding is not asked of the agent: the harness scans the untouched repository
+with every rule after each run, in every arm (`experiment/lib/summarize.py`,
+`rules_overlap`).
 
 ---
 
@@ -247,14 +245,14 @@ Two files, both JSON Lines. The authoritative shapes are in
 `build/templates/shared/reference/output-format.md` and `verifying.md`; what
 follows is an illustration, and the templates win if they drift.
 
-`findings.jsonl` — one record per step per unit, appended as the agent works:
+`findings.jsonl` — the three step files joined, one record per step per unit:
 
 ```jsonc
-{"step": 1, "units_considered": 128, "will_examine": ["src/render.py::Report.render", "…"]}
-{"step": 2, "unit": "src/render.py::Report.render", "what_it_does": "…", "cost_driver": "…",
- "own_hypotheses": ["…"], "suspicions": [{"label": "a", "root_cause": "C10.S4", "lines": [47], "why": "…"}]}
-{"step": 3, "unit": "src/render.py::Report.render", "decisions": [{"label": "a", "verdict": "accepted", "…": "…"}]}
-{"step": 4, "unit": "src/render.py::Report.render", "outcomes": [{"label": "a", "submission": "C10S4-render-concat"}]}
+{"step": 1, "unit": "src/render.py::Report.render",
+ "suspicions": [{"label": "a", "root_cause": "C10.S4", "lines": [47], "why": "…"}]}
+{"step": 2, "unit": "src/render.py::Report.render", "what_it_does": "…",
+ "decisions": [{"label": "a", "root_cause": "C10.S4", "lines": [47], "verdict": "accepted", "why": "…"}]}
+{"step": 3, "unit": "src/render.py::Report.render", "outcomes": [{"label": "a", "outcome": "submitted", "submission": "C10S4-render-concat", "why": null}]}
 ```
 
 `submissions.jsonl` — one repair per line, with what `verify.py` measured:

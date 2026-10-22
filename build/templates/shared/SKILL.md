@@ -29,7 +29,7 @@ what `$SKILL` is once, at the start, and use it throughout.
 **Time:** you have 60 minutes for the whole run, thinking and measuring
 included, and the session is stopped at 60. That is enough to be thorough, so
 do not rush: give each unit the reading it needs, and keep enough of the hour
-for step 4, where measuring takes about a minute a repair. Run `date` when you
+for step 3, where measuring takes about a minute a repair. Run `date` when you
 start and again as you go, so you know how much of the hour is left.
 
 ---
@@ -123,27 +123,29 @@ you can find.
 
 ## Procedure
 
-Five steps, in order. **Each step writes its own file in the repository's
+Four steps, in order. **Each step writes its own file in the repository's
 root, and when the step is finished you say so** — then the next step begins:
 
 | Step | Writes | When it is finished |
 |---|---|---|
-| 1. Select | `step1.jsonl` | `python $SKILL/scripts/step.py done 1` |
-| 2. Read and suspect | `step2.jsonl` | `python $SKILL/scripts/step.py done 2` |
-| 3. Decide | `step3.jsonl` | `python $SKILL/scripts/step.py done 3` |
-| 4. Repair and measure | `submissions.jsonl`, `step4.jsonl` | `python $SKILL/scripts/step.py done 4` |
-| 5. Finish | your final message | — |
+| 1. Find | `step1.jsonl` | `python $SKILL/scripts/step.py done 1` |
+| 2. Decide | `step2.jsonl` | `python $SKILL/scripts/step.py done 2` |
+| 3. Repair and measure | `submissions.jsonl`, `step3.jsonl` | `python $SKILL/scripts/step.py done 3` |
+| 4. Finish | your final message | — |
+
+Step 1 is breadth: every file read, and every unit where something may be
+wasteful put on a list. Steps 2 and 3 are depth, for the units on that list.
 
 While a step is open, its file is yours: write it, rewrite it, fix it. `done`
 keeps the file, outside this session, as that step's output, and makes it
 read-only — a finished step is never changed. If a later step shows you
-something an earlier one missed, say so in the later step's file: step 3
-rejects a step-2 suspicion and adds a new one; it does not touch
-`step2.jsonl`. Do not start a step's file before the previous step is done.
+something an earlier one missed, say so in the later step's file: step 2
+rejects a step-1 suspicion and adds a new one; it does not touch
+`step1.jsonl`. Do not start a step's file before the previous step is done.
 {{ORDER_CHECKS}}
 
-Every step after the second one is a check on what the second one wrote down,
-and a check you run against nothing checks nothing.
+Every step after the first is a check on what the first wrote down, and a
+check you run against nothing checks nothing.
 
 Each record is one JSON line with **exactly the keys its example below shows —
 all of them, and no others**; a key with nothing to say is `null` or `[]`.
@@ -151,7 +153,7 @@ all of them, and no others**; a key with nothing to say is `null` or `[]`.
 file goes in the repository's root, the directory you were started in —
 nowhere else.
 
-### 1. Select — *in:* a target · *out:* the units you will examine
+### 1. Find — *in:* a target · *out:* every unit where something may be wasteful, with its suspicions
 
 **The target** is what you were asked to look at: the whole repository, a
 directory, a file, or a single unit. Choose units only from inside it; read
@@ -161,6 +163,8 @@ resolved to. If more than one function matches, all of them are the target.
 
 Read the repository first — its entry points, what its tests exercise, what
 its README says it is for — so that you know what each part of it is for.
+
+{{STEP1_LENS}}
 
 **Then you must go through every file in the target, and every unit in each
 file.** List the target's Python files first, so you know what there is to
@@ -175,55 +179,53 @@ it, so a file not read here is a file no one examines.
 quickest way to read all of it. If you can start subagents (in Claude Code, the
 Agent tool; its read-only `Explore` type fits), split the file list into groups
 and start one subagent per group, all in the same turn so they read in
-parallel. Tell each to read every function and method in its files in full, and
-to report for each its `path::qualname`, its lines, and anything in it that
-looks like work the program does not need, work done more often than needed, or
-work done more expensively than its result requires. Their reports are leads
-for your list, not findings: you choose the units, you read every unit you
-choose yourself in step 2, and only you write the step files and run the
-scripts.
+parallel. Tell each to read every function and method in its files in full,
+looking for {{SUBAGENT_LENS}}, and to report for each its `path::qualname`, its
+lines, and what looks wasteful in it. Their reports are leads, not findings:
+look at the code of every lead before you list it, and only you write the step
+files and run the scripts.
 
 **Leave nothing out because of what you expect later.** Code that calls a
 network or a service, code you doubt any input could be generated for, a
-script, a long file: read it all the same, and pick what looks inefficient in
-it. Whether a repair can be measured is step 4's question — ask for its inputs
+script, a long file: read it all the same, and list what looks wasteful in
+it. Whether a repair can be measured is step 3's question — ask for its inputs
 and let the generator say — and one that cannot is still a finding, recorded
 as `blocked` with the message that showed it.
 
-As you read, pick out every unit where something looks inefficient to you:
-work the program does not need, work done more often than necessary, or work
-done in a more expensive way than its result requires. Those are the units you
-will examine. Nothing limits how many units you pick or how many smells you
-report — one, ten, a hundred or a thousand, whatever the code holds. Within a
-unit, record every suspicion you have.
+**Record every unit where something may be wasteful**, and in it every
+suspicion: {{SUSPICION_WHAT}}. A suspicion is a reason to look closer, not a
+verdict — step 2 decides — so write it down whenever you have the reason, and
+do not hold one back because you are unsure. Nothing limits how many units or
+suspicions you record — one, ten, a hundred or a thousand, whatever the code
+holds. A unit where nothing looks wasteful gets no record.
 
-If you were asked for a number of units, examine at most that many. You may
+{{STEP_EVIDENCE}}If you were asked for a number of units, list at most that many. You may
 change which units those are until you finish step 1; just do not go over the
 number.
 
 ```jsonc
-{"step": 1, "target": "src/", "unit_limit": null, "units_considered": 128,
- "will_examine": ["src/render.py::Report.render", "src/parse.py::tokenize",
-                  "src/parse.py::Lexer.advance", "src/index.py::Index.add",
-                  "src/index.py::Index.lookup", "src/export.py::write_rows",
-                  ...]}   // shortened here: every unit where something looked inefficient
+{"step": 1, "unit": "src/render.py::Report.render", "suspicions": [
+{{SUSPICION_ROWS}}
+]}
 ```
 
-Write it to `step1.jsonl`. Rewrite it as often as you like while step 1 is
-open; when the list is final, run `python $SKILL/scripts/step.py done 1`.
-Before you do, check the file list: every file on it has been read, by you or
-by a subagent. If one has not, step 1 is not finished.
+Give each suspicion a `label` — `a`, `b`, `c` — unique within the unit. Steps 2
+and 3 refer to it by that label.
 
-Keep this list. Every unit on it gets a step-2 record, including the ones you
-clear — a run that examined three functions and one that examined three
-hundred have to be distinguishable.
+Write one record per unit to `step1.jsonl`, and rewrite it as often as you like
+while step 1 is open. Before you finish, check the file list: every file on it
+has been read, by you or by a subagent. If one has not, step 1 is not finished.
+Then run `python $SKILL/scripts/step.py done 1`.
 
-### 2. Read and suspect — *in:* one unit · *out:* one record, with `suspicions[]`
+### 2. Decide — *in:* each unit on the list, with its suspicions · *out:* one record per unit, each suspicion accepted or rejected
 
-Work through the sub-steps in the order given. That order is the whole point:
-you write down what you think before anything tells you what to think.
+Start this step after `step.py done 1`, and write one step-2 record to
+`step2.jsonl` for every unit on your list. As soon as you know a unit will be
+repaired, ask for its inputs (step 3, item 2): they take a minute or two to
+generate, and are then ready when you measure. When every record is written,
+run `python $SKILL/scripts/step.py done 2`; step 3 starts after it.
 
-**2a. Read the code and say what it does.** Read the whole unit, then follow it
+**First, read the unit properly.** Read the whole unit, then follow it
 outward in both directions:
 
 - **Down, into what it calls.** If the unit calls something you have not read,
@@ -235,7 +237,8 @@ outward in both directions:
   it returns: waste can sit between a unit and its callers — a result the
   caller throws away, a shape the caller has to undo.
 
-Then write two sentences: what it computes, and where its work goes.
+Then say in one sentence what it computes and where its work goes: that is
+`what_it_does`.
 
 Read outward because the expensive waste is not in any one line. Some waste
 is — a conversion, a lookup, a concatenation — and you can see it where it
@@ -244,48 +247,6 @@ and thrown away in another; a shape chosen early that every later step has to
 compensate for; six functions doing what a different split does in two; a
 result recomputed on each of three paths that each look reasonable alone. No
 single statement shows any of it.
-
-{{STEP_2B}}
-
-This is the only defence against reading code through a label you have already
-picked, and it only works if you do it first and record it.
-
-{{STEP_TAXONOMY_MATCH}}{{STEP_EVIDENCE}}{{STEP_SWEEP}}**Output of this step.** For each unit, one record:
-
-```jsonc
-{
-  "step": 2,
-  "unit": "src/render.py::Report.render",
-  "what_it_does": "renders one HTML table from a list of row dicts",
-  "cost_driver": "one pass per row, and string building across all rows",
-  "own_hypotheses": [
-    "the output string is rebuilt on every row",
-    "`self.columns` is re-derived inside the row loop and never changes"
-  ],
-  "suspicions": [
-{{SUSPICION_ROWS}}
-  ],
-  "cleared_because": null
-}
-```
-
-Give each suspicion a `label` — `a`, `b`, `c` — unique within the unit. Steps 3
-and 4 refer to it. A unit with nothing suspicious gets the same record with
-`"suspicions": []` and `cleared_because` saying why.
-{{FOUND_BY_NOTE}}
-**Record every suspicion, however many.** Writing one down costs nothing, and
-step 3 is where each is checked: do not hold one back because you are unsure.
-
-Write each unit's record to `step2.jsonl`. When every unit you examine has its
-record, step 2 is finished: run `python $SKILL/scripts/step.py done 2`.
-
-### 3. Decide — *in:* `suspicions[]` · *out:* one record, each suspicion accepted or rejected
-
-Start this step after `step.py done 2`, and write a step-3 record to
-`step3.jsonl` for every unit with suspicions. As soon as you know a unit will
-be repaired, ask for its inputs (step 4, item 2): they take a minute or two to
-generate, and are then ready when you measure. When every record is written,
-run `python $SKILL/scripts/step.py done 3`; step 4 starts after it.
 
 {{DECIDE_PREAMBLE}}
 
@@ -308,16 +269,22 @@ Accept if all of them hold, and give the mechanism as `why`. Otherwise reject,
 and give the check that decided it as `why`.
 
 ```jsonc
-{"step": 3, "unit": "src/router.py::Router.allowed", "decisions": [
+{"step": 2, "unit": "src/router.py::Router.allowed",
+ "what_it_does": "checks each request against `self.blocked`, a list built once in __init__",
+ "decisions": [
   {
 {{DECIDE_ROWS}}
 ]}
 ```
 
-### 4. Repair and measure — *in:* every accepted suspicion · *out:* `submissions.jsonl`, measured, and one record per unit
+Every suspicion from step 1 gets a decision under its label, and a unit whose
+suspicions are all rejected still gets its record — a run that examined three
+functions and one that examined three hundred have to be distinguishable.
 
-Start this step once every unit has been through step 3, and work from their
-step-3 records.
+### 3. Repair and measure — *in:* every accepted suspicion · *out:* `submissions.jsonl`, measured, and one record per unit
+
+Start this step once every unit has been through step 2, and work from their
+step-2 records.
 
 **You do not edit the repository.** You describe each repair; the script
 applies it to a copy and reads `before` from the repository as it stands. That
@@ -332,10 +299,10 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    most **20** repairs are measured — the ones you expect to save the most
    energy, across all units — unless you were asked to measure all of them, or
    a different number. Every other accepted suspicion is still a finding:
-   record it as `deferred` in step 4's record.
+   record it as `deferred` in step 3's record.
 
 2. **Ask for the inputs of every unit you will measure**, if you did not in
-   step 3 — all of them in one request.
+   step 2 — all of them in one request.
 
    ```bash
    python $SKILL/scripts/inputs.py request src/render.py::Report.render src/parse.py::tokenize
@@ -366,7 +333,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    so the order does not matter, and nothing you submit changes what the next
    one is written against.
    - **The same edit as one you already wrote** for this unit: do not submit it
-     again. Record its outcome in step 4 as `same_repair_as`, with that
+     again. Record its outcome in step 3 as `same_repair_as`, with that
      submission's `id` as `submission`.
    - **A different edit to the same code**: submit it, and list each in the
      other's `related`.
@@ -407,11 +374,11 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    cannot run or it is outside the 20, is `deferred`: ask for its inputs instead
    whenever you can.
 
-6. **Record what happened to every accepted suspicion** in `step4.jsonl`, one
+6. **Record what happened to every accepted suspicion** in `step3.jsonl`, one
    record per unit:
 
    ```jsonc
-   {"step": 4, "unit": "src/render.py::Report.render", "outcomes": [
+   {"step": 3, "unit": "src/render.py::Report.render", "outcomes": [
      {"label": "a", "outcome": "submitted",      "submission": "{{SUBMISSION_ID_EXAMPLE}}", "why": null},
      {"label": "b", "outcome": "same_repair_as", "submission": "{{SUBMISSION_ID_EXAMPLE}}", "why": null},
      {"label": "c", "outcome": "blocked",        "submission": null, "why": "inputs.py: no inputs could be generated: every call opens a database connection"},
@@ -424,13 +391,13 @@ one you delete is still measured after the session. `partial`, `negligible`,
 `regressed` and `mixed` are results, and a file that kept only the wins could
 not be told apart from one that hid its losses.
 
-7. **Check, then finish the step.** Every suspicion accepted in step 3 has an
-   outcome in `step4.jsonl`, and every line of `submissions.jsonl` carries the
+7. **Check, then finish the step.** Every suspicion accepted in step 2 has an
+   outcome in `step3.jsonl`, and every line of `submissions.jsonl` carries the
    `agent_measurement` the script wrote, with nothing left `inconclusive` or
    `error` that a run could still settle. Then run
-   `python $SKILL/scripts/step.py done 4`.
+   `python $SKILL/scripts/step.py done 3`.
 
-### 5. Finish — *in:* the four steps' files · *out:* a short summary
+### 4. Finish — *in:* the three steps' files · *out:* a short summary
 
 This step writes no file. End with a short summary for whoever asked: for each submission, the unit,
 {{REPAIR_BASIS}}, the verdict, and what it saved across its four inputs. Lead

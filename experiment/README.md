@@ -25,7 +25,7 @@ Three places:
 | `setup_repos.sh` | clones every repo in `repos.tsv` at its commit into `$EXP/pristine/` (`setup_repos.sh CSV N` is how the list was chosen) |
 | `setup_venvs.sh [repos]` | one venv per repo (our tools + numpy, pandas, scipy, requests, pyyaml + the repo's requirements, in one pip resolve, then `pip check`) saved as `$EXP/venvs/<repo>.tar`; WARNING lines say what had to give |
 | `lib/repo_deps.py` | the one-resolve install `setup_venvs.sh` uses |
-| `lib/summarize.py` | after each run: `meta.json` and a row of `summary.csv` — time, cost, tokens, units examined, cards opened, rule scans, verdicts, and leak / protocol / environment flags |
+| `lib/summarize.py` | after each run: `meta.json` and a row of `summary.csv` — time, cost, tokens, units examined, cards opened, rule scans, verdicts, which accepted findings a rule also flags, and leak / protocol / environment flags |
 
 In `$EXP`, two files you provide, never committed and never printed:
 
@@ -37,7 +37,9 @@ In `$EXP`, two files you provide, never committed and never printed:
 Results: `$EXP/archive/<repo>/<arm>/<model>/` holds a run — `transcript.jsonl`,
 `agent/` (its outputs), `record/` (each step as the agent finished it, every
 repair it measured), `inputs/` (the generated inputs), `review/` (our
-re-measurement), `venv_before/after.txt`, `tmp_created.txt`, `meta.json`.
+re-measurement), `rules.json` (every rule on the untouched repository, for
+comparing with the agent's findings), `venv_before/after.txt`,
+`tmp_created.txt`, `meta.json`.
 Earlier attempts of the same run are `<model>.1`, `.2`, ... One row per run in
 `$EXP/archive/summary.csv`.
 
