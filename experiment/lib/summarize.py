@@ -179,7 +179,11 @@ def rules_overlap(findings: list[dict], rules_path: Path) -> dict | None:
     suspicion; agents ran the scan before reading anyway (Oct 21), so it is now
     measured instead. run_all.sh scans the pristine repository with every rule,
     in every arm, and an accepted finding counts as named by a rule when a rule's
-    finding on that unit names its root cause. None when there is no scan.
+    finding on that unit names its root cause. Two close root causes often fit
+    one repair (Oct 22: a rule filed the `any(map(lambda ...))` the agent
+    repaired under C10.S2, the agent under C10.S1), so it also counts the ones
+    where a rule flagged one of the repaired lines, whatever it called it --
+    as exact as the agent's line numbers. None when there is no scan.
     """
     try:
         report = json.loads(rules_path.read_text())
@@ -187,8 +191,11 @@ def rules_overlap(findings: list[dict], rules_path: Path) -> dict | None:
         return None
     flagged = {u.get("unit"): {c.get("id") for c in u.get("candidates") or []}
                for u in report.get("units") or []}
+    flagged_lines = {u.get("unit"): {line for f in u.get("findings") or [] for line in f.get("lines") or []}
+                     for u in report.get("units") or []}
     listed = {f.get("unit") for f in findings if f.get("step") == 1}
-    accepted = [(f.get("unit"), d.get("root_cause")) for f in findings if f.get("step") == 2
+    accepted = [(f.get("unit"), d.get("root_cause"), set(d.get("lines") or []))
+                for f in findings if f.get("step") == 2
                 for d in f.get("decisions") or []
                 if isinstance(d, dict) and d.get("verdict") == "accepted"]
     return {
@@ -196,8 +203,10 @@ def rules_overlap(findings: list[dict], rules_path: Path) -> dict | None:
         "units_listed": len(listed),
         "units_listed_and_flagged": len(listed & set(flagged)),
         "accepted": len(accepted),
-        "accepted_unit_flagged": sum(unit in flagged for unit, _ in accepted),
-        "accepted_root_cause_named": sum(rc in flagged.get(unit, ()) for unit, rc in accepted),
+        "accepted_unit_flagged": sum(unit in flagged for unit, _, _ in accepted),
+        "accepted_lines_flagged": sum(bool(lines & flagged_lines.get(unit, set()))
+                                      for unit, _, lines in accepted),
+        "accepted_root_cause_named": sum(rc in flagged.get(unit, ()) for unit, rc, _ in accepted),
     }
 
 
@@ -282,11 +291,18 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
         flags.append("no_index_read")
     if run["arm"] != "control" and decided and not root_causes:
         flags.append("decided_without_cards")
+    # One card read is not every card read: on Oct 22 Sonnet read C3.S4 and
+    # decided C1.S1, C10.S1 and C10.S2 without theirs, and nothing said so.
+    unread = (sorted({str(d.get("root_cause")) for d in decided if d.get("root_cause")} - root_causes)
+              if run["arm"] != "control" else [])
+    if unread and root_causes:
+        flags.append("decided_without_their_card")
     return {
         "units_examined": len({f.get("unit") for f in step1}),
         "suspicions": len(suspicions),
         "decisions": len(decided),
         "accepted": sum(d.get("verdict") == "accepted" for d in decided),
+        "decided_without_card": unread,
         "category_cards_opened": sorted(categories),
         "root_cause_cards_opened": sorted(root_causes),
         "index_read": index_read,
