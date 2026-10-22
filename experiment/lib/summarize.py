@@ -6,7 +6,7 @@
 Reads run.json (from run_all.sh), transcript.jsonl, agent/ and review/.
 
 Three audits beside the usage numbers. `leak_audit`: paths outside the run's
-own folder. `protocol`: whether the agent did the steps the skill asks for --
+own folder, and a Claude key or token anywhere in the transcript. `protocol`: whether the agent did the steps the skill asks for --
 the index read, cards opened, rules run, root-cause IDs that exist.
 `environment`: what it did to its environment -- /tmp, pip, extra venvs,
 measuring against another `--repo` -- and repairs whose measured baseline was
@@ -98,7 +98,12 @@ No leading word boundary: in the transcript a line break is the text `\\n`, so
 `\\nshutil.chown` has a letter right before the name."""
 
 
-def audit(calls, run: dict) -> dict:
+# What a Claude credential looks like: sk-ant-api03-... (API key) or
+# sk-ant-oat01-... (the subscription token from `claude setup-token`).
+CREDENTIAL = re.compile(r"sk-ant-[a-z]+\d+-[A-Za-z0-9_-]{20}")
+
+
+def audit(calls, run: dict, raw: str = "") -> dict:
     """Tool calls that reached outside the run's own folder, or changed permissions.
 
     Our folder is locked during the run, so a touch there is an attempt, not a
@@ -106,7 +111,9 @@ def audit(calls, run: dict) -> dict:
     count as well as the full path. The development project is allowed and
     only counted. `exp_unlocked` does not depend on reading commands at all:
     it is the folder's own mode when the agent's session ended (run.json),
-    and anything but 000 means someone opened it.
+    and anything but 000 means someone opened it. `credential_in_transcript`
+    is any line of the transcript holding a Claude key or token (by their
+    shape, never the value): revoke it.
     """
     flags = collections.defaultdict(list)
     home = str(Path(run["exp"]).parent)
@@ -123,6 +130,9 @@ def audit(calls, run: dict) -> dict:
             PERMISSION_SHELL.search(" " + part) for part in segments(name, text))
         if shell or PERMISSION_CODE.search(text):
             flags["permission_commands"].append(f"{name}: {text[:200]}")
+    for number, line in enumerate(raw.splitlines(), 1):
+        if CREDENTIAL.search(line):
+            flags["credential_in_transcript"].append(f"transcript.jsonl line {number}")
     mode = run.get("exp_mode_at_end")
     if mode is not None and str(mode).strip("0"):
         flags["exp_unlocked"].append(f"{run['exp']} had mode {mode} when the agent's session ended")
@@ -494,7 +504,7 @@ def main() -> int:
             (s.get("agent_measurement") or {}).get("status", "not measured") for s in submissions)),
         "our_verdicts": dict(collections.Counter(r.get("status") for r in ours)),
         "repo_changes": changes,
-        "leak_audit": audit(calls, run),
+        "leak_audit": audit(calls, run, (out / "transcript.jsonl").read_text(errors="replace")),
         "protocol": protocol(calls, read_jsonl(out / "agent" / "findings.jsonl"),
                              submissions, run, refused_cards(events)),
         "rules_overlap": rules_overlap(read_jsonl(out / "agent" / "findings.jsonl"),

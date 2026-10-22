@@ -68,11 +68,15 @@ key_once() {
   OAUTH=
   if [ "$AUTH" = subscription ]; then
     # A claude.ai plan instead: the one-year token `claude setup-token` prints,
-    # kept in $EXP/oauth-token and read now, before the lock. It goes to Claude
-    # alone; CLAUDE_CODE_SUBPROCESS_ENV_SCRUB (claude_run) keeps it out of every
-    # command the agent runs. No apiKeyHelper: it would outrank the token.
+    # kept in $EXP/oauth-token and read now, before the lock. Claude needs it in
+    # its environment, so every shell Claude starts sources unset.sh
+    # (CLAUDE_ENV_FILE, claude_run) and the agent's commands run without it.
+    # CLAUDE_CODE_SUBPROCESS_ENV_SCRUB would do the same, but needs bubblewrap.
+    # No apiKeyHelper: it would outrank the token.
     OAUTH=$(cat "$EXP/oauth-token")
     echo '{}' > "$RUN/claude-config/settings.json"
+    echo 'unset CLAUDE_CODE_OAUTH_TOKEN' > "$RUN/claude-config/unset.sh"
+    chmod 444 "$RUN/claude-config/unset.sh"
     return
   fi
   cp "$EXP/api-key" "$RUN/claude-config/.key"
@@ -84,7 +88,7 @@ key_once() {
 # --max-budget-usd is shown to the model every turn (config.sh says why).
 claude_run() {  # model, prompt
   local auth=()
-  [ -n "$OAUTH" ] && auth=("CLAUDE_CODE_OAUTH_TOKEN=$OAUTH" CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1)
+  [ -n "$OAUTH" ] && auth=("CLAUDE_CODE_OAUTH_TOKEN=$OAUTH" CLAUDE_ENV_FILE="$RUN/claude-config/unset.sh")
   env -i "${auth[@]}" HOME="$HOME" USER="$USER" LOGNAME="$USER" SHELL=/bin/bash \
     LANG="${LANG:-C.UTF-8}" TERM=xterm-256color \
     PATH="$RUN/venv/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" VIRTUAL_ENV="$RUN/venv" \
@@ -102,7 +106,7 @@ if [ "$CHECK" = 1 ]; then
   # API: the key copy is gone before the agent's first command (expect 0).
   # Subscription: no credential is visible to the agent's commands (expect 0).
   if [ "$AUTH" = subscription ]; then
-    probe="env | grep -c -i -E 'oauth|anthropic|api_key'; env | grep -c ENERGY_INPUTS_SOCKET"
+    probe="env | grep -c -e sk-ant- -e '^ANTHROPIC_' -e '^CLAUDE_CODE_OAUTH_TOKEN='; env | grep -c ENERGY_INPUTS_SOCKET"
   else
     probe="ls $RUN/claude-config/.key 2>/dev/null | wc -l"
   fi
@@ -118,7 +122,7 @@ for line in open(sys.argv[1]):
         print("credential:", d.get("apiKeySource"))
     if d.get("type") == "result":
         print("result:", d.get("subtype"), "| reply:", repr(str(d.get("result")).strip()),
-              "(first 0 = the agent could not see a credential; with a subscription, second 1 = our socket survived the scrub) | cost $",
+              "(first 0 = the agent could not see a credential; with a subscription, second 1 = our socket is still there) | cost $",
               d.get("total_cost_usd"), "(list-price estimate)")
 EOF
   cd /; rm -rf "$RUN"; exit 0
