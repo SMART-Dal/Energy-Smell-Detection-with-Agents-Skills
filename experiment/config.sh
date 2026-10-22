@@ -13,6 +13,13 @@ EFFORT=medium                   # the default of Opus 5.5 and Haiku 5.5 (Sonnet 
 # after 2-3 units in every run (Oct 20-21); Javad moved it to high, its default.
 declare -A EFFORT_OF=([claude-sonnet-5-5]=high)
 
+# How Claude is paid for: `api` reads the Console key in $EXP/api-key (billed per
+# token); `subscription` uses a claude.ai Pro/Max plan through the one-year
+# token `claude setup-token` prints, saved in $EXP/oauth-token (counts against
+# the plan's 5-hour and weekly limits). Tokens and turns are reported the same
+# way either way; total_cost_usd is then a list-price estimate, not a bill.
+AUTH=api
+
 AGENT_TIMEOUT=60m               # the agent's whole session, its own measurements included.
                                 # SKILL.md tells the agent "60 minutes" (build/templates/shared/SKILL.md): change both.
 REVIEW_TIMEOUT=40m              # our re-measurement of submissions.jsonl afterwards: 20 repairs

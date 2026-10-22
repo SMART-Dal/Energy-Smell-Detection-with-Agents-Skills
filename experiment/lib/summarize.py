@@ -516,6 +516,7 @@ def main() -> int:
     errors = [str(status) for status in u.get("api_error_status") or [] if status]
     row = {
         "run_id": run["run_id"], "repo": run["repo"], "arm": run["arm"], "model": run["model"],
+        "auth": run.get("auth", "api"),
         "status": run["status"], "agent_exit": run["agent_exit"],
         "agent_min": round(run["agent_seconds"] / 60, 1),
         "review_min": round(run["review_seconds"] / 60, 1),

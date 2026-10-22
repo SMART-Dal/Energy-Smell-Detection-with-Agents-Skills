@@ -35,6 +35,7 @@ while [ $# -gt 0 ]; do
     --repos)   read -r -a REPOS <<< "$2"; shift 2 ;;
     --arms)    read -r -a ARMS <<< "$2"; shift 2 ;;
     --models)  read -r -a MODELS <<< "$2"; shift 2 ;;
+    --auth)    AUTH="$2"; shift 2 ;;      # api | subscription, this invocation only
     --effort)  EFFORT="$2"; EFFORT_OF=(); shift 2 ;;   # every model, this invocation only
     --dry-run) DRY=1; shift ;;
     --check)   CHECK=1; shift ;;
@@ -43,6 +44,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ ${#REPOS[@]} -eq 0 ] && mapfile -t REPOS < <(cut -f1 "$HARNESS/repos.tsv")
+case "$AUTH" in
+  api) ;;
+  subscription) [ -s "$EXP/oauth-token" ] || { echo "AUTH=subscription needs $EXP/oauth-token: run \`claude setup-token\` and save the token there"; exit 2; } ;;
+  *) echo "unknown AUTH: $AUTH (api or subscription)"; exit 2 ;;
+esac
 
 CLAUDE=$(command -v claude)
 mkdir -p "$EXP/archive" "$EXP/logs"
@@ -59,6 +65,16 @@ trap 'unlock; exit 130' INT TERM
 # helper that deletes the one-time copy as it reads it -- before the agent can
 # run a single command -- and keeps it in memory for the rest of the session.
 key_once() {
+  OAUTH=
+  if [ "$AUTH" = subscription ]; then
+    # A claude.ai plan instead: the one-year token `claude setup-token` prints,
+    # kept in $EXP/oauth-token and read now, before the lock. It goes to Claude
+    # alone; CLAUDE_CODE_SUBPROCESS_ENV_SCRUB (claude_run) keeps it out of every
+    # command the agent runs. No apiKeyHelper: it would outrank the token.
+    OAUTH=$(cat "$EXP/oauth-token")
+    echo '{}' > "$RUN/claude-config/settings.json"
+    return
+  fi
   cp "$EXP/api-key" "$RUN/claude-config/.key"
   printf '{"apiKeyHelper": "cat %s/.key && rm -f %s/.key"}\n' \
     "$RUN/claude-config" "$RUN/claude-config" > "$RUN/claude-config/settings.json"
@@ -67,7 +83,9 @@ key_once() {
 # Claude in the current directory, with a clean environment, and no dollar cap:
 # --max-budget-usd is shown to the model every turn (config.sh says why).
 claude_run() {  # model, prompt
-  env -i HOME="$HOME" USER="$USER" LOGNAME="$USER" SHELL=/bin/bash \
+  local auth=()
+  [ -n "$OAUTH" ] && auth=("CLAUDE_CODE_OAUTH_TOKEN=$OAUTH" CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1)
+  env -i "${auth[@]}" HOME="$HOME" USER="$USER" LOGNAME="$USER" SHELL=/bin/bash \
     LANG="${LANG:-C.UTF-8}" TERM=xterm-256color \
     PATH="$RUN/venv/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin" VIRTUAL_ENV="$RUN/venv" \
     TMPDIR="$RUN/tmp" ENERGY_INPUTS_SOCKET="$RUN/inputs.sock" \
@@ -81,18 +99,27 @@ claude_run() {  # model, prompt
 if [ "$CHECK" = 1 ]; then
   rm -rf "$RUN"; mkdir -p "$RUN/check" "$RUN/claude-config"; cd "$RUN/check" || exit 1
   key_once
+  # API: the key copy is gone before the agent's first command (expect 0).
+  # Subscription: no credential is visible to the agent's commands (expect 0).
+  if [ "$AUTH" = subscription ]; then
+    probe="env | grep -c -i -E 'oauth|anthropic|api_key'; env | grep -c ENERGY_INPUTS_SOCKET"
+  else
+    probe="ls $RUN/claude-config/.key 2>/dev/null | wc -l"
+  fi
   claude_run claude-haiku-5-5 \
-    "Run this shell command and reply with only its output: ls $RUN/claude-config/.key 2>/dev/null | wc -l" \
+    "Run this shell command and reply with only its output: $probe" \
     > out.jsonl 2> err.log
   echo "exit=$?"; head -3 err.log
   python3 - out.jsonl <<'EOF'
 import json, sys
 for line in open(sys.argv[1]):
     d = json.loads(line)
+    if d.get("type") == "system" and d.get("subtype") == "init":
+        print("credential:", d.get("apiKeySource"))
     if d.get("type") == "result":
         print("result:", d.get("subtype"), "| reply:", repr(str(d.get("result")).strip()),
-              "(0 = the key copy was gone before the agent's first command) | cost $",
-              d.get("total_cost_usd"))
+              "(first 0 = the agent could not see a credential; with a subscription, second 1 = our socket survived the scrub) | cost $",
+              d.get("total_cost_usd"), "(list-price estimate)")
 EOF
   cd /; rm -rf "$RUN"; exit 0
 fi
@@ -319,6 +346,7 @@ run_one() {  # repo, arm, model
 
   printf '{"run_id":"%s","repo":"%s","repo_commit":"%s","arm":"%s","model":"%s","effort":"%s",' \
     "$id" "$repo" "$(awk -v r="$repo" '$1 == r {print $3}' "$HARNESS/repos.tsv")" "$arm" "$model" "${EFFORT_OF[$model]:-$EFFORT}" > "$out/run.json"
+  printf '"auth":"%s",' "$AUTH" >> "$out/run.json"
   printf '"status":"%s","agent_exit":%d,"agent_seconds":%d,"review_seconds":%d,"started":"%s","exp_mode_at_end":"%s",' \
     "$status" "$rc" "$agent_s" "$((SECONDS - review_start))" "$started" "$exp_mode" >> "$out/run.json"
   printf '"project_commit":"%s","project_uncommitted_files":%d,"claude_version":"%s","exp":"%s","run":"%s","project":"%s"}\n' \
