@@ -12,10 +12,8 @@ let a later call upgrade what an earlier pin depended on: urllib3 2.x under a
 
 If the repository's own pins cannot be satisfied together, they are dropped
 (names kept) and the resolve is tried again; only if that fails too does each
-requirement go in on its own. Either way the dropped pins are then put back one
-at a time wherever one fits without moving anything else (`restore_pins`).
-`pip check` runs at the end, and every fallback and problem is printed as a
-WARNING line.
+requirement go in on its own. `pip check` runs at the end, and every fallback
+and problem is printed as a WARNING line.
 
 The repository's own code is never installed: an installed copy would shadow
 the copies verify.py measures. So `-e`, local paths and the projects
@@ -98,64 +96,6 @@ def declared(project: Path) -> list[str] | None:
         return []
     return [r for r in requested[0]["metadata"].get("requires_dist") or []
             if "extra ==" not in r.replace('"', "").replace("'", "")]
-
-
-def canonical(name: str) -> str:
-    return re.sub(r"[-_.]+", "-", name).lower()
-
-
-def restore_pins(specs: list[str]) -> None:
-    """Put back each version the relaxed install dropped, where it still fits.
-
-    When any two of a repository's pins conflict, every pin is dropped. In
-    sample-apps (Oct 22) that installed colpali-engine 0.2.2 under code written
-    for the pinned 0.3.18, and two of its units could not load. So each
-    requirement the installed version does not satisfy is tried on its own,
-    with every other package held at its installed version: pip either installs
-    it without moving anything else, or changes nothing. The first pin of a
-    package that fits wins; a later, different pin of the same package is
-    reported, not applied over it.
-    """
-    try:
-        from packaging.requirements import InvalidRequirement, Requirement
-    except ImportError:
-        from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
-    from importlib import metadata
-
-    restored, conflicting, unrestorable = {}, [], []
-    for spec in specs:
-        try:
-            req = Requirement(spec)
-        except InvalidRequirement:
-            continue
-        if not req.specifier or req.url or (req.marker and not req.marker.evaluate()):
-            continue
-        try:
-            installed = metadata.version(req.name)
-        except metadata.PackageNotFoundError:
-            continue
-        if req.specifier.contains(installed, prereleases=True):
-            continue
-        name = canonical(req.name)
-        if name in restored:
-            conflicting.append(f"{spec} (kept {req.name}=={installed}, from {restored[name]})")
-            continue
-        freeze = subprocess.run([sys.executable, "-m", "pip", "freeze"], capture_output=True,
-                                text=True).stdout
-        held = [line for line in freeze.splitlines() if "==" in line and not line.startswith("-e")
-                and canonical(line.split("==", 1)[0]) != name]
-        with tempfile.TemporaryDirectory() as tmp:
-            pins = Path(tmp) / "held.txt"
-            pins.write_text("\n".join(held) + "\n")
-            if pip("install", "-q", "-c", str(pins), spec, quiet_fail=True):
-                restored[name] = spec
-                print(f"pin restored: {spec} (was {installed})")
-            else:
-                unrestorable.append(f"{spec} (installed {installed})")
-    for line in unrestorable:
-        print(f"WARNING: pin not restored, it would move other packages: {line}")
-    for line in conflicting:
-        print(f"WARNING: pin not restored, another pin of the package was: {line}")
 
 
 def relaxed(spec: str) -> str:
@@ -285,15 +225,13 @@ def main() -> int:
             print("install: done, as written")
         elif pip("install", "-q", *base, "-r", str(names_only)):
             print("WARNING: the repository's pins conflict; installed with its versions "
-                  "dropped (names kept), then restored one by one where they fit")
-            restore_pins(specs)
+                  "dropped (names kept)")
         else:
             print("WARNING: no single resolve works; installing one requirement at a time")
             pip("install", "-q", *base)
             for spec in loose:
                 if not pip("install", "-q", spec, quiet_fail=True):
                     print(f"WARNING: not installed: {spec}")
-            restore_pins(specs)
 
     undeclared(root)
 
