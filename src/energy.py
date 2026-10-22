@@ -28,9 +28,11 @@ so neither measures the other.
 
 from __future__ import annotations
 
+import atexit
 import contextlib
 import fcntl
 import os
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -56,18 +58,52 @@ _locks: list[Path] | None = None
 
 
 def meter():
-    """RAPL when this user can read it, otherwise CodeGreen. They read the same
-    counters, but CodeGreen's sampler keeps warning on stderr, for the rest of
-    the process, about every counter it cannot read."""
+    """The meter verify.py measures with: CodeGreen, or raw RAPL without it."""
     global _meter
     if _meter is None:
-        for candidate in (meters.RaplMeter(), meters.CodeGreenMeter()):
-            if candidate.available():
-                _meter = candidate
-                break
-        else:
+        chosen = meters.get_meter("auto")
+        if not chosen.available():
             raise RuntimeError("no energy meter can be read on this host")
+        if chosen.name == "codegreen":
+            _quiet_codegreen()
+        _meter = chosen
     return _meter
+
+
+CODEGREEN_NOISE = "Missing raw value for active counter"
+
+
+def _quiet_codegreen() -> None:
+    """Drop CodeGreen's warnings from stderr, and nothing else.
+
+    Once it has taken a reading, CodeGreen's sampler, in its native library,
+    writes a line to file descriptor 2 for each counter this user cannot read
+    (here `core` and `dram`; `package` is what it measures), every millisecond,
+    for the rest of the process: 5,420 lines in 3 s. So file descriptor 2
+    becomes a pipe into `grep -v`, which passes every other line on to the real
+    stderr -- this process's own, and that of anything it starts. A process,
+    not a thread: a thread here would take the interpreter lock from the code
+    being measured every time the sampler writes.
+    """
+    read, write = os.pipe()
+    sys.stderr.flush()
+    sieve = subprocess.Popen(["grep", "--line-buffered", "-v", "-F", CODEGREEN_NOISE],
+                             stdin=read, stdout=2, stderr=2)
+    os.close(read)
+    os.dup2(write, 2)
+    os.close(write)
+
+    def drain():
+        # At exit, the sampler's later writes go nowhere, and grep passes on
+        # what is still in the pipe before this process ends.
+        sys.stderr.flush()
+        nothing = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(nothing, 2)
+        os.close(nothing)
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            sieve.wait(timeout=1)
+
+    atexit.register(drain)
 
 
 @contextlib.contextmanager
