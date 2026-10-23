@@ -284,6 +284,8 @@ def serve(service: Service, path: Path) -> None:
                     answer = {"ok": True, "done": list(service.steps.done) if service.steps else []}
                 elif op == "measured" and service.steps is not None:
                     answer = service.steps.measured(request.get("record"))
+                elif op == "on_record" and service.steps is not None:
+                    answer = service.steps.on_record()
                 elif op == "meter_lock":
                     for path in (gen.TURNSTILE, gen.METER_LOCK):
                         path.touch(exist_ok=True)

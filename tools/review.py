@@ -38,12 +38,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from lib.progress import MAX_REPAIRS, VERDICTS  # noqa: E402
 from lib.splice import splice_tree  # noqa: E402
 from lib.submission import baseline_fingerprint, submission_hash  # noqa: E402
 
 VERIFY = ROOT / "src" / "verify.py"
 ORDER = ("confirmed", "partial", "mixed", "regressed", "negligible", "inconclusive",
-         "not_equivalent", "invalid", "no_inputs", "error")
+         "not_equivalent", "invalid", "no_inputs", "error", "over_limit")
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -67,16 +68,24 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
     came out `partial`. The retry replaces the first measurement whatever it
     says, as for `inconclusive`, so keeping the better of two is never an option;
     the first verdict is kept beside it as `first_status`.
+
+    At most MAX_REPAIRS repairs come out of it with a verdict, as in the
+    agent's session: `_within_places`.
     """
+    text = _without_retired(submissions)
+    held = _held(text)
+    if len(held) >= MAX_REPAIRS:            # no place left for anything else: not measured
+        text = "".join(line + "\n" for line in text.splitlines()
+                       if _line_id(line) is None or _line_id(line) in held)
     with tempfile.TemporaryDirectory() as scratch:
         current = Path(scratch) / "submissions.jsonl"
-        current.write_text(_without_retired(submissions), encoding="utf-8")
+        current.write_text(text, encoding="utf-8")
         results = _verify(repo, current, inputs)
     again = {r.get("id") for r in results if r.get("status") == "inconclusive" or _noisy(r)}
     if not again:
-        return results
+        return _within_places(submissions, results, held)
     lines = []
-    for line in _without_retired(submissions).splitlines():
+    for line in text.splitlines():
         try:
             if json.loads(line).get("id") in again:
                 lines.append(line)
@@ -87,8 +96,67 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
         subset.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
         retried = {r.get("id"): {**r, "measured_twice": True}
                    for r in _verify(repo, subset, inputs)}
-    return [{**retried[r.get("id")], "first_status": r.get("status")} if r.get("id") in retried
-            else r for r in results]
+    results = [{**retried[r.get("id")], "first_status": r.get("status")} if r.get("id") in retried
+               else r for r in results]
+    return _within_places(submissions, results, held)
+
+
+def _line_id(line: str) -> str | None:
+    try:
+        record = json.loads(line)
+    except ValueError:
+        return None
+    sid = record.get("id") if isinstance(record, dict) else None
+    return sid if isinstance(sid, str) else None
+
+
+def _held(text: str) -> list[str]:
+    """The repairs that hold a place: those the agent measured to a verdict, in
+    the order of the file, at most MAX_REPAIRS. verify.py measured no more in
+    the session, and a deleted line is back in the file (record/submissions_all)."""
+    held = []
+    for line in text.splitlines():
+        try:
+            record = json.loads(line)
+        except ValueError:
+            continue
+        if (isinstance(record, dict) and isinstance(record.get("id"), str)
+                and (record.get("agent_measurement") or {}).get("status") in VERDICTS):
+            held.append(record["id"])
+    return list(dict.fromkeys(held))[:MAX_REPAIRS]
+
+
+def _within_places(submissions: Path, results: list[dict], held: list[str]) -> list[dict]:
+    """At most MAX_REPAIRS verdicts, as in the agent's session.
+
+    The repairs the agent measured to a verdict keep their places whatever they
+    come out as here. Any other line takes a place left, in the order of the
+    file, only by coming out with a verdict; once none is left, it is
+    `over_limit` -- with what it measured, if it was measured, as `measured_status`.
+    """
+    left = MAX_REPAIRS - len(held)
+    out = []
+    for result in results:
+        sid = result.get("id")
+        if sid and sid not in held and result.get("status") in VERDICTS:
+            if left > 0:
+                left -= 1
+            else:
+                result = _over_limit(sid, result.get("unit"), result.get("status"))
+        out.append(result)
+    seen = {r.get("id") for r in results}
+    for line in _without_retired(submissions).splitlines():
+        sid = _line_id(line)
+        if sid and sid not in seen:
+            out.append(_over_limit(sid, json.loads(line).get("unit"), None))
+            seen.add(sid)
+    return out
+
+
+def _over_limit(sid: str, unit, measured_status) -> dict:
+    return {"id": sid, "unit": unit, "status": "over_limit", "measured_status": measured_status,
+            "reason": f"not counted: {MAX_REPAIRS} other repairs have a verdict, the most a "
+                      f"session measures"}
 
 
 NOISY = 3.0

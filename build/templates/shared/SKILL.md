@@ -315,10 +315,12 @@ Read `$SKILL/reference/verifying.md` before your first submission.
 
 1. **Choose what to measure.** Measuring takes under a minute a repair, so at
    most **20** repairs are measured — the ones you expect to save the most
-   energy, across all units — unless you were asked to measure all of them, or
-   a different number. A place is used only by a repair that gets a verdict
-   (`confirmed`, `partial`, `mixed`, `regressed`, `negligible`): one whose unit
-   gets no inputs, or that cannot be made to behave identically, frees its
+   energy, across all units. Twenty is a limit, not a target: if fewer
+   suspicions were accepted, measure those. A place is used only by a repair
+   that gets a verdict (`confirmed`, `partial`, `mixed`, `regressed`,
+   `negligible`), and it keeps the place even if its line is later deleted or
+   edited: once 20 repairs have one, verify.py measures no more. A repair whose
+   unit gets no inputs, or that cannot be made to behave identically, uses no
    place, so take the next accepted suspicion instead. Every other accepted
    suspicion is still a finding: record it as `deferred` in step 3's record.
 
@@ -383,6 +385,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    | `no_inputs` | the unit has none: request them if you have not, otherwise record `blocked` with the message |
    | `error` | the environment could not run it: do what the message says — install a missing package here and run again, or record `blocked` |
    | `inconclusive` | the host was too noisy; the next run measures it again |
+   | `over_limit` | 20 repairs already have a verdict, so it was not measured: record its suspicion as `deferred` |
    | `confirmed` `partial` `mixed` `regressed` `negligible` | **final.** Do not touch the line |
 
    A measured result is never revised. Editing a measured line to get a better

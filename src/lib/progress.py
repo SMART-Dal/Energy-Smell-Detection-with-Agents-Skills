@@ -17,6 +17,14 @@ from .inputs import ask
 LAST_STEP = 3
 """The last step that writes a file; `done 3` closes the run's measuring."""
 
+VERDICTS = ("confirmed", "partial", "mixed", "regressed", "negligible")
+"""A measured result about the repair. Every other status says why there is none."""
+
+MAX_REPAIRS = 20
+"""Repairs one session measures to a verdict: a limit, not a target. A repair
+that gets no verdict (`no_inputs`, `not_equivalent`, ...) takes no place; one
+that gets a verdict keeps its place, deleted or edited (verify.py, review.py)."""
+
 
 def parse_records(text: str) -> list[dict]:
     """Every JSON object in the text, one per line or spread over several."""

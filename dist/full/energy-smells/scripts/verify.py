@@ -29,10 +29,12 @@ The verdict is the point, and there are six of them:
     negligible    measured cleanly; nothing moved more than the noise
     inconclusive  this host could not resolve an effect of this size
 
-and four for when nothing was measured: `not_equivalent` (the repair is
+and five for when nothing was measured: `not_equivalent` (the repair is
 broken), `invalid` (the submission is malformed), `no_inputs` (none could be
-generated for the unit, or none were requested) and `error` (the environment
-failed -- an import, a meter, a library the unit needs and the host lacks).
+generated for the unit, or none were requested), `error` (the environment
+failed -- an import, a meter, a library the unit needs and the host lacks) and
+`over_limit` (in an agent's session, MAX_REPAIRS repairs already have a
+verdict, the most it measures).
 
 `negligible` is the analysis working, not failing: the repair was built and
 measured and does nothing. `inconclusive` is the opposite -- it says nothing
@@ -68,7 +70,7 @@ from lib.measure import (  # noqa: E402
     noise_floor,
 )
 from lib.inputs import DIRNAME, SOCKET_ENV, ask, inputs_for, wait_until_settled  # noqa: E402
-from lib.progress import step_refusal  # noqa: E402
+from lib.progress import MAX_REPAIRS, VERDICTS, step_refusal  # noqa: E402
 from lib.models import Comparison  # noqa: E402
 from lib.pair import LoadError, Pair, WorkerError, stage  # noqa: E402
 from lib.submission import (  # noqa: E402
@@ -116,16 +118,16 @@ PROFILES = {
                           slow_factor=5.0),
 }
 
-FINAL = {"confirmed", "partial", "mixed", "regressed", "negligible"}
+FINAL = set(VERDICTS)
 """A measured result. The line that produced it may not be edited afterwards:
 re-measuring an edited line would replace the result, and a repair could then
 be reshaped until it confirmed with nothing on record. A genuinely different
 repair is a new line, listed in `related`."""
 
-REMEASURED = {"inconclusive", "error", "no_inputs"}
+REMEASURED = {"inconclusive", "error", "no_inputs", "over_limit"}
 """Not a result about the repair -- a busy host, a failed environment, inputs
-not there yet -- so the next run measures the line again without it having to
-change."""
+not there yet, no place left -- so the next run looks at the line again without
+it having to change."""
 
 INPUTS_WAIT_S = 600
 """How long a run waits for inputs still being generated before measuring."""
@@ -1158,6 +1160,16 @@ def _run_submissions(args, profile: Profile) -> int:
         if refusal:
             print(refusal)
             return 2
+    # In a session, every repair measured so far, kept outside it -- deleted
+    # lines included: which repairs hold one of the MAX_REPAIRS places, and the
+    # result a line had if it has lost it since. No service, no limit.
+    on_record: dict = {}
+    places: set | None = None
+    if os.environ.get(SOCKET_ENV):
+        answer = ask({"op": "on_record"}, timeout=10)
+        if answer.get("ok"):
+            on_record = answer.get("measured") or {}
+            places = {sid for sid, m in on_record.items() if m.get("status") in FINAL}
     lines = path.read_text(encoding="utf-8").splitlines()
     records: list = []
     for number, line in enumerate(lines, 1):
@@ -1189,6 +1201,13 @@ def _run_submissions(args, profile: Profile) -> int:
         sid = record.get("id") if isinstance(record, dict) else None
         log(f"\n=== {sid}  {record.get('unit', '?') if isinstance(record, dict) else ''}")
         digest = submission_hash(record) if isinstance(record, dict) else ""
+        kept = on_record.get(sid) if sid else None
+        if (not args.no_record and isinstance(kept, dict) and kept.get("status") in FINAL
+                and record.get("agent_measurement") != kept):
+            # The line lost or replaced its result: the one on record comes back,
+            # and decides below whether the line is still the repair it measured.
+            record["agent_measurement"] = kept
+            _rewrite(path, records)
         stored = record.get("agent_measurement") if isinstance(record, dict) else None
         if not args.no_record and isinstance(stored, dict) and stored.get("status"):
             unchanged = stored.get("submission_hash") == digest
@@ -1206,9 +1225,25 @@ def _run_submissions(args, profile: Profile) -> int:
                 outputs.append({"id": sid, "status": "invalid", "reason": reason})
                 continue
 
+        if places is not None and sid and sid not in places and len(places) >= MAX_REPAIRS:
+            reason = (f"{MAX_REPAIRS} repairs in this session already have a verdict, the "
+                      f"most it measures, so this one is not measured. A repair with a "
+                      f"verdict keeps its place, deleted or edited. Record this suspicion "
+                      f"as `deferred`.")
+            log(f"  NOT MEASURED: {reason}")
+            payload = {"id": sid, "unit": record.get("unit"), "status": "over_limit",
+                       "reason": reason, "submission_hash": digest}
+            outputs.append(payload)
+            if not args.no_record:
+                record["agent_measurement"] = payload
+                _rewrite(path, records)
+            continue
+
         payload = _measure_one(record, repo, profile, args.meter, floor,
                                file_problems.get(sid), log, inputs)
         payload["submission_hash"] = digest
+        if places is not None and sid and payload.get("status") in FINAL:
+            places.add(sid)
         if isinstance(record, dict):
             payload["baseline_sha256"] = baseline_fingerprint(repo, record)
         outputs.append(payload)
@@ -1228,6 +1263,8 @@ def _run_submissions(args, profile: Profile) -> int:
             first = str(out.get("reason") or "").split(". ")[0]
             log(f"  {out.get('status', '?'):12} {out.get('id')}: "
                 f"{first[:160]}{'...' if len(first) > 160 else ''}")
+    if places is not None:
+        log(f"\n{len(places)} of this session's {MAX_REPAIRS} places hold a repair with a verdict.")
 
     if args.json:
         json.dump(outputs, sys.stdout, indent=1)

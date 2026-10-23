@@ -266,6 +266,7 @@ against an edited copy is discarded.
 | `invalid` | the line is malformed, the inputs do not load against the repair, or a measured line was edited | fix it as the message says |
 | `no_inputs` | the unit has no inputs: none were requested, or none could be generated | request them; if they could not be generated, record `blocked` with the message |
 | `error` | the environment failed: an import, the meter, a library the unit needs | what the message says: install a missing package and run again, or record `blocked` |
+| `over_limit` | 20 repairs in this session already have a verdict, the most it measures; this one was not measured | record its suspicion as `deferred` |
 
 Every verdict stays. A file that proposes ten repairs and has three come back
 `negligible` says more than one that quietly dropped them.

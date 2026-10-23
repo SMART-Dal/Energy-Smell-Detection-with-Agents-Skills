@@ -41,7 +41,7 @@ SRC = Path(__file__).resolve().parents[2] / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from lib.progress import parse_records  # noqa: E402
+from lib.progress import VERDICTS, parse_records  # noqa: E402
 
 FILES = {1: ["step1.jsonl"], 2: ["step2.jsonl"], 3: ["step3.jsonl", "submissions.jsonl"]}
 LAST = max(FILES)
@@ -166,6 +166,22 @@ class StepKeeper:
             with self.lock:
                 self.store.append("measured.jsonl", json.dumps({"t": time.time(), "record": record}) + "\n")
         return {"ok": True}
+
+    def on_record(self) -> dict:
+        """Each repair's measurement as verify.py sent it, by id -- deleted lines
+        included. A verdict, once there, is the one kept: it is what holds the
+        repair's place, and what verify.py restores if the line loses it."""
+        with self.lock:
+            rows = parse_records(self.store.read("measured.jsonl") or "")
+        kept: dict[str, dict] = {}
+        for row in rows:
+            record = row.get("record") or {}
+            sid, measurement = record.get("id"), record.get("agent_measurement")
+            if not isinstance(sid, str) or not isinstance(measurement, dict):
+                continue
+            if (kept.get(sid) or {}).get("status") not in VERDICTS:
+                kept[sid] = measurement
+        return {"ok": True, "measured": kept}
 
     def finish(self) -> dict:
         """Keep what an unfinished step left, check the finished ones, and list every repair."""
