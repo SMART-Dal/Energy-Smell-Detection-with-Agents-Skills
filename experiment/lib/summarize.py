@@ -88,6 +88,18 @@ def segments(name: str, text: str) -> list[str]:
     return [part.strip() for part in re.split(r"[;&|\n]+", command) if part.strip()]
 
 
+def pipelines(text: str) -> list[list[str]]:
+    """A shell command split into its pipelines, each a list of its commands, as
+    `segments` splits them: what one pipe joins stays together. A redirection
+    such as `2>&1` is not taken for a `&`, and each command starts at its name:
+    in `for c in ...; do sed -n 1,12p $c.md; done` the command is `sed`."""
+    command = QUOTED.sub("''", json.loads(text).get("command", ""))
+    command = re.sub(r"\d*[<>]&\d*-?|&>>?", " ", command)
+    return [[re.sub(r"^(?:(?:do|then|else)\s+|[{(]\s*)+", "", part.strip())
+             for part in pipeline.split("|") if part.strip()]
+            for pipeline in re.split(r"\|\||&&|[;&\n]", command)]
+
+
 PERMISSION_SHELL = re.compile(r"(?:^|[\s(`])(?:sudo|su|chmod|chown|chgrp|chattr|setfacl)\s")
 """A permission command anywhere in a shell command, `find -exec chmod` and
 `xargs chown` included; quoted text is blanked first, so `grep "chmod"` is not one."""
@@ -278,32 +290,46 @@ def missing_units(step1: list[dict], root: Path) -> list[str]:
     return missing
 
 
+SKIMMED = r"(head|tail|sed|awk|grep|less|more|cut)\b"
+"""A command that shows part of a file."""
+
+
 def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
              refused: list[set[str]] = ()) -> dict:
     """Did the agent do the steps? Counted from its tool calls and its files."""
     categories, root_causes, cut, full = set(), set(), set(), set()
     for index, (name, text) in enumerate(calls):
-        # A card named only to count, list or find it was not read.
-        read = [part for part in segments(name, text)
-                if not re.match(r"(wc|ls|find|du|stat)\b", part)]
         # Read through `head -70`, `sed -n`, `grep` or a Read with a limit: part of
         # the card. Sonnet (Oct 22) read six cards to line 70; every near-miss
         # section starts after line 80, so it saw none.
-        partial = (any(re.match(r"(head|tail|sed|awk|grep|less|more|cut)\b", part) for part in read)
-                   if name in ("Bash", "bash") else
-                   any(key in json.loads(text) for key in ("limit", "offset")) if name == "Read"
-                   else False)
-        named = set(CARD.findall(" ".join(read) if name in ("Bash", "bash") else text))
-        # Cards read through a loop variable -- `for c in C7.S5 C3.S2 ...; do
-        # cat $c.md; done` -- name no file: the IDs are in the loop's list.
-        # Opus read 24 cards that way on Oct 21 and was counted as reading 2.
-        joined = " ".join(read)
-        if name in ("Bash", "bash") and LOOPED_CARD.search(joined):
-            if "root-causes" in joined:
-                named.update(re.findall(r"(?<![\w.])C\d{1,2}\.S\d{1,2}(?![\w.])", joined))
-            if "categories" in joined:
-                named.update(re.findall(r"(?<![\w.])C\d{1,2}(?![\w.])", joined))
-        for card in named - (refused[index] if index < len(refused) else set()):
+        if name in ("Bash", "bash"):
+            # A card named only to count, list or find it was not read. Judged
+            # pipeline by pipeline: `cat C3.S4.md; sed -n 1,60p C6.S3.md` cut
+            # only C6.S3 short (Oct 22: both were counted so), while a pipe joins
+            # a card to what shortens it, as in `cat C3.S4.md | head -70`.
+            pieces = [[part for part in pipeline if not re.match(r"(wc|ls|find|du|stat)\b", part)]
+                      for pipeline in pipelines(text)]
+            named = {(card, any(re.match(SKIMMED, part) for part in pipeline))
+                     for pipeline in pieces for card in CARD.findall(" ".join(pipeline))}
+            # Cards read through a loop variable -- `for c in C7.S5 C3.S2 ...; do
+            # cat $c.md; done` -- name no file: the IDs are in the loop's list.
+            # Opus read 24 cards that way on Oct 21 and was counted as reading 2.
+            read = [part for pipeline in pieces for part in pipeline]
+            joined = " ".join(read)
+            if LOOPED_CARD.search(joined):
+                partial = any(re.match(SKIMMED, part) for part in read)
+                if "root-causes" in joined:
+                    named.update((card, partial) for card in
+                                 re.findall(r"(?<![\w.])C\d{1,2}\.S\d{1,2}(?![\w.])", joined))
+                if "categories" in joined:
+                    named.update((card, partial) for card in
+                                 re.findall(r"(?<![\w.])C\d{1,2}(?![\w.])", joined))
+        else:
+            partial = name == "Read" and any(key in json.loads(text) for key in ("limit", "offset"))
+            named = {(card, partial) for card in CARD.findall(text)}
+        for card, partial in named:
+            if card in (refused[index] if index < len(refused) else set()):
+                continue
             (root_causes if ".S" in card else categories).add(card)
             if ".S" in card:
                 (cut if partial else full).add(card)

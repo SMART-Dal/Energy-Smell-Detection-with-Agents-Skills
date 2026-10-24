@@ -908,7 +908,7 @@ def _mixed_reason(
         f"{best.label!r} but {abs(worst.energy_saved_pct):.1f}% lost on "
         f"{worst.label!r}, both clearing the {result.noise_floor_pct:.1f}% "
         f"noise floor. Whether it pays depends on which input the code actually "
-        f"sees, so the card must name both cases and let the agent judge."
+        f"sees, so the report must name both."
     )
 
 

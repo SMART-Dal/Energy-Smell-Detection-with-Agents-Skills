@@ -87,10 +87,16 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
     lines = []
     for line in text.splitlines():
         try:
-            if json.loads(line).get("id") in again:
-                lines.append(line)
+            record = json.loads(line)
         except ValueError:
             continue
+        if isinstance(record, dict) and record.get("id") in again:
+            # `related` was checked against the whole file above; here it would
+            # name lines the retry leaves out, and a repair whose partner was not
+            # retried came back `invalid` (Oct 22, C1S1-count-terms-total-count).
+            if isinstance(record.get("related"), list):
+                record["related"] = [r for r in record["related"] if r in again]
+            lines.append(json.dumps(record))
     with tempfile.TemporaryDirectory() as scratch:
         subset = Path(scratch) / "submissions.jsonl"
         subset.write_text("".join(line + "\n" for line in lines), encoding="utf-8")
