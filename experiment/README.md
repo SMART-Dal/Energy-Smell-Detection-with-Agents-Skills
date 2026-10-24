@@ -66,7 +66,7 @@ While an agent runs, `~/energy-exp` is locked for you too: watch with `tmux atta
 command allowed, `pip install` included), a time limit, and a clean environment
 with `TMPDIR` inside the run folder. It is given no dollar budget:
 `--max-budget-usd` shows the budget to the model on every turn, and a model
-told it has a budget spends less of the hour; cap spending on the Console. What
+told it has a budget spends less of its time; cap spending on the Console. What
 it installs into its venv stays for the review, which re-measures in that same
 venv (both sides of every pair run in it, so it cannot favour either), and dies
 with the venv copy. What it creates directly in `/tmp` is listed in

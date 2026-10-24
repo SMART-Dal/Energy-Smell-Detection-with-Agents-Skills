@@ -20,8 +20,8 @@ declare -A EFFORT_OF=([claude-sonnet-5-5]=high)
 # way either way; total_cost_usd is then a list-price estimate, not a bill.
 AUTH=api
 
-AGENT_TIMEOUT=60m               # the agent's whole session, its own measurements included.
-                                # SKILL.md tells the agent "60 minutes" (build/templates/shared/SKILL.md): change both.
+AGENT_TIMEOUT=90m               # the agent's whole session, its own measurements included.
+                                # SKILL.md tells the agent "90 minutes" (build/templates/shared/SKILL.md): change both.
 REVIEW_TIMEOUT=40m              # our re-measurement of submissions.jsonl afterwards: 20 repairs
                                 # took 18 min (Oct 22), and noisy ones are now measured twice
 
