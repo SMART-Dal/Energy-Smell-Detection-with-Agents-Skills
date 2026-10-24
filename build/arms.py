@@ -105,8 +105,8 @@ class Arm:
 
 _TAXONOMY_WORDS = {
     "ORDER_CHECKS": """The root-cause
-cards open at `done 1`, all of them. `inputs.py` runs from `done 1`, and
-`verify.py` between `done 2` and `done 3`.""",
+cards open at `done 1`, all of them. `inputs.py` and `verify.py` run between
+`done 2` and `done 3`.""",
     "ATTRIBUTION_HEADING": 'One repair, one root cause',
     "ATTRIBUTION_RULE": """Attribute each repair to one root cause: the one whose definition describes the
 waste your edit removes. That is a rule about *attribution*, not about counting,
@@ -141,10 +141,20 @@ acceptance.""",
 edited in place. If the card says a suspicion belongs somewhere else, reject it
 and add a new one, with a new label, for the root cause that fits. That keeps
 what you first thought on the record, which is the part worth reading later.""",
-    "DECIDE_PREAMBLE": """The root-cause cards are open from `step.py done 1` on. Open
-`$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the whole
-card: the reference's definition, common patterns, the measured
-repairs, and near-misses.
+    "DECIDE_PREAMBLE": """The root-cause cards are open from `step.py done 1` on. Go through the root
+causes on your list one at a time: open `$SKILL/reference/root-causes/<ID>.md`,
+read the whole card — the reference's definition, common patterns, the
+measured repairs, and near-misses — and then decide every suspicion that names
+it, in whichever units they are. Each card is read once and serves all of
+them; the records stay one per unit.
+
+**Skipping a card costs you.** The index line you listed from is a summary;
+the card is the detail behind it: each repair as we wrote and measured it,
+what it saved or did not, and the near-misses where the pattern is there but
+the repair is not what the code needs. A suspicion decided without its card
+can carry a repair that does not work on this code, and that shows only in
+step 3, when `step2.jsonl` can no longer change. The card's patterns, repairs
+and near-misses are what show exactly whether this code matches, and how.
 
 - **The patterns and repairs are what we tested, not the whole root cause.**
   Real code might look like them, but not necessarily: it is usually longer,
@@ -244,8 +254,8 @@ drop it and try a different root cause until one sticks.
 }
 
 _CONTROL_WORDS = {
-    "ORDER_CHECKS": """`inputs.py` runs
-from `done 1`, and `verify.py` between `done 2` and `done 3`.""",
+    "ORDER_CHECKS": """`inputs.py` and
+`verify.py` run between `done 2` and `done 3`.""",
     "ATTRIBUTION_HEADING": 'One repair, one reason',
     "ATTRIBUTION_RULE": """Attribute each repair to a single reason: the thing about the code that
 explains why the edit saves energy.
@@ -334,18 +344,33 @@ different one until something sticks.
 # the run, on the untouched repository (summarize.py), not asked of the agent.
 
 _SCANNER_EVIDENCE = """\
-**When you have been through every file, run the rules** — after your own
-reading, so that what you list first is what you saw:
+**When you have been through every file and written `step1.jsonl`, compare the
+rules with it** — after your own reading, so that what you list first is what
+you saw. The rules stay closed until `step1.jsonl` exists:
 
 ```bash
-python $SKILL/scripts/scan.py <path>              # index: which units, what was seen
-python $SKILL/scripts/scan.py <path> --unit NAME  # one unit's findings in full
+python $SKILL/scripts/scan.py <path>
 ```
 
-The first command prints an **index** and writes the detail to a file. Go
-through the index once: for every unit it flags that is not on your list, and
-every root cause it names that you have not suspected in a unit, open that
-unit's findings and read its code.
+It reads your `step1.jsonl`, runs every rule over `<path>`, and writes
+everything to one file, `.energy-scan/scan.txt`; the terminal shows only how
+many entries each part holds. Read that file whole. It has three parts:
+
+1. **units the rules flag that are not on your list;**
+2. **units on your list where a rule names a root cause you did not suspect
+   there;**
+3. **units on your list where a rule agrees with you.**
+
+Every entry in parts 1 and 2 shows the root causes, the fact the rule saw, its
+lines, and the code on them. For each one, read the unit's code and decide for
+yourself: add the unit, or the suspicion, to `step1.jsonl` if you agree, and
+leave it if you do not. If the file is long you may hand groups of its entries
+to subagents, as with the reading; look at the code of whatever they bring back
+before you list it.
+
+`step.py done 1` checks that the comparison was made with the list you finish
+with: if you add units of your own after it, run it again — it takes seconds.
+What you add from the file itself needs no second run.
 
 This is an assistant, not an authority. It applies a fixed set of deterministic
 rules and reports **facts** — "a string is grown with `+=` inside a loop at line
@@ -353,7 +378,7 @@ rules and reports **facts** — "a string is grown with `+=` inside a loop at li
 point at. Two labels on one fact means the shape alone does not say which; it is
 one thing to look at, not two.
 
-The list holds every finding, in file and line order. The order says nothing
+Within each part the entries are in file and line order. The order says nothing
 about which findings matter — read in whatever order you think right. There is
 no confidence score and no per-finding number, because either would be a
 judgement about this code that the rule is in no position to make.

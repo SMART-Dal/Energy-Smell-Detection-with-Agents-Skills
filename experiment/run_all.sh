@@ -164,16 +164,17 @@ clean_tmp() {  # run folder, list file
 # reads the OpenRouter key, copies the pristine clone and opens the cache and
 # our copy of the inputs while it still can. Finished after the agent, so every
 # unit the agent asked for is done before the review measures with our copy.
-start_inputs() {  # repo, run folder, root-cause cards folder (empty when the arm has none)
-  local repo=$1 out=$2 cards=$3 waited=0
+start_inputs() {  # repo, run folder, root-cause cards folder (empty when the arm has none), scanner (1 when the arm has rules)
+  local repo=$1 out=$2 cards=$3 scanner=$4 waited=0
   rm -f "$RUN/inputs.sock"
   # It also keeps each step's files when the agent says the step is finished,
-  # every repair verify.py measures, and opens the root-cause cards at step 2
+  # every repair verify.py measures, and opens the root-cause cards at step 2;
+  # with rules, `done 1` waits until scan.py compared them with step1.jsonl
   # (tools/inputs/steps.py), all in $out/record.
   "$RUN/venv/bin/python" "$PROJECT/tools/inputs/service.py" --repo-name "$repo" \
     --pristine "$EXP/pristine/$repo" --repo "$RUN/$repo" --socket "$RUN/inputs.sock" \
     --cache "$EXP/inputs-cache" --out "$out/inputs" --key "$EXP/openrouter-key" \
-    --work "$RUN/inputs-work" --record "$out/record" ${cards:+--cards "$cards"} \
+    --work "$RUN/inputs-work" --record "$out/record" ${cards:+--cards "$cards"} ${scanner:+--scanner} \
     > "$out/inputs-service.log" 2>&1 &
   INPUTS_PID=$!
   until [ -S "$RUN/inputs.sock" ]; do
@@ -285,7 +286,9 @@ run_one() {  # repo, arm, model
   ls -A /tmp | sort > "$out/.tmp_before"
   local cards="$RUN/$repo/.claude/skills/${SKILL[$arm]##*/}/reference/root-causes"
   [ -d "$cards" ] || cards=
-  if ! start_inputs "$repo" "$out" "$cards"; then
+  local scanner=
+  [ -f "$RUN/$repo/.claude/skills/${SKILL[$arm]##*/}/scripts/scan.py" ] && scanner=1
+  if ! start_inputs "$repo" "$out" "$cards" "$scanner"; then
     log "skip $id: no input service"
     rm -rf "$RUN"
     return

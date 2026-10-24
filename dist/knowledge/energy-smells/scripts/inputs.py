@@ -12,13 +12,12 @@ same output twice. The files appear in `.energy-inputs/`, read-only; read them
 to see what your repair will face. After the session, every repair is measured
 again on the generator's own copy of the same inputs.
 
-`request` works once you have said step 1 is finished (`step.py done 1`): ask
-for a unit's inputs in step 2, as soon as you know you will repair it. It
-returns at once. Generating takes a minute or two, up to five for a hard unit,
-all units at the same time, so carry on meanwhile;
-verify.py waits (up to ten minutes) for any still being generated before it
-measures anything. The inputs cannot be changed: editing the files changes
-nothing that counts, because the re-measurement uses the generator's own copy.
+`request` works in step 3, once you have said step 2 is finished (`step.py
+done 2`). It returns at once. Generating takes a minute or two, up to five for
+a hard unit, all units at the same time; verify.py waits (up to ten minutes)
+for any still being generated before it measures anything. The inputs cannot
+be changed: editing the files changes nothing that counts, because the
+re-measurement uses the generator's own copy.
 """
 
 from __future__ import annotations
@@ -43,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "request":
-        refusal = step_refusal(1, "Asking for inputs")
+        refusal = step_refusal(2, "Asking for inputs")
         if refusal:
             print(refusal)
             return 2
@@ -59,9 +58,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  already    {unit}")
         for row in answer.get("rejected", []):
             print(f"  REJECTED   {row['unit']}: {row['why']}")
-        print(f"\nGenerating in the background. A session can ask for up to {MAX_UNITS} "
-              f"different units, those that fail included. Carry on; `inputs.py "
-              f"status` shows progress, and verify.py waits for them before measuring.")
+        print(f"\nGenerating outside this session. A session can ask for up to {MAX_UNITS} "
+              f"different units, those that fail included. `inputs.py status` shows "
+              f"progress, and verify.py waits for them before measuring.")
         return 1 if answer.get("rejected") else 0
 
     units = read_status(Path(DIRNAME))

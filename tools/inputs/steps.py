@@ -13,11 +13,15 @@ into our record (`steps/`), where the agent cannot reach, and makes the agent's
 copies read-only: a finished step is never changed, and what we kept is that
 step's output. Steps finish in order, one after the other.
 
-Two more things, both event-driven:
+Three more things, all event-driven:
 
   * the root-cause cards are locked until `done 1`, with a note beside them
     saying how they open -- a bare "Permission denied" read as permanent.
     Step 1 finds with the one-line index; the cards are for deciding;
+  * in an arm with rules, scan.py reports each comparison of the rules with
+    step1.jsonl (`scans.jsonl`), and `done 1` refuses until one was made with
+    the list the agent finishes with. That it ran is all that is checked: what
+    the agent makes of the file is its own judgement;
   * verify.py reports every repair it measures (`measured.jsonl`), so a repair
     the agent deletes during step 3 is still kept, and the review measures it
     (`submissions_all.jsonl`).
@@ -50,9 +54,10 @@ OPTIONAL = {"submissions.jsonl"}                       # a run may end with noth
 NOTE = "ROOT-CAUSE-CARDS-LOCKED.md"
 NEXT = {
     1: "Step 2: read each unit on your list and decide every suspicion, and write step2.jsonl, "
-       "one record per unit.{cards} inputs.py runs from now on: ask for the inputs of a unit "
-       "as soon as you know you will repair it.",
-    2: "Step 3: write submissions.jsonl and step3.jsonl; verify.py runs now.",
+       "one record per unit.{cards}",
+    # Inputs open at step 3, not 2 (Oct 24): asked for in step 2, they were asked for
+    # before any card was read, and the decisions written after them followed.
+    2: "Step 3: write submissions.jsonl and step3.jsonl; inputs.py and verify.py run now.",
     3: "All three steps are finished. End with your summary.",
 }
 
@@ -81,10 +86,12 @@ def digest(path: Path) -> str | None:
 
 
 class StepKeeper:
-    def __init__(self, repo: Path, store, cards: Path | None):
+    def __init__(self, repo: Path, store, cards: Path | None, scanner: bool = False):
         self.repo = Path(repo)
         self.store = store
         self.cards = Path(cards) if cards else None
+        self.scanner = scanner                         # the arm ships scan.py
+        self.scans: list[dict] = []                    # each comparison, as scan.py sent it
         self.done: list[int] = []
         self.kept: dict[str, str] = {}                 # file -> digest when its step finished
         self.lock = threading.Lock()
@@ -119,6 +126,40 @@ class StepKeeper:
             self._event(file=name, event="changed_after_done")
         return changed
 
+    def scanned(self, request: dict) -> dict:
+        """Keep one comparison of the rules with step1.jsonl, as scan.py sent it."""
+        row = {k: v for k, v in request.items() if k != "op"}
+        with self.lock:
+            self.scans.append(row)
+            self.store.append("scans.jsonl", json.dumps({"t": time.time(), **row}) + "\n")
+        return {"ok": True}
+
+    def _scan_refusal(self, records: list) -> str | None:
+        """Why step 1 cannot finish yet in an arm with rules: they were never
+        compared with this list.
+
+        Units added from the comparison's own file count as compared; units the
+        agent added from its own reading after it do not -- otherwise a draft of
+        three units, scanned at minute two, would pass for the comparison.
+        """
+        if not self.scans:
+            return ("before step 1 is finished, compare the rules with your list: run "
+                    "`python $SKILL/scripts/scan.py .` from the repository's root. It reads "
+                    "step1.jsonl and writes what it finds to one file; read it, add what you "
+                    "agree with, then run this again.")
+        last = self.scans[-1]
+        if last.get("error"):
+            return None                               # it ran and could not analyse: nothing to wait for
+        seen = set(last.get("listed") or {}) | set(last.get("not_listed") or [])
+        units = [r["unit"] for r in records if isinstance(r.get("unit"), str)]
+        new = [u for u in dict.fromkeys(units) if u.removeprefix("./") not in seen]
+        if not new:
+            return None
+        named = ", ".join(new[:5]) + (f" and {len(new) - 5} more" if len(new) > 5 else "")
+        return (f"step1.jsonl has {len(new)} unit(s) the last comparison with the rules did not "
+                f"see: {named}. Run `python $SKILL/scripts/scan.py .` again, so the rules are "
+                f"compared with the list you finish with, then run this again.")
+
     def declare(self, step: int) -> dict:
         with self.lock:
             if step in self.done:
@@ -136,6 +177,11 @@ class StepKeeper:
             records = parse_records((self.repo / names[0]).read_text(errors="replace"))
             if not records:
                 return {"ok": False, "error": f"{names[0]} has no record in it yet"}
+            refusal = self._scan_refusal(records) if step == 1 and self.scanner else None
+            if refusal:
+                self._event(file="steps", event="refused", step=step,
+                            why="no comparison" if not self.scans else "list changed since")
+                return {"ok": False, "error": refusal}
             self._changed_since_kept()
             early = [n for later in range(step + 1, LAST + 1) for n in FILES[later]
                      if n not in OPTIONAL and (self.repo / n).exists()]

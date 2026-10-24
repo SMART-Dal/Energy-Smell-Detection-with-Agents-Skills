@@ -28,9 +28,8 @@ what `$SKILL` is once, at the start, and use it throughout.
 
 **Time:** you have 90 minutes for the whole run, thinking and measuring
 included, and the session is stopped at 90. That is enough to be thorough, so
-do not rush: give each unit the reading it needs, and keep enough of the time
-for step 3, where measuring takes about a minute a repair. Run `date` when you
-start and again as you go, so you know how much of the 90 minutes is left.
+do not rush: give each unit the reading it needs. Run `date` when you start
+and again as you go, so you know how much of the 90 minutes is left.
 
 ---
 
@@ -238,10 +237,8 @@ Then run `python $SKILL/scripts/step.py done 1`.
 ### 2. Decide — *in:* each unit on the list, with its suspicions · *out:* one record per unit, each suspicion accepted or rejected
 
 Start this step after `step.py done 1`, and write one step-2 record to
-`step2.jsonl` for every unit on your list. As soon as you know a unit will be
-repaired, ask for its inputs (step 3, item 2): they take a minute or two to
-generate, and are then ready when you measure. When every record is written,
-run `python $SKILL/scripts/step.py done 2`; step 3 starts after it.
+`step2.jsonl` for every unit on your list. When every record is written, run
+`python $SKILL/scripts/step.py done 2`; step 3 starts after it.
 
 **First, read the unit properly.** Read the whole unit, then follow it
 outward in both directions:
@@ -324,8 +321,9 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    place, so take the next accepted suspicion instead. Every other accepted
    suspicion is still a finding: record it as `deferred` in step 3's record.
 
-2. **Ask for the inputs of every unit you will measure**, if you did not in
-   step 2 — all of them in one request.
+2. **Ask for the inputs of every unit you will measure** — all of them in one
+   request. Inputs are asked for here, in step 3: `inputs.py` opens at
+   `step.py done 2`.
 
    ```bash
    python $SKILL/scripts/inputs.py request src/render.py::Report.render src/parse.py::tokenize
@@ -335,10 +333,9 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    this session writes them for each unit: **four** measured inputs that make
    the unit do substantial and different work, and a few edge inputs checked
    only for identical behaviour. It keeps an input only if it runs on the
-   original code and gives the same output twice. The request returns at once
+   original code and gives the same output twice. The request returns at once,
    and generation takes a minute or two, all units together — up to five for a
-   hard unit — so ask as soon as you know the units, and write the repairs
-   meanwhile. Each unit's file appears in `.energy-inputs/`, read-only: read it
+   hard unit. Each unit's file appears in `.energy-inputs/`, read-only: read it
    to see what your repairs will face. You cannot change the inputs; after the
    session, every repair is measured again on our own copy of them.
 

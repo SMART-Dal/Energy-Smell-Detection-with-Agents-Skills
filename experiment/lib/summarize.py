@@ -12,7 +12,8 @@ the index read, cards opened, rules run, root-cause IDs that exist.
 measuring against another `--repo` -- and repairs whose measured baseline was
 not the repository's code. And `rules_overlap`: which of the agent's units and
 accepted findings a rule also flags on the untouched repository (rules.json,
-written by run_all.sh), in every arm.
+written by run_all.sh), in every arm. In an arm with rules, `scan` says what
+the agent's comparison of them with its list added, from scan.py's own reports.
 """
 
 from __future__ import annotations
@@ -497,6 +498,59 @@ def recorded(out: Path, events: list[dict]) -> dict:
     }
 
 
+def scan_contribution(out: Path) -> dict | None:
+    """What the comparison of the rules with step1.jsonl added to the list, and
+    what became of it: from scan.py's own reports (record/scans.jsonl), so it
+    needs no attribution by the agent. A unit counts as added when a comparison
+    made before `done 1` printed it as not on the list and the final list has
+    it; a suspicion, when its root cause was printed as not suspected in a listed
+    unit and the final list has it there. None when no comparison was made.
+
+    A comparison with a draft (`listed_at_first` small) printed units the agent
+    may then have listed from its own reading, and those count as added too;
+    `done 1` makes it run again on the final list, but cannot tell them apart.
+    """
+    rows = read_jsonl(out / "record" / "events.jsonl")
+    done1 = next((r["t"] for r in rows if r.get("file") == "steps" and r.get("event") == "done"
+                  and r.get("step") == 1), float("inf"))
+    scans = [r for r in read_jsonl(out / "record" / "scans.jsonl") if r.get("t", 0) <= done1]
+    if not scans:
+        return None
+    added: dict[tuple[str, str], str] = {}       # (unit, label) -> root cause, for each the scan brought
+    units_added: set[str] = set()
+    for record in read_jsonl(out / "agent" / "step1.jsonl"):
+        unit = str(record.get("unit", "")).removeprefix("./")
+        for suspicion in record.get("suspicions") or []:
+            key, rc = (unit, suspicion.get("label")), suspicion.get("root_cause")
+            for scan in scans:
+                if unit in (scan.get("not_listed") or []):
+                    units_added.add(unit)
+                    added[key] = rc
+                elif (rc in (scan.get("unsuspected") or {}).get(unit, [])
+                      and rc not in (scan.get("listed") or {}).get(unit, [])):
+                    added[key] = rc
+    accepted = {(str(r.get("unit", "")).removeprefix("./"), d.get("label"))
+                for r in read_jsonl(out / "agent" / "step2.jsonl")
+                for d in r.get("decisions") or [] if d.get("verdict") == "accepted"}
+    from_scan = {(unit, added[(unit, label)]) for unit, label in added.keys() & accepted}
+    ours = read_jsonl(out / "review" / "results.jsonl")
+    last = scans[-1]
+    return {
+        "comparisons": len(scans),
+        "first_at_s": round(scans[0]["t"] - rows[0]["t"]) if rows else None,
+        "listed_at_first": len(scans[0].get("listed") or {}),
+        "last_flagged_not_listed": len(last.get("not_listed") or []),
+        "last_flagged_unsuspected": len(last.get("unsuspected") or {}),
+        "last_agrees": len(last.get("agrees") or []),
+        "units_added": len(units_added),
+        "suspicions_added": len(added),
+        "accepted": len(added.keys() & accepted),
+        "confirmed": sum(1 for r in ours if r.get("status") == "confirmed"
+                         and (str(r.get("unit", "")).removeprefix("./"), r.get("root_cause")) in from_scan),
+        "done1_refused": sum(1 for r in rows if r.get("event") == "refused" and r.get("step") == 1),
+    }
+
+
 def blocked_unrequested(findings: list[dict], out: Path) -> list[str]:
     """Units with a `blocked` outcome that no inputs were ever asked for.
 
@@ -545,6 +599,7 @@ def main() -> int:
         "environment": environment(calls, out, run, ours),
         "inputs": inputs(out),
         "record": recorded(out, events),
+        "scan": scan_contribution(out),
     }
     unrequested = blocked_unrequested(read_jsonl(out / "agent" / "findings.jsonl"), out)
     meta["protocol"]["blocked_unrequested"] = unrequested
@@ -583,6 +638,10 @@ def main() -> int:
         "category_cards": len(meta["protocol"]["category_cards_opened"]),
         "root_cause_cards": len(meta["protocol"]["root_cause_cards_opened"]),
         "rule_scans": meta["protocol"]["rule_scans"],
+        "scan_units_added": (meta["scan"] or {}).get("units_added", ""),
+        "scan_suspicions_added": (meta["scan"] or {}).get("suspicions_added", ""),
+        "scan_accepted": (meta["scan"] or {}).get("accepted", ""),
+        "scan_confirmed": (meta["scan"] or {}).get("confirmed", ""),
         "protocol_flags": ";".join(meta["protocol"]["flags"]) or "none",
         "env_flags": ";".join(meta["environment"]) or "none",
         "inputs_requested": meta["inputs"]["requested"],

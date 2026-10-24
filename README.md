@@ -90,7 +90,9 @@ python src/verify.py CASE_FILE.py [--json]                     # a validation sa
 
 `scan.py` reports what its rules noticed: facts, one per rule per unit, each
 tagged with the root causes it could point at, in file and line order — never a
-verdict, and never a ranking of which code is worth reading.
+verdict, and never a ranking of which code is worth reading. It compares them
+with the agent's `step1.jsonl` and refuses until that exists; `--json` gives
+every finding without a list, outside a session.
 
 `verify.py` measures one repair against the code it replaces: it checks
 behaviour is preserved, sizes each case so its measured window is long enough,

@@ -2,10 +2,10 @@
 
 Each step writes its own file, and the agent says when it finishes one --
 `step.py done N` -- to the input service, which keeps the file as it is then
-and makes it read-only (tools/inputs/steps.py). Step 3 -- measuring -- runs
-between `done 2` and `done 3`, and inputs may be asked for from `done 1`, as
-soon as step 2 accepts a suspicion; inputs.py and verify.py ask before they
-start.
+and makes it read-only (tools/inputs/steps.py). Step 3 -- asking for inputs
+and measuring -- runs between `done 2` and `done 3`; inputs.py and verify.py
+ask before they start. Until Oct 24 inputs opened at `done 1`, and agents asked
+for them before reading a single card.
 """
 
 from __future__ import annotations

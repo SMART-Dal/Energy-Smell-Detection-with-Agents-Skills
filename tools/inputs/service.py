@@ -85,7 +85,8 @@ class Service:
         # gate on the root-cause cards, and every repair verify.py measures:
         # see steps.py.
         self.steps = StepKeeper(args.repo.resolve(), gen.Store(args.record),
-                                args.cards.resolve() if args.cards else None) if args.record else None
+                                args.cards.resolve() if args.cards else None,
+                                scanner=args.scanner) if args.record else None
 
     # -- what the agent sees, and what we keep -----------------------------
 
@@ -274,6 +275,8 @@ def serve(service: Service, path: Path) -> None:
                     answer = service.steps.measured(request.get("record"))
                 elif op == "on_record" and service.steps is not None:
                     answer = service.steps.on_record()
+                elif op == "scanned":
+                    answer = service.steps.scanned(request) if service.steps is not None else {"ok": True}
                 elif op == "meter_lock":
                     for path in (gen.TURNSTILE, gen.METER_LOCK):
                         path.touch(exist_ok=True)
@@ -319,6 +322,9 @@ def main() -> int:
                         help="where each step's output, as the agent finished it, is kept")
     parser.add_argument("--cards", type=Path,
                         help="the skill's root-cause cards, opened only when the protocol allows")
+    parser.add_argument("--scanner", action="store_true",
+                        help="the skill ships scan.py: `done 1` waits for a comparison of its "
+                             "rules with step1.jsonl")
     args = parser.parse_args()
     signal.signal(signal.SIGTERM, lambda *_: os._exit(0))
     serve(Service(args), args.socket)

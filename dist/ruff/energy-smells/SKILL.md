@@ -28,9 +28,8 @@ what `$SKILL` is once, at the start, and use it throughout.
 
 **Time:** you have 90 minutes for the whole run, thinking and measuring
 included, and the session is stopped at 90. That is enough to be thorough, so
-do not rush: give each unit the reading it needs, and keep enough of the time
-for step 3, where measuring takes about a minute a repair. Run `date` when you
-start and again as you go, so you know how much of the 90 minutes is left.
+do not rush: give each unit the reading it needs. Run `date` when you start
+and again as you go, so you know how much of the 90 minutes is left.
 
 ---
 
@@ -172,8 +171,8 @@ something an earlier one missed, say so in the later step's file: step 2
 rejects a step-1 suspicion and adds a new one; it does not touch
 `step1.jsonl`. Do not start a step's file before the previous step is done.
 The root-cause
-cards open at `done 1`, all of them. `inputs.py` runs from `done 1`, and
-`verify.py` between `done 2` and `done 3`.
+cards open at `done 1`, all of them. `inputs.py` and `verify.py` run between
+`done 2` and `done 3`.
 
 Every step after the first is a check on what the first wrote down, and a
 check you run against nothing checks nothing.
@@ -240,18 +239,33 @@ do not hold one back because you are unsure. Nothing limits how many units or
 suspicions you record — one, ten, a hundred or a thousand, whatever the code
 holds. A unit where nothing looks wasteful gets no record.
 
-**When you have been through every file, run the rules** — after your own
-reading, so that what you list first is what you saw:
+**When you have been through every file and written `step1.jsonl`, compare the
+rules with it** — after your own reading, so that what you list first is what
+you saw. The rules stay closed until `step1.jsonl` exists:
 
 ```bash
-python $SKILL/scripts/scan.py <path>              # index: which units, what was seen
-python $SKILL/scripts/scan.py <path> --unit NAME  # one unit's findings in full
+python $SKILL/scripts/scan.py <path>
 ```
 
-The first command prints an **index** and writes the detail to a file. Go
-through the index once: for every unit it flags that is not on your list, and
-every root cause it names that you have not suspected in a unit, open that
-unit's findings and read its code.
+It reads your `step1.jsonl`, runs every rule over `<path>`, and writes
+everything to one file, `.energy-scan/scan.txt`; the terminal shows only how
+many entries each part holds. Read that file whole. It has three parts:
+
+1. **units the rules flag that are not on your list;**
+2. **units on your list where a rule names a root cause you did not suspect
+   there;**
+3. **units on your list where a rule agrees with you.**
+
+Every entry in parts 1 and 2 shows the root causes, the fact the rule saw, its
+lines, and the code on them. For each one, read the unit's code and decide for
+yourself: add the unit, or the suspicion, to `step1.jsonl` if you agree, and
+leave it if you do not. If the file is long you may hand groups of its entries
+to subagents, as with the reading; look at the code of whatever they bring back
+before you list it.
+
+`step.py done 1` checks that the comparison was made with the list you finish
+with: if you add units of your own after it, run it again — it takes seconds.
+What you add from the file itself needs no second run.
 
 This is an assistant, not an authority. It applies a fixed set of deterministic
 rules and reports **facts** — "a string is grown with `+=` inside a loop at line
@@ -259,7 +273,7 @@ rules and reports **facts** — "a string is grown with `+=` inside a loop at li
 point at. Two labels on one fact means the shape alone does not say which; it is
 one thing to look at, not two.
 
-The list holds every finding, in file and line order. The order says nothing
+Within each part the entries are in file and line order. The order says nothing
 about which findings matter — read in whatever order you think right. There is
 no confidence score and no per-finding number, because either would be a
 judgement about this code that the rule is in no position to make.
@@ -314,10 +328,8 @@ Then run `python $SKILL/scripts/step.py done 1`.
 ### 2. Decide — *in:* each unit on the list, with its suspicions · *out:* one record per unit, each suspicion accepted or rejected
 
 Start this step after `step.py done 1`, and write one step-2 record to
-`step2.jsonl` for every unit on your list. As soon as you know a unit will be
-repaired, ask for its inputs (step 3, item 2): they take a minute or two to
-generate, and are then ready when you measure. When every record is written,
-run `python $SKILL/scripts/step.py done 2`; step 3 starts after it.
+`step2.jsonl` for every unit on your list. When every record is written, run
+`python $SKILL/scripts/step.py done 2`; step 3 starts after it.
 
 **First, read the unit properly.** Read the whole unit, then follow it
 outward in both directions:
@@ -342,10 +354,20 @@ compensate for; six functions doing what a different split does in two; a
 result recomputed on each of three paths that each look reasonable alone. No
 single statement shows any of it.
 
-The root-cause cards are open from `step.py done 1` on. Open
-`$SKILL/reference/root-causes/<ID>.md` for every suspicion, and read the whole
-card: the reference's definition, common patterns, the measured
-repairs, and near-misses.
+The root-cause cards are open from `step.py done 1` on. Go through the root
+causes on your list one at a time: open `$SKILL/reference/root-causes/<ID>.md`,
+read the whole card — the reference's definition, common patterns, the
+measured repairs, and near-misses — and then decide every suspicion that names
+it, in whichever units they are. Each card is read once and serves all of
+them; the records stay one per unit.
+
+**Skipping a card costs you.** The index line you listed from is a summary;
+the card is the detail behind it: each repair as we wrote and measured it,
+what it saved or did not, and the near-misses where the pattern is there but
+the repair is not what the code needs. A suspicion decided without its card
+can carry a repair that does not work on this code, and that shows only in
+step 3, when `step2.jsonl` can no longer change. The card's patterns, repairs
+and near-misses are what show exactly whether this code matches, and how.
 
 - **The patterns and repairs are what we tested, not the whole root cause.**
   Real code might look like them, but not necessarily: it is usually longer,
@@ -440,8 +462,9 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    place, so take the next accepted suspicion instead. Every other accepted
    suspicion is still a finding: record it as `deferred` in step 3's record.
 
-2. **Ask for the inputs of every unit you will measure**, if you did not in
-   step 2 — all of them in one request.
+2. **Ask for the inputs of every unit you will measure** — all of them in one
+   request. Inputs are asked for here, in step 3: `inputs.py` opens at
+   `step.py done 2`.
 
    ```bash
    python $SKILL/scripts/inputs.py request src/render.py::Report.render src/parse.py::tokenize
@@ -451,10 +474,9 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    this session writes them for each unit: **four** measured inputs that make
    the unit do substantial and different work, and a few edge inputs checked
    only for identical behaviour. It keeps an input only if it runs on the
-   original code and gives the same output twice. The request returns at once
+   original code and gives the same output twice. The request returns at once,
    and generation takes a minute or two, all units together — up to five for a
-   hard unit — so ask as soon as you know the units, and write the repairs
-   meanwhile. Each unit's file appears in `.energy-inputs/`, read-only: read it
+   hard unit. Each unit's file appears in `.energy-inputs/`, read-only: read it
    to see what your repairs will face. You cannot change the inputs; after the
    session, every repair is measured again on our own copy of them.
 

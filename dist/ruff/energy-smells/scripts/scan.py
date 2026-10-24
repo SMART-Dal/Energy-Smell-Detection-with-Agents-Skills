@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Static evidence for energy smells: what the rules noticed, and where.
+"""Static evidence for energy smells, compared with the list you wrote.
 
-    python scan.py PATH                        an index: which units, how much
-    python scan.py PATH --unit NAME            one unit in full
-    python scan.py PATH --top 150 --json       machine-readable, more findings
+    python scan.py PATH                compare the rules with step1.jsonl, all of it into one file
+    python scan.py PATH --json         every finding, machine-readable
 
-The default prints an **index**, not the findings.  Tool output is not something
-a reader can put down: it is read in full, once, before anything is known about
-the code, and a scan that empties itself into the transcript spends its reader's
-attention on whichever rule happened to fire most.  So the default says which
-units carry what, writes the detail to a file, and leaves opening it to the
-reader -- who by then has a reason to prefer one unit over another.
+The rules run after your own reading: until `step1.jsonl` exists in the
+repository's root (this directory or one above it), the scan refuses. Then it
+runs every rule over PATH and writes one file, `.energy-scan/<name>.txt`, in
+three parts: units the rules flag that are not on your list; units on your list
+where a rule names a root cause you did not suspect there; and units where a
+rule agrees with you. Every entry carries its root causes, the fact, its lines
+and the code on them. The terminal shows only how many entries each part holds:
+one file, read whole, rather than a list on screen and the detail behind it in
+a second place that the reader never opened.
 
 It reports *facts* -- "a string is grown with += inside a loop at line 45" --
 one entry per rule per unit, tagged with every root cause that fact could
-indicate.  Every finding is shown, grouped by unit, in file and line order.  The
-order says nothing about which ones matter; which code to read, and in what
-order, is the reader's to decide.
+indicate.  Within each part the units are in file and line order.  The order
+says nothing about which ones matter; which code to read, and in what order, is
+the reader's to decide.
 
 Nothing here ever says a smell is present.  Whether a fact is a smell depends
 on what the code is for and what the author was required to do, neither of
@@ -27,8 +29,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import textwrap
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -46,11 +50,28 @@ from lib.signals import (  # noqa: E402
     load_signals,
     rank_candidates,
 )
+from lib.inputs import SOCKET_ENV, ask  # noqa: E402
+from lib.progress import parse_records  # noqa: E402
 
 DETAIL_DIR = Path(".energy-scan")
 """Where the full report is written. Beside the caller's working directory
 rather than beside the target, because the target is often somebody else's
 repository and a scan should not leave anything in it."""
+
+LIST = "step1.jsonl"
+"""The agent's own list, which the rules are compared with. Until it exists the
+scan refuses: in both Sonnet runs of Oct 22 the rules ran in the first minute,
+before any file had been read, and one of them never compared them with the
+list it later wrote, so nothing it listed came from them."""
+
+LOCKED = (
+    "The rules run after your own reading, so they are closed until step1.jsonl\n"
+    "exists. Go through every file first, write what you found to step1.jsonl in\n"
+    "the repository's root, then run this again: it compares the rules with your\n"
+    "list and writes the result to one file.")
+
+CODE_LINES = 6
+"""Source lines shown under one message; the rest are counted, not printed."""
 
 
 def _report_rule_errors() -> None:
@@ -89,14 +110,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("path", type=Path, help="a .py file or a directory tree")
     parser.add_argument("--top", type=int, default=None,
                         help="how many findings to report (default: all)")
-    parser.add_argument("--unit", metavar="NAME",
-                        help="print one unit's findings in full and stop; "
-                             "matches on qualified name, substring allowed")
     parser.add_argument("--out", type=Path, default=DETAIL_DIR,
-                        help=f"where to write the full report "
-                             f"(default {DETAIL_DIR}/)")
+                        help=f"where to write the comparison (default {DETAIL_DIR}/)")
     parser.add_argument("--json", action="store_true",
-                        help="emit JSON instead of the readable report")
+                        help="emit every finding as JSON instead of the comparison")
     parser.add_argument(
         "--cross-unit", action="store_true",
         help="let rules see that a unit runs inside a caller's loop, across "
@@ -106,6 +123,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.path.exists():
         parser.error(f"no such path: {args.path}")
+
+    # Outside a session, --json needs no list: it is every finding, for tooling.
+    in_session = bool(os.environ.get(SOCKET_ENV))
+    listing = _find_list(Path.cwd())
+    if listing is None and (in_session or not args.json):
+        print(LOCKED)
+        return 2
 
     files = python_files(args.path)
 
@@ -117,6 +141,10 @@ def main(argv: list[str] | None = None) -> int:
         blockers = "\n  ".join(
             f"{name}: {why}" for name, why in analyzers.items()
         ) or "none are installed"
+        if in_session and not args.json:
+            # The comparison was attempted, so `done 1` must not wait for one
+            # that can never be made.
+            ask({"op": "scanned", "error": "no analyzer can run", "target": str(args.path)})
         parser.error(
             f"nothing can be analysed on this machine, so the scan would be "
             f"silently empty rather than clean:\n  {blockers}"
@@ -125,87 +153,155 @@ def main(argv: list[str] | None = None) -> int:
         if why is not None:
             print(f"note: skipping {name} -- {why}", file=sys.stderr)
 
-    findings = analyse_path(args.path, cross_unit=args.cross_unit,
-                            only_with_evidence=not args.unit)
+    findings = analyse_path(args.path, cross_unit=args.cross_unit, only_with_evidence=True)
     _report_rule_errors()
     table = load_signals()
-    scanned = findings
     findings = [item for item in findings if item.evidence]
-
     grouped = [group_findings(item.evidence, table) for item in findings]
-    if args.unit:
-        described = [_describe(item, own, table, args.path)
-                     for item, own in zip(findings, grouped)]
-        wanted = [u for u in described if u["qualname"] == args.unit]
-        # Substring is the convenience; an exact name must never drag in the
-        # nested helpers that happen to contain it.
-        wanted = wanted or [u for u in described if args.unit in u["unit"]]
-        if not wanted:
-            # Two different answers, which one message used to blur: an agent
-            # read "no unit ... has evidence" as a wrong name and tried three.
-            names = [f"{_relative(item.unit.path, args.path)}::{item.unit.qualname}"
-                     for item in scanned]
-            quiet = [n for n in names if n.split("::", 1)[1] == args.unit] or \
-                    [n for n in names if args.unit in n]
-            if quiet:
-                print("\n".join(f"{name}: no rule fired on it." for name in quiet[:5]))
-                print("That is a fact about the rules, not a verdict about the code: "
-                      "read it yourself.")
-                return 0
-            parser.error(
-                f"no unit named {args.unit!r} in {args.path}. Give it as the index "
-                f"prints it -- `path/to/file.py::Qualname`, or just `Qualname`."
-            )
-        print("\n".join(_render_unit(unit) for unit in wanted))
-        return 0
-
     ordered = _in_source_order(findings, grouped, args.path)
     shown = ordered[: args.top] if args.top else ordered
-    report = {
-        "target": str(args.path),
-        "files_scanned": len(files),
-        "units_with_evidence": len(findings),
-        "findings_total": len(ordered),
-        "findings_shown": len(shown),
-        "units": [_describe(findings[index], own, table, args.path)
-                  for index, own in _by_unit(shown)],
-    }
 
     if args.json:
+        report = {
+            "target": str(args.path),
+            "files_scanned": len(files),
+            "units_with_evidence": len(findings),
+            "findings_total": len(ordered),
+            "findings_shown": len(shown),
+            "units": [_describe(findings[index], own, table, args.path)
+                      for index, own in _by_unit(shown)],
+        }
         json.dump(report, sys.stdout, indent=1)
         print()
         return 0
 
-    detail = _write_detail(report, args.out, args.path)
-    print(_render_index(report, detail))
+    # Named from the repository's root, as step1.jsonl names them, so the two
+    # can be compared whatever directory was scanned.
+    root = listing.parent
+    units = [_describe(findings[index], own, table, root) for index, own in _by_unit(shown)]
+    suspected = _suspected(listing)
+    parts = _compare(units, suspected)
+    path = _write_comparison(args, root, suspected, parts,
+                             len(files), len(ordered), len(units))
+    if in_session:
+        ask({"op": "scanned", "target": str(args.path), "file": str(path),
+             "listed": {unit: sorted(rcs) for unit, rcs in suspected.items()},
+             "not_listed": [unit["unit"] for unit, _ in parts[0]],
+             "unsuspected": {unit["unit"]: sorted({rc["id"] for f in shown_ for rc in f["root_causes"]})
+                             for unit, shown_ in parts[1]},
+             "agrees": [unit["unit"] for unit, _ in parts[2]]})
+    print(_summary(listing, suspected, parts, path, len(files), len(units)))
     return 0
 
 
-def _write_detail(report: dict, out: Path, target: Path) -> Path:
-    """Every unit in full, on disk, for the reader who wants one of them.
+def _find_list(start: Path) -> Path | None:
+    """step1.jsonl in the working directory or the nearest directory above it."""
+    for directory in (start, *start.parents):
+        if (directory / LIST).is_file():
+            return directory / LIST
+    return None
 
-    Written unconditionally rather than on request: the index is only honest if
-    the thing it points at already exists, and a reader who has to re-run the
-    scan to see a finding will read the index as the whole answer instead.
+
+def _suspected(listing: Path) -> dict[str, set[str]]:
+    """Each unit on the list, and the root causes suspected in it."""
+    out: dict[str, set[str]] = {}
+    for record in parse_records(listing.read_text(errors="replace")):
+        unit = record.get("unit")
+        if not isinstance(unit, str):
+            continue
+        rcs = out.setdefault(unit.removeprefix("./"), set())
+        for suspicion in record.get("suspicions") or []:
+            if isinstance(suspicion, dict) and isinstance(suspicion.get("root_cause"), str):
+                rcs.add(suspicion["root_cause"])
+    return out
+
+
+def _compare(units: list[dict], suspected: dict[str, set[str]]) -> tuple[list, list, list]:
+    """(not on the list, on it with a root cause not suspected there, agreeing),
+    each as (unit, its findings that belong in that part).
+
+    A fact sharing any root cause with the unit's suspicions agrees: two labels
+    on one fact are one thing to look at, so the other label is not news.
     """
-    out.mkdir(parents=True, exist_ok=True)
-    path = out / f"{target.name or 'scan'}.txt"
+    missing, unsuspected, agrees = [], [], []
+    for unit in units:
+        mine = suspected.get(unit["unit"])
+        if mine is None:
+            missing.append((unit, unit["findings"]))
+            continue
+        new = [f for f in unit["findings"] if not {rc["id"] for rc in f["root_causes"]} & mine]
+        same = [f for f in unit["findings"] if {rc["id"] for rc in f["root_causes"]} & mine]
+        if new:
+            unsuspected.append((unit, new))
+        if same:
+            agrees.append((unit, same))
+    return missing, unsuspected, agrees
+
+
+PART_TITLES = (
+    "the rules flag {n} unit(s) that are not on your list",
+    "{n} unit(s) on your list where a rule names a root cause you did not suspect there",
+    "{n} unit(s) on your list where a rule agrees with you",
+)
+
+
+def _write_comparison(args, root: Path, suspected: dict, parts: tuple,
+                      files: int, findings: int, units: int) -> Path:
+    """The whole comparison in one file: every entry with its root causes, its
+    facts, their lines and the code on them.
+
+    One file, because the index printed on screen was read as the whole answer:
+    an agent dropped 53 flagged units from rule names alone, without opening the
+    detail written beside it or any of their code (Oct 22).
+    """
+    args.out.mkdir(parents=True, exist_ok=True)
+    path = args.out / "scan.txt"
+    cache: dict[Path, list[str]] = {}
     body = [
-        (f"Findings for {report['target']} -- {report['findings_shown']} of "
-         f"{report['findings_total']}, in {len(report['units'])} unit(s), in "
-         f"file and line order."),
-        "Sections are `== file:line qualname`, so one unit can be cut out with",
-        "grep or sed without reading the rest.",
+        f"Rules compared with {LIST} -- {len(suspected)} unit(s) on your list -- "
+        f"at {time.strftime('%H:%M')}.",
+        f"Target {args.path}: {files} file(s) scanned, {units} unit(s) flagged, "
+        f"{findings} finding(s).",
         "",
-        "Each fact names the root causes it could be. Their cards are at",
-        "reference/root-causes/<ID>.md -- open one before accepting or rejecting",
-        "anything. The order is the order of the code and says nothing about",
-        "which findings matter: read in whatever order you think right.",
+        *(f"Part {number}: {title.format(n=len(part))}."
+          for number, (title, part) in enumerate(zip(PART_TITLES, parts), start=1)),
+        "",
+        "For every entry in parts 1 and 2, read the unit's code and decide for",
+        f"yourself: add the unit, or the suspicion, to {LIST} if you agree; leave it",
+        "if you do not. Each fact names the root causes it could be, as",
+        "reference/README.md lists them; two labels on one fact are one thing to look",
+        "at, not two. Within each part the units are in file and line order, which",
+        "says nothing about which matter. Every unit starts with `== `.",
     ]
-    body += [_render_unit(unit) for unit in report["units"]]
+    for number, (title, part) in enumerate(zip(PART_TITLES, parts), start=1):
+        body += ["", "#" * WIDTH, f"PART {number}: {title.format(n=len(part))}".upper(), "#" * WIDTH]
+        if not part:
+            body.append("\n(none)")
+        for unit, shown in part:
+            if number == 3:
+                body.append(_render_agreement(unit, shown, suspected[unit["unit"]]))
+            else:
+                body.append(_render_unit(unit, shown, root, cache,
+                                         suspected.get(unit["unit"])))
     body += ["", "-" * WIDTH, _CAVEATS]
     path.write_text("\n".join(body) + "\n")
     return path
+
+
+def _summary(listing: Path, suspected: dict, parts: tuple, path: Path,
+             files: int, units: int) -> str:
+    """What the terminal shows: how many entries each part holds, and where they are."""
+    lines = [f"Rules compared with {LIST} ({len(suspected)} unit(s) on it): "
+             f"{files} file(s) scanned, {units} unit(s) flagged."]
+    lines += [f"  part {number}: {title.format(n=len(part))}"
+              for number, (title, part) in enumerate(zip(PART_TITLES, parts), start=1)]
+    lines += ["",
+              f"Everything is in {path} -- read it whole. For every entry in parts 1",
+              f"and 2, read the unit's code and decide: add it to {LIST} if you agree,",
+              "leave it if you do not."]
+    if not os.access(listing, os.W_OK):
+        lines += ["", f"{LIST} is read-only: step 1 is finished, so its list no longer changes."]
+    return "\n".join(lines)
 
 
 def _in_source_order(findings: list[UnitFindings], grouped: list[list[Finding]],
@@ -311,66 +407,19 @@ _CAVEATS = """What this output is and is not:
     these shapes is the right thing to write somewhere, so the question is
     always whether it is right *here* -- which depends on what the code is
     for, and a rule cannot see that.
-  - Every finding is listed, in file and line order. The order says
-    nothing about which ones matter. Read in whatever order you think right.
+  - Every finding is listed, in one of the three parts, in file and line
+    order within it. The order says nothing about which ones matter. Read
+    in whatever order you think right.
   - The rules only recognise shapes somebody thought to describe in
     advance. Waste with no fixed shape leaves no trace here at all. What
     this output does not mention is not thereby absent, and no part of the
     taxonomy is ruled out by not appearing."""
 
 
-def _render_index(report: dict, detail: Path) -> str:
-    """What is where, and how to open it -- deliberately without the findings.
-
-    The index has to be enough to choose a unit and not enough to write a
-    finding from, because a reader given the findings up front stops reading the
-    code and starts confirming the list.
-    """
-    lines = [
-        f"{report['files_scanned']} file(s)  |  "
-        f"{report['units_with_evidence']} unit(s) with evidence  |  "
-        f"{report['findings_total']} finding(s)",
-        f"showing {report['findings_shown']}, in file and line order",
-        "=" * WIDTH,
-    ]
-
-    if not report["units"]:
-        return "\n".join(lines + [
-            "",
-            "No rule fired anywhere in this target.",
-            "",
-            "That is a fact about the rules, not a verdict about the code. The rules",
-            "recognise fixed syntactic shapes; waste that does not take one of those",
-            "shapes is invisible to them however expensive it is. Read the code.",
-        ])
-
-    # One line a unit: every unit with a finding is listed, so the index is
-    # kept to where it is and what fired. How it is reached is in the detail.
-    for number, unit in enumerate(report["units"], start=1):
-        kinds = ", ".join(_headline(f) for f in unit["findings"])
-        lines.append(f"{number:>4}. " + _wrap(f"{unit['file']}:{unit['line']}  "
-                                           f"{unit['qualname']}: {kinds}", 6))
-
-    lines += [
-        "",
-        "-" * WIDTH,
-        f"FULL DETAIL: {detail}",
-        f"ONE UNIT:    scan.py {report['target']} --unit {report['units'][0]['qualname']}",
-        "",
-        "NEXT: read the units above, in whatever order you think right, forming",
-        "your own view of what is wasteful in each. Open a unit's findings when",
-        "you have one -- they are there to be argued with, not to be transcribed.",
-    ]
-    return "\n".join(lines)
-
-
-def _headline(finding: dict) -> str:
-    """"repeated_lookup_in_loop x7" -- the rule and how often, not what it means."""
-    return finding["kind"] + ("" if finding["count"] == 1 else f" x{finding['count']}")
-
-
-def _render_unit(unit: dict) -> str:
-    """One unit in full: every fact once, worth-ordered, each naming its cards.
+def _render_unit(unit: dict, shown: list[dict], root: Path, cache: dict,
+                 mine: set[str] | None) -> str:
+    """One unit: every fact in `shown` once, each naming its root causes, with
+    the code on its lines.
 
     The root causes sit on the fact rather than in a block below it. The block
     also carried each card's repair and a verification note, which is the card's
@@ -380,11 +429,13 @@ def _render_unit(unit: dict) -> str:
     lines = [
         "",
         "=" * WIDTH,
-        f"== {unit['file']}:{unit['line']}  {unit['qualname']}",
-        f"   {unit['end_line'] - unit['line'] + 1} lines",
+        f"== {unit['file']}:{unit['line']}  {unit['qualname']}  "
+        f"(lines {unit['line']}-{unit['end_line']})",
     ]
+    if mine is not None:
+        lines.append(f"   on your list, suspected: {', '.join(sorted(mine)) or 'no root cause'}")
 
-    for finding in unit["findings"]:
+    for finding in shown:
         occurs = "" if finding["count"] == 1 else f"  x{finding['count']}"
         lines += [
             "",
@@ -398,7 +449,31 @@ def _render_unit(unit: dict) -> str:
         for message in finding["messages"]:
             lines.append(f"           {_wrap(message['text'], 11)}")
             lines.append(f"           at {_lines(message['lines'])}")
+            lines += _code(Path(root, unit["file"]), message["lines"], cache)
     return "\n".join(lines)
+
+
+def _render_agreement(unit: dict, shown: list[dict], mine: set[str]) -> str:
+    """A unit where a rule agrees with the list: one line, as a second reason."""
+    facts = ", ".join(
+        f"{f['kind']} ({'/'.join(rc['id'] for rc in f['root_causes'] if rc['id'] in mine)})"
+        for f in shown)
+    return f"\n== {unit['unit']}  (lines {unit['line']}-{unit['end_line']}): {facts}"
+
+
+def _code(path: Path, numbers: list[int], cache: dict) -> list[str]:
+    """The source on these lines, numbered; past CODE_LINES, a count."""
+    if path not in cache:
+        try:
+            cache[path] = path.read_text(errors="replace").splitlines()
+        except OSError:
+            cache[path] = []
+    text = cache[path]
+    wanted = [n for n in sorted(set(numbers)) if 1 <= n <= len(text)]
+    out = [f"             {n:>5} | {text[n - 1].rstrip()[:140]}" for n in wanted[:CODE_LINES]]
+    if len(wanted) > CODE_LINES:
+        out.append(f"                   ... and {len(wanted) - CODE_LINES} more line(s)")
+    return out
 
 
 def _lines(numbers: list[int]) -> str:
