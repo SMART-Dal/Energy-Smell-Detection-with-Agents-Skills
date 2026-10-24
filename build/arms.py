@@ -368,9 +368,7 @@ leave it if you do not. If the file is long you may hand groups of its entries
 to subagents, as with the reading; look at the code of whatever they bring back
 before you list it.
 
-`step.py done 1` checks that the comparison was made with the list you finish
-with: if you add units of your own after it, run it again — it takes seconds.
-What you add from the file itself needs no second run.
+`step.py done 1` checks that this comparison was made.
 
 This is an assistant, not an authority. It applies a fixed set of deterministic
 rules and reports **facts** — "a string is grown with `+=` inside a loop at line

@@ -507,8 +507,8 @@ def scan_contribution(out: Path) -> dict | None:
     unit and the final list has it there. None when no comparison was made.
 
     A comparison with a draft (`listed_at_first` small) printed units the agent
-    may then have listed from its own reading, and those count as added too;
-    `done 1` makes it run again on the final list, but cannot tell them apart.
+    may then have listed from its own reading, and those count as added too:
+    nothing here can tell them apart.
     """
     rows = read_jsonl(out / "record" / "events.jsonl")
     done1 = next((r["t"] for r in rows if r.get("file") == "steps" and r.get("event") == "done"

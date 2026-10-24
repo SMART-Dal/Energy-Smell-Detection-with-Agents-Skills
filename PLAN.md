@@ -169,8 +169,8 @@ Since Oct 24 the scan is the comparison itself. It refuses until
 `step1.jsonl` exists, then writes one file in three parts -- units the rules
 flag that are not on the list, listed units where a rule names a root cause
 not suspected there, and where a rule agrees -- each entry with its root
-causes, facts, lines and code. `done 1` waits until a comparison was made with
-the list the agent finishes with, and nothing else about it is checked. Both
+causes, facts, lines and code. `done 1` waits until a comparison was made,
+and nothing else about it is checked. Both
 Sonnet runs of Oct 22 had scanned in the first minute; one never compared, and
 the other dropped 53 flagged units from rule names on screen without opening
 one. scan.py reports each comparison to the step service, so what the rules
