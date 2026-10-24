@@ -109,9 +109,9 @@ The request returns at once. Generation runs outside this session, every unit
 at the same time, and usually takes a minute or two; a hard unit can take
 five. So ask as soon as you know which units you will measure, and write the
 repairs meanwhile. Ask for all of them in one request; a unit you add later is
-another request. A session has inputs for at most 20 units; a unit whose
-generation failed does not count toward them, so you can ask for another in
-its place — up to 30 different units in all.
+another request. A session can ask for up to 30 different units, failed ones
+included: more than the 20 repairs measured, so there is room for units that
+fail and for units you decide against.
 
 verify.py does not measure while anything is still being generated: it waits
 first, up to ten minutes, printing which units it is waiting for. Give its

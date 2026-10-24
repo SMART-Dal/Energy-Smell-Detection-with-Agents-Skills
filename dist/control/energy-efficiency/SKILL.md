@@ -372,8 +372,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    hardware — is listed as `failed` with the reason; its suspicions are
    `blocked`, with that reason. When the reason is a package missing from this
    environment, install it into this venv and request the unit again first.
-   A failed unit does not count toward the 20 units with inputs: ask for
-   another in its place — up to 30 different units in all.
+   Ask for another unit in its place if you need one: a session can ask for
+   up to 30 different units, failed ones included.
 
 3. **For each chosen suspicion, write the smallest repair of the original
    code** that removes its waste, as one line in `submissions.jsonl`. Every

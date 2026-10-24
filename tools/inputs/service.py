@@ -45,7 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import generate as gen  # noqa: E402
 from steps import FILES as STEP_FILES, StepKeeper  # noqa: E402
-from lib.inputs import (DIRNAME, FAILED, MAX_REQUESTED, MAX_UNITS, PENDING, READY,  # noqa: E402
+from lib.inputs import (DIRNAME, FAILED, MAX_UNITS, PENDING, READY,  # noqa: E402
                         STATUS, file_name)
 from lib.splice import split_name  # noqa: E402
 
@@ -152,11 +152,6 @@ class Service:
         with self.lock:
             if self.closing:
                 return {"ok": False, "error": "the session is over; no more requests"}
-            # A failed unit does not hold one of the MAX_UNITS places: another can
-            # take it, up to MAX_REQUESTED different units in all (Oct 21).
-            active = sum(1 for e in self.units.values() if e["state"] != FAILED)
-            full = (f"{MAX_UNITS} units already have inputs or are being generated, the "
-                    f"most a session measures; a unit whose generation failed does not count")
             for unit in dict.fromkeys(units):
                 problem = self._check_unit(unit)
                 entry = self.units.get(unit)
@@ -166,23 +161,16 @@ class Service:
                     # A unit that failed may load now: the agent may install a
                     # missing package into this venv, which the generator runs in.
                     # Asked again, it is generated again (Oct 21: colpali_engine).
-                    if active >= MAX_UNITS:
-                        rejected.append({"unit": unit, "why": full})
-                        continue
                     self.units[unit] = {"state": PENDING, "requested": time.time(),
                                         "attempts": entry.get("attempts", 1) + 1}
                     self.futures.append(self.pool.submit(self._job, unit))
                     again.append(unit)
-                    active += 1
                 elif entry:
                     already.append(unit)
-                elif len(self.units) >= MAX_REQUESTED:
-                    rejected.append({"unit": unit, "why": f"at most {MAX_REQUESTED} different "
+                elif len(self.units) >= MAX_UNITS:
+                    rejected.append({"unit": unit, "why": f"at most {MAX_UNITS} different "
                                      f"units a session, counting those that failed"})
-                elif active >= MAX_UNITS:
-                    rejected.append({"unit": unit, "why": full})
                 else:
-                    active += 1
                     self.units[unit] = {"state": PENDING, "requested": time.time(), "attempts": 1}
                     self.futures.append(self.pool.submit(self._job, unit))
                     accepted.append(unit)

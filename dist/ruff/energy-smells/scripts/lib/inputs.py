@@ -24,13 +24,12 @@ from pathlib import Path
 DIRNAME = ".energy-inputs"
 STATUS = "status.json"
 SOCKET_ENV = "ENERGY_INPUTS_SOCKET"
-MAX_UNITS = 20
-"""Units one session may have inputs for, ready or being generated: the most
-repairs a session measures. A unit whose generation failed does not count."""
-
-MAX_REQUESTED = 30
-"""Different units one session may ask for, failed ones included: room to replace
-units that could not be generated, without generating without end (Oct 21)."""
+MAX_UNITS = 30
+"""Different units one session may ask inputs for, failed ones included. More
+than the 20 repairs it measures: room for units that cannot be generated and
+for units decided against after asking. Until Oct 24, only 20 could hold inputs
+at once and a ready unit never gave its place back, so two units rejected in
+step 2 kept the two strongest candidates from getting any."""
 
 PENDING, READY, FAILED = "pending", "ready", "failed"
 
