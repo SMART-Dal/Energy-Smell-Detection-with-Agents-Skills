@@ -8,3 +8,8 @@ opencue	academysoftwarefoundation/opencue	81bcd93e01ff05eb5af0b182be5209485cae14
 amazon-neptune-tools	awslabs/amazon-neptune-tools	f03cab5e1c74de92fc0ab3a2a648a1d6dae8a4be	82
 community	open-telemetry/community	910f85d6cf0a6a0417f3c4d1e4d03addf04a4ceb	9
 bsdd	buildingsmart/bsdd	5ed18284f125a43f7fde315d33aaf104515d98d3	4
+cognitive-speech-tts	azure-samples/cognitive-speech-tts	39c25de4e95a64c87626cfaba6b020ba9823324a	97
+mdtraj	mdtraj/mdtraj	8ca58170e6180b4216a59ed1127acac112ab8e43	150
+esp-dev-kits	espressif/esp-dev-kits	bd4d4ac18657e73583af3d7c0b0a23c3cddf3735	25
+bottleneck	pydata/bottleneck	4ecd3445c17b71f8ee21a3e72d336b8aee584d8e	43
+mariadb-connector-python	mariadb-corporation/mariadb-connector-python	856e1f5b2c15a943e4ccf739331357b724325e64	57
