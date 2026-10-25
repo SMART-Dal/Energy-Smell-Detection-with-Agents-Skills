@@ -118,6 +118,8 @@ def validate(record: dict) -> str | None:
 _MOCKING = {"mock", "unittest.mock", "pytest_mock"}
 _PLAIN_BASES = {"NamedTuple", "TypedDict", "Enum", "IntEnum", "StrEnum", "Flag", "IntFlag"}
 """Bases a class in the inputs may have besides built-in types: shapes for data."""
+_NAMESPACES = {"SimpleNamespace", "namedtuple", "type"}
+"""Calls that build an object from the values given, so lambdas given become its methods."""
 
 
 def replaced_code(source: str) -> str | None:
@@ -135,6 +137,13 @@ def replaced_code(source: str) -> str | None:
     type and defines methods: a `TPostman` subclass whose `get` returned canned
     JSON stood in for an HTTP client in one generated input. Data put on a
     module or object -- `pricing.args = namespace` -- is input, and allowed.
+
+    A class defined here with methods may be built and passed to the unit, but
+    not put onto an attribute, itself or an instance of it: on Oct 25 one
+    generated input froze a clock with `scenarios.clock.time = _FrozenTime()`, a
+    plain class whose `time()` returned a constant, and the unit was measured
+    against it. So is a namespace or dict of lambdas, and anything written into
+    `sys.modules`, which swaps a whole module.
     """
     try:
         tree = ast.parse(source)
@@ -142,10 +151,29 @@ def replaced_code(source: str) -> str | None:
         return None                     # reported when the source is run
     defined = {node.name for node in ast.walk(tree)
                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+    stand_ins = {node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)
+                 and any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) for n in node.body)}
 
     def is_code(value) -> bool:
-        return isinstance(value, ast.Lambda) or (
-            isinstance(value, ast.Name) and value.id in defined)
+        if isinstance(value, ast.Lambda):
+            return True
+        if isinstance(value, ast.Name):
+            return value.id in defined or value.id in stand_ins
+        if isinstance(value, ast.Call):
+            name = value.func.id if isinstance(value.func, ast.Name) else \
+                value.func.attr if isinstance(value.func, ast.Attribute) else None
+            if name in stand_ins:
+                return True             # an object of a class written here
+            if name in _NAMESPACES:
+                return any(is_code(v) for v in [*value.args, *(k.value for k in value.keywords)])
+        if isinstance(value, ast.Dict):
+            return any(v is not None and is_code(v) for v in value.values)
+        return False
+
+    def swaps_module(target) -> bool:
+        return (isinstance(target, ast.Subscript) and isinstance(target.value, ast.Attribute)
+                and target.value.attr == "modules" and isinstance(target.value.value, ast.Name)
+                and target.value.value.id == "sys")
 
     def plain_base(base) -> bool:
         name = base.id if isinstance(base, ast.Name) else \
@@ -174,6 +202,8 @@ def replaced_code(source: str) -> str | None:
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             if node.value is not None and (is_code(node.value) or binds_method(node.value)) and \
                     any(isinstance(t, ast.Attribute) for t in targets):
+                found = node
+            elif any(swaps_module(t) for t in targets):
                 found = node
         elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
                 and node.func.id == "setattr" and len(node.args) == 3 \

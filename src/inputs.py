@@ -63,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  already    {unit}")
         for row in answer.get("rejected", []):
             print(f"  REJECTED   {row['unit']}: {row['why']}")
+        if not (answer.get("accepted") or answer.get("again")):
+            return 1 if answer.get("rejected") else 0
         print(f"\nGenerating outside this session. Up to {MAX_UNITS} units can have inputs "
               f"or be generating at once; one that fails gives its place back, and up to "
               f"{MAX_FAILED} may fail in a session. `inputs.py status` shows progress and "

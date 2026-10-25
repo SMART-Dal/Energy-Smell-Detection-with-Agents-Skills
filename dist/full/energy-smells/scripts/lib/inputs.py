@@ -83,8 +83,8 @@ def inputs_for(unit: str, directory: Path) -> tuple[str | None, str]:
             f"$SKILL/scripts/inputs.py request {unit}` -- and run verify.py again "
             f"once `inputs.py status` says they are ready.")
     if entry.get("state") == FAILED:
-        return None, (f"no inputs could be generated for {unit}: "
-                      f"{entry.get('reason') or 'unknown'}. Next: {what_next(unit, entry)}")
+        reason = (entry.get("reason") or "unknown").rstrip(". ")
+        return None, f"no inputs could be generated for {unit}: {reason}. Next: {what_next(unit, entry)}"
     if entry.get("state") != READY:
         return None, f"the inputs for {unit} are still being generated; run verify.py again"
     try:
@@ -94,6 +94,15 @@ def inputs_for(unit: str, directory: Path) -> tuple[str | None, str]:
 
 
 _STUB_USED = re.compile(r"`?([A-Za-z_][\w.]*?)\.[\w]+`? was (?:read|called) while the unit ran")
+_NAMED_PACKAGE = re.compile(r"`([A-Za-z_][\w.-]*)`\s+(?:library|package|module)|"
+                            r"(?:library|package|module)\s+`([A-Za-z_][\w.-]*)`")
+_ELSEWHERE = re.compile(
+    r"network|internet|https?\b|\burl\b|server|remote|endpoint|\bapi\b|service|"
+    r"database|credential|password|\btoken\b|hardware|device|\bgpu\b|socket|"
+    r"connection|cloud|\baws\b|azure|\bs3\b", re.I)
+"""What the generator names when the unit needs something no venv can hold."""
+_PACKAGE = re.compile(r"not installed|librar|package|stub|cannot be imported|"
+                      r"not available in this environment", re.I)
 
 
 def what_next(unit: str, entry: dict) -> str:
@@ -103,6 +112,10 @@ def what_next(unit: str, entry: dict) -> str:
     agent is told once, where it looks, which of three cases it is in: something
     this venv can be given, something this machine cannot provide, or inputs the
     generator may manage on another try.
+
+    The reason is often the generator's own words, so the network is looked for
+    before a package: "needs network access, which is not available here" was
+    read as a missing package once (Oct 25), and the agent told to install one.
     """
     reason = entry.get("reason") or ""
     left = MAX_ATTEMPTS - entry.get("attempts", 1)
@@ -110,21 +123,29 @@ def what_next(unit: str, entry: dict) -> str:
     blocked = ("its repairs cannot be measured here: record their suspicions as `blocked`, "
                "quoting this reason, and ask for the next unit you would measure instead "
                "-- a failed unit does not use up one of the 30")
-    missing = re.search(r"No module named '([\w.]+)'", reason) or _STUB_USED.search(reason)
-    if missing:
-        package = missing.group(1).split(".")[0]
+    exact = re.search(r"No module named '([\w.]+)'", reason) or _STUB_USED.search(reason)
+    named = _NAMED_PACKAGE.search(reason)
+    cannot = reason.startswith(("it cannot run here", "the unit's module does not load"))
+    if exact or (cannot and _PACKAGE.search(reason) and not _ELSEWHERE.search(reason)):
+        package = (exact.group(1).split(".")[0] if exact else
+                   next((g for g in named.groups() if g), None) if named else None)
+        needs = f"`{package}`" if package else "a package"
         if left <= 0:
-            return f"`{package}` is missing from this venv, and the unit has had its {MAX_ATTEMPTS} tries; {blocked}"
-        return (f"the unit needs `{package}`, which this venv does not have: install the "
-                f"package that provides it into this venv (`pip install ...`) and {again}. "
-                f"If it cannot be installed, {blocked}")
-    if reason.startswith("it cannot run here") or reason.startswith("the unit's module does not load"):
-        if left > 0 and re.search(r"install|not available|librar|package|module", reason, re.I):
-            return (f"if what it lacks is a package, install it into this venv and {again}; "
-                    f"otherwise {blocked}")
+            return f"it needs {needs}, and the unit has had its {MAX_ATTEMPTS} tries; {blocked}"
+        return (f"it needs {needs}, which this venv does not have: install the package "
+                f"that provides it into this venv (`pip install ...`) and {again}. If it "
+                f"cannot be installed, {blocked}")
+    if cannot:
         return blocked
     if "changes from one run to the next" in reason:
         return f"the original itself gives a different output each time, so no input can fix it; {blocked}"
+    if "replaces code" in reason and left > 0:
+        # Oct 25: a unit stamping `time.time()` was refused twice, each time for a
+        # fake clock; another try does not help a unit that needs one.
+        return (f"the generator could make it run only by replacing code. If the unit "
+                f"depends on the clock, randomness or a service it reads itself, another "
+                f"try ends the same way: {blocked}. Otherwise you may {again} "
+                f"({left} {'try' if left == 1 else 'tries'} left)")
     if left <= 0:
         return f"the unit has had its {MAX_ATTEMPTS} tries; {blocked}"
     return (f"the generator writes new inputs on every try, so you may {again} "
