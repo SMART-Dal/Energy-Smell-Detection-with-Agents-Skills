@@ -26,10 +26,10 @@ stop to ask only when you cannot continue without an answer.
 Paths below are relative to this file's directory — call it `$SKILL`. Work out
 what `$SKILL` is once, at the start, and use it throughout.
 
-**Time:** you have 90 minutes for the whole run, thinking and measuring
-included, and the session is stopped at 90. That is enough to be thorough, so
+**Time:** you have 120 minutes for the whole run, thinking and measuring
+included, and the session is stopped at 120. That is enough to be thorough, so
 do not rush: give each unit the reading it needs. Run `date` when you start
-and again as you go, so you know how much of the 90 minutes is left.
+and again as you go, so you know how much of the 120 minutes is left.
 
 ---
 
