@@ -478,13 +478,21 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    to see what your repairs will face. You cannot change the inputs; after the
    session, every repair is measured again on our own copy of them.
 
-   `python $SKILL/scripts/inputs.py status` shows which units are ready. A unit
-   the generator could not build inputs for — it needs the network, a service,
-   hardware — is listed as `failed` with the reason; its suspicions are
-   `blocked`, with that reason. When the reason is a package missing from this
-   environment, install it into this venv and request the unit again first.
-   Ask for another unit in its place if you need one: a session can ask for
-   up to 30 different units, failed ones included.
+   `python $SKILL/scripts/inputs.py status` shows which units are ready, and
+   for each one that `failed`, why and what to do next. A repair is measured
+   by running the original and the repair on the same inputs, here, and
+   comparing their output and their energy, so an input counts only if the
+   original completes on it from this machine alone and gives the same output
+   every time. A unit that needs the network, a remote service, credentials,
+   hardware or data the repository does not hold cannot do that, and its
+   repairs cannot be measured here. That says nothing against the suspicion:
+   it is still a finding, recorded as `blocked` with the reason. When the
+   reason is a package missing from this venv, install it and ask for the unit
+   again; when the generator simply did not manage, it may on another try
+   (three in all). A unit that failed gives its place back: up to 30 units can
+   have inputs or be generating at once, failed ones not counted, so ask for
+   the next unit you would measure in its place. Up to 30 different units may
+   fail in a session.
 
 3. **For each chosen suspicion, write the smallest repair of the original
    code** that removes its waste, as one line in `submissions.jsonl`. Every

@@ -106,10 +106,10 @@ the re-measurement after the session, which uses our own copy of them.
 Requests open in step 3, at `step.py done 2`. The request returns at once.
 Generation runs outside this session, every unit at the same time, and usually
 takes a minute or two; a hard unit can take five. Ask for all of them in one
-request; a unit you add later is another request. A session can ask for up to
-30 different units, failed ones
-included: more than the 20 repairs measured, so there is room for units that
-fail and for units you decide against.
+request; a unit you add later is another request. Up to 30 units can have
+inputs or be generating at once: more than the 20 repairs measured, so there is
+room for units you decide against. A unit that fails gives its place back, so
+ask for another in its place; up to 30 different units may fail in a session.
 
 verify.py does not measure while anything is still being generated: it waits
 first, up to ten minutes, printing which units it is waiting for. Give its
@@ -128,7 +128,10 @@ generator says so when it cannot.
 stopped it. If the reason is a package missing from this environment, install
 it into this venv — whatever you install stays for the re-measurement after
 the session — and request the unit again; it is generated once more, up to
-three times a session.
+three times a session. When the generator simply did not manage — none of its
+inputs ran on the original, or it produced none — another try may succeed: it
+writes new inputs every time. `inputs.py status` says which case each failure
+is.
 
 Each unit's inputs are one file in `.energy-inputs/`, read-only. Read it before
 you write the repair: it is exactly what the repair will be measured on. They
@@ -163,11 +166,16 @@ generator counts as returning something different.
 creates, changes or deletes, under `WORKDIR` or inside the repository, has to
 come out the same on both sides.
 
-**A unit with no inputs.** When the generator cannot build inputs that run
-here — the unit needs the network, a service, credentials, hardware —
-`inputs.py status` lists it as `failed` with the reason, and verify.py reports
-its repairs as `no_inputs`. Record their suspicions as `blocked`, with that
-reason — and, if you like, ask for another unit in its place.
+**A unit with no inputs.** An input counts only if the original completes on
+it here, from this machine alone, and gives the same output on every run: that
+is what lets the two versions be compared. A unit that needs the network, a
+remote service, credentials, hardware or data the repository does not hold, or
+whose own output changes from run to run, cannot give that, whatever the input.
+`inputs.py status` lists it as `failed`, with the reason and what to do next,
+and verify.py reports its repairs as `no_inputs` with the same. Record their
+suspicions as `blocked`, quoting the reason — the suspicion is still a
+finding; only its saving cannot be measured here — and ask for the next unit
+you would measure in its place: a failed unit does not count toward the 30.
 
 **`blocked` needs that evidence.** A suspicion is `blocked` only when the tools
 showed it cannot be measured here: its inputs could not be generated, its

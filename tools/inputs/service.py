@@ -45,13 +45,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import generate as gen  # noqa: E402
 from steps import FILES as STEP_FILES, StepKeeper  # noqa: E402
-from lib.inputs import (DIRNAME, FAILED, MAX_UNITS, PENDING, READY,  # noqa: E402
-                        STATUS, file_name)
+from lib.inputs import (DIRNAME, FAILED, MAX_ATTEMPTS, MAX_FAILED,  # noqa: E402
+                        MAX_UNITS, PENDING, READY, STATUS, file_name)
 from lib.splice import split_name  # noqa: E402
-
-MAX_ATTEMPTS = 3
-"""Times one unit may be generated in a session: a failed unit can be asked for
-again, after the agent fixes what stopped it, but not without end."""
 
 VALIDATIONS_AT_ONCE = 8
 """Candidates executing at the same time. The LLM calls all run at once; executing
@@ -75,6 +71,8 @@ class Service:
         self.agent_dir = args.repo.resolve() / DIRNAME
         self.agent_dir.mkdir(exist_ok=True)
         self.units: dict[str, dict] = {}
+        self.failed: set[str] = set()
+        """Every unit that has failed at least once, for `MAX_FAILED`."""
         self.lock = threading.Lock()
         self.pool = ThreadPoolExecutor(max_workers=MAX_UNITS)
         self.futures = []
@@ -102,8 +100,15 @@ class Service:
         finally:
             os.chmod(self.agent_dir, 0o555)
 
+    def _holding(self) -> int:
+        """Units with inputs or being generated: what `MAX_UNITS` counts."""
+        return sum(1 for entry in self.units.values() if entry["state"] in (READY, PENDING))
+
     def _publish_status(self) -> None:
-        text = json.dumps({"units": self.units, "updated": time.time()}, indent=1)
+        limits = {"holding": self._holding(), "max_holding": MAX_UNITS,
+                  "failed": len(self.failed), "max_failed": MAX_FAILED}
+        text = json.dumps({"units": self.units, "limits": limits, "updated": time.time()},
+                          indent=1)
         self._write_agent(STATUS, text)
         self.out.write(STATUS, text)
 
@@ -158,6 +163,13 @@ class Service:
                 entry = self.units.get(unit)
                 if problem:
                     rejected.append({"unit": unit, "why": problem})
+                elif (not entry or entry["state"] == FAILED) and self._holding() >= MAX_UNITS:
+                    # A unit that failed gives its place back (Oct 25): until then
+                    # one needing the network kept it, and a session whose first
+                    # picks all did could ask for nothing else.
+                    rejected.append({"unit": unit, "why": f"{MAX_UNITS} units already have "
+                                     f"inputs or are being generated, the most a session "
+                                     f"holds; units that failed do not count toward it"})
                 elif entry and entry["state"] == FAILED and entry.get("attempts", 1) < MAX_ATTEMPTS:
                     # A unit that failed may load now: the agent may install a
                     # missing package into this venv, which the generator runs in.
@@ -166,11 +178,15 @@ class Service:
                                         "attempts": entry.get("attempts", 1) + 1}
                     self.futures.append(self.pool.submit(self._job, unit))
                     again.append(unit)
+                elif entry and entry["state"] == FAILED:
+                    rejected.append({"unit": unit, "why": f"generated {MAX_ATTEMPTS} times "
+                                     f"already and failed each time: {entry.get('reason')}"})
                 elif entry:
                     already.append(unit)
-                elif len(self.units) >= MAX_UNITS:
-                    rejected.append({"unit": unit, "why": f"at most {MAX_UNITS} different "
-                                     f"units a session, counting those that failed"})
+                elif len(self.failed) >= MAX_FAILED:
+                    rejected.append({"unit": unit, "why": f"{MAX_FAILED} units have failed this "
+                                     f"session, the most it allows, so no new unit is taken; "
+                                     f"measure the units that have inputs"})
                 else:
                     self.units[unit] = {"state": PENDING, "requested": time.time(), "attempts": 1}
                     self.futures.append(self.pool.submit(self._job, unit))
@@ -216,6 +232,7 @@ class Service:
                 self.units[unit] = {"state": READY, "file": file_name(unit), "attempts": attempts}
             else:
                 self.units[unit] = {"state": FAILED, "reason": reason, "attempts": attempts}
+                self.failed.add(unit)
             self._publish_status()
         self._log(row)
 

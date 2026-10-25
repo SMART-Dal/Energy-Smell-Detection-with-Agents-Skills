@@ -18,6 +18,10 @@ a hard unit, all units at the same time; verify.py waits (up to ten minutes)
 for any still being generated before it measures anything. The inputs cannot
 be changed: editing the files changes nothing that counts, because the
 re-measurement uses the generator's own copy.
+
+Up to 30 units can have inputs or be generating at once. A unit that failed
+does not count toward them, so ask for another in its place; `status` says why
+each failed and what to do next. Up to 30 different units may fail in a session.
 """
 
 from __future__ import annotations
@@ -28,7 +32,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from lib.inputs import DIRNAME, FAILED, MAX_UNITS, READY, ask, read_status  # noqa: E402
+from lib.inputs import (DIRNAME, FAILED, MAX_FAILED, MAX_UNITS, READY, ask,  # noqa: E402
+                        read_limits, read_status, what_next)
 from lib.progress import step_refusal  # noqa: E402
 
 
@@ -58,9 +63,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  already    {unit}")
         for row in answer.get("rejected", []):
             print(f"  REJECTED   {row['unit']}: {row['why']}")
-        print(f"\nGenerating outside this session. A session can ask for up to {MAX_UNITS} "
-              f"different units, those that fail included. `inputs.py status` shows "
-              f"progress, and verify.py waits for them before measuring.")
+        print(f"\nGenerating outside this session. Up to {MAX_UNITS} units can have inputs "
+              f"or be generating at once; one that fails gives its place back, and up to "
+              f"{MAX_FAILED} may fail in a session. `inputs.py status` shows progress and "
+              f"why any failed, and verify.py waits for them before measuring.")
         return 1 if answer.get("rejected") else 0
 
     units = read_status(Path(DIRNAME))
@@ -73,8 +79,14 @@ def main(argv: list[str] | None = None) -> int:
         if state == READY:
             line += f"  -> {DIRNAME}/{entry.get('file')}"
         elif state == FAILED:
-            line += f"\n           {entry.get('reason')}"
+            line += (f"\n           why:  {entry.get('reason')}"
+                     f"\n           next: {what_next(unit, entry)}")
         print(line)
+    limits = read_limits(Path(DIRNAME))
+    if limits:
+        print(f"\n{limits.get('holding')} of {limits.get('max_holding')} units have inputs or are "
+              f"being generated (failed ones do not count); {limits.get('failed')} of "
+              f"{limits.get('max_failed')} failures used.")
     return 0
 
 
