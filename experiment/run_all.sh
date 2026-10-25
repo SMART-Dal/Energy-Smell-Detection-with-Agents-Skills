@@ -255,6 +255,39 @@ enough_space() {
   fi
 }
 
+# "limit <message>" or "error <message>" when the agent's session ended on an API
+# error before `step.py done 3`; nothing otherwise. A session that finished step
+# 3 is a run even if a later turn hit the limit (Opus, Oct 21: 50 turns, then
+# one more woken by a background command). The same for --auth api and
+# subscription: an API key over its limit or out of credit is a limit too.
+cut_reason() {  # run folder
+  python3 - "$1" <<'EOF'
+import json, re, sys
+from pathlib import Path
+out = Path(sys.argv[1])
+results = []
+for line in open(out / "transcript.jsonl", errors="replace"):
+    try:
+        event = json.loads(line)
+    except ValueError:
+        continue
+    if isinstance(event, dict) and event.get("type") == "result":
+        results.append(event)
+finished = False
+try:
+    for line in open(out / "record" / "events.jsonl"):
+        row = json.loads(line)
+        finished = finished or (row.get("event") == "done" and row.get("step") == 3)
+except (OSError, ValueError):
+    pass
+last = results[-1] if results else {}
+if last.get("is_error") and (last.get("terminal_reason") == "api_error" or last.get("api_error_status")) and not finished:
+    message = " ".join(str(last.get("result") or "API error").split())[:300]
+    limit = last.get("api_error_status") == 429 or re.search(r"limit|credit balance|quota|billing", message, re.I)
+    print(("limit " if limit else "error ") + message)
+EOF
+}
+
 run_one() {  # repo, arm, model
   local repo=$1 arm=$2 model=$3
   local name=${model#claude-}; name=${name%%-*}
@@ -318,6 +351,27 @@ run_one() {  # repo, arm, model
   [ -n "$cards" ] && chmod u+rwx "$cards" 2>/dev/null   # the service opens them; in case it died
 
   save_outputs "$RUN/$repo" "$out"
+  # A session the API ended before step 3 was finished is not a run: it is set
+  # aside, not reviewed or archived as done, so the next invocation runs it
+  # again. On a usage limit -- the plan's, or the API key's -- nothing else
+  # starts either: the next run would end the same way, and be archived too.
+  local cut
+  cut=$(cut_reason "$out")
+  if [ -n "$cut" ]; then
+    clean_tmp "$out"
+    local aside
+    aside="$out.cut-$(date +%Y%m%d-%H%M%S)"
+    mv "$out" "$aside"
+    chmod -R u+w "$RUN" 2>/dev/null
+    rm -rf "$RUN"
+    if [ "${cut%% *}" = limit ]; then
+      log "STOPPED at $id: the session hit a usage limit before step 3 was finished: ${cut#* }"
+      log "  not counted (kept in $aside), and nothing else starts. Run the same command again once the limit resets: finished runs are skipped, this one is redone."
+      exit 3
+    fi
+    log "SET ASIDE $id: the session ended on an API error before step 3 was finished: ${cut#* } (kept in $aside); it runs again next time"
+    return
+  fi
   # Every rule, on the untouched repository, in every arm: which of the agent's
   # findings a rule also flags is measured here (summarize.py), not asked of the
   # agent. The full arm's scanner has every rule.

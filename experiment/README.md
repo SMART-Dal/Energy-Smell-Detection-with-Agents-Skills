@@ -60,6 +60,15 @@ column -s, -t < ~/energy-exp/archive/summary.csv      # results
 
 While an agent runs, `~/energy-exp` is locked for you too: watch with `tmux attach`.
 
+`--auth api` (the default in `config.sh`) bills the key in `~/energy-exp/api-key`;
+`--auth subscription` runs on a claude.ai plan, with the token `claude
+setup-token` printed saved in `~/energy-exp/oauth-token`. Either way, a session
+that the API ends before `step.py done 3` -- a usage limit, or credit run out --
+is not counted: its folder is moved to `<model>.cut-<time>`, and on a limit the
+grid stops, with nothing started again by itself. Run the same command once
+the limit resets: finished runs are skipped and the cut one is redone. Any
+other API error sets that run aside the same way and the grid goes on.
+
 ## The agent
 
 `claude -p` in the repo copy, with `--effort medium`, `bypassPermissions` (every
