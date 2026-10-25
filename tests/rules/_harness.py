@@ -30,6 +30,7 @@ from lib.analysis.context import (  # noqa: E402
     collect_imports,
     collect_module_aliases,
     collect_module_bindings,
+    collect_module_functions,
     collect_overridden_methods,
 )
 from lib.analysis.rules import ALL_RULES  # noqa: E402
@@ -60,6 +61,7 @@ def run(rule, path: Path) -> list:
     tree = ast.parse(source)
     imports = collect_imports(tree)
     module_bindings = collect_module_bindings(tree)
+    module_functions = collect_module_functions(tree)
     overridden = collect_overridden_methods(tree)
     aliases = collect_module_aliases(tree)
     found = []
@@ -69,6 +71,7 @@ def run(rule, path: Path) -> list:
         context = UnitContext(
             node=node, source=source, imports=imports,
             module_bindings=module_bindings,
+            module_functions=module_functions,
             overridden_methods=overridden,
             module_aliases=aliases,
         )

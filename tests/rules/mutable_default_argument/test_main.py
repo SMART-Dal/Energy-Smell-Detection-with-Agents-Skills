@@ -1,4 +1,4 @@
-"""mutable_default_argument: flag a mutable object created once at definition time."""
+"""mutable_default_argument: flag a mutable default the function can make grow."""
 
 import sys
 from pathlib import Path
@@ -16,6 +16,10 @@ EXPECTED = {
     "build_index": 1,               # `collections.defaultdict(list)`, qualified
     "memoised_fib": 1,              # deliberate memo, still a shared mutable
     "make_collector.collect": 1,    # the inner signature, charged to the inner unit
+    "snapshot": 1,                  # returned to the caller
+    "walk": 1,                      # filled by a helper in this module
+    "Cache.__init__": 1,            # stored on the instance
+    "Collector.gather": 1,          # filled by a method of the same class
 }
 
 

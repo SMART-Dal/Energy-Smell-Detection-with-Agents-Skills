@@ -160,6 +160,10 @@ class UnitContext:
     module_bindings: dict[str, ast.AST] = field(default_factory=dict)
     """Module-level constant -> its assigned value, for names the unit only reads."""
 
+    module_functions: dict[str, ast.AST] = field(default_factory=dict)
+    """Qualname -> `def` of every function and method in the module, nested ones
+    excluded, so a rule can read the body of a callee this unit names."""
+
     overridden_methods: frozenset[str] = frozenset()
 
     entry_depth: int = 0
@@ -722,6 +726,26 @@ def collect_module_bindings(tree: ast.Module) -> dict[str, ast.AST]:
             if value is not None:
                 bindings[target.id] = value
     return {name: value for name, value in bindings.items() if name not in rebound}
+
+
+def collect_module_functions(tree: ast.Module) -> dict[str, ast.AST]:
+    """Map `name` and `Class.name` to their `def`, for calls a rule wants to follow.
+
+    Only what a call written in this module can name: top-level functions and the
+    methods of top-level and nested classes. A function defined inside another is
+    reachable only from there, and is left out.
+    """
+    found: dict[str, ast.AST] = {}
+
+    def visit(body: list[ast.stmt], prefix: str) -> None:
+        for node in body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                found[prefix + node.name] = node
+            elif isinstance(node, ast.ClassDef):
+                visit(node.body, prefix + node.name + ".")
+
+    visit(tree.body, "")
+    return found
 
 
 def _parameter_names(node: ast.AST) -> set[str]:

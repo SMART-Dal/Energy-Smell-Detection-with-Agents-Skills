@@ -163,30 +163,191 @@ def _evidence(unit: UnitRef, kind: str, node: ast.AST, suggests: tuple[str, ...]
 
 
 def mutable_default_argument(unit: UnitRef, ctx: UnitContext) -> Iterator[Evidence]:
-    """A mutable object as a parameter default, evaluated once at definition.
+    """A mutable default the function can make grow, shared by every call.
 
-    Every call that mutates it leaves state behind, so the object grows for the
-    lifetime of the process.  This is both a correctness bug and a slow memory
-    leak, which is why it is worth reporting even outside hot paths.
+    A default is evaluated once, when the `def` runs, and every call that omits
+    the argument gets that one object.  When the body changes it -- appends,
+    updates, assigns into it, `+=` -- or lets it out, by returning or yielding it
+    or storing it on an object or a global, what one call leaves in it is there
+    for the next, and the object grows for the life of the process.  That is a
+    correctness bug and a slow memory leak, so it is worth reporting even
+    outside hot paths.
 
-    Reported whether or not this particular body mutates the default: the
-    object is handed to the caller, and one caller that appends to it is enough.
-    Proving that no reachable code writes to it would take whole-program
-    analysis, and the repair -- default to `None`, build it in the body -- is
-    cheap enough that the trade is not worth making.
+    Only that is reported.  A default the body only reads, or only hands to a
+    call, accumulates nothing: the card's third pattern, where the `None`
+    default plus a guard measured more energy, not less.  Until Oct 25 every
+    mutable default was reported, on the argument that some caller might append
+    to it and proving none does would take whole-program analysis.  In
+    dx-toolkit that was 225 findings: 208 generated API wrappers passing
+    `input_params={}` straight to a request that only serialises it, and one
+    body that changed its default.
+
+    A call is followed into a function or method of the same module --
+    `helper(acc)`, `self._fill(acc)`, `Bucket(acc)` -- one level deep, and the
+    default counts as changed if that body changes or stores the parameter.  A
+    callee in another module is not read, so a default handed only to one is
+    not reported.
     """
     if not isinstance(ctx.node, (ast.FunctionDef, ast.AsyncFunctionDef)):
         return
     arguments = ctx.node.args
-    for default in list(arguments.defaults) + [d for d in arguments.kw_defaults if d]:
+    positional = [*arguments.posonlyargs, *arguments.args]
+    pairs = list(zip(positional[len(positional) - len(arguments.defaults):], arguments.defaults))
+    pairs += [(arg, d) for arg, d in zip(arguments.kwonlyargs, arguments.kw_defaults) if d]
+    owner = unit.qualname.rpartition(".")[0]
+    for parameter, default in pairs:
         if not _is_mutable_default(default):
             continue
+        growth = _growth(ctx.node, parameter.arg, ctx.module_functions,
+                         owner if owner in _classes(ctx.module_functions) else None)
+        if growth is None:
+            continue
+        line, how = growth
         yield _evidence(
             unit, "mutable_default_argument", default, ("C6.S7",),
             f"`{ast.unparse(default)}` is a mutable default, created once at "
-            f"definition time and shared by every call",
+            f"definition time and shared by every call, and this function "
+            f"{how} (line {line}), so what is done to it carries over into the next call",
             default=ast.unparse(default),
         )
+
+
+GROWING_METHODS = frozenset({
+    "append", "appendleft", "extend", "extendleft", "insert", "add", "update",
+    "setdefault", "remove", "pop", "popleft", "popitem", "discard", "clear",
+    "sort", "reverse",
+})
+"""Methods that change a list, dict, set or deque in place."""
+
+GROWING_FUNCTIONS = frozenset({
+    "heappush", "heappop", "heapify", "heappushpop", "heapreplace",
+    "insort", "insort_left", "insort_right", "shuffle",
+})
+"""`heapq`, `bisect` and `random` functions that change their first argument."""
+
+
+def _classes(functions: dict[str, ast.AST]) -> set[str]:
+    return {name.rpartition(".")[0] for name in functions if "." in name}
+
+
+def _root(node: ast.AST) -> str | None:
+    while isinstance(node, (ast.Attribute, ast.Subscript)):
+        node = node.value
+    return node.id if isinstance(node, ast.Name) else None
+
+
+def _hands_out(node: ast.AST | None, names: set[str]) -> bool:
+    """Whether `node` evaluates to one of `names` itself, or a display holding it.
+
+    `items` and `(items, n)` hand the object on; `len(items)` and `items[0]` do not.
+    """
+    if isinstance(node, ast.Name):
+        return node.id in names
+    if isinstance(node, (ast.Tuple, ast.List, ast.Set)):
+        return any(_hands_out(e, names) for e in node.elts)
+    if isinstance(node, ast.Dict):
+        return any(_hands_out(v, names) for v in node.values)
+    if isinstance(node, (ast.Starred, ast.NamedExpr)):
+        return _hands_out(node.value, names)
+    if isinstance(node, ast.IfExp):
+        return _hands_out(node.body, names) or _hands_out(node.orelse, names)
+    if isinstance(node, ast.BoolOp):
+        return any(_hands_out(v, names) for v in node.values)
+    return False
+
+
+def _growth(function: ast.AST, parameter: str, functions: dict[str, ast.AST],
+            owner: str | None, follow: bool = True) -> tuple[int, str] | None:
+    """The first place `function` changes or lets out what `parameter` is bound to.
+
+    `(line, what it does)`, or None.  Local names bound straight to the
+    parameter (`acc = items`) count as the parameter.  A top-level statement that
+    rebinds it to something new (`items = list(items)`) ends the tracking: what
+    follows changes the copy.  With `follow`, a call handing the object to a
+    function or method of this module counts if that body changes or stores the
+    same parameter; returning it from there does not, since the caller only
+    gets back what it passed.
+    """
+    names = {parameter}
+    for _ in range(2):
+        for node in ast.walk(function):
+            if (isinstance(node, ast.Assign) and _hands_out(node.value, names)
+                    and all(isinstance(t, ast.Name) for t in node.targets)):
+                names.update(t.id for t in node.targets)
+    fresh = min((statement.lineno for statement in function.body
+                 if isinstance(statement, (ast.Assign, ast.AnnAssign))
+                 and statement.value is not None
+                 and any(isinstance(t, ast.Name) and t.id == parameter
+                         for t in (statement.targets if isinstance(statement, ast.Assign)
+                                   else [statement.target]))
+                 and not _hands_out(statement.value, names)), default=None)
+    shared = {name for node in ast.walk(function) if isinstance(node, (ast.Global, ast.Nonlocal))
+              for name in node.names}
+
+    found: list[tuple[int, str]] = []
+    for node in ast.walk(function):
+        if node is function or (fresh is not None and getattr(node, "lineno", 0) >= fresh):
+            continue
+        if isinstance(node, ast.Call):
+            func = node.func
+            if (isinstance(func, ast.Attribute) and func.attr in GROWING_METHODS
+                    and _root(func.value) in names):
+                found.append((node.lineno, f"calls `.{func.attr}()` on it"))
+            elif (_called_name(node) in GROWING_FUNCTIONS and node.args
+                  and _hands_out(node.args[0], names)):
+                found.append((node.lineno, f"passes it to `{ast.unparse(func)}()`"))
+            elif follow:
+                callee = _callee(node, functions, owner)
+                if callee is not None and _passes_to_changer(node, callee, names, functions):
+                    found.append((node.lineno, f"hands it to `{ast.unparse(func)}()`, "
+                                               f"which changes it"))
+        elif isinstance(node, ast.Subscript) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            if _root(node.value) in names:
+                found.append((node.lineno, "assigns into it"))
+        elif isinstance(node, ast.AugAssign):
+            if isinstance(node.target, ast.Name) and node.target.id in names:
+                found.append((node.lineno, f"changes it in place with "
+                                           f"`{ast.unparse(node.target)} ...=`"))
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)) and _hands_out(node.value, names):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, (ast.Attribute, ast.Subscript)) or (
+                        isinstance(target, ast.Name) and target.id in shared):
+                    found.append((node.lineno, f"stores it in `{ast.unparse(target)}`"))
+        elif follow and isinstance(node, ast.Return) and _hands_out(node.value, names):
+            found.append((node.lineno, "returns it to the caller"))
+        elif follow and isinstance(node, (ast.Yield, ast.YieldFrom)) and _hands_out(node.value, names):
+            found.append((node.lineno, "yields it to the caller"))
+    return min(found) if found else None
+
+
+def _callee(call: ast.Call, functions: dict[str, ast.AST],
+            owner: str | None) -> tuple[ast.AST, int] | None:
+    """The `def` a call names in this module, and how many leading parameters
+    the call does not pass (`self` for a method or a class)."""
+    func = call.func
+    if isinstance(func, ast.Name):
+        if func.id in functions:
+            return functions[func.id], 0
+        if f"{func.id}.__init__" in functions:
+            return functions[f"{func.id}.__init__"], 1
+    elif (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)
+          and func.value.id in ("self", "cls") and owner is not None
+          and f"{owner}.{func.attr}" in functions):
+        return functions[f"{owner}.{func.attr}"], 1
+    return None
+
+
+def _passes_to_changer(call: ast.Call, callee: tuple[ast.AST, int], names: set[str],
+                       functions: dict[str, ast.AST]) -> bool:
+    node, skipped = callee
+    positional = [a.arg for a in (*node.args.posonlyargs, *node.args.args)][skipped:]
+    received = [positional[i] for i, arg in enumerate(call.args)
+                if i < len(positional) and not isinstance(arg, ast.Starred)
+                and _hands_out(arg, names)]
+    received += [k.arg for k in call.keywords if k.arg and _hands_out(k.value, names)]
+    return any(_growth(node, parameter, functions, None, follow=False) is not None
+               for parameter in received)
 
 
 def _is_mutable_default(node: ast.AST) -> bool:

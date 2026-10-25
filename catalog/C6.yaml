@@ -275,7 +275,6 @@
 - id: C6.S7
   signals:
     - mutable_default_argument
-    - ruff_B006
   in_one_line: |
     a mutable default argument that quietly accumulates across every call
   look_for: |

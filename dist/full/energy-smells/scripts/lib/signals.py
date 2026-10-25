@@ -131,8 +131,8 @@ class Finding:
     corroborated_by: tuple[str, ...] = ()
     """Other rules that reported the same lines for the same root causes.
 
-    Two analyzers agreeing is worth saying once, not printing twice: `ruff_B006`
-    and `mutable_default_argument` are the same sentence about the same line."""
+    Two analyzers agreeing is worth saying once, not printing twice: `ruff_SIM115`
+    and `unmanaged_resource` are the same sentence about the same line."""
 
     @property
     def lines(self) -> tuple[int, ...]:
@@ -179,8 +179,8 @@ def _merge_agreeing(findings: list[Finding]) -> list[Finding]:
 
     Two rules agree when they point at the same root causes and the same lines.
     That is corroboration, and corroboration reads as one stronger finding
-    rather than as two -- the reader who sees `mutable_default_argument` at 522
-    and then `ruff_B006` at 522 has to work out that they are one defect, and
+    rather than as two -- the reader who sees `unmanaged_resource` at 522
+    and then `ruff_SIM115` at 522 has to work out that they are one defect, and
     the second entry has displaced something they have not seen yet.
 
     The surviving wording is the taxonomy rule's rather than the linter's,

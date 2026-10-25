@@ -105,9 +105,6 @@
   "repeated_subscript_in_loop": [
    "C8.S3"
   ],
-  "ruff_B006": [
-   "C6.S7"
-  ],
   "ruff_B019": [
    "C8.S1"
   ],

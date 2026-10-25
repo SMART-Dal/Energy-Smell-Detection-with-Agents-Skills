@@ -27,7 +27,7 @@ from .models import Evidence, UnitRef
 # Every entry here was checked against the rule's actual semantics; a rule that
 # only *sometimes* implies its root cause is left out rather than guessed at.
 #
-# Three were removed on that test rather than added to it:
+# Five were removed on that test rather than added to it:
 #
 #   B020    `for x in x:` shadows a name. C3.S7 is a collection edited while it
 #           is walked, which B020 neither checks nor implies.
@@ -46,8 +46,12 @@ from .models import Evidence, UnitRef
 #           evaluation corpus) and makes the output move with ruff's unreleased
 #           behaviour, which a reported rule count cannot rest on.
 #           `mutation_during_iteration` carries C3.S7 on its own.
+#   B006    any mutable default. C6.S7 is one that accumulates, which needs the
+#           body to change it or let it out; B006 fired on every `input_params={}`
+#           a generated API wrapper hands straight to a request -- 208 of
+#           dx-toolkit's 225 -- where the card measured the repair costing more.
+#           `mutable_default_argument` checks for that and carries C6.S7 alone.
 RULE_MAP: dict[str, tuple[tuple[str, ...], str]] = {
-    "B006": (("C6.S7",), "mutable default argument"),
     "B019": (("C8.S1",), "cache decorator on a method leaks instances"),
     "C400": (("C6.S3",), "generator passed to list() unnecessarily"),
     "C401": (("C6.S3",), "generator passed to set() unnecessarily"),

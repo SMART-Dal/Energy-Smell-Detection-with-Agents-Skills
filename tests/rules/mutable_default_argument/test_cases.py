@@ -86,3 +86,63 @@ def batch_process(factors=[2 ** i for i in range(8)],
     # every call the same object, exactly as `[]` does.
     factors.append(99)
     return mapping
+
+
+def is_allowed(scope, allowed=["read", "write"]):
+    # Only read: nothing accumulates, and the card measured the `None` repair
+    # as costing more.
+    return scope in allowed
+
+
+def app_describe(object_id, input_params={}, always_retry=True, **kwargs):
+    # dx-toolkit's generated wrappers: handed to a call in another module that
+    # only serialises it. Not followed, so not reported.
+    return DXHTTPRequest("/%s/describe" % object_id, input_params,
+                         always_retry=always_retry, **kwargs)
+
+
+def normalise(rows, out=[]):
+    # Rebound to a copy before anything changes it: the default itself stays empty.
+    out = list(out)
+    out.extend(rows)
+    return out
+
+
+def snapshot(state, history=[]):
+    # Returned: the caller holds the shared object and whatever it adds stays.
+    return history
+
+
+def _visit(node, seen):
+    seen.add(node)
+
+
+def walk(node, seen=set()):
+    # Changed in a helper of this module, which is where it fills up.
+    _visit(node, seen)
+    return len(seen)
+
+
+def summarise(values, totals={}):
+    # Handed to a helper of this module that only reads it.
+    return _count(values, totals)
+
+
+def _count(values, totals):
+    return sum(totals.get(v, 0) for v in values)
+
+
+class Cache:
+    def __init__(self, entries={}):
+        # Stored on the instance: every Cache made without entries shares one dict.
+        self.entries = entries
+
+
+class Collector:
+    def gather(self, item, bucket=[]):
+        # The method it calls appends.
+        self._fill(bucket, item)
+        return len(bucket)
+
+    def _fill(self, bucket, item):
+        bucket.append(item)

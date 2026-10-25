@@ -22,6 +22,7 @@ from ..context import (
     UnitContext,
     collect_module_aliases,
     collect_module_bindings,
+    collect_module_functions,
     collect_overridden_methods,
 )
 from ..models import Evidence, UnitRef
@@ -70,6 +71,7 @@ def collect(
     """
     tree = ast.parse(source)
     module_bindings = collect_module_bindings(tree)
+    module_functions = collect_module_functions(tree)
     overridden = collect_overridden_methods(tree)
     aliases = collect_module_aliases(tree)
 
@@ -87,7 +89,8 @@ def collect(
                   and inner.end_lineno <= unit.end_lineno]
         context = UnitContext(
             node=node, source=source, imports=imports,
-            module_bindings=module_bindings, overridden_methods=overridden,
+            module_bindings=module_bindings, module_functions=module_functions,
+            overridden_methods=overridden,
             module_aliases=aliases,
             entry_depth=(entry_depth or {}).get(unit.qualname, 0),
         )
