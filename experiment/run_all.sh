@@ -147,13 +147,27 @@ fake_agent() {  # dry run: write what an agent writes, and test the lock
 # around our review, into its own list: a repository's module-level code can
 # write to an absolute /tmp path while verify.py loads it (Oct 22:
 # colbert-long/scripts/convert.py opened /tmp/vespa_feed_file_en.json).
+#
+# Each entry is copied into the run folder before it goes (`tmp_created/`,
+# `tmp_created_review/`), up to KEEP_TMP_MB: on Oct 26 the agent kept both of its
+# verify.py logs in /tmp/es, and deleting them lost them. An editor's own folders
+# are left alone: the same run deleted VS Code's (code-*, mcp-*, pyright-*),
+# which had appeared in /tmp while the agent worked.
+KEEP_TMP_MB=200
 clean_tmp() {  # run folder, list file
   local out=$1 list=${2:-tmp_created.txt}
+  local keep=$out/${list%.txt} kb
   ls -A /tmp | sort | comm -13 "$out/.tmp_before" - \
-    | grep -v -E '^(claude-|cc-daemon-|tmux-|systemd-private-)' \
+    | grep -v -E '^(claude-|cc-daemon-|tmux-|systemd-private-|code-|mcp-|pyright-|vscode-|python-languageserver-)' \
     | while read -r name; do
         [ -O "/tmp/$name" ] || continue
-        echo "/tmp/$name"
+        kb=$(du -sk -- "/tmp/$name" 2>/dev/null | cut -f1)
+        if [ "${kb:-0}" -le $((KEEP_TMP_MB * 1024)) ]; then
+          mkdir -p "$keep" && cp -a -- "/tmp/$name" "$keep/" 2>/dev/null
+          echo "/tmp/$name"
+        else
+          echo "/tmp/$name (not kept: $((kb / 1024)) MB)"
+        fi
         rm -rf -- "/tmp/$name"
       done > "$out/$list"
   rm -f "$out/.tmp_before"

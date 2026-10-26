@@ -39,7 +39,7 @@ Results: `$EXP/archive/<repo>/<arm>/<model>/` holds a run — `transcript.jsonl`
 repair it measured, each comparison of the rules with its list), `inputs/` (the generated inputs), `review/` (our
 re-measurement), `rules.json` (every rule on the untouched repository, for
 comparing with the agent's findings), `venv_before/after.txt`,
-`tmp_created.txt`, `meta.json`.
+`tmp_created.txt` and `tmp_created/`, `meta.json`.
 Earlier attempts of the same run are `<model>.1`, `.2`, ... One row per run in
 `$EXP/archive/summary.csv`.
 
@@ -79,6 +79,8 @@ told it has a budget spends less of its time; cap spending on the Console. What
 it installs into its venv stays for the review, which re-measures in that same
 venv (both sides of every pair run in it, so it cannot favour either), and dies
 with the venv copy. What it creates directly in `/tmp` is listed in
-`tmp_created.txt` and deleted after the run, so the next run cannot read this
-one's repairs. Cost in `summary.csv` is Claude Code's estimate; the Console bill
+`tmp_created.txt`, copied into `tmp_created/` (each entry up to 200 MB), and
+deleted after the run, so the next run cannot read this one's repairs. An
+editor's own folders there (`code-*`, `mcp-*`, `pyright-*`, `vscode-*`) are left
+alone. Cost in `summary.csv` is Claude Code's estimate; the Console bill
 is authoritative.
