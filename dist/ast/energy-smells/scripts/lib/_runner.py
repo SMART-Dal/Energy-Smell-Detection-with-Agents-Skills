@@ -66,8 +66,11 @@ def burn_cpu(seconds: float) -> float:
 POOL_LIMIT_S = 10.0
 """Longest a pool of fresh arguments may take to build, before one window."""
 
-POOL_LIMIT_BYTES = 2 << 30
-"""Most memory a pool of fresh arguments may take."""
+POOL_LIMIT_BYTES = 4 << 30
+"""Most memory a pool of fresh arguments may take. The pool lives for one
+window and is freed when it ends. 4 GB since Oct 26: at 2 GB a repair several
+times faster than the original needed 2.2 GB of fresh arguments for one window
+(annotate_data, 499 calls) and could not be measured at all."""
 
 
 class PoolTooLarge(RuntimeError):

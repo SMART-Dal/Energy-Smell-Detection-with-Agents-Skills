@@ -152,7 +152,7 @@ Every repair is written against the original code, never on top of another, so
 the order the agent takes them in does not matter and each one's saving is its
 own. A suspicion whose repair is the identical edit to one already submitted is
 recorded as `same_repair_as`; different edits to the same code are each
-submitted and list each other as `related`. Since each is written against the
+submitted as a repair of their own. Since each is written against the
 original, at most one per function can be applied, and `tools/review.py` picks
 the confirmed one with the highest mean saving across the four shared inputs.
 
@@ -275,7 +275,7 @@ follows is an illustration, and the templates win if they drift.
 {"id": "C10S4-render-concat", "root_cause": "C10.S4",
  "unit": "src/render.py::Report.render",
  "changed": {"src/render.py::Report.render": "def render(self): …"},
- "related": [], "cases_source": "def checks(): …\ndef cases(): …",
+ "cases_source": "def checks(): …\ndef cases(): …",
  "agent_measurement": {"status": "confirmed", "profile": "fast", "noise_floor_pct": 1.6,
    "per_case": [{"label": "many-rows", "before_energy_j": 48.2, "after_energy_j": 35.7,
                  "before_time_s": 1.01, "after_time_s": 0.75, "energy_ci_pct": 3.0,

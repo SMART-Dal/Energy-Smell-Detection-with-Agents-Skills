@@ -22,7 +22,6 @@ One JSON object per line of `submissions.jsonl`, one line per repair:
   "changed": {
     "src/render.py::Report.render": "def render(self):\n    return \"\".join(_row(r) for r in self.rows)"
   },
-  "related": [],
   "sole_caller_evidence": null,
   "notes": "{{NOTES_EXAMPLE}}"
 }
@@ -36,7 +35,6 @@ ones with nothing to say take the empty value shown.
 | `id` | a name for this repair, unique in the file |
 {{ROOT_CAUSE_ROW}}| `unit` | the function or method whose behaviour must be preserved, as `path::qualname` |
 | `changed` | `path::qualname` → the full replacement source of that function |
-| `related` | ids of other repairs of the same code; `[]` if none |
 | `sole_caller_evidence` | how you know nothing else calls or reads what you changed; `null` when `changed` holds only the unit |
 | `notes` | a few sentences a reader would otherwise have to guess; `""` if none |
 | `agent_measurement` | written by the script, never by you |
@@ -81,8 +79,7 @@ its own. There is no order to take them in, and no repair is built on another.
 
 - **The same edit** for two suspicions is one repair. Submit it once; the other
   suspicion is `same_repair_as` it.
-- **Different edits to the same code** are separate repairs. Submit each, and
-  list each in the other's `related`.
+- **Different edits to the same code** are separate repairs. Submit each.
 - **Every repair of one unit is measured on that unit's inputs**, so their
   savings are measured on identical inputs and can be compared.
 

@@ -70,7 +70,7 @@ worth on its own.
 - Two suspicions that would get **exactly the same edit** are one repair:
   submit it once, and record the other as `same_repair_as`.
 - Two that get **different edits to the same code** are two repairs: submit
-  both, and list each in the other's `related`.
+  both.
 - Do **not** widen a repair to cover a second suspicion, and do not split one
   edit into several submissions to raise the count.
 
@@ -439,8 +439,7 @@ Read `$SKILL/reference/verifying.md` before your first submission.
    - **The same edit as one you already wrote** for this unit: do not submit it
      again. Record its outcome in step 3 as `same_repair_as`, with that
      submission's `id` as `submission`.
-   - **A different edit to the same code**: submit it, and list each in the
-     other's `related`.
+   - **A different edit to the same code**: submit it as a repair of its own.
 
 4. **Measure the whole file, once.**
 
@@ -471,8 +470,8 @@ Read `$SKILL/reference/verifying.md` before your first submission.
 
    A measured result is never revised. Editing a measured line to get a better
    number makes it `invalid`, and the result it had stays on record. If you
-   think a genuinely different repair would do better, that is a new line,
-   listed in `related` — both are kept. A suspicion is `blocked` only when the
+   think a genuinely different repair would do better, that is a new line —
+   both are kept. A suspicion is `blocked` only when the
    tools showed it cannot be measured: its unit's inputs could not be generated,
    its module does not load, or its repair cannot be made to behave identically
    — quote that message as `why`. One you did not try, because you expect it

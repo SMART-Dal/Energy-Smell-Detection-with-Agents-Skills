@@ -91,11 +91,6 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
         except ValueError:
             continue
         if isinstance(record, dict) and record.get("id") in again:
-            # `related` was checked against the whole file above; here it would
-            # name lines the retry leaves out, and a repair whose partner was not
-            # retried came back `invalid` (Oct 22, C1S1-count-terms-total-count).
-            if isinstance(record.get("related"), list):
-                record["related"] = [r for r in record["related"] if r in again]
             lines.append(json.dumps(record))
     with tempfile.TemporaryDirectory() as scratch:
         subset = Path(scratch) / "submissions.jsonl"
@@ -179,10 +174,11 @@ def _noisy(result: dict) -> bool:
                for c in result.get("per_case") or [])
 
 
-RETIRED = ("equivalence", "equivalent")
-"""Fields a submission could relax the check with until Oct 21. A run from before
-is re-measured under today's rule -- everything compared -- so they are dropped
-from the copy verify.py reads; the agent's own file is left as it was."""
+RETIRED = ("equivalence", "equivalent", "related")
+"""Fields a submission could relax the check with until Oct 21, and `related`,
+dropped on Oct 26. A run from before is re-measured under today's rule --
+everything compared, every repair on its own -- so they are dropped from the
+copy verify.py reads; the agent's own file is left as it was."""
 
 
 def _without_retired(submissions: Path) -> str:
@@ -248,11 +244,7 @@ def decide(submissions: list[dict], ours: dict[str, dict]) -> dict[str, dict]:
                                            "mean saving among this function's confirmed repairs"}
                 continue
             if winner is not None:
-                linked = (record["id"] in winner.get("related", [])
-                          or winner["id"] in record.get("related", []))
-                reason = (f"not applied: an alternative repair of the same code as "
-                          f"{winner['id']}, which saved more" if linked else
-                          f"not applied: changes the same function as {winner['id']}, which "
+                reason = (f"not applied: changes the same function as {winner['id']}, which "
                           f"is applied; both were written against the original, so only "
                           f"one can be")
             else:
@@ -415,7 +407,6 @@ def main(argv: list[str] | None = None) -> int:
             "mean_saving_pct": mean_saving(result),
             "applied": decision["applied"],
             "not_applied_reason": None if decision["applied"] else decision["reason"],
-            "related": record.get("related", []),
             "noise_floor_pct": result.get("noise_floor_pct"),
             "floor_source": result.get("noise_floor_from"),
             "relaxed": result.get("equivalence_relaxed", []),

@@ -170,7 +170,7 @@ ITEM_KEYS = {
     "decisions": {"label", "root_cause", "lines", "verdict", "why"},
     "outcomes": {"label", "outcome", "submission", "why"},
 }
-SUBMISSION_KEYS = {"id", "root_cause", "unit", "changed", "related", "sole_caller_evidence",
+SUBMISSION_KEYS = {"id", "root_cause", "unit", "changed", "sole_caller_evidence",
                    "notes", "agent_measurement"}
 
 

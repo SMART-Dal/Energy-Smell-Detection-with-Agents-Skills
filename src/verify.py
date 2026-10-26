@@ -122,7 +122,7 @@ FINAL = set(VERDICTS)
 """A measured result. The line that produced it may not be edited afterwards:
 re-measuring an edited line would replace the result, and a repair could then
 be reshaped until it confirmed with nothing on record. A genuinely different
-repair is a new line, listed in `related`."""
+repair is a new line."""
 
 REMEASURED = {"inconclusive", "error", "no_inputs", "over_limit"}
 """Not a result about the repair -- a busy host, a failed environment, inputs
@@ -1219,8 +1219,7 @@ def _run_submissions(args, profile: Profile) -> int:
                 # The stored measurement is left exactly as it was.
                 reason = (f"this line was already measured ({stored['status']}) and has "
                           f"since been edited. A measured result is final: restore the "
-                          f"line as it was, and submit a different repair as a new line "
-                          f"listed in `related`.")
+                          f"line as it was, and submit a different repair as a new line.")
                 log(f"  INVALID: {reason}")
                 outputs.append({"id": sid, "status": "invalid", "reason": reason})
                 continue

@@ -12,7 +12,6 @@ be shaped to flatter the result.
       "root_cause": "C5.S1",                  # absent when the arm has no taxonomy
       "unit": "src/app.py::tag_rows",         # path::qualname
       "changed": {"src/app.py::tag_rows": "def tag_rows(rows, blocked): ..."},
-      "related": ["s2"],                      # other repairs of the same code, or []
       "sole_caller_evidence": "...",          # null unless a callee changed
       "notes": "...",                         # or ""
       "agent_measurement": {...}              # written by verify.py, not by hand
@@ -30,6 +29,7 @@ import builtins
 import hashlib
 import json
 import re
+import sys
 
 from .splice import split_name
 
@@ -41,7 +41,7 @@ number keeps every measurement the same length and every verdict the same bar
 (Javad, Oct 2026)."""
 
 ALLOWED = {
-    "id", "root_cause", "unit", "changed", "related", "sole_caller_evidence",
+    "id", "root_cause", "unit", "changed", "sole_caller_evidence",
     "notes", "agent_measurement",
 }
 REQUIRED = ("id", "unit", "changed")
@@ -49,6 +49,10 @@ RETIRED = {
     "file": "name the file inside `unit` instead: `src/app.py::Report.render`",
     "callees_changed": "every key of `changed` other than `unit` is a changed callee",
     "subsumed": "an identical repair is recorded as `same_repair_as` in step3.jsonl",
+    # Oct 26: dropped. Every repair is measured on its own whatever it names, and
+    # a reference to a line left out of a re-measurement made the line `invalid`.
+    "related": "repairs no longer name each other: drop the field. A different repair "
+               "of the same code is simply another line",
     "cases_source": "the inputs are generated for you: request them with inputs.py, and "
                     "drop the field",
     # Oct 21: the check can no longer be relaxed by the submission. Everything a
@@ -103,11 +107,6 @@ def validate(record: dict) -> str | None:
             "anything else broken by the change would pass every check here."
         )
 
-    related = record.get("related", [])
-    if not isinstance(related, list) or not all(isinstance(r, str) for r in related):
-        return "`related` must be a list of submission ids"
-    if record["id"] in related:
-        return "`related` lists the submission itself"
     root_cause = record.get("root_cause")
     if root_cause is not None and not (isinstance(root_cause, str)
                                        and _ROOT_CAUSE.match(root_cause)):
@@ -120,6 +119,10 @@ _PLAIN_BASES = {"NamedTuple", "TypedDict", "Enum", "IntEnum", "StrEnum", "Flag",
 """Bases a class in the inputs may have besides built-in types: shapes for data."""
 _NAMESPACES = {"SimpleNamespace", "namedtuple", "type"}
 """Calls that build an object from the values given, so lambdas given become its methods."""
+
+_STDLIB = frozenset(getattr(sys, "stdlib_module_names", ())) | {
+    "time", "random", "datetime", "os", "sys", "uuid", "socket", "subprocess", "shutil"}
+"""Standard-library modules (the set is listed from Python 3.10; the few named here cover 3.9)."""
 
 
 def replaced_code(source: str) -> str | None:
@@ -144,6 +147,11 @@ def replaced_code(source: str) -> str | None:
     plain class whose `time()` returned a constant, and the unit was measured
     against it. So is a namespace or dict of lambdas, and anything written into
     `sys.modules`, which swaps a whole module.
+
+    And so is anything put in place of a standard-library module on a module
+    the source imports: on Oct 26 `convert_meta.time = SimpleNamespace(
+    time=itertools.repeat(...).__next__)` froze that module's clock with a bound
+    method, which none of the checks above looks for.
     """
     try:
         tree = ast.parse(source)
@@ -169,6 +177,15 @@ def replaced_code(source: str) -> str | None:
         if isinstance(value, ast.Dict):
             return any(v is not None and is_code(v) for v in value.values)
         return False
+
+    imported = {alias.asname or alias.name.split(".")[0] for node in ast.walk(tree)
+                if isinstance(node, (ast.Import, ast.ImportFrom)) for alias in node.names}
+
+    def swaps_stdlib(target, attr) -> bool:
+        """`<an imported module>.<a standard-library module> = ...`"""
+        while isinstance(target, ast.Attribute):
+            target = target.value
+        return attr in _STDLIB and isinstance(target, ast.Name) and target.id in imported
 
     def swaps_module(target) -> bool:
         return (isinstance(target, ast.Subscript) and isinstance(target.value, ast.Attribute)
@@ -205,9 +222,12 @@ def replaced_code(source: str) -> str | None:
                 found = node
             elif any(swaps_module(t) for t in targets):
                 found = node
+            elif any(isinstance(t, ast.Attribute) and swaps_stdlib(t.value, t.attr) for t in targets):
+                found = node
         elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) \
                 and node.func.id == "setattr" and len(node.args) == 3 \
-                and is_code(node.args[2]):
+                and (is_code(node.args[2]) or isinstance(node.args[1], ast.Constant)
+                     and swaps_stdlib(node.args[0], node.args[1].value)):
             found = node
         if found is not None:
             line = source.splitlines()[found.lineno - 1].strip()
@@ -218,7 +238,7 @@ def replaced_code(source: str) -> str | None:
 
 
 def validate_file(records: list[dict]) -> dict[str, str]:
-    """Rules that span lines: unique ids and real cross-references.
+    """The rule that spans lines: every id is unique.
 
     Every repair of one unit is measured on that unit's generated inputs, so
     two repairs of the same function are always compared on identical inputs.
@@ -233,10 +253,6 @@ def validate_file(records: list[dict]) -> dict[str, str]:
         sid = record["id"]
         if sid in duplicated:
             problems[sid] = f"id {sid!r} is used by more than one line"
-        else:
-            dangling = sorted(set(record.get("related") or []) - set(ids))
-            if dangling:
-                problems[sid] = f"`related` names submissions that do not exist: {dangling}"
     return problems
 
 
