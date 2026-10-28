@@ -1,0 +1,1 @@
+CANNOT RUN: `cd` resolves paths and describes projects through the DNAnexus API (`resolve_existing_path`, `dxpy.get_handler(...).describe`, `list_folder`), which all require network access and credentials to a remote service.

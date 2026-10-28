@@ -1,0 +1,183 @@
+{
+ "run_id": "community.control.haiku",
+ "repo": "community",
+ "repo_commit": "910f85d6cf0a6a0417f3c4d1e4d03addf04a4ceb",
+ "arm": "control",
+ "model": "claude-haiku-5-5",
+ "effort": "high",
+ "auth": "subscription",
+ "status": "done",
+ "agent_exit": 0,
+ "agent_seconds": 1736,
+ "review_seconds": 354,
+ "started": "2026-10-28T07:22:11-03:00",
+ "exp_mode_at_end": "0",
+ "project_commit": "024f75f6c0fd40fc7554fd66c487094b055534b9",
+ "project_uncommitted_files": 0,
+ "claude_version": "2.1.312 (Claude Code)",
+ "exp": "/home/javad/energy-exp",
+ "run": "/home/javad/energy-run",
+ "project": "/home/javad/Energy-Smell-Detection-with-Agents-Skills",
+ "usage": {
+  "result": "success",
+  "is_error": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "api_error_status": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "terminal_reason": [
+   "completed",
+   "completed",
+   "completed",
+   "completed",
+   "completed",
+   "completed",
+   "completed"
+  ],
+  "num_turns": [
+   47,
+   6,
+   5,
+   4,
+   7,
+   1,
+   2
+  ],
+  "duration_ms": [
+   496755,
+   11996,
+   7932,
+   5521,
+   41099,
+   1530,
+   7236
+  ],
+  "duration_api_ms": 535915,
+  "cost_usd_estimate": 0.97263085,
+  "model_usage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 154,
+    "outputTokens": 114212,
+    "cacheReadInputTokens": 11757429,
+    "cacheCreationInputTokens": 221293,
+    "webSearchRequests": 0,
+    "costUSD": 0.97263085,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 82818,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 221293,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  }
+ },
+ "tool_calls": 64,
+ "tools_used": {
+  "Skill": 1,
+  "Bash": 48,
+  "Write": 2,
+  "Monitor": 9,
+  "ScheduleWakeup": 4
+ },
+ "subagent_tool_calls": 0,
+ "subagent_tools_used": {},
+ "energy_api_calls": 0,
+ "findings_lines": 65,
+ "submissions": 12,
+ "agent_verdicts": {
+  "partial": 2,
+  "confirmed": 3,
+  "no_inputs": 6,
+  "regressed": 1
+ },
+ "our_verdicts": {
+  "regressed": 2,
+  "partial": 2,
+  "confirmed": 2,
+  "no_inputs": 6
+ },
+ "repo_changes": [],
+ "leak_audit": {},
+ "protocol": {
+  "units_examined": 27,
+  "suspicions": 35,
+  "decisions": 35,
+  "accepted": 13,
+  "decided_without_card": [],
+  "root_cause_cards_cut_short": [],
+  "units_not_found": [],
+  "category_cards_opened": [],
+  "root_cause_cards_opened": [],
+  "index_read": false,
+  "unit_rankings": 0,
+  "rule_scans": 0,
+  "invalid_root_cause_ids": [],
+  "keys_off_schema": [],
+  "flags": [],
+  "blocked_unrequested": []
+ },
+ "rules_overlap": {
+  "units_rules_flag": 17,
+  "units_listed": 27,
+  "units_listed_and_flagged": 11,
+  "accepted": 13,
+  "accepted_unit_flagged": 5,
+  "accepted_lines_flagged": 1,
+  "accepted_root_cause_named": 0
+ },
+ "environment": {
+  "tmp_created": [
+   "/tmp/energy-work"
+  ]
+ },
+ "inputs": {
+  "requested": 11,
+  "ready": 4,
+  "failed": {
+   "scripts/gc-elections/generate-voters-roll.py::get_github_login": "it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get`, which requires network access that is unavailable here.",
+   "scripts/move-to-emeritus.py::_get_repo_commenters": "it cannot run here: `_get_repo_commenters` performs live HTTP GET requests to the GitHub REST API (`request_with_retry(\"GET\", url)` \u2192 `urllib.request.urlopen`) on every non-cached path, so it requires network access to api.github.com; the only network-free path is the trivial `_repo_comments_cache` hit that does no work, and the environment provides no network.",
+   "scripts/move-to-emeritus.py::_verify_review_candidates": "it cannot run here: `_verify_review_candidates` performs live GitHub REST requests via `request_with_retry`/`urllib.request.urlopen` to the hardcoded `https://api.github.com` endpoint; it needs network access (and credentials/rate limits) and cannot be exercised here without mocking the request layer, which is forbidden.",
+   "scripts/move-to-emeritus.py::check_triager_activity": "it cannot run here: `check_triager_activity` delegates to `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` / `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub repository data over the network (via `paginate_rest`/`request_with_retry`), and neither their cache format nor any offline data source is given, so no input can make the function run without network access.",
+   "scripts/move-to-emeritus.py::check_approver_activity": "it cannot run here: `check_approver_activity` reaches the GitHub API on every call \u2014 it invokes `_check_comments` (which calls `_get_repo_commenters` and its REST requests) and `_check_reviews` (which posts a GraphQL query via `request_with_retry`), so no input can avoid network access and credentials.",
+   "scripts/move-to-emeritus.py::check_maintainer_activity": "it cannot run here: `check_maintainer_activity` needs network access to the GitHub API \u2014 its first step for any non-empty input is `_check_comments` \u2192 `_get_repo_commenters` (REST pagination) and later `_check_reviews`/authored-PR queries hit `GRAPHQL_API`/`api.github.com` with credentials; the only input that avoids the network is empty `usernames`/`repos`, which does no work.",
+   "scripts/move-to-emeritus.py::create_emeritus_prs": "it cannot run here: `create_emeritus_prs` calls `fetch_readme`, which performs an HTTP request to the GitHub API (`https://api.github.com/repos/.../readme`) via `request_with_retry`/`urllib.request`; the function cannot run without network access and credentials, and no input can avoid that."
+  },
+  "cached": 0,
+  "cost_usd": 0.0341,
+  "seconds_max": 384.4,
+  "agent_copy_differs": []
+ },
+ "record": {
+  "steps_done": [
+   1,
+   2,
+   3
+  ],
+  "step_done_at_s": {
+   "1": 0,
+   "2": 129,
+   "3": 850
+  },
+  "written_early": [],
+  "changed_after_done": [],
+  "submissions_removed": [],
+  "repairs_measured": 12,
+  "card_reads_refused": 0
+ },
+ "scan": null
+}

@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/utils/spelling_corrector.py::_edits1",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 12.3,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2470,
+   "completion_tokens": 3281,
+   "reasoning_tokens": 3000,
+   "cost": 0.00260195,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "word-5",
+     "ok": false,
+     "joules": 0.004766617455138662,
+     "seconds": 0.00011652428656816483,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "word-12",
+     "ok": false,
+     "joules": 0.011790336795252222,
+     "seconds": 0.0002967454493045807,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "word-25",
+     "ok": false,
+     "joules": 0.02934737621540762,
+     "seconds": 0.0007480476051568985,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "word-50-small-alphabet",
+     "ok": false,
+     "joules": 0.06084832594524118,
+     "seconds": 0.0013044783845543861,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "word-90",
+     "ok": true,
+     "joules": 0.1254807700534762,
+     "seconds": 0.0026747742667794228
+    },
+    {
+     "label": "word-150",
+     "ok": true,
+     "joules": 0.23825517616580252,
+     "seconds": 0.005194090306758881
+    },
+    {
+     "label": "word-260",
+     "ok": true,
+     "joules": 0.6481417058823568,
+     "seconds": 0.011783458292484283
+    },
+    {
+     "label": "word-400-mixed",
+     "ok": true,
+     "joules": 1.2813713783783947,
+     "seconds": 0.027226154692471027
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 99.5,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 85.3
+  }
+ ],
+ "seconds": 123.9,
+ "cost": 0.0026,
+ "kept": [
+  {
+   "label": "word-400-mixed",
+   "mj_per_call": 1281.3714,
+   "ms_per_call": 27.226
+  },
+  {
+   "label": "word-260",
+   "mj_per_call": 648.1417,
+   "ms_per_call": 11.783
+  },
+  {
+   "label": "word-150",
+   "mj_per_call": 238.2552,
+   "ms_per_call": 5.194
+  },
+  {
+   "label": "word-90",
+   "mj_per_call": 125.4808,
+   "ms_per_call": 2.675
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::split_unescaped",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 76.0,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 3864,
+   "completion_tokens": 8297,
+   "reasoning_tokens": 7306,
+   "cost": 0.002271482,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "colon-plain",
+     "ok": false,
+     "joules": 1.0436608297872338,
+     "seconds": 0.02150125242769718,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "colon-escaped",
+     "ok": true,
+     "joules": 1.4988615312500002,
+     "seconds": 0.03137829527258873
+    },
+    {
+     "label": "equals-include-empty",
+     "ok": false,
+     "joules": 1.0344116341463365,
+     "seconds": 0.024688707664608955,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "equals-no-empty",
+     "ok": false,
+     "joules": 1.3251478108107935,
+     "seconds": 0.027484020218253136,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "spaces-escaped",
+     "ok": true,
+     "joules": 1.7050847500000015,
+     "seconds": 0.03622463531792164
+    },
+    {
+     "label": "dense-colons",
+     "ok": false,
+     "joules": 1.4895377575757625,
+     "seconds": 0.030841892585158348,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "backslash-runs",
+     "ok": true,
+     "joules": 1.6884018620689387,
+     "seconds": 0.034898824989795685
+    },
+    {
+     "label": "mixed-include-empty",
+     "ok": true,
+     "joules": 1.5162669999999983,
+     "seconds": 0.030475087463855743
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "one-separator",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-included",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 240.4,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 224.9
+  }
+ ],
+ "seconds": 608.2,
+ "cost": 0.00227,
+ "kept": [
+  {
+   "label": "spaces-escaped",
+   "mj_per_call": 1705.0848,
+   "ms_per_call": 36.225
+  },
+  {
+   "label": "backslash-runs",
+   "mj_per_call": 1688.4019,
+   "ms_per_call": 34.899
+  },
+  {
+   "label": "mixed-include-empty",
+   "mj_per_call": 1516.267,
+   "ms_per_call": 30.475
+  },
+  {
+   "label": "colon-escaped",
+   "mj_per_call": 1498.8615,
+   "ms_per_call": 31.378
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

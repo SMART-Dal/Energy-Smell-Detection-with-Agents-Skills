@@ -1,0 +1,230 @@
+{
+ "unit": "visual-retrieval-colpali/src/main.py::full_image",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 12.9,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 3671,
+   "completion_tokens": 3790,
+   "reasoning_tokens": 3787,
+   "cost": 0.002996904,
+   "retried": []
+  },
+  {
+   "seconds": 95.4,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 4333,
+   "completion_tokens": 24086,
+   "reasoning_tokens": 24078,
+   "cost": 0.018948252,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "tiny",
+     "ok": true,
+     "joules": 0.00021226586007665467,
+     "seconds": 1.4301389455795288e-05
+    },
+    {
+     "label": "small",
+     "ok": true,
+     "joules": 0.00021266985784740354,
+     "seconds": 1.526903361082077e-05
+    },
+    {
+     "label": "medium",
+     "ok": false,
+     "joules": 0.0002093901553614947,
+     "seconds": 8.461996912956238e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large",
+     "ok": true,
+     "joules": 0.00021058708890541998,
+     "seconds": 8.650124073028564e-06
+    },
+    {
+     "label": "xlarge",
+     "ok": true,
+     "joules": 0.0002095922495860932,
+     "seconds": 8.623115718364716e-06
+    },
+    {
+     "label": "xxlarge",
+     "ok": false,
+     "joules": 0.00020026130950802888,
+     "seconds": 8.837319910526276e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "huge",
+     "ok": false,
+     "joules": 0.00020086853328388598,
+     "seconds": 8.42846930027008e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "max",
+     "ok": false,
+     "joules": 0.0001992919210563676,
+     "seconds": 8.352100849151611e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "one-byte",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-doc-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unicode-doc-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 26.3,
+   "coverage": 0.0,
+   "missed": [
+    327,
+    328,
+    329,
+    331,
+    332,
+    333,
+    335,
+    336,
+    337
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 6.1
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "s20k",
+     "ok": true,
+     "joules": 0.0002065393784634294,
+     "seconds": 1.0595656931400299e-05
+    },
+    {
+     "label": "s100k",
+     "ok": true,
+     "joules": 0.00020461763566829644,
+     "seconds": 2.4205073714256287e-05
+    },
+    {
+     "label": "s300k",
+     "ok": false,
+     "joules": 0.00020415061910404876,
+     "seconds": 9.33092087507248e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "s700k",
+     "ok": true,
+     "joules": 0.00020450195598793709,
+     "seconds": 9.336508810520172e-06
+    },
+    {
+     "label": "s1500k",
+     "ok": false,
+     "joules": 0.00020369929934544104,
+     "seconds": 9.219162166118622e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "s2500k",
+     "ok": false,
+     "joules": 0.00020124629063931945,
+     "seconds": 9.091570973396301e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "s4000k",
+     "ok": true,
+     "joules": 0.000207509650480882,
+     "seconds": 9.383074939250946e-06
+    },
+    {
+     "label": "s5000k",
+     "ok": false,
+     "joules": 0.00020429954977308338,
+     "seconds": 9.022653102874756e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "one-byte",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unicode-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 21.9,
+   "coverage": 0.0,
+   "missed": [
+    327,
+    328,
+    329,
+    331,
+    332,
+    333,
+    335,
+    336,
+    337
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 160.3,
+ "cost": 0.02195,
+ "kept": [],
+ "reason": "the inputs that run here reach only 0% of the function (lines 327-329, 331-333, 335-337 never ran), so they would not measure its real work"
+}

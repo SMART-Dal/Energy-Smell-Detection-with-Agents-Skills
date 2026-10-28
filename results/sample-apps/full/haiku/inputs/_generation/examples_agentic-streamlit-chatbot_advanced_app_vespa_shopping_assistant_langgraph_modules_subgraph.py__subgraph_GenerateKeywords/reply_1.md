@@ -1,0 +1,1 @@
+CANNOT RUN: `subgraph_GenerateKeywords` builds a `ChatOpenAI` model and invokes the chain (`chain.invoke(...)`), which performs a network request to the OpenAI API; no input can avoid that.

@@ -1,0 +1,138 @@
+{
+ "unit": "news/src/python/create_category_ctrs.py::read_impressions_file",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 96.5,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2496,
+   "completion_tokens": 8424,
+   "reasoning_tokens": 6987,
+   "cost": 0.00233064,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical",
+     "ok": false,
+     "joules": 2.636497611111111,
+     "seconds": 0.05837043188512325,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large",
+     "ok": true,
+     "joules": 4.279523083333326,
+     "seconds": 0.08970655407756567
+    },
+    {
+     "label": "mostly-misses",
+     "ok": false,
+     "joules": 2.763753826086955,
+     "seconds": 0.043481540866196156,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-hits-high-click",
+     "ok": false,
+     "joules": 2.8373166249999997,
+     "seconds": 0.06261745188385248,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-impressions",
+     "ok": false,
+     "joules": 1.7960782258064536,
+     "seconds": 0.03259585704654455,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "single-impression",
+     "ok": true,
+     "joules": 11.283001249999984,
+     "seconds": 0.2601558668538928
+    },
+    {
+     "label": "skewed-categories",
+     "ok": true,
+     "joules": 4.478535800000008,
+     "seconds": 0.11102926358580589
+    },
+    {
+     "label": "diverse",
+     "ok": true,
+     "joules": 2.8459569444444495,
+     "seconds": 0.05598562955856323
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-hit",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-miss",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 71.4,
+   "coverage": 0.8666666666666667,
+   "missed": [
+    26,
+    27
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 47.8
+  }
+ ],
+ "seconds": 170.8,
+ "cost": 0.00233,
+ "kept": [
+  {
+   "label": "single-impression",
+   "mj_per_call": 11283.0012,
+   "ms_per_call": 260.156
+  },
+  {
+   "label": "skewed-categories",
+   "mj_per_call": 4478.5358,
+   "ms_per_call": 111.029
+  },
+  {
+   "label": "large",
+   "mj_per_call": 4279.5231,
+   "ms_per_call": 89.707
+  },
+  {
+   "label": "diverse",
+   "mj_per_call": 2845.9569,
+   "ms_per_call": 55.986
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

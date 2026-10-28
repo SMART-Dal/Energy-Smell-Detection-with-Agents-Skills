@@ -1,0 +1,25 @@
+{
+ "unit": "text-search/python/collect_training_data.py::build_dataset",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.1,
+   "finish": "stop",
+   "provider": "ModelRun",
+   "prompt_tokens": 3189,
+   "completion_tokens": 107,
+   "reasoning_tokens": 58,
+   "cost": 0.00061382,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `build_dataset` calls `get_features`, which performs `requests.post(url, json=body)` against a Vespa server; every measured call would need network access to a live search endpoint, which is unavailable here."
+  }
+ ],
+ "seconds": 2.1,
+ "cost": 0.00061,
+ "kept": [],
+ "reason": "it cannot run here: `build_dataset` calls `get_features`, which performs `requests.post(url, json=body)` against a Vespa server; every measured call would need network access to a live search endpoint, which is unavailable here."
+}

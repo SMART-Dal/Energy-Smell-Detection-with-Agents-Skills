@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/scripts/dx_build_app.py::_check_suggestions",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 4.9,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 4330,
+   "completion_tokens": 1326,
+   "reasoning_tokens": 1199,
+   "cost": 0.0016846,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_check_suggestions` performs DNAnexus API requests (`dxpy.api.project_describe` and `dxpy.describe`) for the suggestions it examines in the real `dxapp.json` inputs the repository passes it; these require network access and credentials, and their failure (a connection error, not a caught 404 `DXAPIError`) propagates out of the function. No input that exercises the function's actual work can avoid those server calls, and they cannot be stubbed without mocking the repository's own modules."
+  }
+ ],
+ "seconds": 12.5,
+ "cost": 0.00168,
+ "kept": [],
+ "reason": "it cannot run here: `_check_suggestions` performs DNAnexus API requests (`dxpy.api.project_describe` and `dxpy.describe`) for the suggestions it examines in the real `dxapp.json` inputs the repository passes it; these require network access and credentials, and their failure (a connection error, not a caught 404 `DXAPIError`) propagates out of the function. No input that exercises the function's actual work can avoid those server calls, and they cannot be stubbed without mocking the repository's own modules."
+}

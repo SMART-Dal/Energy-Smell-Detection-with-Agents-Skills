@@ -1,0 +1,1 @@
+CANNOT RUN: `download_pdf` begins its work by awaiting an HTTP request (`await session.get(url)`) on the session it is given, so it needs a live server / network access; providing a session that answers without a real request would be a mock, which is not allowed.

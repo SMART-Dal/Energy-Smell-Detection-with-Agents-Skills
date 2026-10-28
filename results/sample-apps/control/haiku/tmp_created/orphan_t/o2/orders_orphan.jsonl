@@ -1,0 +1,10 @@
+{"put": "id:orders:order::17284", "fields": {"order_id": 17284, "user_id": 25167, "order_dow": 5, "order_hour_of_day": 9, "days_since_prior_order": 21.0, "product_ids": NaN}}
+{"put": "id:orders:order::16232", "fields": {"order_id": 16232, "user_id": 180812, "order_dow": 1, "order_hour_of_day": 15, "days_since_prior_order": 11.0, "product_ids": NaN}}
+{"put": "id:orders:order::15835", "fields": {"order_id": 15835, "user_id": 91364, "order_dow": 1, "order_hour_of_day": 9, "days_since_prior_order": 28.0, "product_ids": NaN}}
+{"put": "id:orders:order::15029", "fields": {"order_id": 15029, "user_id": 76858, "order_dow": 3, "order_hour_of_day": 19, "days_since_prior_order": 16.0, "product_ids": NaN}}
+{"put": "id:orders:order::15938", "fields": {"order_id": 15938, "user_id": 73865, "order_dow": 6, "order_hour_of_day": 17, "days_since_prior_order": 3.0, "product_ids": NaN}}
+{"put": "id:orders:order::17100", "fields": {"order_id": 17100, "user_id": 90637, "order_dow": 0, "order_hour_of_day": 18, "days_since_prior_order": 15.0, "product_ids": NaN}}
+{"put": "id:orders:order::16929", "fields": {"order_id": 16929, "user_id": 3411, "order_dow": 6, "order_hour_of_day": 21, "days_since_prior_order": 26.0, "product_ids": NaN}}
+{"put": "id:orders:order::15460", "fields": {"order_id": 15460, "user_id": 113995, "order_dow": 0, "order_hour_of_day": 19, "days_since_prior_order": 28.0, "product_ids": NaN}}
+{"put": "id:orders:order::17091", "fields": {"order_id": 17091, "user_id": 33606, "order_dow": 2, "order_hour_of_day": 13, "days_since_prior_order": 28.0, "product_ids": NaN}}
+{"put": "id:orders:order::17228", "fields": {"order_id": 17228, "user_id": 126456, "order_dow": 1, "order_hour_of_day": 11, "days_since_prior_order": 15.0, "product_ids": NaN}}

@@ -1,0 +1,16 @@
+C3S2-validate-hoist-sets confirmed       APPLIED
+C1S1-validate-dead-parent-kind negligible      not applied: negligible
+C3S5-check-events-break mixed           not applied: mixed
+C5S2-commenters-seen-set no_inputs       not applied: no_inputs
+C1S4-add-emeritus-single-match confirmed       APPLIED
+C8S4-verify-review-cache no_inputs       not applied: no_inputs
+C9S2-events-keep-consumed-types no_inputs       not applied: no_inputs
+C1S1-main-team-repos-map no_inputs       not applied: no_inputs
+C9S1-login-session     no_inputs       not applied: no_inputs
+C3S2-collect-jobs-parse-run-start-once no_inputs       not applied: no_inputs
+C8S2-check-reviews-alias-once no_inputs       not applied: no_inputs
+C8S2-check-maintainer-alias-once no_inputs       not applied: no_inputs
+C10S3-parse-members-comprehension confirmed       APPLIED
+C3S2-create-emeritus-lower-once no_inputs       not applied: no_inputs
+
+wrote /home/javad/energy-exp/archive/community/full/haiku/review/results.jsonl and /home/javad/energy-exp/archive/community/full/haiku/review/REPORT.md

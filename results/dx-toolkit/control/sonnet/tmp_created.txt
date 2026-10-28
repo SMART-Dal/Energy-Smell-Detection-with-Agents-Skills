@@ -1,0 +1,6 @@
+/tmp/fuzz.py
+/tmp/mk1.py
+/tmp/mk2.py
+/tmp/mk3.py
+/tmp/mk4.py
+/tmp/verify1.log

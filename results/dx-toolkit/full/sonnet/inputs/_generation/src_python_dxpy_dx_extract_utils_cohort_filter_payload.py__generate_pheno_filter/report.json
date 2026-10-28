@@ -1,0 +1,224 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 91.3,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 3322,
+   "completion_tokens": 12124,
+   "reasoning_tokens": 10632,
+   "cost": 0.003179452,
+   "retried": []
+  },
+  {
+   "seconds": 149.7,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 5105,
+   "completion_tokens": 22171,
+   "reasoning_tokens": 20406,
+   "cost": 0.005744152,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "create-new-entity-filter",
+     "ok": true,
+     "joules": 0.0006557990711970866,
+     "seconds": 3.7122517824172974e-06
+    },
+    {
+     "label": "wrapped-in-intersection",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "not-in-difference",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "exists-condition",
+     "ok": false,
+     "seconds": 3.5623088479042053e-06,
+     "why": "each of the 561,434 calls in a window gets fresh arguments, and building them would take about 19.0s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "multi-in",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "mixed-in-not-in",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "entity-name-match",
+     "ok": false,
+     "seconds": 0.002012846991419792,
+     "why": "each of the 994 calls in a window gets fresh arguments, and building them would take 4.8 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "same-entity-different-field",
+     "ok": true,
+     "joules": 0.32319393333333335,
+     "seconds": 0.006093758158385754
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-filters",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-values",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "bad-logic",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 219.3,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 96.1
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "create-new-entity-filter",
+     "ok": false,
+     "joules": 0.000545593804733156,
+     "seconds": 2.477318048477173e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "wrapped-in-intersection",
+     "ok": false,
+     "joules": 0.6965335857142853,
+     "seconds": 0.014445287175476551,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "not-in-difference",
+     "ok": true,
+     "joules": 4.0459888571428575,
+     "seconds": 0.07563555799424648
+    },
+    {
+     "label": "multi-in",
+     "ok": true,
+     "joules": 0.9008848305084742,
+     "seconds": 0.017113955691456795
+    },
+    {
+     "label": "mixed-in-not-in",
+     "ok": true,
+     "joules": 1.3771161351351358,
+     "seconds": 0.027607067488133907
+    },
+    {
+     "label": "exists-and-in",
+     "ok": true,
+     "joules": 2.3767041304347805,
+     "seconds": 0.0453262897208333
+    },
+    {
+     "label": "entity-name-match",
+     "ok": false,
+     "joules": 0.2117365378486058,
+     "seconds": 0.003996644169092178,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "same-entity-different-field",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-filters",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-values",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "bad-logic",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 47.7,
+   "coverage": 0.391304347826087,
+   "missed": [
+    10,
+    17,
+    22,
+    29,
+    31,
+    41,
+    47,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    58,
+    59,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    71,
+    72,
+    75,
+    83
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 784.2,
+ "cost": 0.00892,
+ "kept": [],
+ "reason": "the inputs that run here reach only 39% of the function (lines 10, 17, 22, 29, 31, 41, 47, 50-56, 58-59, 62-69, 71-72, 75, ... never ran), so they would not measure its real work"
+}

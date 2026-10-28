@@ -1,0 +1,10 @@
+/tmp/cards2.txt
+/tmp/g1
+/tmp/g2
+/tmp/g3
+/tmp/g4
+/tmp/g5
+/tmp/g6
+/tmp/mk1.py
+/tmp/pyfiles.txt
+/tmp/w

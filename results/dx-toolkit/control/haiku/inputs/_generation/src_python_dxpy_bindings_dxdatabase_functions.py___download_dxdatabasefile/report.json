@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxdatabase_functions.py::_download_dxdatabasefile",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.0,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 4312,
+   "completion_tokens": 346,
+   "reasoning_tokens": 260,
+   "cost": 0.00078546,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_download_dxdatabasefile` must reach the DNAnexus platform: it calls `dxdatabase.get_download_url(...)` (an API request for a download URL) and `dxpy._dxhttp_read_range(url, headers, start, end, ...)` (an HTTP range request to fetch the file bytes), so every call requires network access and credentials that cannot be provided here."
+  }
+ ],
+ "seconds": 19.9,
+ "cost": 0.00079,
+ "kept": [],
+ "reason": "it cannot run here: `_download_dxdatabasefile` must reach the DNAnexus platform: it calls `dxdatabase.get_download_url(...)` (an API request for a download URL) and `dxpy._dxhttp_read_range(url, headers, start, end, ...)` (an HTTP range request to fetch the file bytes), so every call requires network access and credentials that cannot be provided here."
+}

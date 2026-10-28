@@ -1,0 +1,14 @@
+validate-drop-parent-kind regressed       not applied: regressed
+validate-hoist-team-sets partial         not applied: partial
+sync-single-pass-removal confirmed       APPLIED
+sync-reuse-mentions    partial         not applied: partial
+gh-login-session       no_inputs       not applied: no_inputs
+commenters-set-membership no_inputs       not applied: no_inputs
+events-stop-when-all-found regressed       not applied: regressed
+verify-reviews-cache   no_inputs       not applied: no_inputs
+triager-guard-debug    no_inputs       not applied: no_inputs
+approver-guard-debug   no_inputs       not applied: no_inputs
+maintainer-guard-debug no_inputs       not applied: no_inputs
+add-emeritus-single-scan confirmed       APPLIED
+
+wrote /home/javad/energy-exp/archive/community/control/haiku/review/results.jsonl and /home/javad/energy-exp/archive/community/control/haiku/review/REPORT.md

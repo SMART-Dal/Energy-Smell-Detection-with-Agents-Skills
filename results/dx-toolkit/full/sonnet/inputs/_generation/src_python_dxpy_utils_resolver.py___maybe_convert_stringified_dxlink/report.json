@@ -1,0 +1,138 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 12.8,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3116,
+   "completion_tokens": 4012,
+   "reasoning_tokens": 3354,
+   "cost": 0.00222412,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "plain-path",
+     "ok": false,
+     "joules": 0.00045583422326901413,
+     "seconds": 1.4629215002059937e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "big-dict-no-link",
+     "ok": true,
+     "joules": 1.8160117037036967,
+     "seconds": 0.0376936374232173
+    },
+    {
+     "label": "big-array-no-link",
+     "ok": true,
+     "joules": 1.3863989677419517,
+     "seconds": 0.03322356007993221
+    },
+    {
+     "label": "nested-array",
+     "ok": false,
+     "joules": 0.002694242407509634,
+     "seconds": 7.888674736022949e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "link-string",
+     "ok": false,
+     "joules": 1.2914684999999888,
+     "seconds": 0.02814769372344017,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "link-dict-pid",
+     "ok": true,
+     "joules": 1.342779444444457,
+     "seconds": 0.02829404268413782
+    },
+    {
+     "label": "link-dict-partial",
+     "ok": true,
+     "joules": 1.3383421935483761,
+     "seconds": 0.03263420984148979
+    },
+    {
+     "label": "invalid-json",
+     "ok": false,
+     "joules": 0.1908356209677432,
+     "seconds": 0.004046705551445484,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-string",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "int",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 245.6,
+   "coverage": 0.7777777777777778,
+   "missed": [
+    417,
+    423
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 230.4
+  }
+ ],
+ "seconds": 525.5,
+ "cost": 0.00222,
+ "kept": [
+  {
+   "label": "big-dict-no-link",
+   "mj_per_call": 1816.0117,
+   "ms_per_call": 37.694
+  },
+  {
+   "label": "big-array-no-link",
+   "mj_per_call": 1386.399,
+   "ms_per_call": 33.224
+  },
+  {
+   "label": "link-dict-pid",
+   "mj_per_call": 1342.7794,
+   "ms_per_call": 28.294
+  },
+  {
+   "label": "link-dict-partial",
+   "mj_per_call": 1338.3422,
+   "ms_per_call": 32.634
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

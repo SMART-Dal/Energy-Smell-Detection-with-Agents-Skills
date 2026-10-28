@@ -1,0 +1,1 @@
+CANNOT RUN: `_get_repo_commenters` calls `request_with_retry("GET", url)` which performs a live HTTP request to `https://api.github.com`; its work begins with a network call to a remote server and no input can avoid it (mocking `request_with_retry`/`urllib.request.urlopen` is forbidden).

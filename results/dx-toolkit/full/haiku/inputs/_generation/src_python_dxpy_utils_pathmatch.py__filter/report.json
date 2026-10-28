@@ -1,0 +1,143 @@
+{
+ "unit": "src/python/dxpy/utils/pathmatch.py::filter",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 22.5,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 2602,
+   "completion_tokens": 7083,
+   "reasoning_tokens": 6221,
+   "cost": 0.00603068,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "all-match-50k",
+     "ok": false,
+     "joules": 1.4907742666666663,
+     "seconds": 0.03445200156420469,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "low-hit-100k",
+     "ok": true,
+     "joules": 2.9909656666666704,
+     "seconds": 0.0689944988116622
+    },
+    {
+     "label": "question-mark-80k",
+     "ok": false,
+     "joules": 1.233059166666673,
+     "seconds": 0.028250093571841717,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "char-class-100k",
+     "ok": false,
+     "joules": 1.5454356956521798,
+     "seconds": 0.04412153922021389,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "negated-class-100k",
+     "ok": false,
+     "joules": 1.5183998965517433,
+     "seconds": 0.03534945473074913,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "deep-paths-80k",
+     "ok": true,
+     "joules": 2.940757312499983,
+     "seconds": 0.06527015753090382
+    },
+    {
+     "label": "suffix-mix-100k",
+     "ok": true,
+     "joules": 2.5896317647058877,
+     "seconds": 0.060536451637744904
+    },
+    {
+     "label": "exact-literal-120k",
+     "ok": true,
+     "joules": 2.5359448888888334,
+     "seconds": 0.056854354217648506
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-names",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-match",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-pattern",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 129.4,
+   "coverage": 0.5882352941176471,
+   "missed": [
+    30,
+    31,
+    32,
+    33,
+    41,
+    42,
+    43
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 104.1
+  }
+ ],
+ "seconds": 157.0,
+ "cost": 0.00603,
+ "kept": [
+  {
+   "label": "low-hit-100k",
+   "mj_per_call": 2990.9657,
+   "ms_per_call": 68.994
+  },
+  {
+   "label": "deep-paths-80k",
+   "mj_per_call": 2940.7573,
+   "ms_per_call": 65.27
+  },
+  {
+   "label": "suffix-mix-100k",
+   "mj_per_call": 2589.6318,
+   "ms_per_call": 60.536
+  },
+  {
+   "label": "exact-literal-120k",
+   "mj_per_call": 2535.9449,
+   "ms_per_call": 56.854
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

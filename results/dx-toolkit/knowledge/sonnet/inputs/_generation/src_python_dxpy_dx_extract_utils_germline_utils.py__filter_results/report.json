@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::filter_results",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 28.7,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2652,
+   "completion_tokens": 4649,
+   "reasoning_tokens": 3540,
+   "cost": 0.003062556,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-genotype-type",
+     "ok": false,
+     "joules": 0.07191498251192369,
+     "seconds": 0.0015904959291219711,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "chromosome-filter",
+     "ok": false,
+     "joules": 0.06331836731634179,
+     "seconds": 0.0015010302886366844,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large-all-filtered",
+     "ok": true,
+     "joules": 0.39828934210526223,
+     "seconds": 0.008825430646538734
+    },
+    {
+     "label": "large-mostly-filtered",
+     "ok": true,
+     "joules": 0.33983516438356426,
+     "seconds": 0.013807871378958225
+    },
+    {
+     "label": "sample-id-filter",
+     "ok": true,
+     "joules": 2.754389411764698,
+     "seconds": 0.06157213356345892
+    },
+    {
+     "label": "big-restricted-list",
+     "ok": true,
+     "joules": 8.266700499999994,
+     "seconds": 0.17589201126247644
+    },
+    {
+     "label": "empty-restricted",
+     "ok": false,
+     "joules": 0.04459962970711321,
+     "seconds": 0.001046602614223957,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicate-restricted",
+     "ok": false,
+     "joules": 0.07742137693631665,
+     "seconds": 0.0017214855179190636,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-results",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-kept",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "missing-key",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 167.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 85.9
+  }
+ ],
+ "seconds": 201.4,
+ "cost": 0.00306,
+ "kept": [
+  {
+   "label": "big-restricted-list",
+   "mj_per_call": 8266.7005,
+   "ms_per_call": 175.892
+  },
+  {
+   "label": "sample-id-filter",
+   "mj_per_call": 2754.3894,
+   "ms_per_call": 61.572
+  },
+  {
+   "label": "large-all-filtered",
+   "mj_per_call": 398.2893,
+   "ms_per_call": 8.825
+  },
+  {
+   "label": "large-mostly-filtered",
+   "mj_per_call": 339.8352,
+   "ms_per_call": 13.808
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

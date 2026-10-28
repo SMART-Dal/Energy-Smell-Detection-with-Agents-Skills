@@ -1,0 +1,109 @@
+
+=== C3S4-process-docs-docs-in-loop  incremental-search/search-suggestions/count_terms.py::process_docs
+  already measured: partial
+
+=== C1S1-process-docs-dead-total  incremental-search/search-suggestions/count_terms.py::process_docs
+  already measured: negligible
+
+=== C10S1-count-terms-isdisjoint  incremental-search/search-suggestions/count_terms.py::count_terms
+  already measured: confirmed
+
+=== C1S4-count-terms-window-once  incremental-search/search-suggestions/count_terms.py::count_terms
+  already measured: confirmed
+
+=== C10S2-write-json-replace  incremental-search/search-suggestions/count_terms.py::write_json_file
+  already measured: partial
+
+=== C10S3-accepted-process-update  incremental-search/search-suggestions/accepted_words.py::process_docs
+  already measured: confirmed
+
+=== C10S3-accepted-write-join  incremental-search/search-suggestions/accepted_words.py::write_to_file
+  already measured: partial
+
+=== C5S3-bert-float32-buffer  news/src/python/train_cold_start.py::read_bert_embeddings
+  already measured: partial
+
+=== C1S5-read-data-no-timestamp  news/src/python/mind_data.py::MindData.read_data
+  already measured: confirmed
+
+=== C6S2-sample-images-copy-kept  text-video-search/src/python/embedding.py::sample_images
+  already measured: confirmed
+
+=== C10S1-remove-control-fast-path  colbert-long/scripts/convert.py::remove_control_characters
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 17 `documents = load_dataset('Shitao/MLDR', "corpus-en", spli...` (RuntimeError); line 19 `with open(feed_file, "w") as f:` (NameError)
+  empty          ok  (check only)
+  single-ctrl    ok  (check only)
+  none           ok  (check only)
+  ascii-prose    ok
+  unicode-mix    ok
+  long-line      ok
+  log-multiline  ok
+
+sizing
+  ascii-prose    before   101.0 ms/call  after   101.1 ms/call  ->  10 repeats
+  unicode-mix    before   109.0 ms/call  after   109.5 ms/call  ->  10 repeats
+  long-line      before   113.6 ms/call  after     1.8 ms/call  ->  17 repeats  CLAMPED to keep the slow side under 2s
+  log-multiline  before   102.5 ms/call  after   100.3 ms/call  ->  10 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  ascii-prose      -0.00% +-4.37% energy saved   not significant +0.33% +-4.87% time saved
+  unicode-mix      +0.34% +-1.52% energy saved   not significant +0.26% +-1.75% time saved
+  long-line       +98.36% +-0.13% energy saved   significant     +98.30% +-0.17% time saved
+  log-multiline    +1.55% +-4.83% energy saved   not significant +1.48% +-4.74% time saved
+
+noise floor  +-0.73% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('long-line'; best 98.4% +-0.1% on 'long-line'), and no saving that can be told from noise on the rest: 'ascii-prose' -0.0% +-4.4% (its pairs disagree too much to tell); 'unicode-mix' +0.3% +-1.5% (its pairs disagree too much to tell); 'log-multiline' +1.5% +-4.8% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 17 `documents = load_dataset('Shitao/MLDR', "corpus-en", spli...` (RuntimeError); line 19 `with open(feed_file, "w") as f:` (NameError).
+
+=== C10S4-split-text-parts-list  feed-split.py::split_text
+  already measured: negligible
+
+=== C9S1-extract-docs-running-offset  text-search/python/extract-msmarco.py::extract_documents
+  already measured: partial
+
+=== C10S2-convert-main-one-write  text-search/python/convert-to-vespa-format.py::main
+  already measured: confirmed
+
+=== C3S2-select-documents-min-hoist  text-search/python/sample-queries-and-documents.py::select_documents
+  already measured: regressed
+
+=== C3S1-products-records  examples/workshop-ecommerce/preprocess.py::process_products
+  already measured: confirmed
+
+=== C3S1-users-purchases-records  examples/workshop-ecommerce/preprocess.py::process_users
+  already measured: confirmed
+
+=== C3S1-orders-records-new  examples/workshop-ecommerce/preprocess.py::process_orders
+  already measured: mixed
+
+=== C10S3-prepare-binary-packbits-bool  visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding
+  already measured: confirmed
+
+=== C10S3-vespa-binary-packbits-bool  visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding
+  already measured: confirmed
+
+=== all 20 lines of submissions.jsonl
+  partial      C3S4-process-docs-docs-in-loop: saves energy on 3 of 4 inputs ('many-docs', 'bigrams', 'trigrams'; best 57.9% +-0.9% on 'many-docs'), and no saving that can be told from noise on the rest: 'hi...
+  negligible   C1S1-process-docs-dead-total: no case moved more than the noise: the largest reading was -1.9% +-5.8% on 'high-duplicates', against a clean 0.7% floor across 4 cases
+  confirmed    C10S1-count-terms-isdisjoint: 47.2% +-2.9% energy saved on 'fivegrams', clearing the 0.7% noise floor
+  confirmed    C1S4-count-terms-window-once: 11.8% +-3.7% energy saved on 'all-unique-trigrams', clearing the 0.7% noise floor
+  partial      C10S2-write-json-replace: saves energy on 3 of 4 inputs ('single-word-terms', 'many-terms', 'double-spaces'; best 3.8% +-2.3% on 'double-spaces'), and no saving that can be told from noi...
+  confirmed    C10S3-accepted-process-update: 8.5% +-0.4% energy saved on 'mixed-case-digits', clearing the 0.7% noise floor
+  partial      C10S3-accepted-write-join: saves energy on 3 of 4 inputs ('large-60k', 'unicode', 'mixed-punct'; best 37.1% +-1.3% on 'unicode'), and no saving that can be told from noise on the rest: 'h...
+  partial      C5S3-bert-float32-buffer: saves energy on 2 of 4 inputs ('c7_partial', 'c8_sparse'; best 5.4% +-1.7% on 'c8_sparse'), and no saving that can be told from noise on the rest: 'c5_large' +6...
+  confirmed    C1S5-read-data-no-timestamp: 76.7% +-0.8% energy saved on 'many-lines-few-imps', clearing the 0.7% noise floor
+  confirmed    C6S2-sample-images-copy-kept: 80.4% +-0.5% energy saved on 'sample-8-of-80-float32', clearing the 0.7% noise floor
+  partial      C10S1-remove-control-fast-path: saves energy on 1 of 4 inputs ('long-line'; best 98.4% +-0.1% on 'long-line'), and no saving that can be told from noise on the rest: 'ascii-prose' -0.0% +-4.4%...
+  negligible   C10S4-split-text-parts-list: no case moved more than the noise: the largest reading was -1.4% +-7.2% on 'tables-inside-divs', against a clean 0.7% floor across 4 cases
+  partial      C9S1-extract-docs-running-offset: saves energy on 1 of 4 inputs ('unicode-1500'; best 6.6% +-5.6% on 'unicode-1500'), and no saving that can be told from noise on the rest: 'long-800' +1.5% +-1....
+  confirmed    C10S2-convert-main-one-write: 28.6% +-3.1% energy saved on 'tiny-lines', clearing the 0.7% noise floor
+  regressed    C3S2-select-documents-min-hoist: the repair costs more than the code it replaces: 1.9% lost on 'many-qids', above the 0.7% noise floor, and no case improved
+  confirmed    C3S1-products-records: 87.6% +-1.0% energy saved on 'full-all', clearing the 0.7% noise floor
+  confirmed    C3S1-users-purchases-records: 88.9% +-0.6% energy saved on 'few-users-heavy', clearing the 0.7% noise floor
+  mixed        C3S1-orders-records-new: a trade-off, not a fix: 1.6% saved on 'mixed-three-sets' but 4.0% lost on 'orphan-orders', both clearing the 0.7% noise floor
+  confirmed    C10S3-prepare-binary-packbits-bool: 32.7% +-1.4% energy saved on 'dim-64-3000-patches', clearing the 0.7% noise floor
+  confirmed    C10S3-vespa-binary-packbits-bool: 19.4% +-3.2% energy saved on 'zeros-mixed-2048', clearing the 0.7% noise floor
+
+20 of this session's 20 places hold a repair with a verdict.

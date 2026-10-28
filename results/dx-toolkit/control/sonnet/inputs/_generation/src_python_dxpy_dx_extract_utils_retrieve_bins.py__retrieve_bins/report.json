@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/retrieve_bins.py::retrieve_bins",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 10.4,
+   "finish": "stop",
+   "provider": "Decart",
+   "prompt_tokens": 2697,
+   "completion_tokens": 973,
+   "reasoning_tokens": 912,
+   "cost": 0.00041787,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `retrieve_bins` calls `dxpy.describe(project)` (a DNAnexus API request) and then shells out to the `dx` CLI (`subprocess.check_output([\"dx\", \"cat\", ...])`), both of which require network access and platform credentials; no input can avoid these, and faking them (stubbing `dxpy.describe` or putting a stand-in `dx` on PATH) is disallowed."
+  }
+ ],
+ "seconds": 13.5,
+ "cost": 0.00042,
+ "kept": [],
+ "reason": "it cannot run here: `retrieve_bins` calls `dxpy.describe(project)` (a DNAnexus API request) and then shells out to the `dx` CLI (`subprocess.check_output([\"dx\", \"cat\", ...])`), both of which require network access and platform credentials; no input can avoid these, and faking them (stubbing `dxpy.describe` or putting a stand-in `dx` on PATH) is disallowed."
+}

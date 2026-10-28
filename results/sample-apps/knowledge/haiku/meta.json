@@ -1,0 +1,232 @@
+{
+ "run_id": "sample-apps.knowledge.haiku",
+ "repo": "sample-apps",
+ "repo_commit": "e2ed22df66ed444bfe928f17c6b553306c212978",
+ "arm": "knowledge",
+ "model": "claude-haiku-5-5",
+ "effort": "high",
+ "auth": "api",
+ "status": "done",
+ "agent_exit": 0,
+ "agent_seconds": 2987,
+ "review_seconds": 1601,
+ "started": "2026-10-27T19:26:34-03:00",
+ "exp_mode_at_end": "0",
+ "project_commit": "1068f79b1d9eb1f894ee1662d5424bce254a1fbb",
+ "project_uncommitted_files": 28,
+ "claude_version": "2.1.312 (Claude Code)",
+ "exp": "/home/javad/energy-exp",
+ "run": "/home/javad/energy-run",
+ "project": "/home/javad/Energy-Smell-Detection-with-Agents-Skills",
+ "usage": {
+  "result": "success",
+  "is_error": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "api_error_status": [
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ],
+  "terminal_reason": [
+   "completed",
+   "completed",
+   "completed",
+   "completed",
+   "completed",
+   "completed"
+  ],
+  "num_turns": [
+   105,
+   14,
+   3,
+   2,
+   4,
+   1
+  ],
+  "duration_ms": [
+   1780036,
+   105214,
+   5685,
+   7042,
+   34335,
+   2722
+  ],
+  "duration_api_ms": 2187342,
+  "cost_usd_estimate": 2.345920880000001,
+  "model_usage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 284,
+    "outputTokens": 475828,
+    "cacheReadInputTokens": 25447407,
+    "cacheCreationInputTokens": 1309418,
+    "webSearchRequests": 0,
+    "costUSD": 2.345920880000001,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 357340,
+    "cacheCreationEphemeral5mInputTokens": 1309418,
+    "cacheCreationEphemeral1hInputTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  }
+ },
+ "tool_calls": 122,
+ "tools_used": {
+  "Skill": 1,
+  "Bash": 60,
+  "Agent": 7,
+  "Read": 49,
+  "ToolSearch": 1,
+  "Monitor": 4
+ },
+ "subagent_tool_calls": 146,
+ "subagent_tools_used": {
+  "Bash": 27,
+  "Read": 115,
+  "ToolSearch": 2,
+  "TaskStop": 2
+ },
+ "energy_api_calls": 0,
+ "findings_lines": 277,
+ "submissions": 22,
+ "agent_verdicts": {
+  "negligible": 3,
+  "confirmed": 10,
+  "partial": 6,
+  "not_equivalent": 1,
+  "no_inputs": 1,
+  "regressed": 1
+ },
+ "our_verdicts": {
+  "negligible": 2,
+  "confirmed": 13,
+  "partial": 4,
+  "over_limit": 2,
+  "regressed": 1
+ },
+ "repo_changes": [],
+ "leak_audit": {},
+ "protocol": {
+  "units_examined": 98,
+  "suspicions": 133,
+  "decisions": 133,
+  "accepted": 109,
+  "decided_without_card": [
+   "C10.S3"
+  ],
+  "root_cause_cards_cut_short": [],
+  "units_not_found": [
+   "hypencoder/model2onnx.py::_get_weights_and_biases_static",
+   "visual-retrieval-colpali/src/main.py::fetch_results"
+  ],
+  "category_cards_opened": [],
+  "root_cause_cards_opened": [
+   "C1.S1",
+   "C1.S2",
+   "C1.S3",
+   "C1.S4",
+   "C1.S5",
+   "C1.S6",
+   "C10.S1",
+   "C10.S2",
+   "C10.S4",
+   "C11.S4",
+   "C11.S5",
+   "C3.S1",
+   "C3.S2",
+   "C3.S3",
+   "C3.S4",
+   "C3.S5",
+   "C3.S6",
+   "C4.S2",
+   "C4.S7",
+   "C4.S8",
+   "C5.S1",
+   "C5.S2",
+   "C5.S3",
+   "C5.S4",
+   "C6.S2",
+   "C6.S3",
+   "C6.S4",
+   "C6.S6",
+   "C7.S5",
+   "C8.S1",
+   "C8.S2",
+   "C8.S3",
+   "C8.S4",
+   "C9.S1",
+   "C9.S2"
+  ],
+  "index_read": true,
+  "unit_rankings": 0,
+  "rule_scans": 0,
+  "invalid_root_cause_ids": [],
+  "keys_off_schema": [],
+  "flags": [
+   "decided_without_their_card",
+   "units_not_found"
+  ],
+  "blocked_unrequested": []
+ },
+ "rules_overlap": {
+  "units_rules_flag": 110,
+  "units_listed": 98,
+  "units_listed_and_flagged": 34,
+  "accepted": 109,
+  "accepted_unit_flagged": 55,
+  "accepted_lines_flagged": 19,
+  "accepted_root_cause_named": 5
+ },
+ "environment": {
+  "tmp_created": [
+   "/tmp/energy-scratch"
+  ]
+ },
+ "inputs": {
+  "requested": 33,
+  "ready": 25,
+  "failed": {
+   "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__getitem__": "it cannot run here: every call of `TrainDataset.__getitem__` returns a `sentence_transformers.InputExample`, so the function always needs the real `sentence_transformers` library, which is not available in this environment; no input can avoid it.",
+   "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.should_filter_token": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "multilingual-search/ext/evaluate.py::search": "it cannot run here: `search` performs an HTTP POST to `args.endpoint` via `requests.Session`, requiring a live Vespa endpoint; no input can avoid the network request.",
+   "text-search/python/collect_training_data.py::build_dataset": "it cannot run here: `build_dataset` calls `get_features`, which performs `requests.post(url, json=body)` against a Vespa server; every measured call would need network access to a live search endpoint, which is unavailable here.",
+   "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "news/src/python/create_bert_embeddings.py::create_embeddings": "it cannot run here: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8-H-512_A-8')`, which download pretrained weights from the HuggingFace Hub over the network; there is no local model directory available and no input can avoid that request.",
+   "examples/in-context-learning/categorize_group.py::inference": "it cannot run here: `inference` performs an HTTP POST to a Vespa server at `http://localhost:8080/search/`, which needs a running Vespa instance and network access that is not available here."
+  },
+  "cached": 20,
+  "cost_usd": 0.0991,
+  "seconds_max": 267.9,
+  "agent_copy_differs": []
+ },
+ "record": {
+  "steps_done": [
+   1,
+   2,
+   3
+  ],
+  "step_done_at_s": {
+   "1": 701,
+   "2": 999,
+   "3": 2782
+  },
+  "written_early": [],
+  "changed_after_done": [],
+  "submissions_removed": [],
+  "repairs_measured": 22,
+  "card_reads_refused": 0
+ },
+ "scan": null
+}

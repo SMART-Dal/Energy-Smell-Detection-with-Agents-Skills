@@ -1,0 +1,1810 @@
+######## C3.S6
+## Common patterns
+
+Work spent on every element of a collection when the result needs only some of them. Look for a full sort followed by an index or slice -- `sorted(xs)[0]` for a minimum, `sorted(xs, reverse=True)[:k]` for the top k -- an expensive test run over every value, repeats included, before a set keeps the distinct results, a transform applied before a filter that reads only the raw element, and rows selected in Python that a query could filter at the source. The expensive step is paid for elements that never reach the result.
+
+### 1. the top k, without sorting everything
+**Measured:** less energy on `k-tiny`; more on `k-most`, `edge`. **Decide which form fits.**
+### 2. deduplicate before the per-element test
+**Measured:** less energy on `dense-duplicates`; no change on `all-unique`. **Apply the after.**
+### 3. materialising everything to take one item
+**Measured:** less energy on `large`. **Apply the after.**
+## Looks like it, but is not
+
+### the first ten are not the top ten
+
+```python
+def _weight(row):
+    return sum(ord(c) for c in row) % 9_973
+
+
+def before(rows, k):
+    return sorted((_weight(r) for r in rows), reverse=True)[:k]
+```
+
+The tempting repair:
+
+```python
+from itertools import islice
+
+
+def _weight(row):
+    return sum(ord(c) for c in row) % 9_973
+
+
+def after(rows, k):
+    return list(islice((_weight(r) for r in rows), k))
+```
+
+**Why not:** The consumer wants the largest k, which is a question about every element; `islice` returns the first k in input order, which is a different answer.
+
+### the filter tests the transformed value
+
+```python
+scores = [expensive(x) for x in items]
+best = [s for s in scores if s > threshold]
+```
+
+The tempting repair:
+
+```python
+best = [expensive(x) for x in items if x > threshold]
+```
+
+**Why not:** The predicate reads `expensive`'s output, so filtering first tests the raw item instead and keeps a different set; there is nothing to filter on until the transform has run.
+######## C3.S7
+## Common patterns
+
+A loop that removes, inserts, reorders or appends to the collection it is scanning. Removing from a list shifts the rest down, so a `for` loop skips the next element, and every `remove`, `pop` or `del` in the loop moves the whole tail, so a filtering loop that deletes as it goes is quadratic where a rebuild is linear. Appending can run the loop without end, a new key in a dict being iterated raises `RuntimeError`, and a `while` loop whose counter is not updated on every path never ends.
+
+### 1. removing from a list while scanning
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 2. `del` inside a `while`, rebuilt instead
+**Measured:** less energy on `many-removals`, `few-removals`. **Apply the after.**
+## Looks like it, but is not
+
+### rebinding is not rebuilding
+
+```python
+def before(batches):
+    for values in batches:
+        i = 0
+        while i < len(values):
+            if values[i] % 3 == 0:
+                del values[i]
+            else:
+                i += 1
+    return sum(len(v) for v in batches)
+```
+
+The tempting repair:
+
+```python
+def after(batches):
+    for values in batches:
+        values = [v for v in values if v % 3]     # rebinds the local only
+    return sum(len(v) for v in batches)
+```
+
+**Why not:** Rebuilding with `values = [...]` rebinds a local and leaves every other reference to the list pointing at the unfiltered version; the rebuild has to keep the list's identity, with `values[:] =`, when anything else can see it.
+
+### a work list that is meant to grow
+
+```python
+def work_list(pending):
+    seen = []
+    while pending:
+        node = pending.pop()
+        seen.append(node)
+        pending.extend(node.children)
+    return seen
+```
+
+The tempting repair:
+
+```python
+def work_list(pending):
+    seen = []
+    for node in list(pending):
+        seen.append(node)
+        pending.extend(node.children)
+    return seen
+```
+
+**Why not:** Growing `pending` is how the traversal reaches the children; walking a snapshot visits only the nodes present at the start and never descends.
+
+### one removal, then the loop stops
+
+```python
+def remove_then_stop(users, target):
+    for user in users:
+        if user is target:
+            users.remove(user)
+            break
+```
+
+The tempting repair:
+
+```python
+def remove_then_stop(users, target):
+    users[:] = [user for user in users if user is not target]
+```
+
+**Why not:** The `break` ends the loop straight after the removal, so no element is skipped. The rebuild removes every occurrence of `target` where the original removes one.
+######## C4.S1
+## Common patterns
+
+A boolean chain whose earlier operand does work -- a call, or a sub-expression that builds something -- while a later operand is a comparison, an attribute read, a `len` or a flag that could decide the result alone. `and` stops at the first false operand and `or` at the first true one, so with the cheap test second the expensive one runs on every evaluation, including those the cheap test would have settled. In a comprehension filter or a per-row condition, that is paid once per element.
+
+### 1. the cheap test decides most inputs
+**Measured:** less energy on `mostly-unpublished`; no change on `mostly-published`. **Apply the after.**
+### 2. the expensive operand builds a set
+**Measured:** less energy on `mostly-exhausted`; no change on `mostly-retrying`. **Apply the after.**
+### 3. expensive test evaluated first
+**Measured:** less energy on `cheap-test-rejects-most`; no change on `cheap-test-rejects-none`. **Apply the after.**
+## Looks like it, but is not
+
+### the cheap operand is the guard for the expensive one
+
+```python
+def _tier_rank(profile):
+    return sum(ord(c) for c in profile["tier"]) % 7
+
+
+def before(rows, wanted):
+    return [r for r in rows if r["profile"] is not None and _tier_rank(r["profile"]) == wanted]
+```
+
+The tempting repair:
+
+```python
+def _tier_rank(profile):
+    return sum(ord(c) for c in profile["tier"]) % 7
+
+
+def after(rows, wanted):
+    return [r for r in rows if _tier_rank(r["profile"]) == wanted and r["profile"] is not None]
+```
+
+**Why not:** `r["profile"] is not None` is the guard that makes the expensive operand safe to evaluate; swapped, the profile lookup runs on rows that have no profile and raises.
+
+### `or` returns the first truthy operand, not just a boolean
+
+```python
+def get_author(post_id, fallback_user):
+    return fetch_username(post_id) or fallback_user
+```
+
+The tempting repair:
+
+```python
+def get_author(post_id, fallback_user):
+    return fallback_user or fetch_username(post_id)
+```
+
+**Why not:** `or` returns the value of the first truthy operand, so reordered, a truthy fallback is returned every time and the username is never fetched.
+######## C4.S2
+## Common patterns
+
+A condition whose answer is already fixed when it runs. Look for the same test nested inside itself, an `elif` restating the negation of the `if` above it, an operand that an earlier branch on the same path has settled, and a test made redundant by a fact about the values rather than by repeated text -- `math.floor(x) <= math.ceil(x)`, `abs(x) >= 0`. The costly form is a determined test standing in front of work: a per-element check that cannot reject anything makes the whole scan behind it unnecessary.
+
+### 1. a test whose answer arithmetic already fixed
+**Measured:** less energy on `mostly-below`, `mostly-above`. **Apply the after.**
+### 2. a prior branch settles half the next condition
+**Measured:** less energy on `last-only`; more on `neither`, `few-calls`. **Decide which form fits.**
+### 3. an `elif` restating the negation of its `if`
+**Measured:** less energy on `mixed-signs`; no change on `all-negative`. **Apply the after.**
+### 4. the determined test stands in front of a whole scan
+**Measured:** less energy on `k-positive`; no change on `k-negative`. **Apply the after.**
+### 5. the same test nested inside itself
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+## Looks like it, but is not
+
+### the branch between the two tests is what changes the answer
+
+```python
+def before(items, ceiling):
+    kept = 0
+    for item in items:
+        depth = item % 5
+        if depth > 0:
+            depth -= 1                    # the intervening modification
+            if depth > 0:
+                kept += ceiling
+    return kept
+```
+
+The tempting repair:
+
+```python
+def after(items, ceiling):
+    kept = 0
+    for item in items:
+        depth = item % 5
+        if depth > 0:
+            depth -= 1
+            kept += ceiling               # "already established"
+    return kept
+```
+
+**Why not:** The first branch decrements `depth` before the second test runs, so the two identical comparisons ask about different values; deleting the second keeps items the original rejected.
+
+### the lock was released between the two tests
+
+```python
+with self._lock:
+    if key in self._cache:
+        return self._cache[key]
+value = compute(key)
+with self._lock:
+    if key in self._cache:      # another thread may have filled it
+        return self._cache[key]
+    self._cache[key] = value
+    return value
+```
+
+The tempting repair:
+
+```python
+with self._lock:
+    if key in self._cache:
+        return self._cache[key]
+value = compute(key)
+with self._lock:
+    self._cache[key] = value
+    return value
+```
+
+**Why not:** Another thread may fill the entry while the lock is released for `compute`; without the second test this thread overwrites it, which is the race the re-check exists to prevent.
+######## C4.S4
+## Common patterns
+
+A run of separate `if` statements on one subject whose conditions cannot both hold, so every pass evaluates every test even after one has matched. Look for equality tests against distinct constants, tests on one derived value such as `x % 4`, attribute subjects like `self.mode`, and range tests made exclusive by a precondition such as an `assert`, with bodies that leave the subject unchanged. An `if`/`elif` chain stops at the first match, so the waste grows with the number of arms and with how late the matching one sits.
+
+### 1. the exclusivity is guaranteed by a precondition
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+### 2. twelve arms, matching late
+**Measured:** less energy on `late-match`, `early-match`. **Apply the after.**
+### 3. independent ifs where the cases are exclusive
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+## Looks like it, but is not
+
+### the conditions overlap
+
+```python
+def before(rows):
+    total = 0
+    for age, size in rows:
+        surcharge = 0
+        if age > 30:
+            surcharge += 5
+        if size > 100:
+            surcharge += 7
+        if size > 1_000:
+            surcharge += 11
+        total += surcharge
+    return total
+```
+
+The tempting repair:
+
+```python
+def after(rows):
+    total = 0
+    for age, size in rows:
+        surcharge = 0
+        if age > 30:
+            surcharge += 5
+        elif size > 100:
+            surcharge += 7
+        elif size > 1_000:
+            surcharge += 11
+        total += surcharge
+    return total
+```
+
+**Why not:** A row can be both stale and oversized, so more than one arm is meant to run; an `elif` chain applies the first surcharge and silently drops the rest.
+
+### the first arm changes what the second tests
+
+```python
+def advance_pipeline(task):
+    if task.state == "QUEUED":
+        task.state = "RUNNING"
+    if task.state == "RUNNING":
+        task.execute()
+```
+
+The tempting repair:
+
+```python
+def advance_pipeline(task):
+    if task.state == "QUEUED":
+        task.state = "RUNNING"
+    elif task.state == "RUNNING":
+        task.execute()
+```
+
+**Why not:** The first body sets `task.state` to the value the second test checks; chained, a queued task is moved to running but `task.execute()` never runs on this call.
+
+### constants that look distinct but compare equal
+
+```python
+def parse_flag(val):
+    if val == 1:
+        handle_numeric_one()
+    if val == True:
+        handle_boolean_true()
+```
+
+The tempting repair:
+
+```python
+def parse_flag(val):
+    if val == 1:
+        handle_numeric_one()
+    elif val == True:
+        handle_boolean_true()
+```
+
+**Why not:** `1 == True` in Python, so a value of `1` or `True` passes both tests and the original runs both handlers; the `elif` chain runs only the first.
+######## C4.S7
+## Common patterns
+
+A function that sends a common trivial input through its full machinery. Look for a class of input the general path does not need -- empty, one element, already sorted, or a value a cheap property settles, such as parity in front of a trial-division primality test -- with no test that returns early for it. A guard pays when that input is common, when the test is cheaper than the path it skips, and when the general path does not already make the same test internally.
+
+### 1. the guard comes from a fact about the arithmetic
+**Measured:** less energy on `all-even`; no change on `mixed`. **Apply the after.**
+### 2. a guard in front of something that already short-circuits
+**Measured:** more energy on `mostly-trivial`, `mostly-real`. **Decide which form fits.**
+### 3. no early return for the trivial input
+**Measured:** less energy on `trivial-input`; no change on `real-input`. **Apply the after.**
+## Looks like it, but is not
+
+### the guard has to invent an answer the original raises on
+
+```python
+def median(values):
+    ordered = sorted(values)
+    return ordered[len(ordered) // 2]
+```
+
+The tempting repair:
+
+```python
+def median(values):
+    if len(values) < 2:
+        return values[0] if values else None
+    ordered = sorted(values)
+    return ordered[len(ordered) // 2]
+```
+
+**Why not:** The original raises `IndexError` on an empty input, and the guard returns `None` instead. `len()` also raises `TypeError` on a generator, which `sorted()` accepted.
+######## C5.S1
+## Common patterns
+
+A container whose type makes the operation the code repeats the expensive one. `x in seq` on a list or tuple compares element by element, so a list searched once per item of another collection is scanned again each time, where a set or dict would probe a hash. The operation need not be membership: `list.pop(0)` moves every remaining element, and a heap filled and then drained to empty is a sort done in interpreted steps. Name the operation, then find where the container is built.
+
+### 1. linear membership testing against a set
+**Measured:** less energy on `hits-late`; more on `hits-early`. **Decide which form fits.**
+### 2. the construction site is in another method
+**Measured:** less energy on `large-table`, `small-table`. **Apply the after.**
+### 3. the operation is not membership
+**Measured:** our host could not resolve it. **Measure it.**
+### 4. the set has to be rebuilt for every lookup it serves
+**Measured:** more energy on `one-probe-each`, `wide-lists`. **Decide which form fits.**
+### 5. a heap built and then drained completely
+**Measured:** less energy on `many-items`, `few-items`. **Apply the after.**
+### 6. records as dicts, read as fields
+**Measured:** more energy on `many-reads`, `few-reads`. **Decide which form fits.**
+## Looks like it, but is not
+
+### the list is the answer, so its order is part of the result
+
+```python
+seen = []
+for row in rows:
+    if row.id not in seen:
+        seen.append(row.id)
+return seen
+```
+
+The tempting repair:
+
+```python
+seen = set()
+for row in rows:
+    if row.id not in seen:
+        seen.add(row.id)
+return seen
+```
+
+**Why not:** `seen` is returned, and a list keeps first-seen order where a set does not, so the caller gets a set in arbitrary order instead of the ids in the order they first appeared.
+
+### elements that cannot be hashed
+
+```python
+def count_distinct(records):
+    seen = []
+    for record in records:        # each record is a dict
+        if record not in seen:
+            seen.append(record)
+    return len(seen)
+```
+
+The tempting repair:
+
+```python
+def count_distinct(records):
+    seen = set()
+    for record in records:
+        if record not in seen:
+            seen.add(record)
+    return len(seen)
+```
+
+**Why not:** Set members must be hashable and a dict is not, so the first `record not in seen` raises `TypeError: unhashable type: 'dict'`.
+
+### another use indexes the container or relies on its order
+
+```python
+class Router:
+    def __init__(self, paths):
+        self.blocked = list(paths)
+
+    def handle(self, requests):
+        return sum(1 for r in requests if r not in self.blocked)
+
+    def first_rule(self):
+        return self.blocked[0]
+```
+
+The tempting repair:
+
+```python
+class Router:
+    def __init__(self, paths):
+        self.blocked = set(paths)
+
+    def handle(self, requests):
+        return sum(1 for r in requests if r not in self.blocked)
+
+    def first_rule(self):
+        return self.blocked[0]
+```
+
+**Why not:** `first_rule` indexes `self.blocked`, and a set keeps no order and supports no indexing, so it raises `TypeError` where it used to return the first path given.
+######## C5.S3
+## Common patterns
+
+A representation carrying a capability the data never uses: a float literal such as `3.0`, `+= 4.0` or `- 1.0` on integer data, which makes every result a new float; a constant list literal that is only indexed or searched, rebuilt on every call where a tuple is stored once in the code object; a per-instance `__dict__` for a fixed set of fields; a `set` collecting values that are never probed and already distinct; one-character strings compared in a tight loop. Name the capability, then check that nothing uses it.
+
+### 1. a float literal on integer data
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 2. a constant sequence rebuilt on every iteration
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 3. an instance with a `__dict__` against one with `__slots__`
+**Measured:** less energy on `many-instances`, `few-instances`; no change on `edge`. **Apply the after.**
+### 4. a set used only to collect
+**Measured:** less energy on `all-distinct`, `mostly-cut`, `edge`. **Apply the after.**
+### 5. a one-character string where an int does
+**Measured:** less energy on `many-comparisons`; more on `one-comparison`. **Decide which form fits.**
+## Looks like it, but is not
+
+### `__slots__` removes the thing the rest of the code was using
+
+```python
+class Plain:
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+
+def _enrich(rows, tag):
+    for row in rows:
+        row.tag = tag                      # not declared anywhere
+    return sum(r.value for r in rows if r.tag == tag)
+
+
+def before(count, tag):
+    return _enrich([Plain(i, i * 2) for i in range(count)], tag)
+```
+
+The tempting repair:
+
+```python
+class Slotted:
+    __slots__ = ("key", "value")
+
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+
+def _enrich(rows, tag):
+    for row in rows:
+        row.tag = tag                      # not declared anywhere
+    return sum(r.value for r in rows if r.tag == tag)
+
+
+def after(count, tag):
+    return _enrich([Slotted(i, i * 2) for i in range(count)], tag)
+```
+
+**Why not:** `__slots__` also removes `__dict__`, and the enrichment pass sets an attribute the class never declared, so the slotted version raises `AttributeError` on the first row. Every attribute anyone sets on an instance has to be declared before the class can be narrowed.
+
+### a list literal grown with `+=`
+
+```python
+def build_command(csv):
+    cmd = ["perf", "stat"]
+    if csv:
+        cmd += ["-x", ","]
+    return cmd
+```
+
+The tempting repair:
+
+```python
+def build_command(csv):
+    cmd = ("perf", "stat")
+    if csv:
+        cmd += ["-x", ","]
+    return cmd
+```
+
+**Why not:** `cmd += [...]` is an in-place extend on a list; on a tuple it raises `TypeError: can only concatenate tuple (not "list") to tuple` whenever `csv` is true.
+
+### the list is returned to the caller
+
+```python
+def returned_to_the_caller():
+    labels = ["low", "medium", "high"]
+    return labels
+```
+
+The tempting repair:
+
+```python
+def returned_to_the_caller():
+    labels = ("low", "medium", "high")
+    return labels
+```
+
+**Why not:** The caller receives a list and may treat it as one; a caller that appends to it, sorts it or assigns into it fails against a tuple, in code this function never sees.
+
+### the float is part of the output
+
+```python
+import json
+
+def as_json(counts):
+    return json.dumps([n * 3.0 for n in counts])
+```
+
+The tempting repair:
+
+```python
+import json
+
+def as_json(counts):
+    return json.dumps([n * 3 for n in counts])
+```
+
+**Why not:** `json.dumps` writes a float as `3.0` and an int as `3`, so every number in the serialised output changes; the integer literal is valid only when nothing depends on getting floats back.
+######## C5.S4
+## Common patterns
+
+A conversion whose result the next step did not need: `list()` around a generator or comprehension handed straight to `sum`, `any`, `max`, `sorted` or `zip`, which accept any iterable; `set()` around the argument of `set.intersection`; a chain of intermediates such as `list(records)`, then a list of names, then a `set`, none read more than once; a value serialised by one function and parsed straight back by the next. Each conversion walks the whole source and allocates a whole container; what decides it is what the next step does with the result.
+
+### 1. a cast that changes nothing
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 2. three containers where one will do
+**Measured:** less energy on `dense-duplicates`, `all-distinct`. **Apply the after.**
+### 3. one function serialises, the next immediately parses
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+### 4. the argument that did not need converting
+**Measured:** less energy on `intersection`, `difference`. **Apply the after.**
+## Looks like it, but is not
+
+### the generator is consumed twice
+
+```python
+def _sizes(rows):
+    return (len(row) for row in rows)
+
+
+def before(rows):
+    sizes = list(_sizes(rows))
+    total = sum(sizes)
+    count = sum(1 for _ in sizes)
+    return total, count
+```
+
+The tempting repair:
+
+```python
+def _sizes(rows):
+    return (len(row) for row in rows)
+
+
+def after(rows):
+    sizes = _sizes(rows)
+    total = sum(sizes)
+    count = sum(1 for _ in sizes)
+    return total, count
+```
+
+**Why not:** The converted sequence feeds two consumers, and a generator is exhausted by the first, so the second counts nothing and the function returns a wrong count instead of raising. Dropping the `list()` is valid only when the result is consumed exactly once.
+
+### two arguments to `min`, not one sequence
+
+```python
+def pick_optimal(candidate_a, candidate_b):
+    return min(list(candidate_a), list(candidate_b))
+```
+
+The tempting repair:
+
+```python
+def pick_optimal(candidate_a, candidate_b):
+    return min(candidate_a, candidate_b)
+```
+
+**Why not:** Given two arguments, `min` compares them as values rather than walking one iterable; two lists compare element by element, while two generators raise `TypeError`.
+
+### the copy is a snapshot of a collection the loop shrinks
+
+```python
+def flush_pending(active_queue):
+    for idx, task in enumerate(list(active_queue)):
+        if task.is_expired():
+            active_queue.remove(task)
+```
+
+The tempting repair:
+
+```python
+def flush_pending(active_queue):
+    for idx, task in enumerate(active_queue):
+        if task.is_expired():
+            active_queue.remove(task)
+```
+
+**Why not:** The body removes from `active_queue` while the loop walks it; without the snapshot each removal shifts the list under the iterator, and the task after every removed one is skipped.
+######## C6.S1
+## Common patterns
+
+Objects created on a per-iteration or per-element path whose only use is to be read once and dropped: a `dict(host=..., port=i)` constructor call where a `{...}` literal builds the same dict without the global lookup and the call; a scratch list created afresh on every pass that one list, cleared each pass, could serve; two sorted copies, two sets or two joined strings built only to answer one `==`. Each costs an allocation, reference counting and the collector's attention, so the cost follows their number, not their size.
+
+### 1. `dict()` where `{}` would do
+**Measured:** less energy on `many`, `normal`. **Apply the after.**
+### 2. an intermediate nobody needed
+**Measured:** more energy on `short`; no change on `large`. **Decide which form fits.**
+### 3. one list cleared rather than a new one per pass
+**Measured:** more energy on `many-rows`, `few-rows`. **Decide which form fits.**
+### 4. dict() call where a literal would do
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+## Looks like it, but is not
+
+### the reused buffer is the object the caller kept
+
+```python
+def before(rows):
+    groups = []
+    for row in rows:
+        batch = []
+        for i in range(row % 5):
+            batch.append(row + i)
+        groups.append(batch)
+    return sum(len(g) for g in groups)
+```
+
+The tempting repair:
+
+```python
+def after(rows):
+    groups = []
+    batch = []
+    for row in rows:
+        batch.clear()
+        for i in range(row % 5):
+            batch.append(row + i)
+        groups.append(batch)
+    return sum(len(g) for g in groups)
+```
+
+**Why not:** Each per-iteration list is appended to `groups`, so the caller keeps every one; a single reused buffer makes all the entries the same object, and `.clear()` empties them all at once. Reuse is safe only when nothing stores, returns, yields or closes over the object.
+######## C6.S2
+## Common patterns
+
+Data duplicated where the original would serve: `sorted(values)` where `values.sort()` would do; `out = out + group`, which builds a new list of everything accumulated so far on every pass, where `out.extend(group)` grows the one list; a `list(r)` copy before a read-only access; `.copy()` or `copy.deepcopy` of the same template on every iteration; a temporary name to swap two values. A container copy walks the source and allocates one of the same size. Whether a copy is needed depends on who reads the original afterwards.
+
+### 1. `out = out + group` in an accumulation
+**Measured:** less energy on `many-groups`, `few-groups`. **Apply the after.**
+### 2. `sorted()` where `.sort()` would do
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+### 3. a defensive copy nothing mutates
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 4. a three-step swap where a tuple assignment does
+**Measured:** less energy on `many-swaps`, `few-swaps`. **Apply the after.**
+## Looks like it, but is not
+
+### the copy was buying the caller's ordering
+
+```python
+def before(batches):
+    total = 0
+    for batch in batches:
+        ordered = sorted(batch)
+        total += ordered[0] + ordered[-1]
+        total += batch[0]                # the caller's order still matters
+    return total
+```
+
+The tempting repair:
+
+```python
+def after(batches):
+    total = 0
+    for batch in batches:
+        batch.sort()
+        total += batch[0] + batch[-1]
+        total += batch[0]
+    return total
+```
+
+**Why not:** The function sorts a copy to answer one question and then reads `batch` in the caller's order to answer another; sorting in place silently changes the second answer. A copy is unnecessary only when nothing reads the original afterwards.
+
+### the copy is updated and kept
+
+```python
+def refresh_scratch(rows, defaults):
+    out = []
+    for row in rows:
+        current = defaults.copy()
+        current.update(row)
+        out.append(current)
+    return out
+```
+
+The tempting repair:
+
+```python
+def refresh_scratch(rows, defaults):
+    out = []
+    for row in rows:
+        current = defaults
+        current.update(row)
+        out.append(current)
+    return out
+```
+
+**Why not:** `update` then writes every row into the caller's `defaults`, and every entry of `out` is that one dict, holding whatever the rows left in it.
+
+### the copy snapshots a value that keeps changing
+
+```python
+def prefixes(items):
+    current = []
+    out = []
+    for item in items:
+        current.append(item)
+        out.append(current[:])
+    return out
+```
+
+The tempting repair:
+
+```python
+def prefixes(items):
+    current = []
+    out = []
+    for item in items:
+        current.append(item)
+        out.append(current)
+    return out
+```
+
+**Why not:** `current` is mutated after it is stored, so without the copy every entry of `out` is the same list and all of them end up holding every item.
+######## C6.S3
+## Common patterns
+
+A whole sequence built in memory for a consumer that takes one element at a time: a list comprehension handed straight to `sum`, `any` or `zip`; a file loaded with `.read().splitlines()`, `.read().split("\n")` or `.readlines()` and then walked line by line. The eager form allocates a container holding every element, so peak memory grows with the input, which for a file is its whole size; when the consumer can stop early, as `any` does, it also computes every element after the stopping point.
+
+### 1. reading a whole file to walk it once
+**Measured:** less energy on `big-file`; more on `small-file`, `edge`. **Decide which form fits.**
+### 2. the consumer can stop
+**Measured:** less energy on `hits-early`; no change on `no-hit`. **Apply the after.**
+### 3. a list comprehension handed straight to `sum`
+**Measured:** less energy on `large`; more on `small`. **Decide which form fits.**
+## Looks like it, but is not
+
+### the consumer needs a length
+
+```python
+def _weights(rows):
+    return (row * 3 + 1 for row in rows)
+
+
+def before(rows):
+    weights = list(_weights(rows))
+    return sum(weights), len(weights)
+```
+
+The tempting repair:
+
+```python
+def _weights(rows):
+    return (row * 3 + 1 for row in rows)
+
+
+def after(rows):
+    weights = _weights(rows)
+    return sum(weights), sum(1 for _ in weights)
+```
+
+**Why not:** The consumer sums the weights and then needs their count; a generator has no length, and the second pass finds it exhausted and reports zero. Anything that reads the result twice -- `len`, a second reduction, indexing, a second loop -- needs the list.
+
+### two lists compared by `min`
+
+```python
+def shorter_boundary(polygon_a, polygon_b):
+    return min([p.x for p in polygon_a], [p.x for p in polygon_b])
+```
+
+The tempting repair:
+
+```python
+def shorter_boundary(polygon_a, polygon_b):
+    return min((p.x for p in polygon_a), [p.x for p in polygon_b])
+```
+
+**Why not:** With two arguments `min` compares the two lists as values; a generator cannot be ordered against a list, so the call raises `TypeError`.
+
+### the split is on paragraphs, not lines
+
+```python
+def parse_paragraphs(doc_handle):
+    return doc_handle.read().split("\n\n")
+```
+
+The tempting repair:
+
+```python
+def parse_paragraphs(doc_handle):
+    return [line for line in doc_handle]
+```
+
+**Why not:** Iterating a file yields single lines, so the result changes from a list of paragraphs to a list of lines.
+
+### the rows are read before the file closes
+
+```python
+def read_rows(path):
+    with open(path) as handle:
+        return [line.strip() for line in handle]
+```
+
+The tempting repair:
+
+```python
+def read_rows(path):
+    with open(path) as handle:
+        return (line.strip() for line in handle)
+```
+
+**Why not:** The `with` closes the file as the function returns, so the first `next()` on the generator raises `ValueError: I/O operation on closed file`; the eager list is what reads the rows while the source is open.
+######## C6.S4
+## Common patterns
+
+Something that holds data -- a cache, an instance attribute, a list of kept rows -- retaining whole objects when the code that reads it consults only an identifier, one field or a total: a dict caching whole records whose ids alone are summed, `dict(row)` copies of every field when only `"id"` is read, an object keeping its rows only to sum them later. Every retained object stays allocated, and the collector traverses it, for as long as the holder lives. Read the code that reads the retained data.
+
+### 1. a cache holding whole records where an identifier would do
+**Measured:** less energy on `many`, `few`. **Apply the after.**
+### 2. keeping a total instead of the rows
+**Measured:** more energy on `unused`; no change on `reported`. **Decide which form fits.**
+### 3. keeping whole records when one field is used
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 4. rows kept with fields nothing consults
+**Measured:** less energy on `many`, `few`. **Apply the after.**
+## Looks like it, but is not
+
+### a later reader needs the whole object
+
+```python
+class Deduplicator:
+    def __init__(self):
+        self._seen = {}
+
+    def is_duplicate(self, doc):
+        return doc.checksum in self._seen
+
+    def add(self, doc):
+        self._seen[doc.checksum] = doc
+
+    def original_of(self, doc):
+        return self._seen[doc.checksum]
+```
+
+The tempting repair:
+
+```python
+class Deduplicator:
+    def __init__(self):
+        self._seen = set()
+
+    def is_duplicate(self, doc):
+        return doc.checksum in self._seen
+
+    def add(self, doc):
+        self._seen.add(doc.checksum)
+
+    def original_of(self, doc):
+        return self._seen[doc.checksum]
+```
+
+**Why not:** `original_of` hands back the stored document, which a set of checksums cannot do, so it raises `TypeError`. Retaining the identifier alone is valid only when nothing reads the cached values.
+######## C6.S6
+## Common patterns
+
+An `open`, `Path(...).open()` or database `cursor()` whose release is neither prompt nor guaranteed: a handle bound to a name, read, and abandoned to the collector; a trailing `.close()` that an exception before it would skip; every handle of a batch held open until the batch ends. CPython's reference counting usually closes an abandoned handle quickly, but not while a traceback keeps the frame alive, not inside a reference cycle, and not on interpreters that do not count references. Each open handle holds a descriptor until it is released.
+
+### 1. many handles, none closed on the failure path
+**Measured:** less energy on `many-handles`, `few-handles`. **Apply the after.**
+### 2. open() without a context manager
+**Measured:** more energy on `many-files`. **Decide which form fits.**
+### 3. every handle held open until the end of the batch
+**Measured:** less energy on `many-handles`, `few-handles`, `edge`. **Apply the after.**
+## Looks like it, but is not
+
+### the handle is the return value
+
+```python
+_PATHS = []
+
+
+def _open_leaky(path):
+    return open(path, encoding="utf-8")
+
+
+def before(count):
+    total = 0
+    for path in _PATHS[:count]:
+        handle = _open_leaky(path)
+        total += len(handle.read())
+        handle.close()
+    return total
+```
+
+The tempting repair:
+
+```python
+_PATHS = []
+
+
+def _open_managed(path):
+    with open(path, encoding="utf-8") as handle:
+        return handle
+
+
+def after(count):
+    total = 0
+    for path in _PATHS[:count]:
+        handle = _open_managed(path)
+        total += len(handle.read())
+        handle.close()
+    return total
+```
+
+**Why not:** The handle is the return value; a `with` around the `open()` closes it before the caller reads, which raises `ValueError: I/O operation on closed file`. A handle that is returned, stored, pooled or yielded belongs to its owner, and the `with` goes there.
+######## C7.S1
+## Common patterns
+
+A hand-written procedure whose complexity is worse than a known alternative for the same problem: a linear scan for each target over data that is already sorted, where a binary search halves the range at every step; a bubble or insertion sort, where merge sort or the Timsort behind `sorted` is O(n log n); a substring search that restarts at the next character after every mismatch, where KMP reuses what the failed comparison proved. Name both algorithms and both complexities.
+
+### 1. a linear scan against a hand-written binary search
+**Measured:** less energy on `large-n`; more on `small-n`. **Decide which form fits.**
+### 2. bubble sort against merge sort
+**Measured:** less energy on `large`. **Apply the after.**
+### 3. naive substring search against KMP
+**Measured:** less energy on `repetitive-text`, `sparse-text`. **Apply the after.**
+### 4. insertion sort replaced by merge sort
+**Measured:** less energy on `large-batches`; more on `small-batches`. **Decide which form fits.**
+### 5. a bubble sort against `sorted()`
+**Measured:** less energy on `scrambled`, `nearly-sorted`. **Apply the after.**
+######## C7.S3
+## Common patterns
+
+A function that calls itself where a loop would do the same work in one frame: a linear recursion such as `n * factorial(n - 1)`, with one self-call on each path and an accumulator it could carry instead, or a tree walk that recurses into each child, where an explicit stack can do the walking. Every call allocates a frame and binds its arguments; CPython does no tail-call elimination, so every frame stays alive until the base case returns, and a deep enough recursion raises `RecursionError`.
+
+### 1. a linear recursion with an accumulator loop
+**Measured:** less energy on `deep`, `shallow`; more on `edge`. **Decide which form fits.**
+### 2. a recursion with two self-calls per frame
+**Measured:** more energy on `many-walks`, `one-walk`, `edge`. **Decide which form fits.**
+### 3. linear recursion vs a loop
+**Measured:** less energy on `deep`, `shallow`. **Apply the after.**
+######## C7.S4
+## Common patterns
+
+Two steps that could run in either order, run so that the expensive one sees more data than it needs: `sorted(values)[:k]`, `[0]` or `[-1]`, sorting everything to keep a few elements; a transform such as parsing applied to every element before a filter that tests only what the input already had; an expensive mapping applied to every value before the duplicates are removed. Running the cheap, reducing step first means the expensive one sees only what survives it.
+
+### 1. a full sort to take the k smallest
+**Measured:** less energy on `k-tiny-n-large`; more on `k-near-n`. **Decide which form fits.**
+### 2. the transform runs on the survivors
+**Measured:** less energy on `selective`; no change on `unselective`. **Apply the after.**
+### 3. two bulk steps, deduplicate first
+**Measured:** less energy on `dense-duplicates`; no change on `all-unique`. **Apply the after.**
+## Looks like it, but is not
+
+### the filter tests the transform's output
+
+```python
+scores = [expensive(x) for x in items]
+best = [s for s in scores if s > threshold]
+```
+
+The tempting repair:
+
+```python
+best = [expensive(x) for x in items if x > threshold]
+```
+
+**Why not:** The predicate reads the score, which does not exist until the transform has run; moved first, it tests the input instead and keeps different elements.
+
+### a slice that drops only the last element
+
+```python
+def all_but_the_last(data):
+    return sorted(data)[:-1]
+```
+
+The tempting repair:
+
+```python
+import heapq
+
+def all_but_the_last(data):
+    return heapq.nsmallest(-1, data)
+```
+
+**Why not:** `[:-1]` keeps every element but the largest, so the sort is not thrown away; `heapq.nsmallest` with a count below one returns an empty list.
+######## C8.S1
+## Common patterns
+
+A deterministic function called again with arguments it has already seen, recomputing a result it could look up: a predicate such as `_is_prime(x)` applied to a list in which the same values recur, or a self-recursive function such as `fib(n - 1) + fib(n - 2)` whose calls solve the same subproblems again. The function reads nothing but its arguments -- no clock, random source, file or mutable global -- and has no side effect. For a symmetric function, `(x, y)` and `(y, x)` are the same question under two keys.
+
+### 1. a pure function recomputed on repeats
+**Measured:** less energy on `many-repeats`; more on `all-distinct`. **Decide which form fits.**
+### 2. normalising the key doubles the hit rate
+**Measured:** more energy on `mirrored-pairs`, `already-sorted`. **Decide which form fits.**
+### 3. the key space is the whole finding
+**Measured:** less energy on `few-distinct`, `all-distinct`. **Apply the after.**
+## Looks like it, but is not
+
+### the function is not pure
+
+```python
+_RATES = {}
+
+
+def _rate(currency):
+    return _RATES[currency]
+
+
+def before(rows):
+    _RATES.clear()
+    _RATES.update({f"cur{i}": 1 + i for i in range(20)})
+    total = 0
+    for step, (currency, amount) in enumerate(rows):
+        if step % 5_000 == 0:
+            _RATES[currency] = _RATES[currency] + 1     # the rate moves
+        total += amount * _rate(currency)
+    return total
+```
+
+The tempting repair:
+
+```python
+_RATES = {}
+
+
+def _rate(currency):
+    return _RATES[currency]
+
+
+def after(rows):
+    _RATES.clear()
+    _RATES.update({f"cur{i}": 1 + i for i in range(20)})
+    memo = {}
+    total = 0
+    for step, (currency, amount) in enumerate(rows):
+        if step % 5_000 == 0:
+            _RATES[currency] = _RATES[currency] + 1
+        hit = memo.get(currency)
+        if hit is None:
+            hit = memo[currency] = _rate(currency)      # frozen at first sight
+        total += amount * hit
+    return total
+```
+
+**Why not:** `_rate` reads a table the loop itself updates, so a memo keyed on the currency keeps returning the first rate it saw. Check every name the body reads, not only its parameters: a global, an attribute, the clock or a file rules out caching on the arguments alone.
+
+### recursion that sorts its argument in place
+
+```python
+def quicksort(arr, low, high):
+    if low < high:
+        p = partition(arr, low, high)
+        quicksort(arr, low, p - 1)
+        quicksort(arr, p + 1, high)
+```
+
+The tempting repair:
+
+```python
+@functools.lru_cache(maxsize=None)
+def quicksort(arr, low, high):
+    if low < high:
+        p = partition(arr, low, high)
+        quicksort(arr, low, p - 1)
+        quicksort(arr, p + 1, high)
+```
+
+**Why not:** `arr` is a list, so the cache raises `TypeError: unhashable type: 'list'` on the first call. The function's work is the in-place sort, a side effect a cache hit would skip, and its two branches never cross the pivot, so nothing is recomputed.
+
+### a method, where a decorator cache keys on `self`
+
+```python
+def config_for(self, name):
+    return self._parse(self._files[name])
+```
+
+The tempting repair:
+
+```python
+@functools.cache
+def config_for(self, name):
+    return self._parse(self._files[name])
+```
+
+**Why not:** `functools.cache` on a method keys on `self`, so its module-level table holds a strong reference to every instance the method was called on, for the life of the process. Cache per instance instead.
+######## C8.S2
+## Common patterns
+
+An artefact derived from inputs that do not change between uses, rebuilt on every use: `re.search(r"id=(\d+)", line)` or `re.compile(pattern)` inside a loop over lines, `json.loads` of the same document for every key looked up, `struct.Struct(fmt)` constructed per record. Each use pays the compilation or the parse again, where deriving it once and binding it at module or instance scope pays once. The `re` functions consult a module cache of compiled patterns, so there the repeated cost is the cache probe and the call rather than a full compile.
+
+### 1. a regex compiled on every call
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 2. a document parsed on every call
+**Measured:** less energy on `many-calls`. **Apply the after.**
+### 3. a `struct.Struct` built per call
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+## Looks like it, but is not
+
+### the artefact is mutable and the caller writes to it
+
+```python
+import json
+
+
+_RAW = json.dumps({f"key{i}": i for i in range(200)})
+
+
+def _handle(config, request):
+    config[f"req{request % 7}"] = request          # request-scoped override
+    return sum(config.values())
+
+
+def before(requests):
+    total = 0
+    for request in requests:
+        total += _handle(json.loads(_RAW), request)
+    return total
+```
+
+The tempting repair:
+
+```python
+import json
+
+
+_RAW = json.dumps({f"key{i}": i for i in range(200)})
+
+
+_PARSED = json.loads(_RAW)
+
+
+def _handle(config, request):
+    config[f"req{request % 7}"] = request          # request-scoped override
+    return sum(config.values())
+
+
+def after(requests):
+    total = 0
+    for request in requests:
+        total += _handle(_PARSED, request)         # one shared document
+    return total
+```
+
+**Why not:** The caller adds request-scoped keys to the config it is given, so one shared parsed dict accumulates every request's overrides and the totals drift. A parsed document is safe to reuse only if nobody writes to it; otherwise hand out a copy.
+######## C8.S3
+## Common patterns
+
+An attribute chain whose value does not change during a loop, resolved again on every iteration: `self.limits.window.low` or `config.limits.maximum` in a comparison, `sink.writer.write(...)` as the receiver of a call, or a bound method such as `out.append` read per element. Each dot is a dictionary lookup on the instance and then its type, plus a descriptor call when a link is a property, and reading a bound method allocates a new object every time. A local bound before the loop turns every later read into an array index.
+
+### 1. an attribute chain resolved per iteration
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 2. a bound method resolved per iteration
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+### 3. a property in the chain
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+### 4. the chain, in a body that does real work
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+## Looks like it, but is not
+
+### the loop is what changes the attribute
+
+```python
+class Limiter:
+    __slots__ = ("threshold",)
+
+    def __init__(self, threshold):
+        self.threshold = threshold
+
+    def tighten(self):
+        self.threshold -= 1
+
+
+class Context:
+    __slots__ = ("limiter",)
+
+    def __init__(self, threshold):
+        self.limiter = Limiter(threshold)
+
+
+def before(rows, threshold):
+    context = Context(threshold)
+    kept = 0
+    for row in rows:
+        if row % 1_000 == 0:
+            context.limiter.tighten()
+        if row < context.limiter.threshold:
+            kept += 1
+    return kept
+```
+
+The tempting repair:
+
+```python
+class Limiter:
+    __slots__ = ("threshold",)
+
+    def __init__(self, threshold):
+        self.threshold = threshold
+
+    def tighten(self):
+        self.threshold -= 1
+
+
+class Context:
+    __slots__ = ("limiter",)
+
+    def __init__(self, threshold):
+        self.limiter = Limiter(threshold)
+
+
+def after(rows, threshold):
+    context = Context(threshold)
+    limit = context.limiter.threshold          # hoisted, and then stale
+    kept = 0
+    for row in rows:
+        if row % 1_000 == 0:
+            context.limiter.tighten()
+        if row < limit:
+            kept += 1
+    return kept
+```
+
+**Why not:** The loop calls `tighten()`, which lowers `limiter.threshold`, so a local bound before the loop is a snapshot of the first iteration and every later comparison uses a limit that has moved. Check whether anything in the body can write a link in the chain, including a method call, a callback or a property setter.
+
+### a flag read every pass so the loop can be stopped
+
+```python
+def consume(queue, worker):
+    for item in queue:
+        if worker.state.cancelled:
+            break
+        worker.handle(item)
+```
+
+The tempting repair:
+
+```python
+def consume(queue, worker):
+    cancelled = worker.state.cancelled
+    for item in queue:
+        if cancelled:
+            break
+        worker.handle(item)
+```
+
+**Why not:** `cancelled` is read every pass because something outside the loop may set it, and that read is how the loop notices. Bound to a local before the loop it never changes, and the loop can no longer be cancelled.
+######## C8.S4
+## Common patterns
+
+An external read -- a file, a database query, a network call -- repeated for data that has not changed: a settings file opened and parsed once per row, the same file read on every pass, a store asked again for a key it has already answered. Each repeat pays the syscall, the parse or the round trip again for a value already in memory. The repair depends on how often the source changes and on whether a layer below already caches the read, and the code says neither.
+
+### 1. the same file read once per row
+**Measured:** less energy on `many-rows`. **Apply the after.**
+### 2. the same file re-read per iteration
+**Measured:** less energy on `many-reads`. **Apply the after.**
+### 3. the fetch is already cached a layer down
+**Measured:** less energy on `many-repeats`; more on `all-distinct`. **Decide which form fits.**
+## Looks like it, but is not
+
+### the source changes during the call
+
+```python
+def _read_jobs():
+    with open(_PATH, encoding="utf-8") as handle:
+        return handle.read().count("\n")
+
+
+def _append_job(text):
+    with open(_PATH, "a", encoding="utf-8") as handle:
+        handle.write(text)
+
+
+def _reset():
+    """Back to 400 rows, so repeated calls measure the same work.
+
+    Without this the file grows for the life of the process and every
+    repetition of the measured window reads a longer file than the last."""
+    with open(_PATH, "w", encoding="utf-8") as handle:
+        for i in range(400):
+            handle.write(f"job {i}\n")
+
+
+def before(rounds):
+    _reset()
+    seen = 0
+    for index in range(rounds):
+        seen += _read_jobs()               # re-read: sees what has arrived
+        if index % 8 == 0:
+            _append_job(f"job extra {index}\n")
+    return seen
+```
+
+The tempting repair:
+
+```python
+def _read_jobs():
+    with open(_PATH, encoding="utf-8") as handle:
+        return handle.read().count("\n")
+
+
+def _append_job(text):
+    with open(_PATH, "a", encoding="utf-8") as handle:
+        handle.write(text)
+
+
+def _reset():
+    """Back to 400 rows, so repeated calls measure the same work.
+
+    Without this the file grows for the life of the process and every
+    repetition of the measured window reads a longer file than the last."""
+    with open(_PATH, "w", encoding="utf-8") as handle:
+        for i in range(400):
+            handle.write(f"job {i}\n")
+
+
+def after(rounds):
+    _reset()
+    jobs = _read_jobs()                    # hoisted: one snapshot
+    seen = 0
+    for index in range(rounds):
+        seen += jobs
+        if index % 8 == 0:
+            _append_job(f"job extra {index}\n")
+    return seen
+```
+
+**Why not:** The file is a job queue another process appends to, so re-reading it on each pass is how new jobs are seen; one read before the loop turns the poll into a snapshot and reports less work than there was. Caching an external read is a claim about how often the source changes, and the finding has to state it.
+######## C9.S1
+## Common patterns
+
+Many small external operations where one bulk operation would move the same data: an `INSERT` executed per row, a `write` followed by `flush` per line, a `requests.get` or `urlopen` per URL. Every operation pays a fixed cost before any data moves -- a syscall, a buffer flush, a query parse, a round trip -- so N operations pay it N times where one bulk call pays it once. The operations are independent, and each call really leaves the process: `.get()`, `.write()` and `.execute()` are ordinary in-process method names too.
+
+### 1. one write per line against one buffered write
+**Measured:** less energy on `many-lines`, `few-lines`. **Apply the after.**
+### 2. one insert per row against `executemany`
+**Measured:** less energy on `many-rows`, `few-rows`. **Apply the after.**
+### 3. many small writes against one batched write
+**Measured:** less energy on `many-lines`, `few-lines`. **Apply the after.**
+### 4. the file object was already batching
+**Measured:** less energy on `many-lines`; more on `long-lines`. **Decide which form fits.**
+## Looks like it, but is not
+
+### each record's failure handled on its own
+
+```python
+for record in records:
+    try:
+        api.submit(record)
+    except Rejected as exc:
+        failed.append((record, exc))
+```
+
+The tempting repair:
+
+```python
+try:
+    api.submit_many(records)
+except Rejected as exc:
+    failed.append((records, exc))
+```
+
+**Why not:** A batch submit reports one failure for the whole batch, and the code needs to know which record was rejected. Batching loses information the caller uses.
+
+### a stream written as it arrives
+
+```python
+for chunk in stream:
+    handle.write(chunk)
+```
+
+The tempting repair:
+
+```python
+handle.write(b"".join(stream))
+```
+
+**Why not:** Joining first holds the whole stream in memory and writes nothing until its last chunk has arrived, where the loop held one chunk at a time and wrote as it went.
+######## C9.S2
+## Common patterns
+
+A fetch that brings back more than the code goes on to use: `SELECT *` where one column is read, a whole file read and split into lines to keep the first few, every file read in full to learn its size. Everything fetched is paid for at both ends and in between -- serialised at the source, carried, then turned into Python objects, one per field -- and the unused part is allocated and freed unread. The source can return less: a column list, a bounded read, a metadata call.
+
+### 1. `SELECT *` where two columns are used
+**Measured:** less energy on `many-rows`, `few-rows`, `edge`. **Apply the after.**
+### 2. reading a whole file to use its first lines
+**Measured:** less energy on `needs-few`; more on `needs-all`. **Decide which form fits.**
+### 3. asking the source for a property, not the payload
+**Measured:** less energy on `large-payloads`, `small-payloads`. **Apply the after.**
+### 4. the consumer uses every column
+**Measured:** more energy on `edge`; no change on `many-rows`, `few-rows`. **Decide which form fits.**
+## Looks like it, but is not
+
+### the rows nobody displays are the rows the total is made of
+
+```python
+def before(connection, page_size):
+    rows = connection.execute("SELECT id, amount FROM sales ORDER BY id").fetchall()
+    return [r[0] for r in rows[:page_size]], sum(r[1] for r in rows)
+```
+
+The tempting repair:
+
+```python
+def after(connection, page_size):
+    rows = connection.execute(
+        "SELECT id, amount FROM sales ORDER BY id LIMIT ?", (page_size,)).fetchall()
+    return [r[0] for r in rows[:page_size]], sum(r[1] for r in rows)
+```
+
+**Why not:** The query feeds both the page and a total, so `LIMIT 20` keeps the page right and makes the total the sum of twenty rows. Find every consumer of a result before bounding it; a total needs its own aggregate query.
+######## C9.S3
+## Common patterns
+
+One query returns N rows and each row then triggers another fetch for its related data -- a `SELECT name FROM customers WHERE id = ?` for every order -- so the total is N+1 round trips where a join, or one query per relation, would take one or two. Each inner fetch takes its parameter from the outer row. In ORM code the inner fetch can hide behind an attribute: `order.customer` reads like a field and may be a query, so read the model as well as the loop.
+
+### 1. N+1 queries against one join
+**Measured:** less energy on `many-rows`, `few-rows`, `one-row`. **Apply the after.**
+### 2. the relation is read for two rows in ten thousand
+**Measured:** less energy on `most-need-it`; more on `few-need-it`, `edge`. **Decide which form fits.**
+### 3. the join that returns more than N+1 did
+**Measured:** more energy on `many-orders`, `few-orders`, `one-order`. **Decide which form fits.**
+######## C10.S1
+## Common patterns
+
+A Python loop that does, element by element, what a C-implemented built-in does in one call: a running total, a running minimum or maximum, a tally of occurrences, a best element tracked by hand, a substring search that slices the text at every position. The interpreter pays dispatch and reference counting on every element; the built-in makes the same traversal in C. The built-in has to stop where the loop would: a loop that returns at the first mismatch can finish before a primitive that materialises everything.
+
+### 1. a hand-written min/max scan
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+### 2. the accumulate-by-hand case
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 3. a tally, where the primitive does exactly the needed work
+**Measured:** less energy on `many-duplicates`; more on `all-distinct`. **Decide which form fits.**
+### 4. a substring scan done by slicing
+**Measured:** less energy on `rare-pattern`, `common-pattern`. **Apply the after.**
+### 5. the built-in called once per element, on two scalars
+**Measured:** more energy on `large`, `normal`. **Decide which form fits.**
+### 6. the built-in counts everything and the caller wanted a hundredth of it
+**Measured:** less energy on `mostly-odd`; no change on `mostly-even`. **Apply the after.**
+### 7. the primitive that must see all the data, against a loop that need not
+**Measured:** less energy on `mismatch-early`; more on `identical`. **Decide which form fits.**
+## Looks like it, but is not
+
+### a running total of strings
+
+```python
+def join_messages(messages):
+    out = ""
+    for msg in messages:
+        out += msg
+    return out
+```
+
+The tempting repair:
+
+```python
+def join_messages(messages):
+    return sum(messages, "")
+```
+
+**Why not:** `sum` refuses strings: `sum(messages, "")` raises `TypeError` and its message says to use `''.join(seq)` instead. What an accumulator is comes from where it starts, not from what is added to it.
+
+### two accumulations in one pass
+
+```python
+total = 0
+largest = float("-inf")
+for value in values:
+    total += value
+    if value > largest:
+        largest = value
+return total, largest
+```
+
+The tempting repair:
+
+```python
+return sum(values), max(values)
+```
+
+**Why not:** Two primitives make two passes where the loop made one. If `values` is a generator, `sum` consumes it and `max` then raises `ValueError` on an empty sequence.
+######## C10.S2
+## Common patterns
+
+One built-in or construct used where another computes the same answer with less work: `re.match` on a pattern that is only a literal prefix, where `str.startswith` compares bytes; `map` with a lambda, which pays a Python call per element where a comprehension runs the expression inline; a comprehension calling a C built-in such as `float`, which `map(float, xs)` drives in C; `key in d.keys()` where `key in d` probes directly. Name both constructs and what the cheaper one stops doing, and confirm the two give the same answer on this data.
+
+### 1. a literal prefix matched with a regex
+**Measured:** less energy on `anchored-literal`; no change on `needs-the-engine`. **Apply the after.**
+### 2. `map` with a C builtin against a comprehension
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 3. `map` with a lambda against a comprehension
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+### 4. `Counter` against `sorted` for multiset equality
+**Measured:** more energy on `short-sequences`, `long-sequences`. **Decide which form fits.**
+### 5. `.get(k, default)` evaluates the default whether or not it is needed
+**Measured:** more energy on `mostly-hit`; no change on `mostly-miss`. **Decide which form fits.**
+## Looks like it, but is not
+
+### `isinstance`, where subclasses must match
+
+```python
+for item in items:
+    if isinstance(item, Widget):
+        render(item)
+```
+
+The tempting repair:
+
+```python
+for item in items:
+    if type(item) == Widget:
+        render(item)
+```
+
+**Why not:** `type(item) == Widget` is a pointer comparison and rejects the subclasses `isinstance` accepts, so instances of a `Widget` subclass stop being rendered.
+
+### parity on operands that may not be integers
+
+```python
+if n % 2:
+    handle_odd(n)
+```
+
+The tempting repair:
+
+```python
+if n & 1:
+    handle_odd(n)
+```
+
+**Why not:** `&` is defined only for integers: if `n` can be a float, `n & 1` raises `TypeError`, and for a type with its own `__mod__` the mask does not apply at all. The swap needs integer operands.
+######## C10.S3
+## Common patterns
+
+A loop whose whole body moves one element into a container -- `out.append(f(x))`, an `append` behind one or more `if`s, `target.append(item)` copying one list into another -- or that indexes a sequence element by element where a slice would copy it, or walks a NumPy array in Python to compute what one vectorised call would. Every iteration resolves the method and makes a call, and for an array unboxes a C double into a Python float; `extend`, a comprehension, a slice or a NumPy operation does the same transfer in C.
+
+### 1. an element-at-a-time transfer against one bulk call
+**Measured:** our host could not resolve it. **Measure it.**
+### 2. a slice, not an index loop
+**Measured:** less energy on `list-input`, `tuple-input`. **Apply the after.**
+### 3. a Python loop over a numeric array
+**Measured:** less energy on `large`, `normal`. **Apply the after.**
+### 4. an append loop against a comprehension
+**Measured:** less energy on `large`, `small`. **Apply the after.**
+## Looks like it, but is not
+
+### a body that also logs
+
+```python
+kept = []
+for row in rows:
+    if not row.valid:
+        log.warning("dropping %s", row.id)
+        continue
+    kept.append(row)
+return kept
+```
+
+The tempting repair:
+
+```python
+return [row for row in rows if row.valid]
+```
+
+**Why not:** The loop body also logs every row it drops. The comprehension keeps the same rows and loses the warnings.
+
+### an early exit
+
+```python
+seen = []
+for line in stream:
+    seen.append(parse(line))
+    if len(seen) >= limit:
+        break
+return seen
+```
+
+The tempting repair:
+
+```python
+return [parse(line) for line in stream][:limit]
+```
+
+**Why not:** The loop stops reading at `limit`. The comprehension parses and consumes the whole stream before slicing, so a long stream is read to the end and an endless one never returns.
+
+### a list the caller passed in
+
+```python
+def populate_queue(shared_queue, new_items):
+    for item in new_items:
+        shared_queue.append(item.data)
+```
+
+The tempting repair:
+
+```python
+def populate_queue(shared_queue, new_items):
+    shared_queue = [item.data for item in new_items]
+```
+
+**Why not:** The comprehension builds a fresh local list and rebinds the parameter, so the caller's list, which the loop was filling, stays empty. `shared_queue.extend(...)` keeps filling it.
+
+### a filter that reads the list being built
+
+```python
+def reads_the_list_it_builds(xs):
+    out = []
+    for x in xs:
+        if x not in out:
+            out.append(x)
+    return out
+```
+
+The tempting repair:
+
+```python
+def reads_the_list_it_builds(xs):
+    out = []
+    out = [x for x in xs if x not in out]
+    return out
+```
+
+**Why not:** The loop's filter consults the list it is building. Inside the comprehension `out` is still the empty list, so every duplicate is kept.
+######## C10.S4
+## Common patterns
+
+A string or bytes value grown once per iteration with `+=` or `s = s + part`: `self.buf += render_row(row)`, `grouped[key] += text`, `out += chunk` on a local. Each concatenation can allocate a new object and copy everything accumulated so far. CPython resizes a plain local in place when nothing else refers to it, but an attribute, a dict entry, a global, or a local the loop also reads holds a second reference and forces the full copy. The number of parts per accumulator decides how much there is to save.
+
+### 1. the same repair where a second reference blocks the optimisation
+**Measured:** less energy on `many-small`, `few-large`. **Apply the after.**
+### 2. the accumulator is a dict entry
+**Measured:** less energy on `few-keys-many-parts`; more on `many-keys-few-parts`. **Decide which form fits.**
+### 3. string += where the accumulator is a plain, unaliased local
+**Measured:** less energy on `many-small`, `few-large`. **Apply the after.**
+### 4. there are three parts
+**Measured:** more energy on `three-parts`, `long-parts`. **Decide which form fits.**
+## Looks like it, but is not
+
+### the partial result is read inside the loop
+
+```python
+def render(self, rows):
+    self.buf = ""
+    for row in rows:
+        self.buf += render_row(row)
+        if len(self.buf) > self.limit:
+            self.flush()
+```
+
+The tempting repair:
+
+```python
+def render(self, rows):
+    parts = []
+    for row in rows:
+        parts.append(render_row(row))
+        if len(self.buf) > self.limit:
+            self.flush()
+    self.buf = "".join(parts)
+```
+
+**Why not:** The partial result is read on every pass to decide when to flush. After a deferred join `self.buf` stays empty inside the loop and the flush never fires; a repair has to keep a buffer of parts flushed on a running length.
+######## C11.S5
+## Common patterns
+
+Independent pieces of work run one after another when they could overlap: blocking waits -- network calls, sleeps, I/O -- each started only after the previous one returns, or independent CPU-bound tasks run in a single process. Serial work takes the sum of its parts where concurrent work takes the longest. During an I/O wait the process sits idle, so overlapping the waits removes idle time; CPU-bound Python gains nothing from threads, because the interpreter lock runs one at a time, and a process pool pickles every argument and result.
+
+### 1. independent blocking waits run serially
+**Measured:** less energy on `many-waits`; more on `one-wait`. **Decide which form fits.**
+### 2. CPU-bound work across processes
+**Measured:** more energy on `many-tasks`, `few-tasks`, `edge`. **Decide which form fits.**
+### 3. threads for CPU-bound work
+**Measured:** more energy on `many-tasks`, `one-task`, `edge`. **Decide which form fits.**
+### 4. a whole matrix sent to every task of a process pool
+**Measured:** more energy on `big-payload`, `small-payload`. **Decide which form fits.**
+## Looks like it, but is not
+
+### steps that must run in order
+
+```python
+for migration in migrations:
+    apply(migration)
+```
+
+The tempting repair:
+
+```python
+with ThreadPoolExecutor() as pool:
+    list(pool.map(apply, migrations))
+```
+
+**Why not:** Migration N assumes N-1 has run, and nothing in the loop says so. Run concurrently, the migrations apply out of order against a half-migrated schema.
+######## C12.S2
+## Common patterns
+
+Reads that touch a small, scattered subset of a large buffer, so each cache line fetched contributes one element and the rest is evicted unused: a NumPy array indexed by unordered indices, or one field read out of every record of a wide structured array. The addresses come from the data, so there is no loop order to fix; what can change is the order the indices are visited in, so nearby ones go together, or the density of the structure, so the wanted elements sit side by side.
+
+### 1. scattered indices against sorted ones
+**Measured:** more energy on `scattered`, `tiny`. **Decide which form fits.**
+### 2. one field of a wide record, over a large array
+**Measured:** less energy on `large`, `cache-resident`, `edge`. **Apply the after.**
+### 3. scattered indices into a buffer that fits in cache
+**Measured:** more energy on `resident`, `small`, `edge`. **Decide which form fits.**
+## Looks like it, but is not
+
+### reads whose order is the result
+
+```python
+for step in trajectory:
+    position = advance(position, step)
+    samples.append(field[position])
+```
+
+The tempting repair:
+
+```python
+positions = []
+for step in trajectory:
+    position = advance(position, step)
+    positions.append(position)
+for position in sorted(positions):
+    samples.append(field[position])
+```
+
+**Why not:** `samples` records the field along the path in the order it was walked; visiting the positions sorted appends the same values in a different order, which every reader of `samples` takes for a different path.

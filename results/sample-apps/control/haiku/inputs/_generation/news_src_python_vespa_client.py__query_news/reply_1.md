@@ -1,0 +1,1 @@
+CANNOT RUN: `query_news` performs a live HTTP POST to the Vespa search endpoint via `requests.post(f'{url}/search/', ...)`; its work begins with a network request to a remote service (and needs a client certificate), which cannot be satisfied here (no network access, no stand-in servers).

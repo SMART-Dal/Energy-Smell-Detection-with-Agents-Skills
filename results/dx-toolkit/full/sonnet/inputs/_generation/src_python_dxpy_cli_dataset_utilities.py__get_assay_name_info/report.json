@@ -1,0 +1,146 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::get_assay_name_info",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 66.7,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 6053,
+   "completion_tokens": 11707,
+   "reasoning_tokens": 10458,
+   "cost": 0.003320992,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "germline-default",
+     "ok": true,
+     "joules": 0.5341738860759494,
+     "seconds": 0.012779316864907742
+    },
+    {
+     "label": "germline-named-mid",
+     "ok": true,
+     "joules": 0.5314661702127662,
+     "seconds": 0.0106509979814291
+    },
+    {
+     "label": "somatic-default",
+     "ok": true,
+     "joules": 0.535213716049384,
+     "seconds": 0.01246731635183096
+    },
+    {
+     "label": "somatic-named-mid",
+     "ok": false,
+     "joules": 0.4472977653061263,
+     "seconds": 0.01021163072437048,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "germline-no-ref-genome",
+     "ok": false,
+     "joules": 0.4978551979166639,
+     "seconds": 0.010418561287224293,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "germline-many-targets",
+     "ok": true,
+     "joules": 0.5948939761904816,
+     "seconds": 0.012037435546517372
+    },
+    {
+     "label": "somatic-many-targets",
+     "ok": false,
+     "joules": 0.42773481196580443,
+     "seconds": 0.00855888519436121,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "germline-many-others",
+     "ok": false,
+     "joules": 0.4960309195402229,
+     "seconds": 0.01161248330026865,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "no-assays",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "list-assays",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "unknown-friendly-type",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 241.8,
+   "coverage": 0.7777777777777778,
+   "missed": [
+    717,
+    720,
+    721,
+    723,
+    724,
+    725,
+    741,
+    744,
+    745,
+    751
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 200.8
+  }
+ ],
+ "seconds": 567.6,
+ "cost": 0.00332,
+ "kept": [
+  {
+   "label": "germline-many-targets",
+   "mj_per_call": 594.894,
+   "ms_per_call": 12.037
+  },
+  {
+   "label": "somatic-default",
+   "mj_per_call": 535.2137,
+   "ms_per_call": 12.467
+  },
+  {
+   "label": "germline-default",
+   "mj_per_call": 534.1739,
+   "ms_per_call": 12.779
+  },
+  {
+   "label": "germline-named-mid",
+   "mj_per_call": 531.4662,
+   "ms_per_call": 10.651
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

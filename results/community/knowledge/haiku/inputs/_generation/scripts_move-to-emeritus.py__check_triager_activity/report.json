@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::check_triager_activity",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 6.5,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 3400,
+   "completion_tokens": 2045,
+   "reasoning_tokens": 1950,
+   "cost": 0.00197525,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `check_triager_activity` reaches the network through `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` and `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub API data (via `paginate_rest`/`request_with_retry`/`urllib.request`), and the task exposes no cache variable or other data hook that could supply that data without a request."
+  }
+ ],
+ "seconds": 8.1,
+ "cost": 0.00198,
+ "kept": [],
+ "reason": "it cannot run here: `check_triager_activity` reaches the network through `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` and `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub API data (via `paginate_rest`/`request_with_retry`/`urllib.request`), and the task exposes no cache variable or other data hook that could supply that data without a request."
+}

@@ -1,0 +1,154 @@
+{
+ "unit": "src/python/dxpy/utils/local_exec_utils.py::has_local_job_refs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 82.2,
+   "finish": "length",
+   "provider": "Fireworks",
+   "prompt_tokens": 2993,
+   "completion_tokens": 32000,
+   "reasoning_tokens": 26281,
+   "cost": 0.02750853,
+   "retried": []
+  },
+  {
+   "seconds": 25.7,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 20714,
+   "completion_tokens": 12054,
+   "reasoning_tokens": 9585,
+   "cost": 0.0141159732,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "no ```python block in the reply"
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "large-no-refs",
+     "ok": false,
+     "joules": 5.344765555555555,
+     "seconds": 0.12106028012931347,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "local-ref-last",
+     "ok": false,
+     "joules": 3.256197857142849,
+     "seconds": 0.07449042703956366,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "local-ref-deep",
+     "ok": false,
+     "joules": 3.5524864285714233,
+     "seconds": 0.0757796773687005,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "nonlocal-refs-only",
+     "ok": true,
+     "joules": 5.914107499999886,
+     "seconds": 0.1323200361803174
+    },
+    {
+     "label": "mixed-refs",
+     "ok": false,
+     "joules": 4.430035099999986,
+     "seconds": 0.1010744022205472,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "big-list",
+     "ok": true,
+     "joules": 9.521700199999941,
+     "seconds": 0.2067034225910902
+    },
+    {
+     "label": "deep-tree",
+     "ok": true,
+     "joules": 19.54052899999988,
+     "seconds": 0.39655202347785234
+    },
+    {
+     "label": "many-small-dicts",
+     "ok": true,
+     "joules": 6.006582500000036,
+     "seconds": 0.1385424230247736
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-dict",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-value",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "nested-list-local-ref",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 253.8,
+   "coverage": 0.782608695652174,
+   "missed": [
+    55,
+    65,
+    71,
+    72,
+    74
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 181.0
+  }
+ ],
+ "seconds": 623.3,
+ "cost": 0.04162,
+ "kept": [
+  {
+   "label": "deep-tree",
+   "mj_per_call": 19540.529,
+   "ms_per_call": 396.552
+  },
+  {
+   "label": "big-list",
+   "mj_per_call": 9521.7002,
+   "ms_per_call": 206.703
+  },
+  {
+   "label": "many-small-dicts",
+   "mj_per_call": 6006.5825,
+   "ms_per_call": 138.542
+  },
+  {
+   "label": "nonlocal-refs-only",
+   "mj_per_call": 5914.1075,
+   "ms_per_call": 132.32
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

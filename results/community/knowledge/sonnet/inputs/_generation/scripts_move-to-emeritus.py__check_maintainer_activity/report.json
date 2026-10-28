@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::check_maintainer_activity",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.0,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5192,
+   "completion_tokens": 281,
+   "reasoning_tokens": 192,
+   "cost": 0.00020225,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `check_maintainer_activity` performs its work by making GitHub REST/GraphQL requests (`_get_repo_commenters`/`_get_repo_events` fetch from the API, and `_check_reviews`/authored-PR checks call `request_with_retry` against `GRAPHQL_API`); every non-trivial input requires network access to api.github.com, which is unavailable here."
+  }
+ ],
+ "seconds": 2.6,
+ "cost": 0.0002,
+ "kept": [],
+ "reason": "it cannot run here: `check_maintainer_activity` performs its work by making GitHub REST/GraphQL requests (`_get_repo_commenters`/`_get_repo_events` fetch from the API, and `_check_reviews`/authored-PR checks call `request_with_retry` against `GRAPHQL_API`); every non-trivial input requires network access to api.github.com, which is unavailable here."
+}

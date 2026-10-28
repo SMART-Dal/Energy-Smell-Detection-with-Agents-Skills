@@ -1,0 +1,10 @@
+src/python/test/test_extract_expression.py
+src/python/test/test_extract_assay.py
+src/python/test/test_create_cohort.py
+src/python/test/test_extract_dataset_codings.py
+src/python/test/test_extract_somatic.py
+src/python/test/test_extract_dataset.py
+src/python/test/test_dxfile_download.py
+src/python/test/test_dxasset.py
+src/python/test/expression_test_assets/expression_test_expected_output_dict.py
+src/python/test/expression_test_assets/expression_test_input_dict.py

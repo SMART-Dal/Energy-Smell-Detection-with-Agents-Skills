@@ -1,0 +1,1 @@
+CANNOT RUN: `VespaRetriever` builds a `Vespa` client and performs `vespa_app.query(...)`, a request to a Vespa server at `VESPA_URL`; it needs network access and live credentials (cert/key), which are unavailable here.

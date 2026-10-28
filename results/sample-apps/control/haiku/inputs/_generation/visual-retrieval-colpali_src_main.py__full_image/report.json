@@ -1,0 +1,230 @@
+{
+ "unit": "visual-retrieval-colpali/src/main.py::full_image",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 19.9,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 3671,
+   "completion_tokens": 6198,
+   "reasoning_tokens": 5629,
+   "cost": 0.005430976,
+   "retried": []
+  },
+  {
+   "seconds": 37.8,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 4362,
+   "completion_tokens": 10990,
+   "reasoning_tokens": 10332,
+   "cost": 0.009069668,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "64KB",
+     "ok": true,
+     "joules": 0.00020688494004843184,
+     "seconds": 9.804032742977142e-06
+    },
+    {
+     "label": "128KB",
+     "ok": true,
+     "joules": 0.00019684110254788054,
+     "seconds": 1.4378689229488373e-05
+    },
+    {
+     "label": "256KB",
+     "ok": false,
+     "joules": 0.0001661499654710903,
+     "seconds": 6.11133873462677e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "512KB",
+     "ok": false,
+     "joules": 0.00016524325442859387,
+     "seconds": 6.270594894886017e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "1MB",
+     "ok": false,
+     "joules": 0.00017203552535017982,
+     "seconds": 6.381422281265259e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "2MB",
+     "ok": true,
+     "joules": 0.00017273878039999487,
+     "seconds": 6.207264959812164e-06
+    },
+    {
+     "label": "4MB",
+     "ok": false,
+     "joules": 0.00017253710599027006,
+     "seconds": 6.959773600101471e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "8MB",
+     "ok": true,
+     "joules": 0.00017340781422166165,
+     "seconds": 6.929971277713776e-06
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-doc-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "spaces",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unicode",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 20.0,
+   "coverage": 0.0,
+   "missed": [
+    327,
+    328,
+    329,
+    331,
+    332,
+    333,
+    335,
+    336,
+    337
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "64KB",
+     "ok": true,
+     "joules": 0.0001920975458945438,
+     "seconds": 1.0660849511623383e-05
+    },
+    {
+     "label": "192KB",
+     "ok": false,
+     "joules": 0.00018519124543432927,
+     "seconds": 1.15223228931427e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "384KB",
+     "ok": true,
+     "joules": 0.00018706722985567433,
+     "seconds": 6.6570937633514404e-06
+    },
+    {
+     "label": "768KB",
+     "ok": true,
+     "joules": 0.0001883807124698735,
+     "seconds": 6.603077054023743e-06
+    },
+    {
+     "label": "1MB",
+     "ok": true,
+     "joules": 0.00018809106009705164,
+     "seconds": 6.2212347984313965e-06
+    },
+    {
+     "label": "2MB",
+     "ok": false,
+     "joules": 0.0001857507307416364,
+     "seconds": 6.643123924732208e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "3MB",
+     "ok": false,
+     "joules": 0.00018560863808919043,
+     "seconds": 6.754882633686066e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "5MB",
+     "ok": false,
+     "joules": 0.0001846858297340518,
+     "seconds": 6.475485861301422e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-doc-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "spaces",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unicode",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 18.6,
+   "coverage": 0.0,
+   "missed": [
+    327,
+    328,
+    329,
+    331,
+    332,
+    333,
+    335,
+    336,
+    337
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 99.1,
+ "cost": 0.0145,
+ "kept": [],
+ "reason": "the inputs that run here reach only 0% of the function (lines 327-329, 331-333, 335-337 never ran), so they would not measure its real work"
+}

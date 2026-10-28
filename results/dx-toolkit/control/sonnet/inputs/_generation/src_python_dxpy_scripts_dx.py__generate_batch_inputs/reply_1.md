@@ -1,0 +1,1 @@
+CANNOT RUN: `generate_batch_inputs` resolves a project/folder path and then calls `dxpy.api.system_generate_batch_inputs`, which issues an HTTP request to the DNAnexus platform API; the batch results it processes exist only in that server response, so no input can avoid the network call.

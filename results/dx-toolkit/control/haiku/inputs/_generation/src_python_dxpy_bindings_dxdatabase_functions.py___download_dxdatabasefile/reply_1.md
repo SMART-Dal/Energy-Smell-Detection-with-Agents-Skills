@@ -1,0 +1,1 @@
+CANNOT RUN: `_download_dxdatabasefile` must reach the DNAnexus platform: it calls `dxdatabase.get_download_url(...)` (an API request for a download URL) and `dxpy._dxhttp_read_range(url, headers, start, end, ...)` (an HTTP range request to fetch the file bytes), so every call requires network access and credentials that cannot be provided here.

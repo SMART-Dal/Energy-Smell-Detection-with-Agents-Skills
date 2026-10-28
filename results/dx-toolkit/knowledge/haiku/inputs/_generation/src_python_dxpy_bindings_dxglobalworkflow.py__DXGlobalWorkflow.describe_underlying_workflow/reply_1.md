@@ -1,0 +1,1 @@
+CANNOT RUN: `describe_underlying_workflow` obtains its result by calling `self.describe()` and `dxpy.DXWorkflow(...).describe()`, which issue authenticated HTTP requests to the DNAnexus platform API; there is no input that avoids this network access.

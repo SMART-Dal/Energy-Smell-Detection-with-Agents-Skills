@@ -1,0 +1,172 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 85.5,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 6449,
+   "completion_tokens": 19677,
+   "reasoning_tokens": 18519,
+   "cost": 0.011839272,
+   "retried": []
+  },
+  {
+   "seconds": 15.9,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 7879,
+   "completion_tokens": 4268,
+   "reasoning_tokens": 3074,
+   "cost": 0.002938992,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "medium",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "large",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "many-entities",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "many-fields",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "many-joins",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "dense-coding",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "dense-join",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-entities",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-field",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-fields",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 4.8,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.6
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    },
+    {
+     "label": "medium",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    },
+    {
+     "label": "large",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    },
+    {
+     "label": "many-entities",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    },
+    {
+     "label": "many-fields",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    },
+    {
+     "label": "many-joins",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    },
+    {
+     "label": "dense-coding",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    },
+    {
+     "label": "dense-join",
+     "ok": false,
+     "why": "the original raises KeyError: 'coding_name'"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-entities",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-field",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-fields",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 4.7,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 111.6,
+ "cost": 0.01478,
+ "kept": [],
+ "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: the original raises KeyError: 'coding_name')"
+}

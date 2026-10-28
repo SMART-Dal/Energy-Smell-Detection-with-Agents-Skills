@@ -1,0 +1,9 @@
+dxlog-truncate-bisect  confirmed       APPLIED
+coding-display-position-dict negligible      not applied: negligible
+validate-ids-comprehension no_inputs       not applied: no_inputs
+output-colset-once     no_inputs       not applied: no_inputs
+find-stop-at-limit     negligible      not applied: negligible
+pool-manager-cache     confirmed       APPLIED
+depends-on-no-discarded-describe negligible      not applied: negligible
+
+wrote /home/javad/energy-exp/archive/dx-toolkit/control/haiku/review/results.jsonl and /home/javad/energy-exp/archive/dx-toolkit/control/haiku/review/REPORT.md

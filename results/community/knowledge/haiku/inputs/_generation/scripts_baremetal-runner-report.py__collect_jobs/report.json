@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/baremetal-runner-report.py::collect_jobs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 5.0,
+   "finish": "stop",
+   "provider": "Baidu",
+   "prompt_tokens": 3211,
+   "completion_tokens": 472,
+   "reasoning_tokens": 397,
+   "cost": 0.0002233362,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: collect_jobs performs all of its work through gh_paginated, which shells out to the `gh api` command to fetch workflow runs and jobs from GitHub; it needs network access and a working `gh` binary, and no input can avoid that (with an empty WORKFLOWS the function would do nothing at all)."
+  }
+ ],
+ "seconds": 6.0,
+ "cost": 0.00022,
+ "kept": [],
+ "reason": "it cannot run here: collect_jobs performs all of its work through gh_paginated, which shells out to the `gh api` command to fetch workflow runs and jobs from GitHub; it needs network access and a working `gh` binary, and no input can avoid that (with an empty WORKFLOWS the function would do nothing at all)."
+}

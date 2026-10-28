@@ -1,0 +1,25 @@
+{
+ "unit": "multilingual-search/ext/evaluate.py::search",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.5,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 2683,
+   "completion_tokens": 100,
+   "reasoning_tokens": 62,
+   "cost": 0.000366809,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `search` performs an HTTP POST to `args.endpoint` via `requests.Session`, requiring a live Vespa endpoint; no input can avoid the network request."
+  }
+ ],
+ "seconds": 2.4,
+ "cost": 0.00037,
+ "kept": [],
+ "reason": "it cannot run here: `search` performs an HTTP POST to `args.endpoint` via `requests.Session`, requiring a live Vespa endpoint; no input can avoid the network request."
+}

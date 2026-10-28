@@ -1,0 +1,1979 @@
+[
+ {
+  "id": "C3S4-predictions-index",
+  "unit": "news/src/python/evaluate.py::predictions",
+  "status": "confirmed",
+  "reason": "99.4% +-0.0% energy saved on 'tail-matches', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('wide-children', 'tail-matches', 'float-relevance', 'many-children'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 19 `url, cert = connect()` (FileNotFoundError); line 103 `train_metrics = calc_metrics(train_impressions_file)` (SystemExit); line 104 `valid_metrics = calc_metrics(valid_impressions_file)` (SystemExit); line 106 `print(\"Train: \" + str(train_metrics))` (NameError); line 107 `print(\"Valid: \" + str(valid_metrics))` (NameError).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 19 `url, cert = connect()` (FileNotFoundError); line 103 `train_metrics = calc_metrics(train_impressions_file)` (SystemExit); line 104 `valid_metrics = calc_metrics(valid_impressions_file)` (SystemExit); line 106 `print(\"Train: \" + str(train_metrics))` (NameError); line 107 `print(\"Valid: \" + str(valid_metrics))` (NameError)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 19 `url, cert = connect()` (FileNotFoundError)",
+   "line 103 `train_metrics = calc_metrics(train_impressions_file)` (SystemExit)",
+   "line 104 `valid_metrics = calc_metrics(valid_impressions_file)` (SystemExit)",
+   "line 106 `print(\"Train: \" + str(train_metrics))` (NameError)",
+   "line 107 `print(\"Valid: \" + str(valid_metrics))` (NameError)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "wide-children",
+    "repeats": 21,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 106.4981,
+    "after_energy_j": 0.7604,
+    "before_time_s": 2.0162,
+    "after_time_s": 0.0145,
+    "before_power_w": 52.82,
+    "after_power_w": 52.59,
+    "before_s_per_call": 0.09268856793642044,
+    "after_s_per_call": 0.0006454326212406158,
+    "energy_ci_pct": 0.07,
+    "significant": true
+   },
+   {
+    "label": "tail-matches",
+    "repeats": 26,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 100.961,
+    "after_energy_j": 0.5699,
+    "before_time_s": 1.9355,
+    "after_time_s": 0.0109,
+    "before_power_w": 52.16,
+    "after_power_w": 52.33,
+    "before_s_per_call": 0.07421132363379002,
+    "after_s_per_call": 0.00040640588849782944,
+    "energy_ci_pct": 0.01,
+    "significant": true
+   },
+   {
+    "label": "float-relevance",
+    "repeats": 47,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 104.7579,
+    "after_energy_j": 0.9674,
+    "before_time_s": 2.0131,
+    "after_time_s": 0.0187,
+    "before_power_w": 52.04,
+    "after_power_w": 51.67,
+    "before_s_per_call": 0.04245664086192846,
+    "after_s_per_call": 0.00039183907210826874,
+    "energy_ci_pct": 0.04,
+    "significant": true
+   },
+   {
+    "label": "many-children",
+    "repeats": 36,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 99.8277,
+    "after_energy_j": 1.3691,
+    "before_time_s": 1.9119,
+    "after_time_s": 0.0265,
+    "before_power_w": 52.21,
+    "after_power_w": 51.73,
+    "before_s_per_call": 0.05435162968933582,
+    "after_s_per_call": 0.0007204562425613403,
+    "energy_ci_pct": 0.07,
+    "significant": true
+   }
+  ],
+  "submission_hash": "8140995aaae288e9",
+  "baseline_sha256": "3d024fcbfcab5520"
+ },
+ {
+  "id": "C3S4-process_docs-docs-count",
+  "unit": "incremental-search/search-suggestions/count_terms.py::process_docs",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('many-docs', 'bigrams', 'trigrams'; best 59.6% +-3.0% on 'many-docs'), and no saving that can be told from noise on the rest: 'high-duplicates' +0.9% +-3.0% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "many-docs",
+    "repeats": 23,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 106.5888,
+    "after_energy_j": 43.054,
+    "before_time_s": 2.0505,
+    "after_time_s": 0.8256,
+    "before_power_w": 51.98,
+    "after_power_w": 52.15,
+    "before_s_per_call": 0.08495169598609209,
+    "after_s_per_call": 0.03375947196036577,
+    "energy_ci_pct": 2.97,
+    "significant": true
+   },
+   {
+    "label": "bigrams",
+    "repeats": 19,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 95.136,
+    "after_energy_j": 54.3039,
+    "before_time_s": 1.8313,
+    "after_time_s": 1.0396,
+    "before_power_w": 51.95,
+    "after_power_w": 52.24,
+    "before_s_per_call": 0.09785500634461641,
+    "after_s_per_call": 0.05423481483012438,
+    "energy_ci_pct": 0.39,
+    "significant": true
+   },
+   {
+    "label": "trigrams",
+    "repeats": 13,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 101.4277,
+    "after_energy_j": 47.6881,
+    "before_time_s": 1.9507,
+    "after_time_s": 0.9144,
+    "before_power_w": 51.99,
+    "after_power_w": 52.15,
+    "before_s_per_call": 0.15009864512830973,
+    "after_s_per_call": 0.0688222860917449,
+    "energy_ci_pct": 1.49,
+    "significant": true
+   },
+   {
+    "label": "high-duplicates",
+    "repeats": 18,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 54.0675,
+    "after_energy_j": 53.5794,
+    "before_time_s": 1.0358,
+    "after_time_s": 1.0245,
+    "before_power_w": 52.2,
+    "after_power_w": 52.3,
+    "before_s_per_call": 0.056763638742268085,
+    "after_s_per_call": 0.05591344926506281,
+    "energy_ci_pct": 3.02,
+    "significant": false
+   }
+  ],
+  "submission_hash": "e54ab89462208280",
+  "baseline_sha256": "40a12c35fd760fe9"
+ },
+ {
+  "id": "C3S2-count_terms-common-once",
+  "unit": "incremental-search/search-suggestions/count_terms.py::count_terms",
+  "status": "confirmed",
+  "reason": "49.6% +-3.1% energy saved on 'fivegrams', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('trigrams-long', 'fourgrams', 'fivegrams', 'all-unique-trigrams'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "trigrams-long",
+    "repeats": 44,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 100.0499,
+    "after_energy_j": 61.9276,
+    "before_time_s": 2.2634,
+    "after_time_s": 1.4085,
+    "before_power_w": 44.2,
+    "after_power_w": 43.97,
+    "before_s_per_call": 0.036839854903519154,
+    "after_s_per_call": 0.023128755390644073,
+    "energy_ci_pct": 1.77,
+    "significant": true
+   },
+   {
+    "label": "fourgrams",
+    "repeats": 50,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 110.0058,
+    "after_energy_j": 61.9614,
+    "before_time_s": 2.4891,
+    "after_time_s": 1.4109,
+    "before_power_w": 44.19,
+    "after_power_w": 43.92,
+    "before_s_per_call": 0.035888442769646645,
+    "after_s_per_call": 0.020030084997415543,
+    "energy_ci_pct": 1.42,
+    "significant": true
+   },
+   {
+    "label": "fivegrams",
+    "repeats": 69,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 114.2666,
+    "after_energy_j": 57.6584,
+    "before_time_s": 2.4933,
+    "after_time_s": 1.2517,
+    "before_power_w": 46.32,
+    "after_power_w": 46.69,
+    "before_s_per_call": 0.028974569402635098,
+    "after_s_per_call": 0.01427740603685379,
+    "energy_ci_pct": 3.11,
+    "significant": true
+   },
+   {
+    "label": "all-unique-trigrams",
+    "repeats": 68,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 79.4917,
+    "after_energy_j": 52.3465,
+    "before_time_s": 1.513,
+    "after_time_s": 1.0002,
+    "before_power_w": 52.54,
+    "after_power_w": 52.33,
+    "before_s_per_call": 0.0224691154435277,
+    "after_s_per_call": 0.014759575016796589,
+    "energy_ci_pct": 0.69,
+    "significant": true
+   }
+  ],
+  "submission_hash": "0b8d04eb6893faa0",
+  "baseline_sha256": "40a12c35fd760fe9"
+ },
+ {
+  "id": "C1S5-sample_valid_data-filter-first",
+  "unit": "news/src/python/mind_data.py::MindData.sample_valid_data",
+  "status": "negligible",
+  "reason": "no case moved more than the noise: the largest reading was +1.3% +-1.9% on 'typical-valid', against a clean 2.1% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "typical-valid",
+    "repeats": 15,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.605,
+    "after_energy_j": 65.7036,
+    "before_time_s": 1.5103,
+    "after_time_s": 1.4881,
+    "before_power_w": 44.1,
+    "after_power_w": 44.15,
+    "before_s_per_call": 0.07064752280712128,
+    "after_s_per_call": 0.07047241274267435,
+    "energy_ci_pct": 1.89,
+    "significant": false
+   },
+   {
+    "label": "many-short-partial",
+    "repeats": 14,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 67.7697,
+    "after_energy_j": 67.9792,
+    "before_time_s": 1.535,
+    "after_time_s": 1.536,
+    "before_power_w": 44.15,
+    "after_power_w": 44.26,
+    "before_s_per_call": 0.07606994733214378,
+    "after_s_per_call": 0.07571857515722513,
+    "energy_ci_pct": 1.18,
+    "significant": false
+   },
+   {
+    "label": "train-impressions",
+    "repeats": 15,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.772,
+    "after_energy_j": 60.215,
+    "before_time_s": 1.3299,
+    "after_time_s": 1.3047,
+    "before_power_w": 46.11,
+    "after_power_w": 46.72,
+    "before_s_per_call": 0.0681435652077198,
+    "after_s_per_call": 0.06801694724708796,
+    "energy_ci_pct": 2.45,
+    "significant": false
+   },
+   {
+    "label": "many-short-low-prob",
+    "repeats": 10,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 54.6166,
+    "after_energy_j": 54.4883,
+    "before_time_s": 1.0436,
+    "after_time_s": 1.0404,
+    "before_power_w": 52.34,
+    "after_power_w": 52.37,
+    "before_s_per_call": 0.1055857203900814,
+    "after_s_per_call": 0.10673736594617367,
+    "energy_ci_pct": 0.75,
+    "significant": false
+   }
+  ],
+  "submission_hash": "d4c5531522cccb3b",
+  "baseline_sha256": "b40c33a0bc607a36"
+ },
+ {
+  "id": "C10S1-remove_control_characters-translate",
+  "unit": "colbert-long/scripts/convert.py::remove_control_characters",
+  "status": "confirmed",
+  "reason": "92.0% +-0.8% energy saved on 'ascii-prose', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('ascii-prose', 'unicode-mix', 'long-line', 'log-multiline'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 17 `documents = load_dataset('Shitao/MLDR', \"corpus-en\", spli...` (RuntimeError); line 19 `with open(feed_file, \"w\") as f:` (NameError).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 17 `documents = load_dataset('Shitao/MLDR', \"corpus-en\", spli...` (RuntimeError); line 19 `with open(feed_file, \"w\") as f:` (NameError)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 17 `documents = load_dataset('Shitao/MLDR', \"corpus-en\", spli...` (RuntimeError)",
+   "line 19 `with open(feed_file, \"w\") as f:` (NameError)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "ascii-prose",
+    "repeats": 19,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 99.8858,
+    "after_energy_j": 7.9921,
+    "before_time_s": 1.938,
+    "after_time_s": 0.1552,
+    "before_power_w": 51.56,
+    "after_power_w": 51.48,
+    "before_s_per_call": 0.10084814019501209,
+    "after_s_per_call": 0.008071531541645527,
+    "energy_ci_pct": 0.75,
+    "significant": true
+   },
+   {
+    "label": "unicode-mix",
+    "repeats": 18,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 102.678,
+    "after_energy_j": 53.2852,
+    "before_time_s": 1.964,
+    "after_time_s": 1.0383,
+    "before_power_w": 52.28,
+    "after_power_w": 51.32,
+    "before_s_per_call": 0.10690937470644712,
+    "after_s_per_call": 0.056676228530704975,
+    "energy_ci_pct": 1.04,
+    "significant": true
+   },
+   {
+    "label": "long-line",
+    "repeats": 18,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 104.4771,
+    "after_energy_j": 9.6772,
+    "before_time_s": 2.0029,
+    "after_time_s": 0.1888,
+    "before_power_w": 52.16,
+    "after_power_w": 51.26,
+    "before_s_per_call": 0.11057992372661829,
+    "after_s_per_call": 0.01024513877928257,
+    "energy_ci_pct": 0.18,
+    "significant": true
+   },
+   {
+    "label": "log-multiline",
+    "repeats": 20,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 104.0898,
+    "after_energy_j": 8.4949,
+    "before_time_s": 1.983,
+    "after_time_s": 0.1646,
+    "before_power_w": 52.49,
+    "after_power_w": 51.6,
+    "before_s_per_call": 0.09919848944991827,
+    "after_s_per_call": 0.008082578890025616,
+    "energy_ci_pct": 0.37,
+    "significant": true
+   }
+  ],
+  "submission_hash": "f13d02cd53102761",
+  "baseline_sha256": "fbf6bc86e5698c94"
+ },
+ {
+  "id": "C1S8-extract_documents-tell",
+  "unit": "text-search/python/extract-msmarco.py::extract_documents",
+  "status": "partial",
+  "reason": "saves energy on 2 of 4 inputs ('unicode-1500', 'mixed-3000'; best 7.9% +-7.2% on 'unicode-1500'), and no saving that can be told from noise on the rest: 'long-800' +0.5% +-1.4% (its pairs disagree too much to tell); 'long-1200' -0.4% +-3.2% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "unicode-1500",
+    "repeats": 7,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 62.7253,
+    "after_energy_j": 57.7293,
+    "before_time_s": 1.1911,
+    "after_time_s": 1.1001,
+    "before_power_w": 52.66,
+    "after_power_w": 52.48,
+    "before_s_per_call": 0.16290262900292873,
+    "after_s_per_call": 0.15332119446247816,
+    "energy_ci_pct": 7.2,
+    "significant": true
+   },
+   {
+    "label": "long-800",
+    "repeats": 3,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.5504,
+    "after_energy_j": 59.2618,
+    "before_time_s": 1.124,
+    "after_time_s": 1.1204,
+    "before_power_w": 52.98,
+    "after_power_w": 52.89,
+    "before_s_per_call": 0.3618527529761195,
+    "after_s_per_call": 0.36045706551522017,
+    "energy_ci_pct": 1.42,
+    "significant": false
+   },
+   {
+    "label": "mixed-3000",
+    "repeats": 2,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.6986,
+    "after_energy_j": 57.5238,
+    "before_time_s": 1.1229,
+    "after_time_s": 1.0818,
+    "before_power_w": 53.17,
+    "after_power_w": 53.17,
+    "before_s_per_call": 0.5449379980564117,
+    "after_s_per_call": 0.5266991350799799,
+    "energy_ci_pct": 0.84,
+    "significant": true
+   },
+   {
+    "label": "long-1200",
+    "repeats": 2,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.3042,
+    "after_energy_j": 59.5085,
+    "before_time_s": 1.1227,
+    "after_time_s": 1.1237,
+    "before_power_w": 52.82,
+    "after_power_w": 52.96,
+    "before_s_per_call": 0.5485831955447793,
+    "after_s_per_call": 0.540985306724906,
+    "energy_ci_pct": 3.22,
+    "significant": false
+   }
+  ],
+  "submission_hash": "c6dd2ec4573a659d",
+  "baseline_sha256": "e3e2a868e67dd5a3",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "C10S4-split_text-join",
+  "unit": "feed-split.py::split_text",
+  "status": "negligible",
+  "reason": "no case moved more than the noise: the largest reading was +0.9% +-0.3% on 'mixed-large', against a clean 2.1% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "loaded with these uninstalled packages stood in for: tiktoken"
+  ],
+  "stubbed": [
+   "tiktoken"
+  ],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "lists-and-links",
+    "repeats": 6,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.2328,
+    "after_energy_j": 65.5258,
+    "before_time_s": 1.216,
+    "after_time_s": 1.2078,
+    "before_power_w": 53.65,
+    "after_power_w": 54.25,
+    "before_s_per_call": 0.1937277941033244,
+    "after_s_per_call": 0.1941946567967534,
+    "energy_ci_pct": 4.31,
+    "significant": false
+   },
+   {
+    "label": "top-level-tables",
+    "repeats": 6,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 61.0629,
+    "after_energy_j": 60.7583,
+    "before_time_s": 1.1343,
+    "after_time_s": 1.128,
+    "before_power_w": 53.83,
+    "after_power_w": 53.86,
+    "before_s_per_call": 0.18238325230777264,
+    "after_s_per_call": 0.1819483358412981,
+    "energy_ci_pct": 1.68,
+    "significant": false
+   },
+   {
+    "label": "tables-inside-divs",
+    "repeats": 6,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.7106,
+    "after_energy_j": 59.8449,
+    "before_time_s": 1.1071,
+    "after_time_s": 1.1104,
+    "before_power_w": 53.94,
+    "after_power_w": 53.9,
+    "before_s_per_call": 0.17891380935907364,
+    "after_s_per_call": 0.17877378314733505,
+    "energy_ci_pct": 1.57,
+    "significant": false
+   },
+   {
+    "label": "mixed-large",
+    "repeats": 5,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.3231,
+    "after_energy_j": 57.8253,
+    "before_time_s": 1.0817,
+    "after_time_s": 1.0723,
+    "before_power_w": 53.92,
+    "after_power_w": 53.92,
+    "before_s_per_call": 0.20893020927906036,
+    "after_s_per_call": 0.20811445824801922,
+    "energy_ci_pct": 0.25,
+    "significant": true
+   }
+  ],
+  "submission_hash": "ac25ce93ee4ef207",
+  "baseline_sha256": "faa5daf437fb6449"
+ },
+ {
+  "id": "C1S4-what_language-text-once",
+  "unit": "feed-split.py::what_language",
+  "status": "confirmed",
+  "reason": "21.8% +-0.1% energy saved on 'highlight-not-at-start', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('java-near-end', 'no-markers', 'curl-at-index-zero-large', 'highlight-not-at-start'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: loaded with these uninstalled packages stood in for: tiktoken.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "loaded with these uninstalled packages stood in for: tiktoken"
+  ],
+  "stubbed": [
+   "tiktoken"
+  ],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "java-near-end",
+    "repeats": 628,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 61.7543,
+    "after_energy_j": 55.1658,
+    "before_time_s": 1.1649,
+    "after_time_s": 1.0419,
+    "before_power_w": 53.02,
+    "after_power_w": 52.95,
+    "before_s_per_call": 0.001768750138580799,
+    "after_s_per_call": 0.0015939464792609215,
+    "energy_ci_pct": 1.13,
+    "significant": true
+   },
+   {
+    "label": "no-markers",
+    "repeats": 626,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 61.4484,
+    "after_energy_j": 55.0612,
+    "before_time_s": 1.153,
+    "after_time_s": 1.0393,
+    "before_power_w": 53.3,
+    "after_power_w": 52.98,
+    "before_s_per_call": 0.0017770826816558838,
+    "after_s_per_call": 0.0015980303287506104,
+    "energy_ci_pct": 0.08,
+    "significant": true
+   },
+   {
+    "label": "curl-at-index-zero-large",
+    "repeats": 1156,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 67.4467,
+    "after_energy_j": 55.1249,
+    "before_time_s": 1.2467,
+    "after_time_s": 1.037,
+    "before_power_w": 54.1,
+    "after_power_w": 53.16,
+    "before_s_per_call": 0.001041763462126255,
+    "after_s_per_call": 0.0008654650300741196,
+    "energy_ci_pct": 3.36,
+    "significant": true
+   },
+   {
+    "label": "highlight-not-at-start",
+    "repeats": 515,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 70.4843,
+    "after_energy_j": 55.0904,
+    "before_time_s": 1.3139,
+    "after_time_s": 1.0347,
+    "before_power_w": 53.65,
+    "after_power_w": 53.24,
+    "before_s_per_call": 0.0024648774415254593,
+    "after_s_per_call": 0.0019435388967394829,
+    "energy_ci_pct": 0.15,
+    "significant": true
+   }
+  ],
+  "submission_hash": "08ec1378fb91d5e7",
+  "baseline_sha256": "faa5daf437fb6449"
+ },
+ {
+  "id": "C1S4-ndcg_score-discounts-once",
+  "unit": "news/src/python/metrics.py::ndcg_score",
+  "status": "mixed",
+  "reason": "a trade-off, not a fix: 10.7% saved on 'k-gt-n-50k' but 4.2% lost on 'xlarge-300k-k10', both clearing the 2.1% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large-100k-k10",
+    "repeats": 87,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 53.8024,
+    "after_energy_j": 52.8016,
+    "before_time_s": 1.0217,
+    "after_time_s": 1.0043,
+    "before_power_w": 52.66,
+    "after_power_w": 52.58,
+    "before_s_per_call": 0.011524504981935024,
+    "after_s_per_call": 0.011534142307937145,
+    "energy_ci_pct": 6.48,
+    "significant": false
+   },
+   {
+    "label": "large-100k-k100",
+    "repeats": 87,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 52.9728,
+    "after_energy_j": 52.8987,
+    "before_time_s": 1.0112,
+    "after_time_s": 1.0098,
+    "before_power_w": 52.39,
+    "after_power_w": 52.39,
+    "before_s_per_call": 0.01155422069132328,
+    "after_s_per_call": 0.011564502492547035,
+    "energy_ci_pct": 0.81,
+    "significant": false
+   },
+   {
+    "label": "xlarge-300k-k10",
+    "repeats": 26,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 54.1545,
+    "after_energy_j": 56.4391,
+    "before_time_s": 1.0308,
+    "after_time_s": 1.0758,
+    "before_power_w": 52.53,
+    "after_power_w": 52.46,
+    "before_s_per_call": 0.03933620918542147,
+    "after_s_per_call": 0.041290552355349064,
+    "energy_ci_pct": 1.81,
+    "significant": true
+   },
+   {
+    "label": "k-gt-n-50k",
+    "repeats": 137,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.2903,
+    "after_energy_j": 52.936,
+    "before_time_s": 1.1174,
+    "after_time_s": 1.0057,
+    "before_power_w": 53.06,
+    "after_power_w": 52.64,
+    "before_s_per_call": 0.008167312480509281,
+    "after_s_per_call": 0.007318466901779175,
+    "energy_ci_pct": 2.75,
+    "significant": true
+   }
+  ],
+  "submission_hash": "81eae8ba5d60e1c8",
+  "baseline_sha256": "416cc1db656c3556",
+  "measured_twice": true,
+  "first_status": "mixed"
+ },
+ {
+  "id": "C8S3-add_impressions-content-once",
+  "unit": "news/src/python/mind_data.py::MindData.add_impressions",
+  "status": "confirmed",
+  "reason": "8.4% +-0.7% energy saved on 'medium', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('large-positives', 'many-positives-few-negatives', 'heavy-sampling', 'medium'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large-positives",
+    "repeats": 25,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 61.3152,
+    "after_energy_j": 57.4979,
+    "before_time_s": 1.1281,
+    "after_time_s": 1.0493,
+    "before_power_w": 54.35,
+    "after_power_w": 54.79,
+    "before_s_per_call": 0.044088893570005894,
+    "after_s_per_call": 0.041080460883677006,
+    "energy_ci_pct": 3.06,
+    "significant": true
+   },
+   {
+    "label": "many-positives-few-negatives",
+    "repeats": 22,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.1305,
+    "after_energy_j": 55.8228,
+    "before_time_s": 1.0648,
+    "after_time_s": 1.0249,
+    "before_power_w": 54.59,
+    "after_power_w": 54.46,
+    "before_s_per_call": 0.04877516534179449,
+    "after_s_per_call": 0.04708551988005638,
+    "energy_ci_pct": 1.68,
+    "significant": true
+   },
+   {
+    "label": "heavy-sampling",
+    "repeats": 16,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.5596,
+    "after_energy_j": 60.5383,
+    "before_time_s": 1.2096,
+    "after_time_s": 1.1194,
+    "before_power_w": 54.2,
+    "after_power_w": 54.08,
+    "before_s_per_call": 0.07056739833205938,
+    "after_s_per_call": 0.06590151321142912,
+    "energy_ci_pct": 1.56,
+    "significant": true
+   },
+   {
+    "label": "medium",
+    "repeats": 18,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 63.8044,
+    "after_energy_j": 58.4147,
+    "before_time_s": 1.174,
+    "after_time_s": 1.0761,
+    "before_power_w": 54.35,
+    "after_power_w": 54.28,
+    "before_s_per_call": 0.063493593595922,
+    "after_s_per_call": 0.05821362603455782,
+    "energy_ci_pct": 0.68,
+    "significant": true
+   }
+  ],
+  "submission_hash": "78a802033787efa6",
+  "baseline_sha256": "b40c33a0bc607a36",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "C10S2-float_to_binary-bool",
+  "unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding",
+  "status": "confirmed",
+  "reason": "19.0% +-0.4% energy saved on 'zeros-mixed-2048', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('all-positive-1024', 'all-negative-1024', 'zeros-mixed-2048', 'wide-8192'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 10 `from .colpali import SimMapGenerator` (ImportError).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 10 `from .colpali import SimMapGenerator` (ImportError)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 10 `from .colpali import SimMapGenerator` (ImportError)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "all-positive-1024",
+    "repeats": 237,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.1851,
+    "after_energy_j": 53.7033,
+    "before_time_s": 1.2324,
+    "after_time_s": 1.0011,
+    "before_power_w": 52.89,
+    "after_power_w": 53.65,
+    "before_s_per_call": 0.005137499421834946,
+    "after_s_per_call": 0.004234190098941326,
+    "energy_ci_pct": 5.45,
+    "significant": true
+   },
+   {
+    "label": "all-negative-1024",
+    "repeats": 237,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 64.7654,
+    "after_energy_j": 53.1069,
+    "before_time_s": 1.2228,
+    "after_time_s": 1.0002,
+    "before_power_w": 52.96,
+    "after_power_w": 53.1,
+    "before_s_per_call": 0.005135682411491871,
+    "after_s_per_call": 0.004231986589729786,
+    "energy_ci_pct": 0.25,
+    "significant": true
+   },
+   {
+    "label": "zeros-mixed-2048",
+    "repeats": 127,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.748,
+    "after_energy_j": 53.2324,
+    "before_time_s": 1.2421,
+    "after_time_s": 1.0029,
+    "before_power_w": 52.93,
+    "after_power_w": 53.08,
+    "before_s_per_call": 0.009759512729942799,
+    "after_s_per_call": 0.007905016653239727,
+    "energy_ci_pct": 0.4,
+    "significant": true
+   },
+   {
+    "label": "wide-8192",
+    "repeats": 34,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.6853,
+    "after_energy_j": 54.0494,
+    "before_time_s": 1.2348,
+    "after_time_s": 1.0119,
+    "before_power_w": 53.2,
+    "after_power_w": 53.41,
+    "before_s_per_call": 0.03605975490063429,
+    "after_s_per_call": 0.029665994457900524,
+    "energy_ci_pct": 1.09,
+    "significant": true
+   }
+  ],
+  "submission_hash": "f49996c77fff9e32",
+  "baseline_sha256": "4311cf78a6ef051e"
+ },
+ {
+  "id": "C6S2-sample_images-index-first",
+  "unit": "text-video-search/src/python/embedding.py::sample_images",
+  "status": "confirmed",
+  "reason": "80.6% +-0.0% energy saved on 'sample-8-of-80-float32', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('sample-8-of-80-uint8', 'sample-30-of-320-mid', 'sample-20-of-200-gray', 'sample-8-of-80-float32'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: loaded with these uninstalled packages stood in for: clip.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "loaded with these uninstalled packages stood in for: clip"
+  ],
+  "stubbed": [
+   "clip"
+  ],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "sample-8-of-80-uint8",
+    "repeats": 9952,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 114.4843,
+    "after_energy_j": 38.5426,
+    "before_time_s": 2.0665,
+    "after_time_s": 0.7108,
+    "before_power_w": 55.4,
+    "after_power_w": 54.22,
+    "before_s_per_call": 0.00020095985382795334,
+    "after_s_per_call": 7.226318120956421e-05,
+    "energy_ci_pct": 0.75,
+    "significant": true
+   },
+   {
+    "label": "sample-30-of-320-mid",
+    "repeats": 5901,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 114.6524,
+    "after_energy_j": 28.4977,
+    "before_time_s": 2.0825,
+    "after_time_s": 0.5243,
+    "before_power_w": 55.05,
+    "after_power_w": 54.36,
+    "before_s_per_call": 0.00033889245241880417,
+    "after_s_per_call": 8.968263864517212e-05,
+    "energy_ci_pct": 0.15,
+    "significant": true
+   },
+   {
+    "label": "sample-20-of-200-gray",
+    "repeats": 7968,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 108.3641,
+    "after_energy_j": 31.8899,
+    "before_time_s": 1.9935,
+    "after_time_s": 0.5993,
+    "before_power_w": 54.35,
+    "after_power_w": 53.21,
+    "before_s_per_call": 0.00025099609047174454,
+    "after_s_per_call": 7.817428559064865e-05,
+    "energy_ci_pct": 2.55,
+    "significant": true
+   },
+   {
+    "label": "sample-8-of-80-float32",
+    "repeats": 4093,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 109.0265,
+    "after_energy_j": 21.1341,
+    "before_time_s": 1.9807,
+    "after_time_s": 0.3923,
+    "before_power_w": 55.04,
+    "after_power_w": 53.87,
+    "before_s_per_call": 0.0004885410889983177,
+    "after_s_per_call": 9.832624346017838e-05,
+    "energy_ci_pct": 0.05,
+    "significant": true
+   }
+  ],
+  "submission_hash": "4c04caa027040350",
+  "baseline_sha256": "989e6f254013bb4e"
+ },
+ {
+  "id": "C3S6-process_users-limit-first",
+  "unit": "examples/workshop-ecommerce/preprocess.py::process_users",
+  "status": "partial",
+  "reason": "saves energy on 2 of 4 inputs ('limit-200', 'many-duplicates'; best 17.3% +-2.7% on 'limit-200'), and no saving that can be told from noise on the rest: 'full-150-users' +1.8% +-3.5% (its pairs disagree too much to tell); 'few-users-heavy' +0.5% +-0.9% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "full-150-users",
+    "repeats": 3,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 69.8464,
+    "after_energy_j": 68.5935,
+    "before_time_s": 1.3325,
+    "after_time_s": 1.316,
+    "before_power_w": 52.42,
+    "after_power_w": 52.12,
+    "before_s_per_call": 0.4275205684825778,
+    "after_s_per_call": 0.4288146160542965,
+    "energy_ci_pct": 3.5,
+    "significant": false
+   },
+   {
+    "label": "limit-200",
+    "repeats": 4,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 78.8813,
+    "after_energy_j": 65.2513,
+    "before_time_s": 1.5141,
+    "after_time_s": 1.2477,
+    "before_power_w": 52.1,
+    "after_power_w": 52.3,
+    "before_s_per_call": 0.3764545889571309,
+    "after_s_per_call": 0.30517713725566864,
+    "energy_ci_pct": 2.67,
+    "significant": true
+   },
+   {
+    "label": "few-users-heavy",
+    "repeats": 3,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 80.1086,
+    "after_energy_j": 79.7196,
+    "before_time_s": 1.5346,
+    "after_time_s": 1.5275,
+    "before_power_w": 52.2,
+    "after_power_w": 52.19,
+    "before_s_per_call": 0.5011000530794263,
+    "after_s_per_call": 0.4983403608202934,
+    "energy_ci_pct": 0.91,
+    "significant": false
+   },
+   {
+    "label": "many-duplicates",
+    "repeats": 8,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 68.6826,
+    "after_energy_j": 58.6664,
+    "before_time_s": 1.3156,
+    "after_time_s": 1.1226,
+    "before_power_w": 52.21,
+    "after_power_w": 52.26,
+    "before_s_per_call": 0.16036368906497955,
+    "after_s_per_call": 0.13758452516049147,
+    "energy_ci_pct": 0.47,
+    "significant": true
+   }
+  ],
+  "submission_hash": "c6c057ed0a018116",
+  "baseline_sha256": "beed76cd5330cae7"
+ },
+ {
+  "id": "C10S2-category_ctrs-read_impressions-reader",
+  "unit": "news/src/python/create_category_ctrs.py::read_impressions_file",
+  "status": "confirmed",
+  "reason": "60.5% +-1.5% energy saved on 'single-impression', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('large', 'single-impression', 'skewed-categories', 'diverse'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large",
+    "repeats": 17,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 72.0238,
+    "after_energy_j": 55.7297,
+    "before_time_s": 1.355,
+    "after_time_s": 1.0533,
+    "before_power_w": 53.15,
+    "after_power_w": 52.91,
+    "before_s_per_call": 0.07843060232698917,
+    "after_s_per_call": 0.06180099584162235,
+    "energy_ci_pct": 6.7,
+    "significant": true
+   },
+   {
+    "label": "single-impression",
+    "repeats": 12,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 106.8744,
+    "after_energy_j": 42.2226,
+    "before_time_s": 2.0166,
+    "after_time_s": 0.8001,
+    "before_power_w": 53.0,
+    "after_power_w": 52.77,
+    "before_s_per_call": 0.1663732873275876,
+    "after_s_per_call": 0.06868152040988207,
+    "energy_ci_pct": 1.55,
+    "significant": true
+   },
+   {
+    "label": "skewed-categories",
+    "repeats": 16,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.9173,
+    "after_energy_j": 53.782,
+    "before_time_s": 1.2538,
+    "after_time_s": 1.0169,
+    "before_power_w": 53.37,
+    "after_power_w": 52.89,
+    "before_s_per_call": 0.08039225451648235,
+    "after_s_per_call": 0.06539490353316069,
+    "energy_ci_pct": 2.52,
+    "significant": true
+   },
+   {
+    "label": "diverse",
+    "repeats": 25,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 70.9525,
+    "after_energy_j": 51.2132,
+    "before_time_s": 1.3413,
+    "after_time_s": 0.9699,
+    "before_power_w": 52.9,
+    "after_power_w": 52.8,
+    "before_s_per_call": 0.05345963966101408,
+    "after_s_per_call": 0.04017408471554518,
+    "energy_ci_pct": 0.79,
+    "significant": true
+   }
+  ],
+  "submission_hash": "c1a797ce4b6be052",
+  "baseline_sha256": "9a2553c3eb4a0aef"
+ },
+ {
+  "id": "C2S1-lookup_news_index-inline",
+  "unit": "news/src/python/mind_data.py::MindData.lookup_news_index",
+  "status": "confirmed",
+  "reason": "26.5% +-1.5% energy saved on 'hit-32-chars', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('hit-short-big-map', 'hit-32-chars', 'hit-64000-chars', 'hit-100000-chars'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "hit-short-big-map",
+    "repeats": 2060925,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 42.0281,
+    "after_energy_j": 31.2504,
+    "before_time_s": 0.7757,
+    "after_time_s": 0.5757,
+    "before_power_w": 54.18,
+    "after_power_w": 54.28,
+    "before_s_per_call": 6.258487701416016e-07,
+    "after_s_per_call": 4.852190613746643e-07,
+    "energy_ci_pct": 2.11,
+    "significant": true
+   },
+   {
+    "label": "hit-32-chars",
+    "repeats": 2049126,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 39.8808,
+    "after_energy_j": 29.3056,
+    "before_time_s": 0.7304,
+    "after_time_s": 0.5398,
+    "before_power_w": 54.6,
+    "after_power_w": 54.29,
+    "before_s_per_call": 6.109476089477539e-07,
+    "after_s_per_call": 4.880130290985107e-07,
+    "energy_ci_pct": 1.48,
+    "significant": true
+   },
+   {
+    "label": "hit-64000-chars",
+    "repeats": 1783625,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 36.5527,
+    "after_energy_j": 27.5989,
+    "before_time_s": 0.6733,
+    "after_time_s": 0.5099,
+    "before_power_w": 54.28,
+    "after_power_w": 54.12,
+    "before_s_per_call": 6.910413503646851e-07,
+    "after_s_per_call": 5.606561899185181e-07,
+    "energy_ci_pct": 5.21,
+    "significant": true
+   },
+   {
+    "label": "hit-100000-chars",
+    "repeats": 1867378,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 38.7909,
+    "after_energy_j": 29.5725,
+    "before_time_s": 0.714,
+    "after_time_s": 0.5443,
+    "before_power_w": 54.32,
+    "after_power_w": 54.33,
+    "before_s_per_call": 6.780028343200684e-07,
+    "after_s_per_call": 5.355104804039001e-07,
+    "energy_ci_pct": 5.48,
+    "significant": true
+   }
+  ],
+  "submission_hash": "bf5af7da95cd6ff7",
+  "baseline_sha256": "b40c33a0bc607a36"
+ },
+ {
+  "id": "C10S3-train_cold_start-write_embeddings-tolist-once",
+  "unit": "news/src/python/train_cold_start.py::write_embeddings",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('large', 'narrow', 'many'; best 8.7% +-3.3% on 'narrow'), and no saving that can be told from noise on the rest: 'wide' +0.0% +-0.8% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large",
+    "repeats": 23,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.7451,
+    "after_energy_j": 58.0245,
+    "before_time_s": 1.1156,
+    "after_time_s": 1.0587,
+    "before_power_w": 54.46,
+    "after_power_w": 54.81,
+    "before_s_per_call": 0.04529077932238579,
+    "after_s_per_call": 0.04408077243715525,
+    "energy_ci_pct": 3.09,
+    "significant": true
+   },
+   {
+    "label": "wide",
+    "repeats": 25,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.2593,
+    "after_energy_j": 60.2561,
+    "before_time_s": 1.098,
+    "after_time_s": 1.0984,
+    "before_power_w": 54.88,
+    "after_power_w": 54.86,
+    "before_s_per_call": 0.041739544831216335,
+    "after_s_per_call": 0.04135692398995161,
+    "energy_ci_pct": 0.81,
+    "significant": false
+   },
+   {
+    "label": "narrow",
+    "repeats": 21,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 63.0219,
+    "after_energy_j": 57.5166,
+    "before_time_s": 1.1511,
+    "after_time_s": 1.0485,
+    "before_power_w": 54.75,
+    "after_power_w": 54.85,
+    "before_s_per_call": 0.052294397726655006,
+    "after_s_per_call": 0.048477656207978725,
+    "energy_ci_pct": 3.27,
+    "significant": true
+   },
+   {
+    "label": "many",
+    "repeats": 19,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 68.2318,
+    "after_energy_j": 62.3244,
+    "before_time_s": 1.2364,
+    "after_time_s": 1.1357,
+    "before_power_w": 55.19,
+    "after_power_w": 54.88,
+    "before_s_per_call": 0.06328934989869595,
+    "after_s_per_call": 0.05263486411422491,
+    "energy_ci_pct": 2.98,
+    "significant": true
+   }
+  ],
+  "submission_hash": "dc4b1b5ef7cb64ce",
+  "baseline_sha256": "ee240e73ea9494d2",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "C3S5-read_news-lazy-abstract",
+  "unit": "news/src/python/mind_data.py::MindData.read_news",
+  "status": "confirmed",
+  "reason": "38.6% +-1.2% energy saved on 'many-entities', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('few-entities', 'many-entities', 'all-distinct-keys', 'large-mixed'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "few-entities",
+    "repeats": 10,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 86.5144,
+    "after_energy_j": 69.9602,
+    "before_time_s": 1.9356,
+    "after_time_s": 1.5606,
+    "before_power_w": 44.7,
+    "after_power_w": 44.83,
+    "before_s_per_call": 0.12610264215618372,
+    "after_s_per_call": 0.10083486419171095,
+    "energy_ci_pct": 2.91,
+    "significant": true
+   },
+   {
+    "label": "many-entities",
+    "repeats": 11,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 107.941,
+    "after_energy_j": 66.2254,
+    "before_time_s": 2.4123,
+    "after_time_s": 1.4797,
+    "before_power_w": 44.75,
+    "after_power_w": 44.76,
+    "before_s_per_call": 0.15649195108562708,
+    "after_s_per_call": 0.09538921155035496,
+    "energy_ci_pct": 1.25,
+    "significant": true
+   },
+   {
+    "label": "all-distinct-keys",
+    "repeats": 7,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 87.1415,
+    "after_energy_j": 70.68,
+    "before_time_s": 1.9468,
+    "after_time_s": 1.5675,
+    "before_power_w": 44.76,
+    "after_power_w": 45.09,
+    "before_s_per_call": 0.17955164052546024,
+    "after_s_per_call": 0.14353533927351236,
+    "energy_ci_pct": 4.91,
+    "significant": true
+   },
+   {
+    "label": "large-mixed",
+    "repeats": 7,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 80.7156,
+    "after_energy_j": 73.0016,
+    "before_time_s": 1.8039,
+    "after_time_s": 1.634,
+    "before_power_w": 44.74,
+    "after_power_w": 44.68,
+    "before_s_per_call": 0.1688692569732666,
+    "after_s_per_call": 0.15011729393154383,
+    "energy_ci_pct": 4.63,
+    "significant": true
+   }
+  ],
+  "submission_hash": "74859358b302d99f",
+  "baseline_sha256": "b40c33a0bc607a36"
+ },
+ {
+  "id": "C1S1-process_docs-total_count",
+  "unit": "incremental-search/search-suggestions/count_terms.py::process_docs",
+  "status": "negligible",
+  "reason": "no case moved more than the noise: the largest reading was +1.1% +-2.9% on 'bigrams', against a clean 2.1% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "many-docs",
+    "repeats": 13,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.7722,
+    "after_energy_j": 60.564,
+    "before_time_s": 1.1359,
+    "after_time_s": 1.1237,
+    "before_power_w": 53.51,
+    "after_power_w": 53.89,
+    "before_s_per_call": 0.08286214619874954,
+    "after_s_per_call": 0.08353035990148783,
+    "energy_ci_pct": 1.91,
+    "significant": false
+   },
+   {
+    "label": "bigrams",
+    "repeats": 11,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.6691,
+    "after_energy_j": 58.0399,
+    "before_time_s": 1.0934,
+    "after_time_s": 1.0843,
+    "before_power_w": 53.65,
+    "after_power_w": 53.52,
+    "before_s_per_call": 0.0956389270722866,
+    "after_s_per_call": 0.09550205804407597,
+    "energy_ci_pct": 2.91,
+    "significant": false
+   },
+   {
+    "label": "trigrams",
+    "repeats": 7,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 55.6068,
+    "after_energy_j": 55.2612,
+    "before_time_s": 1.0539,
+    "after_time_s": 1.0475,
+    "before_power_w": 52.76,
+    "after_power_w": 52.76,
+    "before_s_per_call": 0.15004485100507736,
+    "after_s_per_call": 0.1481754807755351,
+    "energy_ci_pct": 1.55,
+    "significant": false
+   },
+   {
+    "label": "high-duplicates",
+    "repeats": 18,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 54.9214,
+    "after_energy_j": 54.4956,
+    "before_time_s": 1.0326,
+    "after_time_s": 1.0261,
+    "before_power_w": 53.19,
+    "after_power_w": 53.11,
+    "before_s_per_call": 0.05680178292095661,
+    "after_s_per_call": 0.056347502395510674,
+    "energy_ci_pct": 0.34,
+    "significant": true
+   }
+  ],
+  "submission_hash": "b0d97ea393ea9514",
+  "baseline_sha256": "40a12c35fd760fe9"
+ },
+ {
+  "id": "C10S3-accepted_words-process_docs-update",
+  "unit": "incremental-search/search-suggestions/accepted_words.py::process_docs",
+  "status": "confirmed",
+  "reason": "9.1% +-5.7% energy saved on 'large-corpus', clearing the 2.1% noise floor. Saved energy on all 4 inputs ('large-corpus', 'duplicates', 'skipped-docs', 'mixed-case-digits'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large-corpus",
+    "repeats": 8,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.0022,
+    "after_energy_j": 59.9723,
+    "before_time_s": 1.2313,
+    "after_time_s": 1.116,
+    "before_power_w": 53.61,
+    "after_power_w": 53.74,
+    "before_s_per_call": 0.13867875281721354,
+    "after_s_per_call": 0.1276755528524518,
+    "energy_ci_pct": 5.67,
+    "significant": true
+   },
+   {
+    "label": "duplicates",
+    "repeats": 9,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 70.073,
+    "after_energy_j": 64.2139,
+    "before_time_s": 1.3033,
+    "after_time_s": 1.1955,
+    "before_power_w": 53.77,
+    "after_power_w": 53.71,
+    "before_s_per_call": 0.13152447901666164,
+    "after_s_per_call": 0.12059138622134924,
+    "energy_ci_pct": 3.99,
+    "significant": true
+   },
+   {
+    "label": "skipped-docs",
+    "repeats": 16,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.9138,
+    "after_energy_j": 60.7637,
+    "before_time_s": 1.225,
+    "after_time_s": 1.13,
+    "before_power_w": 53.81,
+    "after_power_w": 53.78,
+    "before_s_per_call": 0.0693136053159833,
+    "after_s_per_call": 0.06382059305906296,
+    "energy_ci_pct": 0.8,
+    "significant": true
+   },
+   {
+    "label": "mixed-case-digits",
+    "repeats": 12,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 70.4474,
+    "after_energy_j": 64.2226,
+    "before_time_s": 1.3043,
+    "after_time_s": 1.1938,
+    "before_power_w": 54.01,
+    "after_power_w": 53.8,
+    "before_s_per_call": 0.09754924476146698,
+    "after_s_per_call": 0.08846918679773808,
+    "energy_ci_pct": 1.54,
+    "significant": true
+   }
+  ],
+  "submission_hash": "993b5671e406928b",
+  "baseline_sha256": "d81b15f2181b3264"
+ },
+ {
+  "id": "C3S2-select_documents-bound",
+  "unit": "text-search/python/sample-queries-and-documents.py::select_documents",
+  "status": "partial",
+  "reason": "saves energy on 1 of 4 inputs ('query-duplicates'; best 31.4% +-5.7% on 'query-duplicates'), and no saving that can be told from noise on the rest: 'many-qids' -1.1% +-1.0% (within the 2.1% noise floor); 'large-offsets' +0.2% +-0.8% (its pairs disagree too much to tell); 'already-complete' +0.5% +-3.4% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 12 `data_dir = sys.argv[1]` (IndexError); line 16 `query_file = os.path.join(data_dir, \"queries.tsv\")` (NameError); line 17 `docs_file = os.path.join(data_dir, \"docs.tsv\")` (NameError); line 18 `offset_file = os.path.join(data_dir, \"docs-offset.tsv\")` (NameError); line 20 `sample_query_file = os.path.join(data_dir, \"test-queries....` (NameError); line 21 `sample_offset_file = os.path.join(data_dir, \"test-docs-of...` (NameError).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 2.11,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 12 `data_dir = sys.argv[1]` (IndexError); line 16 `query_file = os.path.join(data_dir, \"queries.tsv\")` (NameError); line 17 `docs_file = os.path.join(data_dir, \"docs.tsv\")` (NameError); line 18 `offset_file = os.path.join(data_dir, \"docs-offset.tsv\")` (NameError); line 20 `sample_query_file = os.path.join(data_dir, \"test-queries....` (NameError); line 21 `sample_offset_file = os.path.join(data_dir, \"test-docs-of...` (NameError)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 12 `data_dir = sys.argv[1]` (IndexError)",
+   "line 16 `query_file = os.path.join(data_dir, \"queries.tsv\")` (NameError)",
+   "line 17 `docs_file = os.path.join(data_dir, \"docs.tsv\")` (NameError)",
+   "line 18 `offset_file = os.path.join(data_dir, \"docs-offset.tsv\")` (NameError)",
+   "line 20 `sample_query_file = os.path.join(data_dir, \"test-queries....` (NameError)",
+   "line 21 `sample_offset_file = os.path.join(data_dir, \"test-docs-of...` (NameError)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "query-duplicates",
+    "repeats": 4,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 87.2969,
+    "after_energy_j": 59.957,
+    "before_time_s": 1.5924,
+    "after_time_s": 1.0917,
+    "before_power_w": 54.82,
+    "after_power_w": 54.92,
+    "before_s_per_call": 0.33518895879387856,
+    "after_s_per_call": 0.2625324185937643,
+    "energy_ci_pct": 5.69,
+    "significant": true
+   },
+   {
+    "label": "many-qids",
+    "repeats": 84,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.4116,
+    "after_energy_j": 57.0517,
+    "before_time_s": 1.0371,
+    "after_time_s": 1.0468,
+    "before_power_w": 54.38,
+    "after_power_w": 54.49,
+    "before_s_per_call": 0.012038239277899265,
+    "after_s_per_call": 0.012008333578705788,
+    "energy_ci_pct": 0.98,
+    "significant": true
+   },
+   {
+    "label": "large-offsets",
+    "repeats": 145,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 54.841,
+    "after_energy_j": 54.7053,
+    "before_time_s": 1.0134,
+    "after_time_s": 1.0115,
+    "before_power_w": 54.12,
+    "after_power_w": 54.08,
+    "before_s_per_call": 0.007057962007820606,
+    "after_s_per_call": 0.006924385204911232,
+    "energy_ci_pct": 0.83,
+    "significant": false
+   },
+   {
+    "label": "already-complete",
+    "repeats": 114,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 55.6182,
+    "after_energy_j": 55.3093,
+    "before_time_s": 1.0245,
+    "after_time_s": 1.0286,
+    "before_power_w": 54.29,
+    "after_power_w": 53.77,
+    "before_s_per_call": 0.008803142234683037,
+    "after_s_per_call": 0.008799836970865726,
+    "energy_ci_pct": 3.45,
+    "significant": false
+   }
+  ],
+  "submission_hash": "173a6023e1a586b0",
+  "baseline_sha256": "8b718456b54c3f91",
+  "measured_twice": true,
+  "first_status": "negligible"
+ },
+ {
+  "id": "C3S2-prepare_sim_map-seq-length",
+  "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor",
+  "status": "over_limit",
+  "measured_status": null,
+  "reason": "not counted: 20 other repairs have a verdict, the most a session measures"
+ },
+ {
+  "id": "C8S2-should_filter_token-compiled-default",
+  "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.should_filter_token",
+  "status": "over_limit",
+  "measured_status": null,
+  "reason": "not counted: 20 other repairs have a verdict, the most a session measures"
+ },
+ {
+  "id": "C10S2-evaluate-read_impressions-reader",
+  "unit": "news/src/python/evaluate.py::read_impressions_file",
+  "status": "over_limit",
+  "measured_status": null,
+  "reason": "not counted: 20 other repairs have a verdict, the most a session measures"
+ },
+ {
+  "id": "C8S3-read_bert_embeddings_from_file-news-once",
+  "unit": "news/src/python/train_cold_start.py::read_bert_embeddings_from_file",
+  "status": "over_limit",
+  "measured_status": null,
+  "reason": "not counted: 20 other repairs have a verdict, the most a session measures"
+ },
+ {
+  "id": "C10S2-write_json_file-replace",
+  "unit": "incremental-search/search-suggestions/count_terms.py::write_json_file",
+  "status": "over_limit",
+  "measured_status": null,
+  "reason": "not counted: 20 other repairs have a verdict, the most a session measures"
+ },
+ {
+  "id": "C6S2-gen_similarity_maps-no-copy",
+  "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps",
+  "status": "over_limit",
+  "measured_status": null,
+  "reason": "not counted: 20 other repairs have a verdict, the most a session measures"
+ },
+ {
+  "id": "C3S2-gen_similarity_maps-filter-once",
+  "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps",
+  "status": "over_limit",
+  "measured_status": null,
+  "reason": "not counted: 20 other repairs have a verdict, the most a session measures"
+ }
+]

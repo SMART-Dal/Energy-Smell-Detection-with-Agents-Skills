@@ -1,0 +1,25 @@
+{
+ "unit": "visual-retrieval-colpali/prepare_feed_deploy.py::generate_embeddings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 7.9,
+   "finish": "stop",
+   "provider": "Novita",
+   "prompt_tokens": 2924,
+   "completion_tokens": 861,
+   "reasoning_tokens": 743,
+   "cost": 0.00124176,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `generate_embeddings` needs a real `ColPali` model and `ColPaliProcessor` (built via `ColPali.from_pretrained(MODEL_NAME)` / `ColPaliProcessor.from_pretrained(MODEL_NAME)`), which download the ColPali checkpoint from Hugging Face, plus the `colpali_engine` library. There is no way to obtain these inputs here without network access, and supplying stand-in model/processor objects would be mocking the very objects whose inference is the function's work."
+  }
+ ],
+ "seconds": 12.9,
+ "cost": 0.00124,
+ "kept": [],
+ "reason": "it cannot run here: `generate_embeddings` needs a real `ColPali` model and `ColPaliProcessor` (built via `ColPali.from_pretrained(MODEL_NAME)` / `ColPaliProcessor.from_pretrained(MODEL_NAME)`), which download the ColPali checkpoint from Hugging Face, plus the `colpali_engine` library. There is no way to obtain these inputs here without network access, and supplying stand-in model/processor objects would be mocking the very objects whose inference is the function's work."
+}

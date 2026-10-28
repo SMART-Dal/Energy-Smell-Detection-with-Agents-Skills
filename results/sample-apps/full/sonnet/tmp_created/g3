@@ -1,0 +1,8 @@
+examples/in-context-learning/categorize_group.py
+examples/in-context-learning/feed_examples.py
+examples/mcp-server-app/script/generate_data.py
+examples/model-exporting/export_hf_model_from_hf.py
+examples/model-exporting/export_model_from_hf.py
+examples/operations/monitoring/album-recommendation-monitoring/vespa/wait-for-and-launch.py
+examples/part-purchases-demo/ext/parts.py
+examples/workshop-ecommerce/preprocess.py

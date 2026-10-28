@@ -1,0 +1,161 @@
+{
+ "units": {
+  "incremental-search/search-suggestions/count_terms.py::process_docs": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__process_docs.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::count_terms": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__count_terms.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::process_doc": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__process_doc.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::write_json_file": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__write_json_file.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::read_common_words": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__read_common_words.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/accepted_words.py::process_docs": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_accepted_words.py__process_docs.py",
+   "attempts": 1
+  },
+  "news/src/python/mind_data.py::MindData.sample_valid_data": {
+   "state": "ready",
+   "file": "news_src_python_mind_data.py__MindData.sample_valid_data.py",
+   "attempts": 1
+  },
+  "news/src/python/mind_data.py::MindData.add_impressions": {
+   "state": "ready",
+   "file": "news_src_python_mind_data.py__MindData.add_impressions.py",
+   "attempts": 1
+  },
+  "news/src/python/evaluate.py::predictions": {
+   "state": "ready",
+   "file": "news_src_python_evaluate.py__predictions.py",
+   "attempts": 1
+  },
+  "feed-split.py::xml_fixup": {
+   "state": "ready",
+   "file": "feed-split.py__xml_fixup.py",
+   "attempts": 1
+  },
+  "feed-split.py::split_text": {
+   "state": "ready",
+   "file": "feed-split.py__split_text.py",
+   "attempts": 1
+  },
+  "feed-split.py::what_language": {
+   "state": "ready",
+   "file": "feed-split.py__what_language.py",
+   "attempts": 1
+  },
+  "test/test.py::parse_page": {
+   "state": "ready",
+   "file": "test_test.py__parse_page.py",
+   "attempts": 1
+  },
+  "test/test.py::parse_file": {
+   "state": "ready",
+   "file": "test_test.py__parse_file.py",
+   "attempts": 1
+  },
+  "test/test.py::process_liquid": {
+   "state": "ready",
+   "file": "test_test.py__process_liquid.py",
+   "attempts": 1
+  },
+  "test/test.py::exec_file": {
+   "state": "ready",
+   "file": "test_test.py__exec_file.py",
+   "attempts": 1
+  },
+  "text-search/python/extract-msmarco.py::getcontent": {
+   "state": "ready",
+   "file": "text-search_python_extract-msmarco.py__getcontent.py",
+   "attempts": 1
+  },
+  "text-search/python/collect_training_data.py::annotate_data": {
+   "state": "ready",
+   "file": "text-search_python_collect_training_data.py__annotate_data.py",
+   "attempts": 1
+  },
+  "use-case-shopping/convert_meta.py::process": {
+   "state": "failed",
+   "reason": "the generated inputs could not be used: refused: this source replaces code, at line 15: `convert_meta.time = _FrozenTime`. Everything measured has to run the real code -- a replaced function, a subclass overriding a method, or a mock measures something nobody runs.",
+   "attempts": 1
+  },
+  "use-case-shopping/convert_reviews.py::contains_illegal_chars": {
+   "state": "ready",
+   "file": "use-case-shopping_convert_reviews.py__contains_illegal_chars.py",
+   "attempts": 1
+  },
+  "use-case-shopping/create_suggestions.py::filter": {
+   "state": "ready",
+   "file": "use-case-shopping_create_suggestions.py__filter.py",
+   "attempts": 1
+  },
+  "feed_to_vespa.py::get_feed_docids": {
+   "state": "ready",
+   "file": "feed_to_vespa.py__get_feed_docids.py",
+   "attempts": 1
+  },
+  "feed_to_vespa.py::find": {
+   "state": "ready",
+   "file": "feed_to_vespa.py__find.py",
+   "attempts": 1
+  },
+  "text-video-search/src/python/embedding.py::sample_images": {
+   "state": "ready",
+   "file": "text-video-search_src_python_embedding.py__sample_images.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding": {
+   "state": "ready",
+   "file": "visual-retrieval-colpali_src_backend_vespa_app.py__VespaQueryClient.float_to_binary_embedding.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor": {
+   "state": "failed",
+   "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "attempts": 1
+  },
+  "examples/mcp-server-app/script/generate_data.py::save_vespa_feed": {
+   "state": "ready",
+   "file": "examples_mcp-server-app_script_generate_data.py__save_vespa_feed.py",
+   "attempts": 1
+  },
+  "news/src/python/convert_to_vespa_format.py::convert_file": {
+   "state": "ready",
+   "file": "news_src_python_convert_to_vespa_format.py__convert_file.py",
+   "attempts": 1
+  },
+  "msmarco-ranking/python/evaluate_passage_run.py::eval_query": {
+   "state": "failed",
+   "reason": "it cannot run here: `eval_query` calls `get_result`, which performs an HTTP POST to `args.endpoint` via `session.post`; the function's work starts with a network request to a ranking server, which cannot be mocked and is not available here.",
+   "attempts": 1
+  },
+  "text-search/python/convert-to-vespa-format.py::main": {
+   "state": "ready",
+   "file": "text-search_python_convert-to-vespa-format.py__main.py",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 27,
+  "max_holding": 30,
+  "failed": 3,
+  "max_failed": 30
+ },
+ "updated": 1793063668.2125168
+}

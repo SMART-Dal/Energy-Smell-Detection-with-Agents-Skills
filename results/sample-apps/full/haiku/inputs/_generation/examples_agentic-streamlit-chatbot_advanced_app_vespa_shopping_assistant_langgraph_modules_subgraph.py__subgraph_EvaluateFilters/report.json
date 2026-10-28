@@ -1,0 +1,25 @@
+{
+ "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_EvaluateFilters",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.0,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 2709,
+   "completion_tokens": 111,
+   "reasoning_tokens": 67,
+   "cost": 0.000194944,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a request to the OpenAI API and needs network access plus credentials; no input can avoid that."
+  }
+ ],
+ "seconds": 3.2,
+ "cost": 0.00019,
+ "kept": [],
+ "reason": "it cannot run here: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a request to the OpenAI API and needs network access plus credentials; no input can avoid that."
+}

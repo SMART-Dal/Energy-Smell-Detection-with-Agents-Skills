@@ -1,0 +1,1 @@
+CANNOT RUN: `TextProcessor.embed` requires a real CLIP model — `self.model` comes from `clip.load("ViT-B/32")`, which downloads pretrained weights from the network (and the `clip` library itself is not available in this environment), so no input can make the function run here.

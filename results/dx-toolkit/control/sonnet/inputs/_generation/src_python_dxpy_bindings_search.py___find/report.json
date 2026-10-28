@@ -1,0 +1,138 @@
+{
+ "unit": "src/python/dxpy/bindings/search.py::_find",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 76.5,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3329,
+   "completion_tokens": 18337,
+   "reasoning_tokens": 17443,
+   "cost": 0.00940153,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small-pages",
+     "ok": false,
+     "joules": 0.02741209411196911,
+     "seconds": 0.0004826802760362625,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "medium-pages",
+     "ok": false,
+     "joules": 0.06732611946308721,
+     "seconds": 0.0013424307107925415,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large-pages",
+     "ok": true,
+     "joules": 0.26154102030456844,
+     "seconds": 0.0051009515300393105
+    },
+    {
+     "label": "capped-limit",
+     "ok": true,
+     "joules": 0.21145691235059724,
+     "seconds": 0.003993360325694084
+    },
+    {
+     "label": "limit-below-first-page",
+     "ok": false,
+     "joules": 0.0007277574245355069,
+     "seconds": 1.6255304217338562e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "by-parent-describe",
+     "ok": false,
+     "joules": 0.09189490046656305,
+     "seconds": 0.001555977389216423,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "kwarg-project",
+     "ok": true,
+     "joules": 0.11877740918163669,
+     "seconds": 0.001998073421418667
+    },
+    {
+     "label": "big-pages",
+     "ok": true,
+     "joules": 0.37482265467625936,
+     "seconds": 0.007218718528747559
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-results",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-result",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "zero-limit",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 31.9,
+   "coverage": 0.9090909090909091,
+   "missed": [
+    91,
+    93
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 6.0
+  }
+ ],
+ "seconds": 115.9,
+ "cost": 0.0094,
+ "kept": [
+  {
+   "label": "big-pages",
+   "mj_per_call": 374.8227,
+   "ms_per_call": 7.219
+  },
+  {
+   "label": "large-pages",
+   "mj_per_call": 261.541,
+   "ms_per_call": 5.101
+  },
+  {
+   "label": "capped-limit",
+   "mj_per_call": 211.4569,
+   "ms_per_call": 3.993
+  },
+  {
+   "label": "kwarg-project",
+   "mj_per_call": 118.7774,
+   "ms_per_call": 1.998
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

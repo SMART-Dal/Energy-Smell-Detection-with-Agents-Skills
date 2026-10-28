@@ -1,0 +1,1 @@
+CANNOT RUN: the test creates applets and runs jobs on the DNAnexus platform (dxpy.api.applet_new, dxpy.api.applet_run, job.wait_on_done, `dx describe`), requiring network access, valid credentials and a live remote project that are unavailable here.

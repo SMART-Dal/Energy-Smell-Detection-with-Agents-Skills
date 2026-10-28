@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::check_folder_exists",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.5,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 3886,
+   "completion_tokens": 165,
+   "reasoning_tokens": 121,
+   "cost": 0.000456193,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `check_folder_exists` calls `dxpy.api.container_list_folder()`, which makes a request to the DNAnexus API server; it requires network access and credentials, and no input can avoid that."
+  }
+ ],
+ "seconds": 8.9,
+ "cost": 0.00046,
+ "kept": [],
+ "reason": "it cannot run here: `check_folder_exists` calls `dxpy.api.container_list_folder()`, which makes a request to the DNAnexus API server; it requires network access and credentials, and no input can avoid that."
+}

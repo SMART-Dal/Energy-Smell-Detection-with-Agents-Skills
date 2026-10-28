@@ -1,0 +1,140 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/input_validation.py::validate_infer_flags",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 10.8,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 2712,
+   "completion_tokens": 2673,
+   "reasoning_tokens": 2174,
+   "cost": 0.00152634,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "no-infer-none",
+     "ok": false,
+     "joules": 3.9600074567243676e-05,
+     "seconds": 1.521781086921692e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-infer-none-true",
+     "ok": false,
+     "joules": 4.2022342961324317e-05,
+     "seconds": 1.648440957069397e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-infer-all-true",
+     "ok": false,
+     "joules": 3.974979136116401e-05,
+     "seconds": 1.3979151844978333e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-infer-all-false",
+     "ok": false,
+     "joules": 3.938354404715362e-05,
+     "seconds": 1.448206603527069e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-infer-mixed",
+     "ok": true,
+     "joules": 4.3383651498886247e-05,
+     "seconds": 1.9101426005363464e-06
+    },
+    {
+     "label": "no-infer-mixed-2",
+     "ok": true,
+     "joules": 4.408755707880774e-05,
+     "seconds": 1.7257407307624817e-06
+    },
+    {
+     "label": "infer-ref-valid",
+     "ok": true,
+     "joules": 4.956483782924937e-05,
+     "seconds": 2.1765008568763733e-06
+    },
+    {
+     "label": "infer-nocall-valid",
+     "ok": true,
+     "joules": 4.7750829322480496e-05,
+     "seconds": 2.1867454051971436e-06
+    }
+   ],
+   "checks": [
+    {
+     "label": "infer-ref-without-exclusions",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "infer-nocall-without-exclusions",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "infer-with-none-exclude-nocall",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 58.7,
+   "coverage": 0.5555555555555556,
+   "missed": [
+    240,
+    245,
+    250,
+    259
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 32.2
+  }
+ ],
+ "seconds": 77.2,
+ "cost": 0.00153,
+ "kept": [
+  {
+   "label": "infer-ref-valid",
+   "mj_per_call": 0.0496,
+   "ms_per_call": 0.002
+  },
+  {
+   "label": "infer-nocall-valid",
+   "mj_per_call": 0.0478,
+   "ms_per_call": 0.002
+  },
+  {
+   "label": "no-infer-mixed-2",
+   "mj_per_call": 0.0441,
+   "ms_per_call": 0.002
+  },
+  {
+   "label": "no-infer-mixed",
+   "mj_per_call": 0.0434,
+   "ms_per_call": 0.002
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

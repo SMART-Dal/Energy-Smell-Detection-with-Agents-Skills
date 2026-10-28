@@ -1,0 +1,1 @@
+CANNOT RUN: `vespa_feed` posts every document to a Vespa endpoint via `vespa_post`, which shells out to `curl` against the network endpoint — it needs network access and subprocesses, and no input can avoid that.

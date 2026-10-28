@@ -1,0 +1,1 @@
+CANNOT RUN: `build_devstats_rows` calls `get_github_login` for every name, which issues `requests.get` to `https://api.github.com/users/{username}` (plus a 100 ms sleep); it needs live network access to GitHub and cannot run here.

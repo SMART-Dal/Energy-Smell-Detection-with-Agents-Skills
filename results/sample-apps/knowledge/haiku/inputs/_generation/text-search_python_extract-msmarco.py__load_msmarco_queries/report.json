@@ -1,0 +1,135 @@
+{
+ "unit": "text-search/python/extract-msmarco.py::load_msmarco_queries",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 99.9,
+   "finish": "stop",
+   "provider": "Baidu",
+   "prompt_tokens": 2298,
+   "completion_tokens": 22855,
+   "reasoning_tokens": 20711,
+   "cost": 0.0131017764,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "short",
+     "ok": false,
+     "joules": 3.757089875,
+     "seconds": 0.06441986095160246,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "medium",
+     "ok": true,
+     "joules": 13.095004599999992,
+     "seconds": 0.21913996059447527
+    },
+    {
+     "label": "long",
+     "ok": true,
+     "joules": 20.728354000000007,
+     "seconds": 0.36382806207984686
+    },
+    {
+     "label": "punct",
+     "ok": true,
+     "joules": 16.38184325000003,
+     "seconds": 0.2812824519351125
+    },
+    {
+     "label": "upper",
+     "ok": false,
+     "joules": 7.521580222222231,
+     "seconds": 0.12389907613396645,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "unicode",
+     "ok": false,
+     "joules": 7.727999624999995,
+     "seconds": 0.13273724261671305,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "empty-short",
+     "ok": false,
+     "joules": 4.822071785714294,
+     "seconds": 0.07592246774584055,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "huge",
+     "ok": true,
+     "joules": 23.08203266666654,
+     "seconds": 0.3923190273344517
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "one-line",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "malformed",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 72.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 31.2
+  }
+ ],
+ "seconds": 173.5,
+ "cost": 0.0131,
+ "kept": [
+  {
+   "label": "huge",
+   "mj_per_call": 23082.0327,
+   "ms_per_call": 392.319
+  },
+  {
+   "label": "long",
+   "mj_per_call": 20728.354,
+   "ms_per_call": 363.828
+  },
+  {
+   "label": "punct",
+   "mj_per_call": 16381.8433,
+   "ms_per_call": 281.282
+  },
+  {
+   "label": "medium",
+   "mj_per_call": 13095.0046,
+   "ms_per_call": 219.14
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

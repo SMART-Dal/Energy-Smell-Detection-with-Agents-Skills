@@ -1,0 +1,626 @@
+[
+ {
+  "id": "validate-drop-parent-kind",
+  "unit": "scripts/validate-workstreams.py::validate_workstreams_semantics",
+  "status": "regressed",
+  "reason": "the repair costs more than the code it replaces: 5.5% lost on 'deep-parent-chain', above the 1.3% noise floor, and no case improved. Worse on 2 of 4 cases ('deep-parent-chain', 'parent-cycle').",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 1.29,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "typical-tree",
+    "repeats": 166,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.4258,
+    "after_energy_j": 56.7116,
+    "before_time_s": 1.0346,
+    "after_time_s": 1.035,
+    "before_power_w": 54.54,
+    "after_power_w": 54.79,
+    "before_s_per_call": 0.006099073216319084,
+    "after_s_per_call": 0.00604439340531826,
+    "energy_ci_pct": 2.72,
+    "significant": false
+   },
+   {
+    "label": "deep-parent-chain",
+    "repeats": 5,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.8248,
+    "after_energy_j": 69.4323,
+    "before_time_s": 1.1911,
+    "after_time_s": 1.2561,
+    "before_power_w": 55.27,
+    "after_power_w": 55.27,
+    "before_s_per_call": 0.23144780099391937,
+    "after_s_per_call": 0.24104895908385515,
+    "energy_ci_pct": 1.15,
+    "significant": true
+   },
+   {
+    "label": "parent-cycle",
+    "repeats": 19,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.6398,
+    "after_energy_j": 61.9716,
+    "before_time_s": 1.0756,
+    "after_time_s": 1.1212,
+    "before_power_w": 55.45,
+    "after_power_w": 55.27,
+    "before_s_per_call": 0.05435440503060818,
+    "after_s_per_call": 0.05658091697841883,
+    "energy_ci_pct": 3.74,
+    "significant": true
+   },
+   {
+    "label": "large-mixed",
+    "repeats": 44,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.2433,
+    "after_energy_j": 57.8019,
+    "before_time_s": 1.0527,
+    "after_time_s": 1.0448,
+    "before_power_w": 55.33,
+    "after_power_w": 55.32,
+    "before_s_per_call": 0.023251431062817574,
+    "after_s_per_call": 0.023467338643968105,
+    "energy_ci_pct": 0.34,
+    "significant": true
+   }
+  ],
+  "submission_hash": "a05db4671b6471c6",
+  "baseline_sha256": "8f8d21e96b0d0c8c",
+  "measured_twice": true,
+  "first_status": "negligible"
+ },
+ {
+  "id": "validate-hoist-team-sets",
+  "unit": "scripts/validate-workstreams.py::validate_workstreams_semantics",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('typical-tree', 'parent-cycle', 'large-mixed'; best 57.7% +-1.0% on 'large-mixed'), and no saving that can be told from noise on the rest: 'deep-parent-chain' +0.9% +-0.6% (within the 1.3% noise floor). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 1.29,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "typical-tree",
+    "repeats": 315,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 104.0881,
+    "after_energy_j": 49.4561,
+    "before_time_s": 1.9464,
+    "after_time_s": 0.9225,
+    "before_power_w": 53.48,
+    "after_power_w": 53.61,
+    "before_s_per_call": 0.0063318610191345215,
+    "after_s_per_call": 0.0029603801667690277,
+    "energy_ci_pct": 0.3,
+    "significant": true
+   },
+   {
+    "label": "deep-parent-chain",
+    "repeats": 5,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 67.2761,
+    "after_energy_j": 66.6873,
+    "before_time_s": 1.2534,
+    "after_time_s": 1.2421,
+    "before_power_w": 53.68,
+    "after_power_w": 53.69,
+    "before_s_per_call": 0.24702739994972944,
+    "after_s_per_call": 0.24336700793355703,
+    "energy_ci_pct": 0.58,
+    "significant": true
+   },
+   {
+    "label": "parent-cycle",
+    "repeats": 18,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.631,
+    "after_energy_j": 54.9224,
+    "before_time_s": 1.0546,
+    "after_time_s": 1.0232,
+    "before_power_w": 53.7,
+    "after_power_w": 53.68,
+    "before_s_per_call": 0.05774023104459047,
+    "after_s_per_call": 0.055789957754313946,
+    "energy_ci_pct": 1.71,
+    "significant": true
+   },
+   {
+    "label": "large-mixed",
+    "repeats": 82,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 102.8896,
+    "after_energy_j": 43.5693,
+    "before_time_s": 1.9356,
+    "after_time_s": 0.8221,
+    "before_power_w": 53.16,
+    "after_power_w": 53.0,
+    "before_s_per_call": 0.024099836125969887,
+    "after_s_per_call": 0.010243143886327744,
+    "energy_ci_pct": 0.98,
+    "significant": true
+   }
+  ],
+  "submission_hash": "e6054fab0fac96a9",
+  "baseline_sha256": "8f8d21e96b0d0c8c"
+ },
+ {
+  "id": "sync-single-pass-removal",
+  "unit": "scripts/gc-elections/create-github-comments.py::sync",
+  "status": "confirmed",
+  "reason": "95.9% +-5.2% energy saved on 'large-comments', clearing the 1.3% noise floor. Saved energy on all 4 inputs ('many-comments-few-stale', 'all-stale', 'large-comments', 'big-file'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 1.29,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "many-comments-few-stale",
+    "repeats": 84,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 64.4644,
+    "after_energy_j": 55.1588,
+    "before_time_s": 1.2048,
+    "after_time_s": 1.0269,
+    "before_power_w": 53.51,
+    "after_power_w": 53.72,
+    "before_s_per_call": 0.013679780066013336,
+    "after_s_per_call": 0.011910941451787949,
+    "energy_ci_pct": 10.38,
+    "significant": true
+   },
+   {
+    "label": "all-stale",
+    "repeats": 6,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 103.1453,
+    "after_energy_j": 4.7634,
+    "before_time_s": 1.9195,
+    "after_time_s": 0.0887,
+    "before_power_w": 53.74,
+    "after_power_w": 53.65,
+    "before_s_per_call": 0.31784797180444,
+    "after_s_per_call": 0.00941035058349371,
+    "energy_ci_pct": 6.82,
+    "significant": true
+   },
+   {
+    "label": "large-comments",
+    "repeats": 5,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 91.9818,
+    "after_energy_j": 3.7437,
+    "before_time_s": 1.7111,
+    "after_time_s": 0.0694,
+    "before_power_w": 53.75,
+    "after_power_w": 53.9,
+    "before_s_per_call": 0.34098523762077093,
+    "after_s_per_call": 0.009404673241078854,
+    "energy_ci_pct": 5.23,
+    "significant": true
+   },
+   {
+    "label": "big-file",
+    "repeats": 12,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 106.5377,
+    "after_energy_j": 10.5046,
+    "before_time_s": 1.982,
+    "after_time_s": 0.1957,
+    "before_power_w": 53.75,
+    "after_power_w": 53.68,
+    "before_s_per_call": 0.16378945671021938,
+    "after_s_per_call": 0.013932853937149048,
+    "energy_ci_pct": 5.45,
+    "significant": true
+   }
+  ],
+  "submission_hash": "8d171d5c7f93bbde",
+  "baseline_sha256": "35565b5e383e25d9"
+ },
+ {
+  "id": "sync-reuse-mentions",
+  "unit": "scripts/gc-elections/create-github-comments.py::sync",
+  "status": "partial",
+  "reason": "saves energy on 1 of 4 inputs ('many-comments-few-stale'; best 13.9% +-3.5% on 'many-comments-few-stale'), and no saving that can be told from noise on the rest: 'all-stale' +0.7% +-0.5% (within the 1.3% noise floor); 'large-comments' +0.7% +-0.9% (its pairs disagree too much to tell); 'big-file' +0.8% +-3.0% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 1.29,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "many-comments-few-stale",
+    "repeats": 85,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 67.9613,
+    "after_energy_j": 58.5349,
+    "before_time_s": 1.2392,
+    "after_time_s": 1.0639,
+    "before_power_w": 54.85,
+    "after_power_w": 55.02,
+    "before_s_per_call": 0.013741490431129932,
+    "after_s_per_call": 0.011869270354509354,
+    "energy_ci_pct": 3.49,
+    "significant": true
+   },
+   {
+    "label": "all-stale",
+    "repeats": 4,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 74.0593,
+    "after_energy_j": 73.5515,
+    "before_time_s": 1.3463,
+    "after_time_s": 1.3368,
+    "before_power_w": 55.01,
+    "after_power_w": 55.02,
+    "before_s_per_call": 0.3222255436703563,
+    "after_s_per_call": 0.32122890185564756,
+    "energy_ci_pct": 0.52,
+    "significant": true
+   },
+   {
+    "label": "large-comments",
+    "repeats": 3,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.9798,
+    "after_energy_j": 58.5389,
+    "before_time_s": 1.0717,
+    "after_time_s": 1.0658,
+    "before_power_w": 55.03,
+    "after_power_w": 54.92,
+    "before_s_per_call": 0.34379451908171177,
+    "after_s_per_call": 0.3426958592608571,
+    "energy_ci_pct": 0.91,
+    "significant": false
+   },
+   {
+    "label": "big-file",
+    "repeats": 7,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.1599,
+    "after_energy_j": 65.6569,
+    "before_time_s": 1.2086,
+    "after_time_s": 1.1977,
+    "before_power_w": 54.74,
+    "after_power_w": 54.82,
+    "before_s_per_call": 0.16611450910568237,
+    "after_s_per_call": 0.1642490839585662,
+    "energy_ci_pct": 3.03,
+    "significant": false
+   }
+  ],
+  "submission_hash": "cb3045bc55ad6baf",
+  "baseline_sha256": "35565b5e383e25d9",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "gh-login-session",
+  "unit": "scripts/gc-elections/generate-voters-roll.py::get_github_login",
+  "status": "no_inputs",
+  "reason": "no inputs could be generated for scripts/gc-elections/generate-voters-roll.py::get_github_login: it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get`, which requires network access that is unavailable here. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30",
+  "submission_hash": "21073a92d2d55682",
+  "baseline_sha256": "76251daec2ddddfe"
+ },
+ {
+  "id": "commenters-set-membership",
+  "unit": "scripts/move-to-emeritus.py::_get_repo_commenters",
+  "status": "no_inputs",
+  "reason": "no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_commenters: it cannot run here: `_get_repo_commenters` performs live HTTP GET requests to the GitHub REST API (`request_with_retry(\"GET\", url)` \u2192 `urllib.request.urlopen`) on every non-cached path, so it requires network access to api.github.com; the only network-free path is the trivial `_repo_comments_cache` hit that does no work, and the environment provides no network. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30",
+  "submission_hash": "256b259200e439b1",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "events-stop-when-all-found",
+  "unit": "scripts/move-to-emeritus.py::_check_events",
+  "status": "regressed",
+  "reason": "the repair costs more than the code it replaces: 47.4% lost on 'huge-remaining', above the 1.3% noise floor, and no case improved. Worse on 4 of 4 cases ('big-mixed', 'single-type', 'huge-remaining', 'exclude-all').",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 1.29,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "big-mixed",
+    "repeats": 1413,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.7686,
+    "after_energy_j": 92.9563,
+    "before_time_s": 1.0396,
+    "after_time_s": 1.6952,
+    "before_power_w": 54.61,
+    "after_power_w": 54.84,
+    "before_s_per_call": 0.0007077734917402267,
+    "after_s_per_call": 0.0013334639370441437,
+    "energy_ci_pct": 32.37,
+    "significant": true
+   },
+   {
+    "label": "single-type",
+    "repeats": 1044,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 48.9519,
+    "after_energy_j": 95.5563,
+    "before_time_s": 0.8936,
+    "after_time_s": 1.7358,
+    "before_power_w": 54.78,
+    "after_power_w": 55.05,
+    "before_s_per_call": 0.0008257180452346802,
+    "after_s_per_call": 0.0019149649888277054,
+    "energy_ci_pct": 2.36,
+    "significant": true
+   },
+   {
+    "label": "huge-remaining",
+    "repeats": 461,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.0899,
+    "after_energy_j": 87.1137,
+    "before_time_s": 1.072,
+    "after_time_s": 1.5778,
+    "before_power_w": 55.12,
+    "after_power_w": 55.21,
+    "before_s_per_call": 0.002171221189200878,
+    "after_s_per_call": 0.003428960219025612,
+    "energy_ci_pct": 5.61,
+    "significant": true
+   },
+   {
+    "label": "exclude-all",
+    "repeats": 1048,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 47.162,
+    "after_energy_j": 91.2234,
+    "before_time_s": 0.8727,
+    "after_time_s": 1.6874,
+    "before_power_w": 54.04,
+    "after_power_w": 54.06,
+    "before_s_per_call": 0.0008108140900731087,
+    "after_s_per_call": 0.0019071456044912338,
+    "energy_ci_pct": 13.0,
+    "significant": true
+   }
+  ],
+  "submission_hash": "d5bad76a1123619a",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "verify-reviews-cache",
+  "unit": "scripts/move-to-emeritus.py::_verify_review_candidates",
+  "status": "no_inputs",
+  "reason": "no inputs could be generated for scripts/move-to-emeritus.py::_verify_review_candidates: it cannot run here: `_verify_review_candidates` performs live GitHub REST requests via `request_with_retry`/`urllib.request.urlopen` to the hardcoded `https://api.github.com` endpoint; it needs network access (and credentials/rate limits) and cannot be exercised here without mocking the request layer, which is forbidden. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30",
+  "submission_hash": "ed30449ce4673bd7",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "triager-guard-debug",
+  "unit": "scripts/move-to-emeritus.py::check_triager_activity",
+  "status": "no_inputs",
+  "reason": "no inputs could be generated for scripts/move-to-emeritus.py::check_triager_activity: it cannot run here: `check_triager_activity` delegates to `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` / `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub repository data over the network (via `paginate_rest`/`request_with_retry`), and neither their cache format nor any offline data source is given, so no input can make the function run without network access. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30",
+  "submission_hash": "31c40140dcedee47",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "approver-guard-debug",
+  "unit": "scripts/move-to-emeritus.py::check_approver_activity",
+  "status": "no_inputs",
+  "reason": "no inputs could be generated for scripts/move-to-emeritus.py::check_approver_activity: it cannot run here: `check_approver_activity` reaches the GitHub API on every call \u2014 it invokes `_check_comments` (which calls `_get_repo_commenters` and its REST requests) and `_check_reviews` (which posts a GraphQL query via `request_with_retry`), so no input can avoid network access and credentials. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30",
+  "submission_hash": "c6c6adcfbf34cdcd",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "maintainer-guard-debug",
+  "unit": "scripts/move-to-emeritus.py::check_maintainer_activity",
+  "status": "no_inputs",
+  "reason": "no inputs could be generated for scripts/move-to-emeritus.py::check_maintainer_activity: it cannot run here: `check_maintainer_activity` needs network access to the GitHub API \u2014 its first step for any non-empty input is `_check_comments` \u2192 `_get_repo_commenters` (REST pagination) and later `_check_reviews`/authored-PR queries hit `GRAPHQL_API`/`api.github.com` with credentials; the only input that avoids the network is empty `usernames`/`repos`, which does no work. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30",
+  "submission_hash": "07eb34555e2fe0f6",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "add-emeritus-single-scan",
+  "unit": "scripts/move-to-emeritus.py::_add_to_emeritus",
+  "status": "confirmed",
+  "reason": "15.7% +-6.1% energy saved on 'existing-level2', clearing the 1.3% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 1.29,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "existing-large",
+    "repeats": 29,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 64.636,
+    "after_energy_j": 55.5521,
+    "before_time_s": 1.1937,
+    "after_time_s": 1.0257,
+    "before_power_w": 54.15,
+    "after_power_w": 54.16,
+    "before_s_per_call": 0.04101311322301626,
+    "after_s_per_call": 0.03500945307314396,
+    "energy_ci_pct": 0.47,
+    "significant": true
+   },
+   {
+    "label": "existing-level2",
+    "repeats": 39,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.9205,
+    "after_energy_j": 56.3715,
+    "before_time_s": 1.2184,
+    "after_time_s": 1.0348,
+    "before_power_w": 54.92,
+    "after_power_w": 54.47,
+    "before_s_per_call": 0.030564316548407078,
+    "after_s_per_call": 0.026083107106387615,
+    "energy_ci_pct": 6.15,
+    "significant": true
+   },
+   {
+    "label": "existing-mixed-markers",
+    "repeats": 33,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.0139,
+    "after_energy_j": 55.2065,
+    "before_time_s": 1.1915,
+    "after_time_s": 1.017,
+    "before_power_w": 54.56,
+    "after_power_w": 54.29,
+    "before_s_per_call": 0.035893297754228115,
+    "after_s_per_call": 0.03068433701992035,
+    "energy_ci_pct": 5.38,
+    "significant": true
+   },
+   {
+    "label": "existing-case-insensitive",
+    "repeats": 47,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 64.7323,
+    "after_energy_j": 55.7752,
+    "before_time_s": 1.1934,
+    "after_time_s": 1.0306,
+    "before_power_w": 54.24,
+    "after_power_w": 54.12,
+    "before_s_per_call": 0.025386953726410866,
+    "after_s_per_call": 0.02172782737761736,
+    "energy_ci_pct": 0.51,
+    "significant": true
+   }
+  ],
+  "submission_hash": "ad6ec10a5566e1ba",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ }
+]

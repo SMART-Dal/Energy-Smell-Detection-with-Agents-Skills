@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::extract_assay_expression",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 10.6,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5549,
+   "completion_tokens": 3032,
+   "reasoning_tokens": 2932,
+   "cost": 0.002462794,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `extract_assay_expression` only reaches its real work after `resolve_existing_path(args.path)` and `DXRecord(...)` / `Dataset.resolve_cohort_to_dataset(...)`, which require authenticated network access to the DNAnexus platform; without `args.path` the local variable `dataset` is never defined, so every non-network path either raises `NameError` or calls `err_exit`/`sys.exit`. No input can avoid the network."
+  }
+ ],
+ "seconds": 19.7,
+ "cost": 0.00246,
+ "kept": [],
+ "reason": "it cannot run here: `extract_assay_expression` only reaches its real work after `resolve_existing_path(args.path)` and `DXRecord(...)` / `Dataset.resolve_cohort_to_dataset(...)`, which require authenticated network access to the DNAnexus platform; without `args.path` the local variable `dataset` is never defined, so every non-network path either raises `NameError` or calls `err_exit`/`sys.exit`. No input can avoid the network."
+}

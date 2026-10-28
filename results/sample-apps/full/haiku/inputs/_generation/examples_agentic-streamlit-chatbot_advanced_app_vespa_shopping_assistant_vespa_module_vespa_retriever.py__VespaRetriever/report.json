@@ -1,0 +1,25 @@
+{
+ "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/vespa_retriever.py::VespaRetriever",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.9,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2831,
+   "completion_tokens": 141,
+   "reasoning_tokens": 79,
+   "cost": 0.000139512,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `VespaRetriever` builds a `Vespa` client and performs `vespa_app.query(...)`, a request to a Vespa server at `VESPA_URL`; it needs network access and live credentials (cert/key), which are unavailable here."
+  }
+ ],
+ "seconds": 6.0,
+ "cost": 0.00014,
+ "kept": [],
+ "reason": "it cannot run here: `VespaRetriever` builds a `Vespa` client and performs `vespa_app.query(...)`, a request to a Vespa server at `VESPA_URL`; it needs network access and live credentials (cert/key), which are unavailable here."
+}

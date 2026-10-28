@@ -1,0 +1,141 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::escape_folder_str",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 16.8,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2816,
+   "completion_tokens": 2297,
+   "reasoning_tokens": 1418,
+   "cost": 0.00082769,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "plain-alnum",
+     "ok": false,
+     "joules": 0.7677950655737704,
+     "seconds": 0.01657552644610405,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "spaces-and-slashes",
+     "ok": false,
+     "joules": 1.942524153846154,
+     "seconds": 0.039686527103185654,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "backslashes",
+     "ok": false,
+     "joules": 0.23784541968911935,
+     "seconds": 0.005188997834920883,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-specials",
+     "ok": true,
+     "joules": 12.24466400000001,
+     "seconds": 0.24405922926962376
+    },
+    {
+     "label": "random-mixed",
+     "ok": true,
+     "joules": 4.9138785999999985,
+     "seconds": 0.10055951401591301
+    },
+    {
+     "label": "dense-escapes",
+     "ok": true,
+     "joules": 5.4845414999999775,
+     "seconds": 0.1050396841019392
+    },
+    {
+     "label": "unicode-mixed",
+     "ok": true,
+     "joules": 4.296229416666658,
+     "seconds": 0.08765592612326145
+    },
+    {
+     "label": "realistic-paths",
+     "ok": false,
+     "joules": 0.3839268780487782,
+     "seconds": 0.008143963292241096,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-special",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 100.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 79.3
+  }
+ ],
+ "seconds": 129.7,
+ "cost": 0.00083,
+ "kept": [
+  {
+   "label": "all-specials",
+   "mj_per_call": 12244.664,
+   "ms_per_call": 244.059
+  },
+  {
+   "label": "dense-escapes",
+   "mj_per_call": 5484.5415,
+   "ms_per_call": 105.04
+  },
+  {
+   "label": "random-mixed",
+   "mj_per_call": 4913.8786,
+   "ms_per_call": 100.56
+  },
+  {
+   "label": "unicode-mixed",
+   "mj_per_call": 4296.2294,
+   "ms_per_call": 87.656
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

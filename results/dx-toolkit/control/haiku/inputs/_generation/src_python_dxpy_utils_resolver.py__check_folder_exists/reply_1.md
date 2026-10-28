@@ -1,0 +1,1 @@
+CANNOT RUN: `check_folder_exists` calls `dxpy.api.container_list_folder()`, which makes a request to the DNAnexus API server; it requires network access and credentials, and no input can avoid that.

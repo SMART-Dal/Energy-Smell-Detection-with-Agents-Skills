@@ -1,0 +1,1 @@
+CANNOT RUN: `TestDXSearch.test_resolve_data_objects` drives the live DNAnexus platform — it calls `testutil.temporary_project` and `dxpy.new_dxrecord` to create projects/records on a server, and `dxpy.search.resolve_data_objects` performs classify/describe API calls against it. No input can avoid these network/credentialed service requests.

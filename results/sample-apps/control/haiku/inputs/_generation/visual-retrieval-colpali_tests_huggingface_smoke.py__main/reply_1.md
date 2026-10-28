@@ -1,0 +1,1 @@
+CANNOT RUN: `main` unconditionally imports `dotenv`, `gradio`, `starlette.testclient`, `torch` and the `visual-retrieval-colpali` application module (which itself needs the full ColPali/transformers stack) and patches `vespa.application.Vespa.wait_for_application_up`; these heavy third-party ML/web packages are not available in this environment, and no input can avoid them.

@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/utils/batch_utils.py::batch_run",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.9,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 2544,
+   "completion_tokens": 612,
+   "reasoning_tokens": 551,
+   "cost": 0.00048408,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `batch_run` calls `executable.describe()` and `executable.run(...)`, which are DNAnexus API requests to a remote server (requiring network access and credentials); a stand-in executable returning canned results would be a mock, which is not allowed."
+  }
+ ],
+ "seconds": 17.6,
+ "cost": 0.00048,
+ "kept": [],
+ "reason": "it cannot run here: `batch_run` calls `executable.describe()` and `executable.run(...)`, which are DNAnexus API requests to a remote server (requiring network access and credentials); a stand-in executable returning canned results would be a mock, which is not allowed."
+}

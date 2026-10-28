@@ -1,0 +1,172 @@
+{
+ "unit": "src/python/dxpy/bindings/dxglobalworkflow.py::DXGlobalWorkflow.get_underlying_workflow",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 45.4,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 4620,
+   "completion_tokens": 13186,
+   "reasoning_tokens": 12169,
+   "cost": 0.012514452,
+   "retried": []
+  },
+  {
+   "seconds": 83.7,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 5962,
+   "completion_tokens": 24736,
+   "reasoning_tokens": 23607,
+   "cost": 0.022594698,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "single-region",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "three-regions",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "five-thousand-regions",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "twenty-thousand-regions",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "rich-region-entries",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-hit-small",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-hit-large-cache",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-miss-large-cache",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    }
+   ],
+   "checks": [
+    {
+     "label": "region-none",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "class-mismatch",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "region-not-enabled",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    }
+   ],
+   "validate_s": 16.2,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 14.5
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "single-region",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "three-regions",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "twenty-thousand-regions",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-hit-small-first",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-hit-small-last",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-hit-large-first",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-hit-large-middle",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "cache-hit-large-last",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    }
+   ],
+   "checks": [
+    {
+     "label": "region-none",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "class-mismatch",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "region-not-enabled",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    }
+   ],
+   "validate_s": 1.6,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 164.7,
+ "cost": 0.03511,
+ "kept": [],
+ "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: RecursionError: maximum recursion depth exceeded in comparison)"
+}

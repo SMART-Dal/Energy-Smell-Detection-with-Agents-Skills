@@ -1,0 +1,1448 @@
+Rules compared with step1.jsonl -- 81 unit(s) on your list -- at 04:34.
+Target .: 112 file(s) scanned, 110 unit(s) flagged, 140 finding(s).
+
+Part 1: the rules flag 84 unit(s) that are not on your list.
+Part 2: 22 unit(s) on your list where a rule names a root cause you did not suspect there.
+Part 3: 4 unit(s) on your list where a rule agrees with you.
+
+For every entry in parts 1 and 2, read the unit's code and decide for
+yourself: add the unit, or the suspicion, to step1.jsonl if you agree; leave it
+if you do not. Each fact names the root causes it could be, as
+reference/README.md lists them; two labels on one fact are one thing to look
+at, not two. Within each part the units are in file and line order, which
+says nothing about which matter. Every unit starts with `== `.
+
+##############################################################################
+PART 1: THE RULES FLAG 84 UNIT(S) THAT ARE NOT ON YOUR LIST
+##############################################################################
+
+==============================================================================
+== billion-scale-image-search/app/src/main/python/clip_export.py:13  CLIPTransformerExporter.forward  (lines 13-14)
+
+  self_delegation_chain
+         C2.S1   Unnecessary Method Delegation
+         C2.S3   Excessive Modularization in Hot Path
+           `CLIPTransformerExporter.forward` does nothing but call
+           `self.encode_text()`; the extra frame is paid on every call and
+           buys no work
+           at 14
+                14 |         return self.encode_text(text)
+
+==============================================================================
+== billion-scale-image-search/app/src/main/python/pca_transformer_export.py:15  PCATransformer.forward  (lines 15-16)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `forward` never uses `self`, so every call builds a bound method
+           object for nothing
+           at 15
+                15 |   def forward(self, vectors):
+
+==============================================================================
+== billion-scale-image-search/app/src/main/python/ranker_export.py:11  Ranker.forward  (lines 11-12)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `forward` never uses `self`, so every call builds a bound method
+           object for nothing
+           at 11
+                11 |     def forward(self, query, documents):
+
+==============================================================================
+== billion-scale-image-search/app/src/main/python/similarity_export.py:12  Similarity.forward  (lines 12-13)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `forward` never uses `self`, so every call builds a bound method
+           object for nothing
+           at 12
+                12 |   def forward(self, documents):
+
+==============================================================================
+== billion-scale-vector-search/app/src/main/python/recall.py:43  knn_result_read  (lines 43-50)
+
+  unmanaged_resource
+         also reported by ruff_SIM115
+         C6.S6   Leaked Resource Handles
+           `open()` result is not managed by a `with` block, so the handle is
+           released only when the collector gets to it
+           at 46
+                46 |   f = open(args.query_gt_file, "rb")
+
+==============================================================================
+== billion-scale-vector-search/app/src/main/python/recall.py:75  main  (lines 75-111)
+
+  unmanaged_resource
+         C6.S6   Leaked Resource Handles
+           `Session()` result is not managed by a `with` block, so the handle
+           is released only when the collector gets to it
+           at 99
+                99 |     session = requests.Session()
+
+==============================================================================
+== colbert-long/scripts/evaluate.py:9  search  (lines 9-55)
+
+  expensive_comparison
+         C6.S1   Unnecessary Object
+           `str(query_id) == str(id)` builds a new object with `str()` only to
+           compare it and throw it away
+           at 42
+                42 |             if str(query_id) == str(id):
+
+==============================================================================
+== examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/main_graph.py:19  VespaRetrieverTool  (lines 19-49)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `result` exists only to be returned on the next line
+           at 47
+                47 |     result=result_state["SearchEngineResults"]
+
+==============================================================================
+== examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/update_vespa.py:21  fetch_documents  (lines 21-37)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `filtered_data` exists only to be returned on the next line
+           at 35
+                35 |     filtered_data = [hit["fields"] for hit in response.hits]
+
+==============================================================================
+== examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/vespa_retriever.py:8  create_conditions  (lines 8-52)
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 37
+                37 |         try:
+
+==============================================================================
+== examples/ecommerce-user-preferences/webapp/app.py:216  query_vespa  (lines 216-308)
+
+  append_only_loop  x4
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           loop body is a single `.append()`; a comprehension does the same
+           work without a bound-method lookup and call per item
+           at 238, 245, 252, 259
+               238 |             for make in facet_filters['make']:
+               245 |             for model in facet_filters['model']:
+               252 |             for transmission in facet_filters['transmission']:
+               259 |             for fuelType in facet_filters['fuelType']:
+
+  ruff_PERF401  x4
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           append loop that could be a comprehension (ruff PERF401: Use a list
+           comprehension to create a transformed list)
+           at 239, 246, 253, 260
+               239 |                 make_conditions.append({"contains": ["make", make]})
+               246 |                 model_conditions.append({"contains": ["model", model]})
+               253 |                 transmission_conditions.append({"contains": ["transmission", transmission]})
+               260 |                 fuelType_conditions.append({"contains": ["fuelType", fuelType]})
+
+==============================================================================
+== examples/ecommerce-user-preferences/webapp/app.py:416  chat  (lines 416-513)
+
+  string_concat_in_loop
+         C10.S4  Inefficient String Concatenation
+           `filter_context` is rebuilt by an f-string that interpolates itself
+           inside a loop; f-strings always allocate a new object, so this
+           copies the whole value every iteration even when the accumulator is
+           a plain local
+           at 443
+               443 |                 filter_context += f"- {facet_type.title()}: {', '.join(filters)}\n"
+
+==============================================================================
+== examples/embedder-auto-training-evaluation/training-evaluation/evaluate.py:10  search  (lines 10-48)
+
+  expensive_comparison
+         C6.S1   Unnecessary Object
+           `str(query_id) == str(id)` builds a new object with `str()` only to
+           compare it and throw it away
+           at 35
+                35 |                 if str(query_id) == str(id):
+
+==============================================================================
+== examples/embedder-auto-training-evaluation/training-evaluation/evaluate.py:51  main  (lines 51-89)
+
+  unmanaged_resource
+         C6.S6   Leaked Resource Handles
+           `Session()` result is not managed by a `with` block, so the handle
+           is released only when the collector gets to it
+           at 67
+                67 |     session = requests.Session()
+
+==============================================================================
+== examples/embedder-auto-training-evaluation/training-evaluation/positives-negatives.py:51  main  (lines 51-97)
+
+  unmanaged_resource
+         C6.S6   Leaked Resource Handles
+           `Session()` result is not managed by a `with` block, so the handle
+           is released only when the collector gets to it
+           at 69
+                69 |     session = requests.Session()
+
+  io_call_in_loop
+         C8.S4   Redundant Data Fetching
+         C9.S1   Fragmented I/O Calls
+         C9.S3   Inefficient Retrieval Paths
+           `file.write()` looks like it leaves the process, and it runs once
+           per iteration; batching would amortise the round trip
+           at 97
+                97 |             file.write(f"{json.dumps(data)}\n")
+
+==============================================================================
+== examples/embedder-auto-training-evaluation/training-evaluation/train.py:9  TrainDataset.__init__  (lines 9-21)
+
+  whole_file_read  x2
+         C6.S3   Unnecessary Data Materialization
+           `.readlines()` builds the whole content in memory and a loop walks
+           it a line at a time; iterating the handle yields the same lines
+           without the list, though it keeps the trailing newline that
+           `.readlines()` and `.splitlines()` differ on
+           at 12, 18
+                12 |             for line in file.readlines():
+                18 |             for line in file.readlines():
+
+==============================================================================
+== examples/google-cloud/cloud-functions/python/main.py:24  listbucket  (lines 24-34)
+
+  append_only_loop
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           loop body is a single `.append()`; a comprehension does the same
+           work without a bound-method lookup and call per item
+           at 31
+                31 |     for blob in blobs:
+
+  ruff_PERF401
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           append loop that could be a comprehension (ruff PERF401: Use a list
+           comprehension to create a transformed list)
+           at 32
+                32 |         response.append(blob.name)
+
+==============================================================================
+== examples/google-cloud/cloud-functions/python/main.py:38  listfiles  (lines 38-49)
+
+  append_only_loop
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           loop body is a single `.append()`; a comprehension does the same
+           work without a bound-method lookup and call per item
+           at 45
+                45 |     for blob in blobs:
+
+  ruff_PERF401
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           append loop that could be a comprehension (ruff PERF401: Use a list
+           comprehension to create a transformed list)
+           at 47
+                47 |             response.append(blob.name)
+
+==============================================================================
+== examples/workshop-ecommerce/preprocess.py:25  check_and_download_dataset  (lines 25-132)
+
+  constant_sequence_literal
+         C5.S3   Over-Provisioned Data Type
+         C6.S1   Unnecessary Object
+           `required_files` is a list of 5 constants that is never mutated; a
+           tuple literal is stored whole in the code object instead of being
+           rebuilt element by element on every call
+           at 27
+                27 |     required_files = [
+
+==============================================================================
+== feed-split.py:147  main  (lines 147-199)
+
+  regex_in_loop  x3
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.sub()` is called once per element; the pattern is re-resolved
+           every time
+           at 164, 166, 167
+               164 |                 paragraph = re.sub(r"\n{2,}", "\n\n", paragraph)
+               166 |                 paragraph = re.sub(r"\n*```", "\n```", paragraph)
+               167 |                 paragraph = re.sub(r"```\n*", "```\n", paragraph)
+
+  ruff_C408
+         C6.S1   Unnecessary Object
+           collection call where a literal would do (ruff C408: Unnecessary
+           `dict()` call (rewrite as a literal))
+           at 183
+               183 |     questions_expansion = dict()
+
+==============================================================================
+== feed_to_vespa.py:14  find  (lines 14-17)
+
+  linear_recursion
+         C7.S3   Avoidable Recursive Implementation
+           `find` recurses once per call; CPython builds a frame per level and
+           does not optimise tail calls
+           at 17
+                17 |     return find(json[head], rest) if head in json else None
+
+==============================================================================
+== feed_to_vespa.py:95  get_docs  (lines 95-97)
+
+  ruff_SIM115
+         C6.S6   Leaked Resource Handles
+           file opened without a context manager (ruff SIM115: Use a context
+           manager for opening files)
+           at 96
+                96 |     file = open(index, "r", encoding='utf-8')
+
+==============================================================================
+== feed_to_vespa.py:119  get_feed_docids  (lines 119-127)
+
+  loop_invariant_expression  x2
+         C3.S2   Recomputing Loop-Invariant Values
+           `'id:{0}:doc::'.format(namespace)` does not change across loop
+           iterations but is re-evaluated every time
+           at 123
+               123 |         return set(["id:{0}:doc::".format(namespace) + find(doc, "fields.namespace") + find(doc, "fields.path") for doc in feed_json])
+           `'id:{0}:term::'.format(namespace)` does not change across loop
+           iterations but is re-evaluated every time
+           at 125
+               125 |         return set(["id:{0}:term::".format(namespace) + str(find(doc, "fields.hash")) for doc in feed_json])
+
+  ruff_C403  x3
+         C5.S4   Unnecessary Representation Change
+           list comprehension converted to a set (ruff C403: Unnecessary list
+           comprehension (rewrite as a set comprehension))
+           at 123, 125, 127
+               123 |         return set(["id:{0}:doc::".format(namespace) + find(doc, "fields.namespace") + find(doc, "fields.path") for doc in feed_json])
+               125 |         return set(["id:{0}:term::".format(namespace) + str(find(doc, "fields.hash")) for doc in feed_json])
+               127 |         return set([doc['put'] for doc in feed_json])
+
+==============================================================================
+== feed_to_vespa.py:189  main  (lines 189-201)
+
+  unmanaged_resource
+         C6.S6   Leaked Resource Handles
+           `Session()` result is not managed by a `with` block, so the handle
+           is released only when the collector gets to it
+           at 193
+               193 |     session = requests.Session()
+
+==============================================================================
+== hypencoder/model2onnx.py:98  QueryEncoderWrapper._get_weights_and_biases_static  (lines 98-125)
+
+  index_based_iteration
+         C3.S1   Inefficient Iteration Construct
+           iterating `range(len(h.weight_shapes))` and indexing back into it;
+           `zip(h.weight_shapes, h.hyper_base_matrices,
+           h.weight_hyper_projection, h.weight_query_embeddings, keys,
+           values)` walks them together without an index
+           at 104
+               104 |         for i in range(len(h.weight_shapes)):
+
+==============================================================================
+== incremental-search/search-as-you-type/feed_to_vespa.py:11  find  (lines 11-14)
+
+  linear_recursion
+         C7.S3   Avoidable Recursive Implementation
+           `find` recurses once per call; CPython builds a frame per level and
+           does not optimise tail calls
+           at 14
+                14 |     return find(json[head], rest) if head in json else None
+
+==============================================================================
+== incremental-search/search-as-you-type/feed_to_vespa.py:89  get_docs  (lines 89-91)
+
+  ruff_SIM115
+         C6.S6   Leaked Resource Handles
+           file opened without a context manager (ruff SIM115: Use a context
+           manager for opening files)
+           at 90
+                90 |     file = open(index, "r", encoding='utf-8')
+
+==============================================================================
+== incremental-search/search-as-you-type/feed_to_vespa.py:109  get_feed_docids  (lines 109-112)
+
+  loop_invariant_expression
+         C3.S2   Recomputing Loop-Invariant Values
+           `'id:{0}:doc::'.format(namespace)` does not change across loop
+           iterations but is re-evaluated every time
+           at 112
+               112 |     return set([ "id:{0}:doc::".format(namespace) + find(doc, "fields.namespace") + find(doc, "fields.path") for doc in feed_json ])
+
+  ruff_C403
+         C5.S4   Unnecessary Representation Change
+           list comprehension converted to a set (ruff C403: Unnecessary list
+           comprehension (rewrite as a set comprehension))
+           at 112
+               112 |     return set([ "id:{0}:doc::".format(namespace) + find(doc, "fields.namespace") + find(doc, "fields.path") for doc in feed_json ])
+
+==============================================================================
+== incremental-search/search-suggestions/accepted_words.py:14  read_common_words  (lines 14-20)
+
+  whole_file_read
+         C6.S3   Unnecessary Data Materialization
+           `.readlines()` builds the whole content in memory and a loop walks
+           it a line at a time; iterating the handle yields the same lines
+           without the list, though it keeps the trailing newline that
+           `.readlines()` and `.splitlines()` differ on
+           at 17
+                17 |        lines = f.readlines()
+
+==============================================================================
+== incremental-search/search-suggestions/count_terms.py:42  read_common_words  (lines 42-48)
+
+  whole_file_read
+         C6.S3   Unnecessary Data Materialization
+           `.readlines()` builds the whole content in memory and a loop walks
+           it a line at a time; iterating the handle yields the same lines
+           without the list, though it keeps the trailing newline that
+           `.readlines()` and `.splitlines()` differ on
+           at 45
+                45 |         lines = f.readlines()
+
+==============================================================================
+== model-inference/src/main/application/models/pytorch_transformer.py:16  TransformerModel.forward  (lines 16-19)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `output` exists only to be returned on the next line
+           at 18
+                18 |         output = self.transformer_encoder(src)
+
+==============================================================================
+== msmarco-ranking/python/evaluate_passage_run.py:53  get_result  (lines 53-83)
+
+  ruff_C408
+         C6.S1   Unnecessary Object
+           collection call where a literal would do (ruff C408: Unnecessary
+           `dict()` call (rewrite as a literal))
+           at 56
+                56 |     formatted_params = dict()
+
+==============================================================================
+== msmarco-ranking/python/evaluate_passage_run.py:97  eval  (lines 97-109)
+
+  append_only_loop
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           loop body is a single `.append()`; a comprehension does the same
+           work without a bound-method lookup and call per item
+           at 100
+               100 |     for query_id, text in dataset.queries_iter():
+
+  io_call_in_loop
+         C8.S4   Redundant Data Fetching
+         C9.S1   Fragmented I/O Calls
+         C9.S3   Inefficient Retrieval Paths
+           `fp.write()` looks like it leaves the process, and it runs once per
+           iteration; batching would amortise the round trip
+           at 109
+               109 |                 fp.write("{}\n".format(line))
+
+==============================================================================
+== msmarco-ranking/python/evaluate_passage_run.py:111  main  (lines 111-136)
+
+  unmanaged_resource
+         C6.S6   Leaked Resource Handles
+           `Session()` result is not managed by a `with` block, so the handle
+           is released only when the collector gets to it
+           at 125
+               125 |     session = requests.Session()
+
+==============================================================================
+== multilingual-search/ext/evaluate.py:47  main  (lines 47-77)
+
+  unmanaged_resource
+         C6.S6   Leaked Resource Handles
+           `Session()` result is not managed by a `with` block, so the handle
+           is released only when the collector gets to it
+           at 60
+                60 |     session = requests.Session()
+
+==============================================================================
+== news/src/python/evaluate.py:81  calc_metrics  (lines 81-100)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `metrics` exists only to be returned on the next line
+           at 94
+                94 |     metrics = {
+
+==============================================================================
+== news/src/python/mind_data.py:76  MindData.add_entities  (lines 76-80)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `add_entities` never uses `self`, so every call builds a bound
+           method object for nothing
+           at 76
+                76 |     def add_entities(self, entity_ids: list, entities: list):
+
+  membership_test_on_sequence
+         C3.S4   Inefficient Nested Iteration
+         C5.S1   Inefficient Data Structure Choice
+         C5.S2   Missing Helper Type
+           membership test `entity_id not in entity_ids` scans a sequence
+           linearly on every iteration; a set or dict index would be constant-
+           time
+           at 79
+                79 |             if entity_id not in entity_ids:
+
+==============================================================================
+== news/src/python/mind_data.py:116  MindData.lookup_user_index  (lines 116-117)
+
+  self_delegation_chain
+         C2.S1   Unnecessary Method Delegation
+         C2.S3   Excessive Modularization in Hot Path
+           `MindData.lookup_user_index` does nothing but call
+           `self.lookup_index()`; the extra frame is paid on every call and
+           buys no work
+           at 117
+               117 |         return self.lookup_index(user_id, self.user_map)
+
+==============================================================================
+== news/src/python/mind_data.py:119  MindData.lookup_news_index  (lines 119-120)
+
+  self_delegation_chain
+         C2.S1   Unnecessary Method Delegation
+         C2.S3   Excessive Modularization in Hot Path
+           `MindData.lookup_news_index` does nothing but call
+           `self.lookup_index()`; the extra frame is paid on every call and
+           buys no work
+           at 120
+               120 |         return self.lookup_index(news_id, self.news_map)
+
+==============================================================================
+== news/src/python/mind_data.py:122  MindData.lookup_category_index  (lines 122-123)
+
+  self_delegation_chain
+         C2.S1   Unnecessary Method Delegation
+         C2.S3   Excessive Modularization in Hot Path
+           `MindData.lookup_category_index` does nothing but call
+           `self.lookup_index()`; the extra frame is paid on every call and
+           buys no work
+           at 123
+               123 |         return self.lookup_index(category, self.cat_map)
+
+==============================================================================
+== news/src/python/mind_data.py:125  MindData.lookup_subcategory_index  (lines 125-126)
+
+  self_delegation_chain
+         C2.S1   Unnecessary Method Delegation
+         C2.S3   Excessive Modularization in Hot Path
+           `MindData.lookup_subcategory_index` does nothing but call
+           `self.lookup_index()`; the extra frame is paid on every call and
+           buys no work
+           at 126
+               126 |         return self.lookup_index(subcategory, self.sub_cat_map)
+
+==============================================================================
+== news/src/python/mind_data.py:128  MindData.lookup_entity_index  (lines 128-129)
+
+  self_delegation_chain
+         C2.S1   Unnecessary Method Delegation
+         C2.S3   Excessive Modularization in Hot Path
+           `MindData.lookup_entity_index` does nothing but call
+           `self.lookup_index()`; the extra frame is paid on every call and
+           buys no work
+           at 129
+               129 |         return self.lookup_index(entity_id, self.entity_map)
+
+==============================================================================
+== news/src/python/mind_data.py:131  MindData.lookup_index  (lines 131-134)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `lookup_index` never uses `self`, so every call builds a bound
+           method object for nothing
+           at 131
+               131 |     def lookup_index(self, id, map):
+
+==============================================================================
+== news/src/python/mind_data.py:203  MindData.find_clicked  (lines 203-211)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `find_clicked` never uses `self`, so every call builds a bound
+           method object for nothing
+           at 203
+               203 |     def find_clicked(self, news_ids, labels):
+
+==============================================================================
+== news/src/python/train_cold_start.py:55  ContentBasedModel.get_user_embeddings  (lines 55-56)
+
+  self_delegation_chain
+         C2.S1   Unnecessary Method Delegation
+         C2.S3   Excessive Modularization in Hot Path
+           `ContentBasedModel.get_user_embeddings` does nothing but call
+           `self.user_embeddings()`; the extra frame is paid on every call and
+           buys no work
+           at 56
+                56 |         return self.user_embeddings(users)
+
+==============================================================================
+== rag-blueprint/eval/collect_pyvespa.py:135  main  (lines 135-184)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `results` exists only to be returned on the next line
+           at 183
+               183 |     results = feature_collector.collect()
+
+==============================================================================
+== rag-blueprint/eval/train_lightgbm.py:23  strip_feature_prefix  (lines 23-26)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `stripped` exists only to be returned on the next line
+           at 25
+                25 |     stripped = re.sub(r"^(rank_|match_)", "", feature_name)
+
+==============================================================================
+== rag-blueprint/eval/train_logistic_regression.py:74  perform_cross_validation  (lines 74-208)
+
+  column_major_traversal
+         C12.S1  Inefficient Large-Stride Traversal
+           `model.predict_proba(X_test_scaled)[:, 1]` walks a column of a row-
+           major array inside a loop, so each cache line loaded yields one
+           useful element
+           at 139
+               139 |         y_pred_proba = model.predict_proba(X_test_scaled)[:, 1]
+
+==============================================================================
+== scripts/print-app-endpoints.py:13  main  (lines 13-19)
+
+  ruff_SIM115
+         C6.S6   Leaked Resource Handles
+           file opened without a context manager (ruff SIM115: Use a context
+           manager for opening files)
+           at 17
+                17 |     config = yaml.safe_load(open(args.yaml_config, "r"))
+
+==============================================================================
+== test/pseudo_terminal.py:35  Log.flush  (lines 35-36)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `flush` never uses `self`, so every call builds a bound method
+           object for nothing
+           at 35
+                35 |     def flush(self):
+
+==============================================================================
+== test/test.py:119  exec_script  (lines 119-143)
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 136
+               136 |                 try:
+
+==============================================================================
+== test/test.py:203  parse_file  (lines 203-218)
+
+  string_concat_in_loop  x2
+         C10.S4  Inefficient String Concatenation
+           `content` is grown by concatenation inside a loop, but it is a
+           plain local with no other reference, so CPython resizes it in place
+           and the loop is already linear -- reject unless this runs on
+           another runtime
+           at 214, 216
+               214 |             content += "<?" + str(line) + ">"
+               216 |             content += str(line)
+
+==============================================================================
+== test/test.py:254  parse_page  (lines 254-282)
+
+  independent_exclusive_ifs
+         C4.S4   Missing Else-If
+           4 separate `if` statements all test `attr`; every one is evaluated
+           even after an earlier branch has already matched
+           at 266
+               266 |         if attr == "before":
+
+  regex_in_loop  x2
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.search()` is called once per element; the pattern is re-
+           resolved every time
+           at 278
+               278 |         if re.search("^run-macro", attr):
+           `re.sub()` is called once per element; the pattern is re-resolved
+           every time
+           at 279
+               279 |             macro = re.sub("run-macro\s?", "", attr)
+
+==============================================================================
+== test/test.py:304  run_url  (lines 304-315)
+
+  io_call_in_loop
+         C8.S4   Redundant Data Fetching
+         C9.S1   Fragmented I/O Calls
+         C9.S3   Inefficient Retrieval Paths
+           `urllib.request.urlopen()` looks like it leaves the process, and it
+           runs once per iteration; batching would amortise the round trip
+           at 310
+               310 |             allpages += urllib.request.urlopen(page).read()
+
+  string_concat_in_loop  x2
+         C10.S4  Inefficient String Concatenation
+           `allpages` is grown by concatenation inside a loop, but it is a
+           plain local with no other reference, so CPython resizes it in place
+           and the loop is already linear -- reject unless this runs on
+           another runtime
+           at 310, 313
+               310 |             allpages += urllib.request.urlopen(page).read()
+               313 |                 allpages += f.read()
+
+==============================================================================
+== test/test.py:318  run_config  (lines 318-334)
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 328
+               328 |             try:
+
+==============================================================================
+== test/test.py:347  run_with_arguments  (lines 347-374)
+
+  missing_early_exit
+         C3.S5   Missing Loop Early Exit
+           `verbose` is set to its final value and the loop keeps going; no
+           `break` or `return` leaves it, and nothing later can change it
+           at 360
+               360 |         if opt in "-v":
+
+==============================================================================
+== text-search/python/collect_training_data.py:10  create_request_specific_ids  (lines 10-20)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `body` exists only to be returned on the next line
+           at 11
+                11 |     body = {
+
+==============================================================================
+== text-search/python/collect_training_data.py:23  create_request_top_hits  (lines 23-33)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `body` exists only to be returned on the next line
+           at 25
+                25 |     body = {
+
+==============================================================================
+== text-search/python/collect_training_data.py:49  annotate_data  (lines 49-57)
+
+  repeated_subscript_in_loop
+         C8.S3   Missing Local Lookup Caching
+           `h['fields']` is looked up 3 times in the same pass; its key
+           changes from pass to pass, so it cannot leave the loop, but reading
+           it once at the top of the pass saves the other lookups
+           at 52
+                52 |         rankfeatures = h["fields"]["rankfeatures"]
+
+==============================================================================
+== text-search/python/collect_training_data.py:60  load_processed_queries  (lines 60-67)
+
+  ruff_SIM115
+         C6.S6   Leaked Resource Handles
+           file opened without a context manager (ruff SIM115: Use a context
+           manager for opening files)
+           at 62
+                62 |         f_processed = open(file_path)
+
+  whole_file_read
+         C6.S3   Unnecessary Data Materialization
+           `.readlines()` builds the whole content in memory and a
+           comprehension walks it a line at a time; iterating the handle
+           yields the same lines without the list, though it keeps the
+           trailing newline that `.readlines()` and `.splitlines()` differ on
+           at 63
+                63 |         processed_queries = [int(x) for x in f_processed.readlines()]
+
+==============================================================================
+== text-search/python/extract-msmarco.py:20  load_msmarco_queries  (lines 20-28)
+
+  regex_in_loop
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.sub()` is called once per element; the pattern is re-resolved
+           every time
+           at 26
+                26 |             query = re.sub(r"[^\w ]", " ", query).lower()
+
+==============================================================================
+== text-search/python/extract-msmarco.py:43  load_msmarco_qrels  (lines 43-58)
+
+  ruff_C405
+         C5.S4   Unnecessary Representation Change
+           literal converted to a set (ruff C405: Unnecessary list literal
+           (rewrite as a set literal))
+           at 57
+                57 |                 qrel[queryid] = set([docid])
+
+==============================================================================
+== text-search/python/extract-msmarco.py:89  extract_queries  (lines 89-94)
+
+  ruff_SIM118
+         C10.S2  Inefficient Built-in Choice
+         C4.S8   Non-Idiomatic Condition
+           `in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in
+           dict` instead of `key in dict.keys()`)
+           at 92
+                92 |         for qid in qrel.keys():
+
+==============================================================================
+== text-search/python/sample-queries-and-documents.py:24  load_queries  (lines 24-34)
+
+  regex_in_loop
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.sub()` is called once per element; the pattern is re-resolved
+           every time
+           at 29
+                29 |             query = re.sub(r"[^\w ]", " ", query).lower()
+
+==============================================================================
+== text-search/python/sample-queries-and-documents.py:47  select_queries  (lines 47-50)
+
+  ruff_SIM118
+         C10.S2  Inefficient Built-in Choice
+         C4.S8   Non-Idiomatic Condition
+           `in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in
+           dict` instead of `key in dict.keys()`)
+           at 48
+                48 |     qids = [ qid for qid in queries.keys() if len(queries[qid]["docs"]) >= min_relevant_docs_per_query ]
+
+==============================================================================
+== text-video-search/src/python/app.py:24  get_text_processor  (lines 24-26)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `text_processor` exists only to be returned on the next line
+           at 25
+                25 |     text_processor = TextProcessor(model_name="ViT-B/32")
+
+==============================================================================
+== text-video-search/src/python/embedding.py:264  search_video_file_names  (lines 264-292)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `parsed_results` exists only to be returned on the next line
+           at 283
+               283 |     parsed_results = [
+
+==============================================================================
+== use-case-shopping/convert_meta.py:10  process  (lines 10-51)
+
+  string_concat_in_loop
+         C10.S4  Inefficient String Concatenation
+           `fields[...]` is grown by concatenation inside a loop; because it
+           is stored through a subscript, CPython cannot resize it in place
+           and copies the whole value every iteration
+           at 40
+                40 |             fields["categories_text"] += " ".join(category[::-1])
+
+  loop_invariant_expression
+         C3.S2   Recomputing Loop-Invariant Values
+           `data['related']` does not change across loop iterations but is re-
+           evaluated every time
+           at 45
+                45 |             related.extend(data["related"][key])
+
+==============================================================================
+== use-case-shopping/convert_meta.py:53  main  (lines 53-68)
+
+  whole_file_read
+         C6.S3   Unnecessary Data Materialization
+           `.readlines()` builds the whole content in memory and a loop walks
+           it a line at a time; iterating the handle yields the same lines
+           without the list, though it keeps the trailing newline that
+           `.readlines()` and `.splitlines()` differ on
+           at 57
+                57 |     for line in sys.stdin.readlines():
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 58
+                58 |         try:
+
+==============================================================================
+== use-case-shopping/convert_reviews.py:10  contains_illegal_chars  (lines 10-17)
+
+  redundant_bool_branch
+         C1.S3   Redundant Control Flow
+           this branch and the `return` that follows it hand back True/False
+           for a test that already produces a boolean; replacing both with
+           `return '\x1a' in fields['text']` is the same answer without the
+           jump
+           at 15
+                15 |     if "\u001a" in fields["text"]:
+
+==============================================================================
+== use-case-shopping/convert_reviews.py:42  main  (lines 42-59)
+
+  whole_file_read
+         C6.S3   Unnecessary Data Materialization
+           `.readlines()` builds the whole content in memory and a loop walks
+           it a line at a time; iterating the handle yields the same lines
+           without the list, though it keeps the trailing newline that
+           `.readlines()` and `.splitlines()` differ on
+           at 46
+                46 |     for line in sys.stdin.readlines():
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 47
+                47 |         try:
+
+==============================================================================
+== use-case-shopping/create_suggestions.py:57  filter  (lines 57-65)
+
+  ruff_SIM110
+         C10.S1  Skipping Optimized Built-ins
+           loop that reimplements any() or all() (ruff SIM110: Use `return
+           any(f in text for f in filters)` instead of `for` loop)
+           at 62
+                62 | 	for f in filters:
+
+==============================================================================
+== visual-retrieval-colpali/prepare_feed_deploy.py:248  download_pdf  (lines 248-280)
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 251
+               251 |         try:
+
+  regex_in_loop
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.findall()` is called once per element; the pattern is re-
+           resolved every time
+           at 260
+               260 |                 fname = re.findall('filename="(.+)"', content_disposition)
+
+==============================================================================
+== visual-retrieval-colpali/prepare_feed_deploy.py:319  get_pdf_images  (lines 319-329)
+
+  index_based_iteration
+         C3.S1   Inefficient Iteration Construct
+           iterating `range(len(reader.pages))` and indexing back into it;
+           iterating the sequence directly avoids an index lookup per item
+           at 322
+               322 |     for page_number in range(len(reader.pages)):
+
+==============================================================================
+== visual-retrieval-colpali/refeed_from_hf.py:24  pil_to_base64  (lines 24-30)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `image_base64` exists only to be returned on the next line
+           at 29
+                29 |     image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/colpali.py:108  SimMapGenerator._load_image  (lines 108-124)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `_load_image` never uses `self`, so every call builds a bound
+           method object for nothing
+           at 108
+               108 |     def _load_image(self, img: Union[Path, str]) -> Image:
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/colpali.py:259  SimMapGenerator.get_query_embeddings_and_token_map  (lines 259-279)
+
+  ruff_B019
+         C8.S1   Missing Memoization Cache
+           cache decorator on a method leaks instances (ruff B019: Use of
+           `functools.lru_cache` or `functools.cache` on methods can lead to
+           memory leaks)
+           at 258
+               258 |     @lru_cache(maxsize=128)
+
+  ruff_C416
+         C5.S4   Unnecessary Representation Change
+           comprehension that only copies (ruff C416: Unnecessary dict
+           comprehension (rewrite using `dict()`))
+           at 278
+               278 |         idx_to_token = {idx: token for idx, token in enumerate(query_tokens)}
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/vespa_app.py:180  VespaQueryClient.create_nn_query_strings  (lines 180-202)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `create_nn_query_strings` never uses `self`, so every call builds a
+           bound method object for nothing
+           at 180
+               180 |     def create_nn_query_strings(
+
+  index_based_iteration
+         C3.S1   Inefficient Iteration Construct
+           iterating `range(len(binary_query_embeddings))` and indexing back
+           into it; `enumerate(binary_query_embeddings)` hands back the index
+           and the item together, so the index costs no lookup
+           at 194
+               194 |         for i in range(len(binary_query_embeddings)):
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/vespa_app.py:204  VespaQueryClient.format_q_embs  (lines 204-214)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `format_q_embs` never uses `self`, so every call builds a bound
+           method object for nothing
+           at 204
+               204 |     def format_q_embs(self, q_embs: torch.Tensor) -> dict:
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/vespa_app.py:316  VespaQueryClient.get_results_children  (lines 316-317)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `get_results_children` never uses `self`, so every call builds a
+           bound method object for nothing
+           at 316
+               316 |     def get_results_children(self, result: VespaQueryResponse) -> list:
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/vespa_app.py:372  VespaQueryClient.get_rank_profile  (lines 372-376)
+
+  method_ignores_self
+         C2.S2   Missing Static Declaration
+           `get_rank_profile` never uses `self`, so every call builds a bound
+           method object for nothing
+           at 372
+               372 |     def get_rank_profile(self, ranking: str, sim_map: bool) -> str:
+
+==============================================================================
+== visual-retrieval-colpali/src/frontend/app.py:273  SampleQueries  (lines 273-304)
+
+  constant_sequence_literal
+         C5.S3   Over-Provisioned Data Type
+         C6.S1   Unnecessary Object
+           `sample_queries` is a list of 7 constants that is never mutated; a
+           tuple literal is stored whole in the code object instead of being
+           rebuilt element by element on every call
+           at 274
+               274 |     sample_queries = [
+
+  append_only_loop
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           loop body is a single `.append()`; a comprehension does the same
+           work without a bound-method lookup and call per item
+           at 285
+               285 |     for query in sample_queries:
+
+  ruff_PERF401
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           append loop that could be a comprehension (ruff PERF401: Use a list
+           comprehension to create a transformed list)
+           at 286
+               286 |         query_badges.append(
+
+==============================================================================
+== visual-retrieval-colpali/src/main.py:242  get_results_children  (lines 242-248)
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `search_results` exists only to be returned on the next line
+           at 243
+               243 |     search_results = (
+
+==============================================================================
+== visual-retrieval-colpali/tests/huggingface_smoke.py:13  main  (lines 13-80)
+
+  io_call_in_loop
+         C8.S4   Redundant Data Fetching
+         C9.S1   Fragmented I/O Calls
+         C9.S3   Inefficient Retrieval Paths
+           `client.get()` looks like it leaves the process, and it runs once
+           per iteration; batching would amortise the round trip
+           at 61
+                61 |                 response = client.get(route)
+
+  expensive_operand_first
+         C4.S1   Poor Short-Circuit Ordering
+           `torch.isfinite(embeddings).all()` calls a function before the
+           cheaper test `tokens`, so short-circuiting cannot skip the call;
+           swapping them is only safe if the call has no effect the later
+           operand depends on
+           at 77
+                77 |                 assert torch.isfinite(embeddings).all() and tokens
+
+##############################################################################
+PART 2: 22 UNIT(S) ON YOUR LIST WHERE A RULE NAMES A ROOT CAUSE YOU DID NOT SUSPECT THERE
+##############################################################################
+
+==============================================================================
+== colbert-long/scripts/evaluate.py:57  main  (lines 57-99)
+   on your list, suspected: C11.S5
+
+  unmanaged_resource
+         C6.S6   Leaked Resource Handles
+           `Session()` result is not managed by a `with` block, so the handle
+           is released only when the collector gets to it
+           at 71
+                71 |     session = requests.Session()
+
+==============================================================================
+== examples/agentic-streamlit-chatbot/simple_app/streamlit_vespa_app.py:43  VespaRetriever  (lines 43-70)
+   on your list, suspected: C8.S2
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `json_string` exists only to be returned on the next line
+           at 68
+                68 |     json_string = json.dumps(filtered_data, indent=1)
+
+==============================================================================
+== examples/google-cloud/cloud-functions/python/main.py:87  get_blobs  (lines 87-90)
+   on your list, suspected: C8.S2
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `blobs` exists only to be returned on the next line
+           at 89
+                89 |     blobs = storage_client.list_blobs(bucket)
+
+==============================================================================
+== examples/model-exporting/export_hf_model_from_hf.py:12  export_model  (lines 12-56)
+   on your list, suspected: C1.S5
+
+  index_based_iteration
+         C3.S1   Inefficient Iteration Construct
+           iterating `range(0, len(files))` and indexing back into it;
+           iterating the sequence directly avoids an index lookup per item
+           at 45
+                45 | 	for i in range(0,len(files)):
+
+==============================================================================
+== examples/model-exporting/export_model_from_hf.py:10  export_model  (lines 10-48)
+   on your list, suspected: C1.S5
+
+  index_based_iteration
+         C3.S1   Inefficient Iteration Construct
+           iterating `range(0, len(files))` and indexing back into it;
+           iterating the sequence directly avoids an index lookup per item
+           at 44
+                44 | 	for i in range(0,len(files)):
+
+==============================================================================
+== examples/workshop-ecommerce/preprocess.py:228  process_orders  (lines 228-314)
+   on your list, suspected: C8.S4
+
+  loop_invariant_expression
+         C3.S2   Recomputing Loop-Invariant Values
+           `df_order['eval_set']` does not change across loop iterations but
+           is re-evaluated every time
+           at 238
+               238 |         df_order_filtered = df_order[df_order["eval_set"] == eval_set].copy()
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 246
+               246 |         try:
+
+==============================================================================
+== incremental-search/search-suggestions/accepted_words.py:25  process_docs  (lines 25-33)
+   on your list, suspected: C10.S3
+
+  repeated_subscript_in_loop
+         C8.S3   Missing Local Lookup Caching
+           `doc['fields']` is looked up 4 times in the same pass; its key
+           changes from pass to pass, so it cannot leave the loop, but reading
+           it once at the top of the pass saves the other lookups
+           at 28
+                28 |         if doc['fields']['title'] and doc['fields']['content']:
+
+==============================================================================
+== incremental-search/search-suggestions/count_terms.py:24  write_json_file  (lines 24-39)
+   on your list, suspected: C10.S2
+
+  regex_in_loop
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.sub()` is called once per element; the pattern is re-resolved
+           every time
+           at 27
+                27 |             "update": f'id:term:term::{re.sub(r" ", "/", term)}',
+
+==============================================================================
+== incremental-search/search-suggestions/count_terms.py:55  count_terms  (lines 55-65)
+   on your list, suspected: C1.S4, C10.S1
+
+  ruff_C417
+         C10.S2  Inefficient Built-in Choice
+           map() where a comprehension is faster (ruff C417: Unnecessary
+           `map()` usage (rewrite using a generator expression))
+           at 60
+                60 |                 map(lambda word: word in common_words, doc[i : i + win_len])
+
+==============================================================================
+== incremental-search/search-suggestions/count_terms.py:84  process_docs  (lines 84-105)
+   on your list, suspected: C1.S1, C3.S4
+
+  eager_comprehension  x2
+         C6.S3   Unnecessary Data Materialization
+           a list comprehension is materialised only to be consumed once by
+           `sum()`; a generator expression avoids the allocation
+           at 92, 102
+                92 |         total_count = sum([count for count in counts.values()])
+               102 |             [1 if term in doc else 0 for doc in doc_counts]
+
+  ruff_C416
+         C5.S4   Unnecessary Representation Change
+           comprehension that only copies (ruff C416: Unnecessary list
+           comprehension (rewrite using `list()`))
+           at 92
+                92 |         total_count = sum([count for count in counts.values()])
+
+  ruff_SIM118
+         C10.S2  Inefficient Built-in Choice
+         C4.S8   Non-Idiomatic Condition
+           `in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in
+           dict` instead of `key in dict.keys()`)
+           at 100
+               100 |     for term in terms.keys():
+
+==============================================================================
+== news/src/python/create_bert_embeddings.py:26  create_embeddings  (lines 26-65)
+   on your list, suspected: C1.S1, C1.S5, C10.S3, C5.S4, C8.S2
+
+  float_literal_on_int_data
+         C5.S3   Over-Provisioned Data Type
+           `100.0 * (i + 1)` forces a float result with the literal `100.0`,
+           which has no fractional part; every element pays for a conversion
+           and a float allocation the value does not need
+           at 64
+                64 |                 print("Completed {} embeddings ({:.0f} %) [{:.2f} s]".format(i + 1, 100.0 *(i+1)/len(docids), time.time()-t))
+
+==============================================================================
+== news/src/python/mind_data.py:181  MindData.add_impressions  (lines 181-201)
+   on your list, suspected: C1.S5
+
+  repeated_subscript_in_loop  x2
+         C8.S3   Missing Local Lookup Caching
+           `self.news_content[pos_news_index]` is looked up 3 times in the
+           same pass; its key changes from pass to pass, so it cannot leave
+           the loop, but reading it once at the top of the pass saves the
+           other lookups
+           at 189
+               189 |             category_indices.append(self.news_content[pos_news_index]["category_index"])
+           `self.news_content[neg_news_index]` is looked up 3 times in the
+           same pass; its key changes from pass to pass, so it cannot leave
+           the loop, but reading it once at the top of the pass saves the
+           other lookups
+           at 198
+               198 |                 category_indices.append(self.news_content[neg_news_index]["category_index"])
+
+==============================================================================
+== rag-blueprint/eval/train_lightgbm.py:53  perform_cross_validation  (lines 53-285)
+   on your list, suspected: C1.S5, C8.S2
+
+  membership_test_on_sequence  x2
+         C3.S4   Inefficient Nested Iteration
+         C5.S1   Inefficient Data Structure Choice
+         C5.S2   Missing Helper Type
+           membership test `col in feature_cols` scans a sequence linearly on
+           every iteration; a set or dict index would be constant-time
+           at 101
+               101 |         if col in feature_cols:
+           membership test `c in feature_cols` scans a sequence linearly on
+           every iteration; a set or dict index would be constant-time
+           at 111
+               111 |     cat_cols = [c for c in cat_cols if c in feature_cols]
+
+  ruff_C408
+         C6.S1   Unnecessary Object
+           collection call where a literal would do (ruff C408: Unnecessary
+           `dict()` call (rewrite as a literal))
+           at 165
+               165 |         params = dict(
+
+==============================================================================
+== reverse-image-search/script/feed.py:102  run  (lines 102-192)
+   on your list, suspected: C1.S5, C11.S5, C8.S4
+
+  expensive_operand_first
+         C4.S1   Poor Short-Circuit Ordering
+           `abs_path.exists()` calls a function before the cheaper test `not
+           refeed`, so short-circuiting cannot skip the call; swapping them is
+           only safe if the call has no effect the later operand depends on
+           at 140
+               140 |                 if abs_path.exists() and not refeed:
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 143
+               143 |                 try:
+
+  column_major_traversal
+         C12.S1  Inefficient Large-Stride Traversal
+           `output.last_hidden_state[:, 0]` walks a column of a row-major
+           array inside a loop, so each cache line loaded yields one useful
+           element
+           at 170
+               170 |             cls = output.last_hidden_state[:, 0]
+
+==============================================================================
+== text-search/python/extract-msmarco.py:79  extract_documents  (lines 79-86)
+   on your list, suspected: C9.S1
+
+  ruff_SIM118
+         C10.S2  Inefficient Built-in Choice
+         C4.S8   Non-Idiomatic Condition
+           `in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in
+           dict` instead of `key in dict.keys()`)
+           at 84
+                84 |         for docid in docoffset.keys():
+
+==============================================================================
+== text-search/python/sample-queries-and-documents.py:54  select_documents  (lines 54-64)
+   on your list, suspected: C3.S2
+
+  ruff_C416
+         C5.S4   Unnecessary Representation Change
+           comprehension that only copies (ruff C416: Unnecessary list
+           comprehension (rewrite using `list()`))
+           at 60
+                60 |     docids = [docid for docid in offsets.keys()]
+
+  ruff_SIM118
+         C10.S2  Inefficient Built-in Choice
+         C4.S8   Non-Idiomatic Condition
+           `in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in
+           dict` instead of `key in dict.keys()`)
+           at 60
+                60 |     docids = [docid for docid in offsets.keys()]
+
+==============================================================================
+== text-video-search/src/python/embedding.py:39  extract_images  (lines 39-52)
+   on your list, suspected: C6.S3
+
+  append_only_loop
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           loop body is a single `.append()`; a comprehension does the same
+           work without a bound-method lookup and call per item
+           at 50
+                50 |     for i, im in enumerate(reader):
+
+==============================================================================
+== visual-retrieval-colpali/prepare_feed_deploy.py:534  generate_embeddings  (lines 534-569)
+   on your list, suspected: C10.S3
+
+  single_use_temporary
+         C1.S7   Unnecessary Variable
+           `all_embeddings` exists only to be returned on the next line
+           at 568
+               568 |     all_embeddings = np.concatenate(embeddings_list, axis=0)
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/vespa_app.py:216  VespaQueryClient.get_result_from_query  (lines 216-258)
+   on your list, suspected: C1.S5
+
+  repeated_pure_call
+         C1.S4   Repeated Computation
+           `ranking.split('_')` is computed 3 times in the same scope; if
+           nothing it reads changes in between, once is enough
+           at 239
+               239 |         rank_method = ranking.split("_")[0]
+
+==============================================================================
+== visual-retrieval-colpali/src/backend/vespa_app.py:333  VespaQueryClient.get_suggestions  (lines 333-370)
+   on your list, suspected: C8.S1
+
+  ruff_C403
+         C5.S4   Unnecessary Representation Change
+           list comprehension converted to a set (ruff C403: Unnecessary list
+           comprehension (rewrite as a set comprehension))
+           at 364
+               364 |             unique_questions = set([item for sublist in questions for item in sublist])
+
+==============================================================================
+== visual-retrieval-colpali/src/main.py:259  get_and_store_sim_maps  (lines 259-294)
+   on your list, suspected: C8.S4
+
+  eager_comprehension  x2
+         C3.S6   Unfiltered Bulk Iteration
+         C6.S3   Unnecessary Data Materialization
+           a list comprehension is materialised only to be consumed once by
+           `all()`; a generator expression avoids the allocation
+           at 274, 278
+               274 |         not all([os.path.exists(img_path) for img_path in img_paths])
+               278 |     if not all([os.path.exists(img_path) for img_path in img_paths]):
+
+  ruff_C419  x2
+         C6.S3   Unnecessary Data Materialization
+           comprehension materialised inside any()/all() (ruff C419:
+           Unnecessary list comprehension)
+           at 274, 278
+               274 |         not all([os.path.exists(img_path) for img_path in img_paths])
+               278 |     if not all([os.path.exists(img_path) for img_path in img_paths]):
+
+==============================================================================
+== visual-retrieval-colpali/src/main.py:357  message_generator  (lines 357-406)
+   on your list, suspected: C1.S2, C8.S2
+
+  ruff_RUF005
+         C6.S1   Unnecessary Object
+           list concatenation allocating a new list (ruff RUF005: Consider
+           `[*images, "\n\n Query: ", query]` instead of concatenation)
+           at 398
+               398 |         contents=images + ["\n\n Query: ", query],
+
+  string_concat_in_loop
+         C10.S4  Inefficient String Concatenation
+           `response_text` is grown by concatenation inside a loop and a
+           reference to it is kept there, so it survives to the next pass and
+           each iteration copies the whole value
+           at 402
+               402 |             response_text += chunk.text
+
+##############################################################################
+PART 3: 4 UNIT(S) ON YOUR LIST WHERE A RULE AGREES WITH YOU
+##############################################################################
+
+== examples/ecommerce-user-preferences/webapp/app.py::get_wikipedia_image  (lines 62-214): io_call_in_loop (C9.S1)
+
+== text-search/python/convert-to-vespa-format.py::main  (lines 38-64): ruff_SIM118 (C10.S2)
+
+== use-case-shopping/create_suggestions.py::filter_content  (lines 67-71): ruff_SIM110 (C10.S1)
+
+== visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps  (lines 62-106): loop_invariant_expression (C3.S2)
+
+------------------------------------------------------------------------------
+What this output is and is not:
+  - Every line is a fact about syntax. None of them is a verdict. Each of
+    these shapes is the right thing to write somewhere, so the question is
+    always whether it is right *here* -- which depends on what the code is
+    for, and a rule cannot see that.
+  - Every finding is listed, in one of the three parts, in file and line
+    order within it. The order says nothing about which ones matter. Read
+    in whatever order you think right.
+  - The rules only recognise shapes somebody thought to describe in
+    advance. Waste with no fixed shape leaves no trace here at all. What
+    this output does not mention is not thereby absent, and no part of the
+    taxonomy is ruled out by not appearing.

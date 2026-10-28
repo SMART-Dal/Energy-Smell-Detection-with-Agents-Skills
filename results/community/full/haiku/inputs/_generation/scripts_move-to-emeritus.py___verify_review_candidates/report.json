@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_verify_review_candidates",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.6,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 3439,
+   "completion_tokens": 143,
+   "reasoning_tokens": 81,
+   "cost": 0.000161112,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_verify_review_candidates` calls `request_with_retry`, which performs live `urllib.request.urlopen` HTTP GETs to `https://api.github.com` for each candidate PR; its work begins with a network request and no input can avoid that."
+  }
+ ],
+ "seconds": 2.8,
+ "cost": 0.00016,
+ "kept": [],
+ "reason": "it cannot run here: `_verify_review_candidates` calls `request_with_retry`, which performs live `urllib.request.urlopen` HTTP GETs to `https://api.github.com` for each candidate PR; its work begins with a network request and no input can avoid that."
+}

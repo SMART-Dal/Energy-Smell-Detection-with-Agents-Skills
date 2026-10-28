@@ -1,0 +1,106 @@
+{
+ "units": {
+  "src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids": {
+   "state": "failed",
+   "reason": "it cannot run here: `validate_cohort_ids` unconditionally calls `raw_api_call(resp, payload)`, which performs a live HTTP POST to the Vizserver via `dxpy.DXHTTPRequest(resource=resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\", ...)`. No input can avoid this network request, and there is no way to supply `resp_raw` without a real server (mocking `raw_api_call`/`DXHTTPRequest` is forbidden).",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_cohort_filter_payload.py__generate_pheno_filter.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::get_last_pos_of_char": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__get_last_pos_of_char.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::get_first_pos_of_char": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__get_first_pos_of_char.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::split_unescaped": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__split_unescaped.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py___maybe_convert_stringified_dxlink.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pathmatch.py::filter": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pathmatch.py__filter.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pretty_print.py::flatten_json_array": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__flatten_json_array.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_germline_utils.py__infer_genotype_type.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/output_handling.py::write_expression_output": {
+   "state": "failed",
+   "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe",
+   "attempts": 3
+  },
+  "src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_filter_to_payload.py__validate_JSON.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pretty_print.py::format_table": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__format_table.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe": {
+   "state": "ready",
+   "file": "src_python_dxpy_cli_dataset_utilities.py__DXDatasetDictionary.create_coding_name_dframe.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dxlog.py::DXLogHandler.truncate_message": {
+   "state": "ready",
+   "file": "src_python_dxpy_dxlog.py__DXLogHandler.truncate_message.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec": {
+   "state": "ready",
+   "file": "src_python_dxpy_system_requirements.py__SystemRequirementsDict.override_cluster_spec.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/workflow_builder.py::_cleanup_empty_keys": {
+   "state": "ready",
+   "file": "src_python_dxpy_workflow_builder.py___cleanup_empty_keys.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/spelling_corrector.py::correct": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_spelling_corrector.py__correct.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/config.py::DXConfig.get_session_conf_dir": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_config.py__DXConfig.get_session_conf_dir.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::parse_input_keyval": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__parse_input_keyval.py",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 17,
+  "max_holding": 30,
+  "failed": 2,
+  "max_failed": 30
+ },
+ "updated": 1793058919.8127549
+}

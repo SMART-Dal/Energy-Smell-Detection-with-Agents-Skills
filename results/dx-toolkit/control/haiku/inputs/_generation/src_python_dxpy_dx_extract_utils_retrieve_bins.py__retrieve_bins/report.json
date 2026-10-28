@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/retrieve_bins.py::retrieve_bins",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.9,
+   "finish": "stop",
+   "provider": "Decart",
+   "prompt_tokens": 2697,
+   "completion_tokens": 384,
+   "reasoning_tokens": 305,
+   "cost": 0.00031185,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the function begins with `dxpy.describe(project)` and later `dxpy.describe(...)` and `subprocess.check_output([\"dx\", \"cat\", ...])`, all of which require network access to the DNAnexus platform and the `dx` CLI (subprocesses are not permitted), so no input can avoid it."
+  }
+ ],
+ "seconds": 10.1,
+ "cost": 0.00031,
+ "kept": [],
+ "reason": "it cannot run here: the function begins with `dxpy.describe(project)` and later `dxpy.describe(...)` and `subprocess.check_output([\"dx\", \"cat\", ...])`, all of which require network access to the DNAnexus platform and the `dx` CLI (subprocesses are not permitted), so no input can avoid it."
+}

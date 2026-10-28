@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxdatabase.py::DXDatabase.get_download_url",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.1,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5989,
+   "completion_tokens": 776,
+   "reasoning_tokens": 693,
+   "cost": 0.001053594,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `DXDatabase.get_download_url` performs its work by calling `dxpy.api.database_download_file(self._dxid, args, **kwargs)`, an HTTP request to the DNAnexus API server; with no network access and no way to stub the API call (no monkeypatching/mocks allowed), the only runnable path is a pure cache hit that does no real work."
+  }
+ ],
+ "seconds": 11.0,
+ "cost": 0.00105,
+ "kept": [],
+ "reason": "it cannot run here: `DXDatabase.get_download_url` performs its work by calling `dxpy.api.database_download_file(self._dxid, args, **kwargs)`, an HTTP request to the DNAnexus API server; with no network access and no way to stub the API call (no monkeypatching/mocks allowed), the only runnable path is a pure cache hit that does no real work."
+}

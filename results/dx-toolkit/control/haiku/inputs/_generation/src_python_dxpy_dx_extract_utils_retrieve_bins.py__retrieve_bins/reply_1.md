@@ -1,0 +1,1 @@
+CANNOT RUN: the function begins with `dxpy.describe(project)` and later `dxpy.describe(...)` and `subprocess.check_output(["dx", "cat", ...])`, all of which require network access to the DNAnexus platform and the `dx` CLI (subprocesses are not permitted), so no input can avoid it.

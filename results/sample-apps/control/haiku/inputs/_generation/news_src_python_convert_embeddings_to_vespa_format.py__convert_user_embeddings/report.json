@@ -1,0 +1,135 @@
+{
+ "unit": "news/src/python/convert_embeddings_to_vespa_format.py::convert_user_embeddings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 51.1,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2412,
+   "completion_tokens": 6297,
+   "reasoning_tokens": 5430,
+   "cost": 0.001640802,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small-64d",
+     "ok": false,
+     "joules": 1.8941923103448275,
+     "seconds": 0.03555901814252138,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "wide-128d",
+     "ok": true,
+     "joules": 15.17252,
+     "seconds": 0.3576718010008335
+    },
+    {
+     "label": "narrow-32d",
+     "ok": true,
+     "joules": 15.474148199999991,
+     "seconds": 0.21200344897806644
+    },
+    {
+     "label": "deep-300d",
+     "ok": true,
+     "joules": 15.244031250000035,
+     "seconds": 0.31427810061722994
+    },
+    {
+     "label": "many-8d",
+     "ok": false,
+     "joules": 6.384798222222192,
+     "seconds": 0.11625521630048752,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "bert-768d",
+     "ok": true,
+     "joules": 11.605274399999962,
+     "seconds": 0.23524815030395985
+    },
+    {
+     "label": "big-1024d",
+     "ok": false,
+     "joules": 5.5374263636363965,
+     "seconds": 0.09348898194730282,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "huge-4d",
+     "ok": false,
+     "joules": 8.5077408571429,
+     "seconds": 0.1524469694122672,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-1d",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "odd-ids",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 103.9,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 75.0
+  }
+ ],
+ "seconds": 157.8,
+ "cost": 0.00164,
+ "kept": [
+  {
+   "label": "narrow-32d",
+   "mj_per_call": 15474.1482,
+   "ms_per_call": 212.003
+  },
+  {
+   "label": "deep-300d",
+   "mj_per_call": 15244.0313,
+   "ms_per_call": 314.278
+  },
+  {
+   "label": "wide-128d",
+   "mj_per_call": 15172.52,
+   "ms_per_call": 357.672
+  },
+  {
+   "label": "bert-768d",
+   "mj_per_call": 11605.2744,
+   "ms_per_call": 235.248
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

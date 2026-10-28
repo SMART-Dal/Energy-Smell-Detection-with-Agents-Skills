@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/utils/pathmatch.py::translate",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 20.1,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 2361,
+   "completion_tokens": 5654,
+   "reasoning_tokens": 4987,
+   "cost": 0.00402925,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "literal-long",
+     "ok": true,
+     "joules": 0.6466394054054053,
+     "seconds": 0.01366035919636488
+    },
+    {
+     "label": "many-stars",
+     "ok": false,
+     "joules": 0.3032596488095233,
+     "seconds": 0.005978691391646862,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-questions",
+     "ok": true,
+     "joules": 0.3173987468354437,
+     "seconds": 0.006333972327411175
+    },
+    {
+     "label": "many-classes",
+     "ok": false,
+     "joules": 0.26055363829787204,
+     "seconds": 0.005325509235262871,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-negated-classes",
+     "ok": false,
+     "joules": 0.2897331444444464,
+     "seconds": 0.011125314980745316,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "unclosed-bracket",
+     "ok": true,
+     "joules": 0.44006106306306386,
+     "seconds": 0.009057407267391682
+    },
+    {
+     "label": "backslash-in-class",
+     "ok": false,
+     "joules": 0.20128650202429052,
+     "seconds": 0.004052272066473961,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed",
+     "ok": true,
+     "joules": 0.44716377876106367,
+     "seconds": 0.008879931643605232
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 93.1,
+   "coverage": 0.9642857142857143,
+   "missed": [
+    65
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 80.9
+  }
+ ],
+ "seconds": 126.5,
+ "cost": 0.00403,
+ "kept": [
+  {
+   "label": "literal-long",
+   "mj_per_call": 646.6394,
+   "ms_per_call": 13.66
+  },
+  {
+   "label": "mixed",
+   "mj_per_call": 447.1638,
+   "ms_per_call": 8.88
+  },
+  {
+   "label": "unclosed-bracket",
+   "mj_per_call": 440.0611,
+   "ms_per_call": 9.057
+  },
+  {
+   "label": "many-questions",
+   "mj_per_call": 317.3987,
+   "ms_per_call": 6.334
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `_check_reviews` performs live HTTP requests to the GitHub GraphQL and REST APIs (`request_with_retry("POST", GRAPHQL_API, ...)` and REST verification) — it needs network access and GitHub credentials, and no input could avoid that.

@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/input_validation.py::is_list_of_strings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 7.9,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2605,
+   "completion_tokens": 1055,
+   "reasoning_tokens": 589,
+   "cost": 0.000347672,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "all-strings-200k",
+     "ok": true,
+     "joules": 1.5557760277777777,
+     "seconds": 0.02838838379830122
+    },
+    {
+     "label": "all-strings-100k-long",
+     "ok": true,
+     "joules": 0.7695275555555554,
+     "seconds": 0.015914631076157093
+    },
+    {
+     "label": "nonstring-at-end",
+     "ok": true,
+     "joules": 1.1630935999999983,
+     "seconds": 0.022591745480895042
+    },
+    {
+     "label": "nonstring-at-start",
+     "ok": false,
+     "joules": 2.1377119181330392e-05,
+     "seconds": 9.98377799987793e-07,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "nonstring-in-middle",
+     "ok": true,
+     "joules": 0.3784440508474583,
+     "seconds": 0.00847535952925682
+    },
+    {
+     "label": "tuple-input",
+     "ok": false,
+     "seconds": 7.264316082000732e-07,
+     "why": "each of the 2,753,185 calls in a window gets fresh arguments, and building them would take about 10.0s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "dict-input",
+     "ok": false,
+     "joules": 1.4434652627322861e-05,
+     "seconds": 7.543712854385376e-07,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "empty-list",
+     "ok": false,
+     "joules": 1.4929337286508982e-05,
+     "seconds": 9.173527359962463e-07,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-list",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-string",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-nonstring",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 80.6,
+   "coverage": 0.6666666666666666,
+   "missed": [
+    28,
+    32,
+    33
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 34.8
+  }
+ ],
+ "seconds": 93.7,
+ "cost": 0.00035,
+ "kept": [
+  {
+   "label": "all-strings-200k",
+   "mj_per_call": 1555.776,
+   "ms_per_call": 28.388
+  },
+  {
+   "label": "nonstring-at-end",
+   "mj_per_call": 1163.0936,
+   "ms_per_call": 22.592
+  },
+  {
+   "label": "all-strings-100k-long",
+   "mj_per_call": 769.5276,
+   "ms_per_call": 15.915
+  },
+  {
+   "label": "nonstring-in-middle",
+   "mj_per_call": 378.4441,
+   "ms_per_call": 8.475
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `DXFile.__iter__` obtains its data by calling `self.read(...)`, which for a `DXFile` is the remote-file reader that fetches file content from the DNAnexus platform (an API/HTTP download); the class holds no local data source, so no input can make it run without network/service access.

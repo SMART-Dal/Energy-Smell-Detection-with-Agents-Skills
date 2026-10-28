@@ -1,0 +1,28 @@
+{"unit": "incremental-search/search-suggestions/count_terms.py::process_docs", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "feed-split.py::what_language", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "news/src/python/train_cold_start.py::read_bert_embeddings_from_file", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "news/src/python/evaluate.py::predictions", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "incremental-search/search-suggestions/count_terms.py::process_doc", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "news/src/python/mind_data.py::MindData.add_impressions", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "news/src/python/mind_data.py::MindData.sample_valid_data", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "news/src/python/metrics.py::ndcg_score", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "feed-split.py::split_text", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "text-search/python/extract-msmarco.py::extract_documents", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "colbert-long/scripts/convert.py::remove_control_characters", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "text-video-search/src/python/embedding.py::sample_images", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "news/src/python/train_cold_start.py::write_embeddings", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "text-search/python/sample-queries-and-documents.py::select_documents", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "examples/workshop-ecommerce/preprocess.py::process_users", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "incremental-search/search-suggestions/accepted_words.py::process_docs", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "incremental-search/search-suggestions/count_terms.py::count_terms", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "incremental-search/search-suggestions/count_terms.py::write_json_file", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor", "cached": false, "ready": false, "cost": 0.00351, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 48.2, "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine"}
+{"unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.should_filter_token", "cached": false, "ready": false, "cost": 0.00507, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 48.2, "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine"}
+{"unit": "news/src/python/evaluate.py::read_impressions_file", "cached": false, "ready": true, "cost": 0.00297, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 75.7, "reason": null}
+{"unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps", "cached": false, "ready": false, "cost": 0.01715, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 109.4, "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine"}
+{"unit": "news/src/python/create_category_ctrs.py::read_content_file", "cached": false, "ready": true, "cost": 0.00626, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 153.3, "reason": null}
+{"unit": "news/src/python/mind_data.py::MindData.lookup_news_index", "cached": false, "ready": true, "cost": 0.00917, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 165.0, "reason": null}
+{"unit": "news/src/python/mind_data.py::MindData.read_news", "cached": false, "ready": true, "cost": 0.00849, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 170.4, "reason": null}
+{"unit": "news/src/python/create_category_ctrs.py::read_impressions_file", "cached": false, "ready": true, "cost": 0.00233, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 170.8, "reason": null}
+{"unit": "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__getitem__", "cached": false, "ready": false, "cost": 0.01295, "rounds": 2, "calls": 2, "timeouts": 0, "seconds": 194.7, "reason": "it cannot run here: `TrainDataset.__getitem__` always finishes by constructing a `sentence_transformers.InputExample`, and `sentence_transformers` is not available in this environment (it is stubbed), so the real function cannot run here and no input can avoid the dependency."}

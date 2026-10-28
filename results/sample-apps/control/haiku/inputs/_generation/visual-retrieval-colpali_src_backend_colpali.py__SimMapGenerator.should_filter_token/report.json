@@ -1,0 +1,32 @@
+{
+ "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.should_filter_token",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 11.5,
+   "finish": "stop",
+   "provider": "Together",
+   "prompt_tokens": 4089,
+   "completion_tokens": 4068,
+   "reasoning_tokens": 3586,
+   "cost": 0.005581452,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "cases": [],
+   "checks": [],
+   "validate_s": 15.3,
+   "coverage": null,
+   "missed": null,
+   "energy_domains": null,
+   "waited_s": null
+  }
+ ],
+ "seconds": 31.8,
+ "cost": 0.00558,
+ "kept": [],
+ "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine"
+}

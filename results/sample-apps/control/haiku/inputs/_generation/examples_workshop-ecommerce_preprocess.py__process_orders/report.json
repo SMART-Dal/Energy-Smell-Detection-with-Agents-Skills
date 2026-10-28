@@ -1,0 +1,220 @@
+{
+ "unit": "examples/workshop-ecommerce/preprocess.py::process_orders",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 70.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2894,
+   "completion_tokens": 10584,
+   "reasoning_tokens": 9538,
+   "cost": 0.006490402,
+   "retried": []
+  },
+  {
+   "seconds": 6.6,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 4250,
+   "completion_tokens": 1345,
+   "reasoning_tokens": 290,
+   "cost": 0.00098939,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "prior-limit-10",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    },
+    {
+     "label": "prior-and-train",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    },
+    {
+     "label": "train-limit-300",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    },
+    {
+     "label": "mixed-three-sets",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    },
+    {
+     "label": "test-full",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    },
+    {
+     "label": "val-full",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    },
+    {
+     "label": "orphan-orders",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    },
+    {
+     "label": "missing-products-file",
+     "ok": false,
+     "why": "the original raises FileNotFoundError: [Errno 2] No such file or directory: 'dataset/orders.csv'"
+    }
+   ],
+   "checks": [
+    {
+     "label": "no-eval-sets",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "limit-zero",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "absent-eval-set",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 50.0,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 43.9
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "prior-limit-10",
+     "ok": true,
+     "joules": 40.02412999999999,
+     "seconds": 0.8572605922818184
+    },
+    {
+     "label": "prior-and-train",
+     "ok": true,
+     "joules": 46.907272499999976,
+     "seconds": 0.8981714826077223
+    },
+    {
+     "label": "train-limit-300",
+     "ok": false,
+     "joules": 13.942718250000013,
+     "seconds": 0.27358875051140785,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-three-sets",
+     "ok": true,
+     "joules": 16.06583875000001,
+     "seconds": 0.2908404767513275
+    },
+    {
+     "label": "test-full",
+     "ok": false,
+     "joules": 6.257926333333343,
+     "seconds": 0.11505441647022963,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "val-full",
+     "ok": false,
+     "joules": 4.301245500000001,
+     "seconds": 0.0767442649230361,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "orphan-orders",
+     "ok": true,
+     "joules": 17.2511066666666,
+     "seconds": 0.4328460907563567
+    },
+    {
+     "label": "missing-products-file",
+     "ok": false,
+     "joules": 1.0147044347826097,
+     "seconds": 0.02201962936669588,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "no-eval-sets",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "limit-zero",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "absent-eval-set",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 45.4,
+   "coverage": 0.8461538461538461,
+   "missed": [
+    241,
+    242,
+    249,
+    250
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 7.9
+  }
+ ],
+ "seconds": 177.6,
+ "cost": 0.00748,
+ "kept": [
+  {
+   "label": "prior-and-train",
+   "mj_per_call": 46907.2725,
+   "ms_per_call": 898.171
+  },
+  {
+   "label": "prior-limit-10",
+   "mj_per_call": 40024.13,
+   "ms_per_call": 857.261
+  },
+  {
+   "label": "orphan-orders",
+   "mj_per_call": 17251.1067,
+   "ms_per_call": 432.846
+  },
+  {
+   "label": "mixed-three-sets",
+   "mj_per_call": 16065.8388,
+   "ms_per_call": 290.84
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

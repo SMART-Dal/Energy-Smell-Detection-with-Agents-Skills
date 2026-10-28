@@ -1,0 +1,1 @@
+CANNOT RUN: `update_endpoint` unconditionally calls `get_indexed_docids` → `vespa_visit` → `call(...)`, which issues HTTP requests (curl subprocess) to a live Vespa endpoint; it needs a running remote service and network access, and no input can avoid that.

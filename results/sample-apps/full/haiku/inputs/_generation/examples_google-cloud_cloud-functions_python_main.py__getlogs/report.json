@@ -1,0 +1,25 @@
+{
+ "unit": "examples/google-cloud/cloud-functions/python/main.py::getlogs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.3,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 2329,
+   "completion_tokens": 181,
+   "reasoning_tokens": 130,
+   "cost": 0.000191044,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `getlogs` calls `get_blobs`, which creates a `google.cloud.storage.Client()` and lists blobs from Google Cloud Storage \u2014 a network request to a remote service that cannot be avoided or faked here."
+  }
+ ],
+ "seconds": 3.2,
+ "cost": 0.00019,
+ "kept": [],
+ "reason": "it cannot run here: `getlogs` calls `get_blobs`, which creates a `google.cloud.storage.Client()` and lists blobs from Google Cloud Storage \u2014 a network request to a remote service that cannot be avoided or faked here."
+}

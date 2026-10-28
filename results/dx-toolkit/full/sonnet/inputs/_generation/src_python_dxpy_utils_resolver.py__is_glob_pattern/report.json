@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::is_glob_pattern",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 14.1,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 3212,
+   "completion_tokens": 4020,
+   "reasoning_tokens": 3514,
+   "cost": 0.003397424,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "escaped-stars-2000",
+     "ok": false,
+     "joules": 0.1189549652605459,
+     "seconds": 0.0024869581684470177,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "escaped-questions-2000",
+     "ok": false,
+     "joules": 0.11308688976377916,
+     "seconds": 0.0026304880157113075,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-4000",
+     "ok": false,
+     "joules": 0.3148877253521137,
+     "seconds": 0.007047941908240318,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-long-5000",
+     "ok": false,
+     "joules": 0.5483130689655166,
+     "seconds": 0.011596452444791794,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "star-unescaped-start-6000",
+     "ok": true,
+     "joules": 0.5689680000000015,
+     "seconds": 0.012419532984495163
+    },
+    {
+     "label": "question-unescaped-start-6000",
+     "ok": true,
+     "joules": 0.5996360348837201,
+     "seconds": 0.011641896329820156
+    },
+    {
+     "label": "dense-mixed-8000",
+     "ok": true,
+     "joules": 0.9733276111111098,
+     "seconds": 0.01872135605663061
+    },
+    {
+     "label": "very-dense-mixed-10000",
+     "ok": true,
+     "joules": 1.2673082105263205,
+     "seconds": 0.026531117968261242
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-escaped-star",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 100.7,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 87.3
+  }
+ ],
+ "seconds": 126.8,
+ "cost": 0.0034,
+ "kept": [
+  {
+   "label": "very-dense-mixed-10000",
+   "mj_per_call": 1267.3082,
+   "ms_per_call": 26.531
+  },
+  {
+   "label": "dense-mixed-8000",
+   "mj_per_call": 973.3276,
+   "ms_per_call": 18.721
+  },
+  {
+   "label": "question-unescaped-start-6000",
+   "mj_per_call": 599.636,
+   "ms_per_call": 11.642
+  },
+  {
+   "label": "star-unescaped-start-6000",
+   "mj_per_call": 568.968,
+   "ms_per_call": 12.42
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,25 @@
+{
+ "unit": "visual-retrieval-colpali/src/main.py::message_generator",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 16.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 4273,
+   "completion_tokens": 1841,
+   "reasoning_tokens": 1695,
+   "cost": 0.001386639,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: for any input that does real work (non-empty `doc_ids` with images present, which is what the repository's `/get-message` route always passes) the generator awaits `gemini_client.aio.models.generate_content_stream(...)`, i.e. a live network call to the Gemini API requiring credentials; the module itself builds `genai.Client(api_key=os.getenv(\"GEMINI_API_KEY\"))` at import time. The only path that avoids the request is `doc_ids == []` (or waiting out the 10 s `max_wait`), which either does no meaningful work or exceeds the per-call time budget, so no valid measurable input exists."
+  }
+ ],
+ "seconds": 19.1,
+ "cost": 0.00139,
+ "kept": [],
+ "reason": "it cannot run here: for any input that does real work (non-empty `doc_ids` with images present, which is what the repository's `/get-message` route always passes) the generator awaits `gemini_client.aio.models.generate_content_stream(...)`, i.e. a live network call to the Gemini API requiring credentials; the module itself builds `genai.Client(api_key=os.getenv(\"GEMINI_API_KEY\"))` at import time. The only path that avoids the request is `doc_ids == []` (or waiting out the 10 s `max_wait`), which either does no meaningful work or exceeds the per-call time budget, so no valid measurable input exists."
+}

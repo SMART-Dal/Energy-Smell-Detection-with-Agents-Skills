@@ -1,0 +1,142 @@
+{
+ "unit": "src/python/dxpy/bindings/download_all_inputs.py::_gen_helper_dict",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 113.1,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2428,
+   "completion_tokens": 26138,
+   "reasoning_tokens": 24395,
+   "cost": 0.015762644,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "unique-5k",
+     "ok": false,
+     "joules": 1.4126639032258064,
+     "seconds": 0.032874648459255695,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "unique-15k",
+     "ok": true,
+     "joules": 1.4666976333333328,
+     "seconds": 0.03347854595631361
+    },
+    {
+     "label": "unique-20k",
+     "ok": true,
+     "joules": 1.432442586206897,
+     "seconds": 0.03566403314471245
+    },
+    {
+     "label": "dup-20k-5k",
+     "ok": false,
+     "joules": 1.2999149210526304,
+     "seconds": 0.026396354660391808,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "half-miss-20k",
+     "ok": true,
+     "joules": 1.4583695405405424,
+     "seconds": 0.02777392789721489
+    },
+    {
+     "label": "mostly-miss-20k",
+     "ok": true,
+     "joules": 1.4517233999999992,
+     "seconds": 0.03349186293780804
+    },
+    {
+     "label": "all-miss-20k",
+     "ok": false,
+     "joules": 1.4090876666666703,
+     "seconds": 0.02568356040865183,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dup-30k-10",
+     "ok": false,
+     "joules": 1.2426613902439052,
+     "seconds": 0.024963046424090862,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-missing",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 92.0,
+   "coverage": 0.5384615384615384,
+   "missed": [
+    94,
+    95,
+    100,
+    101,
+    102,
+    103
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 75.5
+  }
+ ],
+ "seconds": 210.8,
+ "cost": 0.01576,
+ "kept": [
+  {
+   "label": "unique-15k",
+   "mj_per_call": 1466.6976,
+   "ms_per_call": 33.479
+  },
+  {
+   "label": "half-miss-20k",
+   "mj_per_call": 1458.3695,
+   "ms_per_call": 27.774
+  },
+  {
+   "label": "mostly-miss-20k",
+   "mj_per_call": 1451.7234,
+   "ms_per_call": 33.492
+  },
+  {
+   "label": "unique-20k",
+   "mj_per_call": 1432.4426,
+   "ms_per_call": 35.664
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

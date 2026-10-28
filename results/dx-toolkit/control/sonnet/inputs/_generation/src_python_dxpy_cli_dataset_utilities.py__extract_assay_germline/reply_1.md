@@ -1,0 +1,1 @@
+CANNOT RUN: `extract_assay_germline` requires DNAnexus platform access — it calls `dxpy.DXHTTPRequest` (via `resolve_validate_record_path`, `raw_api_call`, `raw_query_api_call`) and `DXDataset(...).get_descriptor()` to fetch a dataset descriptor from a remote server, with no way to supply that data locally.

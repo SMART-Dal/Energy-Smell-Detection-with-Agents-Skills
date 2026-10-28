@@ -1,0 +1,263 @@
+waiting for inputs still being generated: 7 unit(s) (src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter, src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON, src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type, ...)
+waiting for inputs still being generated: 4 unit(s) (src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter, src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON, src/python/dxpy/utils/config.py::DXConfig.get_session_conf_dir, ...)
+waiting for inputs still being generated: 2 unit(s) (src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter, src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON)
+waiting for inputs still being generated: 1 unit(s) (src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON)
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-0.74%
+
+
+=== C1S1-validate-json-dead-read  src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON
+equivalence
+  empty-filter   ok  (check only)
+  single-key     ok  (check only)
+  none-filter    ok  (check only)
+  case-4-allele  ok
+  case-5-variant ok
+  case-6-allele  ok
+  case-7-variant ok
+
+sizing
+  case-4-allele  before     6.6 ms/call  after     2.8 us/call  ->  302 repeats  CLAMPED to keep the slow side under 2s
+  case-5-variant before    10.0 ms/call  after     1.1 us/call  ->  200 repeats  CLAMPED to keep the slow side under 2s
+  case-6-allele  before    14.8 ms/call  after     2.7 us/call  ->  135 repeats  CLAMPED to keep the slow side under 2s
+  case-7-variant before    26.2 ms/call  after     1.1 us/call  ->  76 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  case-4-allele   +99.97% +-0.05% energy saved   significant     +99.96% +-0.00% time saved
+  case-5-variant  +99.99% +-0.02% energy saved   significant     +99.98% +-0.01% time saved
+  case-6-allele   +99.99% +-0.02% energy saved   significant     +99.98% +-0.00% time saved
+  case-7-variant +100.00% +-0.00% energy saved   significant     +99.98% +-0.00% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: confirmed
+  100.0% +-0.0% energy saved on 'case-7-variant', clearing the 0.7% noise floor. Saved energy on all 4 inputs ('case-4-allele', 'case-5-variant', 'case-6-allele', 'case-7-variant'), with behaviour preserved throughout.
+
+=== C1S4-correct-edits-once  src/python/dxpy/utils/spelling_corrector.py::correct
+equivalence
+  empty-word-empty-vocab ok  (check only)
+  single-char-known ok  (check only)
+  none-word      ok  (check only)
+  edit2-hit-len12 ok
+  edit2-hit-len13 ok
+  no-hit-len11   ok
+  no-hit-len13   ok
+
+sizing
+  edit2-hit-len12 before   162.9 ms/call  after   164.0 ms/call  ->  7 repeats
+  edit2-hit-len13 before   201.4 ms/call  after   203.5 ms/call  ->  5 repeats
+  no-hit-len11   before   151.9 ms/call  after   153.0 ms/call  ->  7 repeats
+  no-hit-len13   before   188.0 ms/call  after   188.3 ms/call  ->  6 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  edit2-hit-len12   -0.12% +-1.49% energy saved   not significant +0.03% +-3.02% time saved
+  edit2-hit-len13   -0.70% +-0.76% energy saved   not significant -0.97% +-1.06% time saved
+  no-hit-len11     -0.15% +-1.53% energy saved   not significant -0.36% +-0.90% time saved
+  no-hit-len13     -0.49% +-1.61% energy saved   not significant -0.82% +-0.43% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -0.7% +-0.8% on 'edit2-hit-len13', against a clean 0.7% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C3S1-pathmatch-comprehension  src/python/dxpy/utils/pathmatch.py::filter
+equivalence
+  empty-names    ok  (check only)
+  single-match   ok  (check only)
+  none-pattern   ok  (check only)
+  low-hit-100k   ok
+  deep-paths-80k ok
+  suffix-mix-100k ok
+  exact-literal-120k ok
+
+sizing
+  low-hit-100k   before    42.3 ms/call  after    39.5 ms/call  ->  26 repeats
+  deep-paths-80k before    40.4 ms/call  after    38.1 ms/call  ->  27 repeats
+  suffix-mix-100k before    38.4 ms/call  after    37.6 ms/call  ->  27 repeats
+  exact-literal-120k before    38.6 ms/call  after    37.9 ms/call  ->  27 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  low-hit-100k     +7.56% +-1.62% energy saved   significant     +7.72% +-2.09% time saved
+  deep-paths-80k   +5.99% +-0.66% energy saved   significant     +5.95% +-0.52% time saved
+  suffix-mix-100k   +2.04% +-1.52% energy saved   significant     +1.92% +-1.48% time saved
+  exact-literal-120k   -0.30% +-3.16% energy saved   not significant -0.23% +-2.89% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: partial
+  saves energy on 3 of 4 inputs ('low-hit-100k', 'deep-paths-80k', 'suffix-mix-100k'; best 7.6% +-1.6% on 'low-hit-100k'), and no saving that can be told from noise on the rest: 'exact-literal-120k' -0.3% +-3.2% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C4S6-dlink-precheck  src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink
+equivalence
+  none           ok  (check only)
+  empty-string   ok  (check only)
+  int            ok  (check only)
+  big-dict-no-link ok
+  big-array-no-link ok
+  link-dict-pid  ok
+  link-dict-partial ok
+
+sizing
+  big-dict-no-link before    29.0 ms/call  after    28.8 ms/call  ->  35 repeats
+  big-array-no-link before    21.9 ms/call  after     0.5 us/call  ->  91 repeats  CLAMPED to keep the slow side under 2s
+  link-dict-pid  before    20.7 ms/call  after    20.8 ms/call  ->  49 repeats
+  link-dict-partial before    20.8 ms/call  after    20.7 ms/call  ->  49 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  big-dict-no-link   -1.86% +-6.85% energy saved   not significant -1.12% +-5.86% time saved
+  big-array-no-link  +99.99% +-0.03% energy saved   significant     +99.98% +-0.00% time saved
+  link-dict-pid    -0.18% +-1.42% energy saved   not significant -0.23% +-1.17% time saved
+  link-dict-partial   -4.54% +-16.59% energy saved   not significant -10.61% +-43.89% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('big-array-no-link'; best 100.0% +-0.0% on 'big-array-no-link'), and no saving that can be told from noise on the rest: 'big-dict-no-link' -1.9% +-6.8% (its pairs disagree too much to tell); 'link-dict-pid' -0.2% +-1.4% (its pairs disagree too much to tell); 'link-dict-partial' -4.5% +-16.6% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C6S2-cluster-copy-kept  src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec
+equivalence
+  empty          ok  (check only)
+  single-entrypoint ok  (check only)
+  app-entry-without-cluster-spec ok  (check only)
+  wildcard-large-appdoc ok
+  fallback-to-app-wildcard ok
+  many-entrypoints-no-clusterspec ok
+  field-heavy-clusterspec ok
+
+sizing
+  wildcard-large-appdoc before    97.7 ms/call  after    98.4 ms/call  ->  11 repeats
+  fallback-to-app-wildcard before   158.1 ms/call  after   156.6 ms/call  ->  7 repeats
+  many-entrypoints-no-clusterspec before   109.6 ms/call  after   179.7 us/call  ->  18 repeats  CLAMPED to keep the slow side under 2s
+  field-heavy-clusterspec before    97.5 ms/call  after    97.7 ms/call  ->  11 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  wildcard-large-appdoc   -0.53% +-0.77% energy saved   not significant -0.64% +-2.96% time saved
+  fallback-to-app-wildcard   -0.33% +-2.42% energy saved   not significant -0.38% +-1.81% time saved
+  many-entrypoints-no-clusterspec  +99.82% +-0.06% energy saved   significant     +99.82% +-0.01% time saved
+  field-heavy-clusterspec   -0.29% +-1.70% energy saved   not significant -0.26% +-1.71% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('many-entrypoints-no-clusterspec'; best 99.8% +-0.1% on 'many-entrypoints-no-clusterspec'), and no saving that can be told from noise on the rest: 'wildcard-large-appdoc' -0.5% +-0.8% (its pairs disagree too much to tell); 'fallback-to-app-wildcard' -0.3% +-2.4% (its pairs disagree too much to tell); 'field-heavy-clusterspec' -0.3% +-1.7% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C6S2-get-first-rfind  src/python/dxpy/utils/resolver.py::get_first_pos_of_char
+equivalence
+  empty-string   ok  (check only)
+  escaped-only   ok  (check only)
+  none-char      ok  (check only)
+  colons-dense   ok
+  all-escaped-stars ok
+  mixed-escapes  ok
+  mostly-escaped ok
+
+sizing
+  colons-dense   before     4.4 ms/call  after     1.6 ms/call  ->  457 repeats  CLAMPED to keep the slow side under 2s
+  all-escaped-stars before     5.6 ms/call  after     2.8 ms/call  ->  354 repeats  CLAMPED to keep the slow side under 2s
+  mixed-escapes  before     5.3 ms/call  after     2.6 ms/call  ->  377 repeats  CLAMPED to keep the slow side under 2s
+  mostly-escaped before     4.6 ms/call  after     2.1 ms/call  ->  435 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  colons-dense    +62.84% +-1.14% energy saved   significant     +62.56% +-0.49% time saved
+  all-escaped-stars  +51.42% +-1.08% energy saved   significant     +50.97% +-0.88% time saved
+  mixed-escapes   +51.44% +-0.73% energy saved   significant     +50.95% +-0.53% time saved
+  mostly-escaped  +52.47% +-4.23% energy saved   significant     +51.82% +-2.97% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: confirmed
+  62.8% +-1.1% energy saved on 'colons-dense', clearing the 0.7% noise floor. Saved energy on all 4 inputs ('colons-dense', 'all-escaped-stars', 'mixed-escapes', 'mostly-escaped'), with behaviour preserved throughout.
+
+=== C6S2-get-last-rfind  src/python/dxpy/utils/resolver.py::get_last_pos_of_char
+equivalence
+  empty-string   ok  (check only)
+  single-char    ok  (check only)
+  char-absent    ok  (check only)
+  all-escaped-slashes ok
+  gapped-escaped ok
+  gapped-random-escaped ok
+  escaped-colons ok
+
+sizing
+  all-escaped-slashes before     9.4 ms/call  after     5.1 ms/call  ->  198 repeats
+  gapped-escaped before     6.8 ms/call  after     1.2 ms/call  ->  294 repeats  CLAMPED to keep the slow side under 2s
+  gapped-random-escaped before     5.9 ms/call  after     1.7 ms/call  ->  336 repeats  CLAMPED to keep the slow side under 2s
+  escaped-colons before     4.1 ms/call  after     2.8 ms/call  ->  355 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-escaped-slashes  +47.76% +-4.15% energy saved   significant     +47.45% +-3.98% time saved
+  gapped-escaped  +83.48% +-0.09% energy saved   significant     +83.19% +-0.07% time saved
+  gapped-random-escaped  +70.89% +-0.40% energy saved   significant     +70.50% +-0.37% time saved
+  escaped-colons  +32.89% +-7.14% energy saved   significant     +34.82% +-15.89% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: confirmed
+  83.5% +-0.1% energy saved on 'gapped-escaped', clearing the 0.7% noise floor. Saved energy on all 4 inputs ('all-escaped-slashes', 'gapped-escaped', 'gapped-random-escaped', 'escaped-colons'), with behaviour preserved throughout.
+
+=== C6S2-pheno-comprehension  src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter
+equivalence
+  empty-values-empty-filters ok  (check only)
+  non-and-logic-raises ok  (check only)
+  non-compound-pheno-filter ok  (check only)
+  in-large-values ok
+  not-in-large-values ok
+  exists-plus-in ok
+  multi-compound-match-later ok
+
+sizing
+  in-large-values before    15.4 ms/call  after     6.4 ms/call  ->  129 repeats  CLAMPED to keep the slow side under 2s
+  not-in-large-values before    48.5 ms/call  after    39.6 ms/call  ->  26 repeats
+  exists-plus-in before    25.6 ms/call  after     4.2 ms/call  ->  78 repeats  CLAMPED to keep the slow side under 2s
+  multi-compound-match-later before    17.9 ms/call  after     3.7 ms/call  ->  111 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  in-large-values  +58.59% +-0.17% energy saved   significant     +58.39% +-0.02% time saved
+  not-in-large-values  +19.77% +-4.59% energy saved   significant     +19.37% +-3.44% time saved
+  exists-plus-in  +84.17% +-2.57% energy saved   significant     +84.58% +-4.65% time saved
+  multi-compound-match-later  +79.97% +-0.76% energy saved   significant     +79.62% +-0.54% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: confirmed
+  84.2% +-2.6% energy saved on 'exists-plus-in', clearing the 0.7% noise floor. Saved energy on all 4 inputs ('in-large-values', 'not-in-large-values', 'exists-plus-in', 'multi-compound-match-later'), with behaviour preserved throughout.
+
+=== C8S3-infer-hoist  src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type
+equivalence
+  all-empty      ok  (check only)
+  single-inferred ok  (check only)
+  single-covered ok  (check only)
+  many-loci-few-samples ok
+  no-results     ok
+  mixed-medium   ok
+  many-loci-tiny-samples ok
+
+sizing
+  many-loci-few-samples before    25.7 ms/call  after    22.7 ms/call  ->  45 repeats
+  no-results     before    23.9 ms/call  after    21.8 ms/call  ->  46 repeats
+  mixed-medium   before    19.6 ms/call  after    17.7 ms/call  ->  57 repeats
+  many-loci-tiny-samples before    41.9 ms/call  after    27.5 ms/call  ->  37 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-loci-few-samples   +5.14% +-8.59% energy saved   not significant +5.54% +-8.53% time saved
+  no-results       +6.91% +-2.88% energy saved   significant     +6.95% +-3.24% time saved
+  mixed-medium     +7.11% +-1.55% energy saved   significant     +7.34% +-0.84% time saved
+  many-loci-tiny-samples   +5.17% +-4.25% energy saved   significant     +4.95% +-3.74% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: partial
+  saves energy on 3 of 4 inputs ('no-results', 'mixed-medium', 'many-loci-tiny-samples'; best 7.1% +-1.6% on 'mixed-medium'), and no saving that can be told from noise on the rest: 'many-loci-few-samples' +5.1% +-8.6% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== all 9 lines of submissions.jsonl
+  confirmed    C1S1-validate-json-dead-read: 100.0% +-0.0% energy saved on 'case-7-variant', clearing the 0.7% noise floor
+  negligible   C1S4-correct-edits-once: no case moved more than the noise: the largest reading was -0.7% +-0.8% on 'edit2-hit-len13', against a clean 0.7% floor across 4 cases
+  partial      C3S1-pathmatch-comprehension: saves energy on 3 of 4 inputs ('low-hit-100k', 'deep-paths-80k', 'suffix-mix-100k'; best 7.6% +-1.6% on 'low-hit-100k'), and no saving that can be told from noi...
+  partial      C4S6-dlink-precheck: saves energy on 1 of 4 inputs ('big-array-no-link'; best 100.0% +-0.0% on 'big-array-no-link'), and no saving that can be told from noise on the rest: 'big-dict...
+  partial      C6S2-cluster-copy-kept: saves energy on 1 of 4 inputs ('many-entrypoints-no-clusterspec'; best 99.8% +-0.1% on 'many-entrypoints-no-clusterspec'), and no saving that can be told from n...
+  confirmed    C6S2-get-first-rfind: 62.8% +-1.1% energy saved on 'colons-dense', clearing the 0.7% noise floor
+  confirmed    C6S2-get-last-rfind: 83.5% +-0.1% energy saved on 'gapped-escaped', clearing the 0.7% noise floor
+  confirmed    C6S2-pheno-comprehension: 84.2% +-2.6% energy saved on 'exists-plus-in', clearing the 0.7% noise floor
+  partial      C8S3-infer-hoist: saves energy on 3 of 4 inputs ('no-results', 'mixed-medium', 'many-loci-tiny-samples'; best 7.1% +-1.6% on 'mixed-medium'), and no saving that can be told from ...
+
+9 of this session's 20 places hold a repair with a verdict.

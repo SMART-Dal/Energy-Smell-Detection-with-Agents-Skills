@@ -1,0 +1,116 @@
+{
+ "units": {
+  "scripts/validate-workstreams.py::validate_workstreams_semantics": {
+   "state": "ready",
+   "file": "scripts_validate-workstreams.py__validate_workstreams_semantics.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_add_to_emeritus": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___add_to_emeritus.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_check_events": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___check_events.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_remove_member_line": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___remove_member_line.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_parse_members": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___parse_members.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_build_pr_body": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___build_pr_body.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_build_issue_body": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___build_issue_body.py",
+   "attempts": 1
+  },
+  "scripts/baremetal-runner-report.py::render_table": {
+   "state": "ready",
+   "file": "scripts_baremetal-runner-report.py__render_table.py",
+   "attempts": 1
+  },
+  "scripts/gc-elections/create-github-comments.py::sync": {
+   "state": "ready",
+   "file": "scripts_gc-elections_create-github-comments.py__sync.py",
+   "attempts": 1
+  },
+  "scripts/update-sig-tables.py::render_group": {
+   "state": "ready",
+   "file": "scripts_update-sig-tables.py__render_group.py",
+   "attempts": 1
+  },
+  "scripts/update-sig-tables.py::render_sig_details_group": {
+   "state": "ready",
+   "file": "scripts_update-sig-tables.py__render_sig_details_group.py",
+   "attempts": 1
+  },
+  "scripts/update-community-members.py::render_gc": {
+   "state": "ready",
+   "file": "scripts_update-community-members.py__render_gc.py",
+   "attempts": 1
+  },
+  "scripts/update-community-members.py::render_tc": {
+   "state": "ready",
+   "file": "scripts_update-community-members.py__render_tc.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::check_maintainer_activity": {
+   "state": "failed",
+   "reason": "it cannot run here: `check_maintainer_activity` performs live GitHub API requests (GraphQL `request_with_retry` to `GRAPHQL_API` and REST helpers like `_get_repo_commenters`/`_get_repo_events`), which require network access and credentials that are unavailable here.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_check_reviews": {
+   "state": "failed",
+   "reason": "it cannot run here: `_check_reviews` performs GitHub GraphQL/REST requests via `request_with_retry` to `https://api.github.com/graphql` and `REST_API` for every user batch; its work begins with a network request to a remote service, so no input can avoid network access.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_get_repo_commenters": {
+   "state": "failed",
+   "reason": "it cannot run here: `_get_repo_commenters` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` (and follows pagination links), needing network access and GitHub credentials; no input can avoid that and mocking the request machinery is not allowed.",
+   "attempts": 1
+  },
+  "scripts/baremetal-runner-report.py::collect_jobs": {
+   "state": "failed",
+   "reason": "it cannot run here: `collect_jobs` fetches data by shelling out to the `gh` CLI (`subprocess.run([\"gh\", \"api\", ...])`) against the GitHub API, so it needs network access and an external program that cannot be provided here.",
+   "attempts": 1
+  },
+  "scripts/gc-elections/generate-voters-roll.py::build_devstats_rows": {
+   "state": "failed",
+   "reason": "it cannot run here: `build_devstats_rows` calls `get_github_login` for every name, which performs `requests.get('https://api.github.com/users/...')` (plus `time.sleep(0.1)`), so it requires network access to GitHub and cannot run here without mocking.",
+   "attempts": 1
+  },
+  "scripts/gc-elections/generate-voters-roll.py::get_github_login": {
+   "state": "failed",
+   "reason": "it cannot run here: get_github_login performs a live HTTP request to https://api.github.com/users/<username> via requests.get; it needs network access and no input can avoid it.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::paginate_rest": {
+   "state": "failed",
+   "reason": "it cannot run here: `paginate_rest` performs real HTTP requests (it calls `request_with_retry` \u2192 `urllib.request.urlopen` against the GitHub REST API), so its work begins with a request to a remote server and no input can avoid the network.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::main": {
+   "state": "failed",
+   "reason": "it cannot run here: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API via `request_with_retry`/`paginate_rest`; its work begins with network requests that cannot be avoided or satisfied offline.",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 13,
+  "max_holding": 30,
+  "failed": 8,
+  "max_failed": 30
+ },
+ "updated": 1793189268.3704104
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `check_maintainer_activity` always starts by calling `_check_comments`/`_get_repo_commenters`, `_check_reviews` (GraphQL `request_with_retry` to `https://api.github.com/graphql`) and `_get_repo_events`, all of which make live GitHub API requests; there is no input that avoids network access, and mocking the HTTP layer is not allowed.

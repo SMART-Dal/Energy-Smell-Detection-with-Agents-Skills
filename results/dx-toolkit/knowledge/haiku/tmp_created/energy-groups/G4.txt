@@ -1,0 +1,3 @@
+src/python/test/test_dxpy.py
+src/python/test/test_nextflow.py
+src/python/test/test_dx_bash_helpers.py

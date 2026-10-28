@@ -1,0 +1,215 @@
+{
+ "unit": "news/src/python/train_cold_start.py::read_bert_embeddings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 59.2,
+   "finish": "stop",
+   "provider": "PrimeIntellect",
+   "prompt_tokens": 3028,
+   "completion_tokens": 15832,
+   "reasoning_tokens": 14596,
+   "cost": 0.019417584,
+   "retried": []
+  },
+  {
+   "seconds": 3.2,
+   "finish": "stop",
+   "provider": "PrimeIntellect",
+   "prompt_tokens": 4575,
+   "completion_tokens": 1298,
+   "reasoning_tokens": 52,
+   "cost": 0.002064564,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "c1_train_full",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    },
+    {
+     "label": "c2_valid_full",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    },
+    {
+     "label": "c3_split",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    },
+    {
+     "label": "c4_overlap",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    },
+    {
+     "label": "c5_large",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    },
+    {
+     "label": "c6_longlines",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    },
+    {
+     "label": "c7_partial",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    },
+    {
+     "label": "c8_sparse",
+     "ok": false,
+     "why": "the original raises TypeError: can only concatenate str (not \"PosixPath\") to str"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-news",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "single-news-no-match",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "missing-file",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 35.9,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.0
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "c1_train_full",
+     "ok": false,
+     "joules": 4.936658499999999,
+     "seconds": 0.08392629586160183,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "c2_valid_full",
+     "ok": false,
+     "joules": 4.606306846153846,
+     "seconds": 0.07715133763849735,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "c3_split",
+     "ok": false,
+     "joules": 5.844647636363638,
+     "seconds": 0.09766775369644165,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "c4_overlap",
+     "ok": false,
+     "joules": 6.415316100000001,
+     "seconds": 0.10715917311608791,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "c5_large",
+     "ok": true,
+     "joules": 9.730166499999996,
+     "seconds": 0.1681267572566867
+    },
+    {
+     "label": "c6_longlines",
+     "ok": true,
+     "joules": 7.84464887499999,
+     "seconds": 0.12719735130667686
+    },
+    {
+     "label": "c7_partial",
+     "ok": true,
+     "joules": 7.806433375000012,
+     "seconds": 0.13636263646185398
+    },
+    {
+     "label": "c8_sparse",
+     "ok": true,
+     "joules": 6.851487888888894,
+     "seconds": 0.12256236001849174
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-news",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-news-no-match",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "missing-file",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 68.9,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 12.9
+  }
+ ],
+ "seconds": 169.0,
+ "cost": 0.02148,
+ "kept": [
+  {
+   "label": "c5_large",
+   "mj_per_call": 9730.1665,
+   "ms_per_call": 168.127
+  },
+  {
+   "label": "c6_longlines",
+   "mj_per_call": 7844.6489,
+   "ms_per_call": 127.197
+  },
+  {
+   "label": "c7_partial",
+   "mj_per_call": 7806.4334,
+   "ms_per_call": 136.363
+  },
+  {
+   "label": "c8_sparse",
+   "mj_per_call": 6851.4879,
+   "ms_per_call": 122.562
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

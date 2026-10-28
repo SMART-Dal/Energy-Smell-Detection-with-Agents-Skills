@@ -1,0 +1,2 @@
+ready
+finish: {'ok': True, 'pending_at_end': [], 'steps_done': [1, 2, 3], 'unfinished_files': [], 'submissions_removed': ['C5S1-commenters-seen']}

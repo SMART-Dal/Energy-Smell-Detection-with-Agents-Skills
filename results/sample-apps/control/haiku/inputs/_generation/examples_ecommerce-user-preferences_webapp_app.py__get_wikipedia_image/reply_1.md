@@ -1,0 +1,1 @@
+CANNOT RUN: `get_wikipedia_image` fetches data from the Wikipedia API via `requests.get` (search, images, imageinfo endpoints); its real work is network I/O to a remote server, which is unavailable here and cannot be avoided without mocking the HTTP client (forbidden), and forcing cache hits would bypass the function's actual work entirely.

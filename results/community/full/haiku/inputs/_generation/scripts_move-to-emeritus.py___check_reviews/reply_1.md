@@ -1,0 +1,1 @@
+CANNOT RUN: `_check_reviews` performs live GitHub API calls — it starts with a `request_with_retry("POST", GRAPHQL_API, ...)` GraphQL request and then REST requests to `api.github.com`, requiring network access and credentials that are unavailable here; no input can avoid this, and mocking the HTTP layer is not allowed.

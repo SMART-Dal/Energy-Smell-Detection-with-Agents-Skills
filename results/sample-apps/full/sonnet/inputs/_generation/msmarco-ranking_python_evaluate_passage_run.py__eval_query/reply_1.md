@@ -1,0 +1,1 @@
+CANNOT RUN: `eval_query` calls `get_result`, which performs an HTTP POST to `args.endpoint` via `session.post`; the function's work starts with a network request to a ranking server, which cannot be mocked and is not available here.

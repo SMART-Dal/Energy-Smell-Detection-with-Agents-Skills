@@ -1,0 +1,25 @@
+{
+ "unit": "msmarco-ranking/python/evaluate_passage_run.py::eval_query",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 4.1,
+   "finish": "stop",
+   "provider": "Decart",
+   "prompt_tokens": 2912,
+   "completion_tokens": 319,
+   "reasoning_tokens": 287,
+   "cost": 0.0003195,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `eval_query` calls `get_result`, which performs an HTTP POST to `args.endpoint` via `session.post`; the function's work starts with a network request to a ranking server, which cannot be mocked and is not available here."
+  }
+ ],
+ "seconds": 5.9,
+ "cost": 0.00032,
+ "kept": [],
+ "reason": "it cannot run here: `eval_query` calls `get_result`, which performs an HTTP POST to `args.endpoint` via `session.post`; the function's work starts with a network request to a ranking server, which cannot be mocked and is not available here."
+}

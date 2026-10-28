@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_get_repo_commenters",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.3,
+   "finish": "stop",
+   "provider": "Reka",
+   "prompt_tokens": 3639,
+   "completion_tokens": 257,
+   "reasoning_tokens": 186,
+   "cost": 0.000597975,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_get_repo_commenters` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` (and follows pagination links), needing network access and GitHub credentials; no input can avoid that and mocking the request machinery is not allowed."
+  }
+ ],
+ "seconds": 3.3,
+ "cost": 0.0006,
+ "kept": [],
+ "reason": "it cannot run here: `_get_repo_commenters` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` (and follows pagination links), needing network access and GitHub credentials; no input can avoid that and mocking the request machinery is not allowed."
+}

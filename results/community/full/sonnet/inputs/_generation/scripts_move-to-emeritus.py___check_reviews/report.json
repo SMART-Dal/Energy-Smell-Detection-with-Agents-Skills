@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_check_reviews",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.1,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 4433,
+   "completion_tokens": 168,
+   "reasoning_tokens": 102,
+   "cost": 0.00095147,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_check_reviews` performs GitHub GraphQL/REST requests via `request_with_retry` to `https://api.github.com/graphql` and `REST_API` for every user batch; its work begins with a network request to a remote service, so no input can avoid network access."
+  }
+ ],
+ "seconds": 2.2,
+ "cost": 0.00095,
+ "kept": [],
+ "reason": "it cannot run here: `_check_reviews` performs GitHub GraphQL/REST requests via `request_with_retry` to `https://api.github.com/graphql` and `REST_API` for every user batch; its work begins with a network request to a remote service, so no input can avoid network access."
+}

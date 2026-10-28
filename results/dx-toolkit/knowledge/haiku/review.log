@@ -1,0 +1,11 @@
+C3S5-find-extra-page   partial         not applied: partial
+C7S1-truncate-bisect   confirmed       APPLIED
+C1S4-correct-edits-once negligible      not applied: negligible
+C1S1-validate-json-dead-read confirmed       APPLIED
+C8S2-harmonize-cached-columns negligible      not applied: negligible
+C3S2-list-of-strings-hoist confirmed       APPLIED
+C3S2-list-of-strings-hoist-somatic confirmed       APPLIED
+C1S6-infer-flags-lazy-message confirmed       APPLIED
+C3S4-coding-display-index-dict negligible      not applied: negligible
+
+wrote /home/javad/energy-exp/archive/dx-toolkit/knowledge/haiku/review/results.jsonl and /home/javad/energy-exp/archive/dx-toolkit/knowledge/haiku/review/REPORT.md

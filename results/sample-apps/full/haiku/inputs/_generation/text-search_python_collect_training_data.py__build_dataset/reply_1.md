@@ -1,0 +1,1 @@
+CANNOT RUN: `build_dataset` performs its work by calling `get_features`, which issues `requests.post(url, ...)` to a Solr server (`http://localhost:8080/search/`); no input can avoid the network request while still doing the function's real work, and network access is not available here.

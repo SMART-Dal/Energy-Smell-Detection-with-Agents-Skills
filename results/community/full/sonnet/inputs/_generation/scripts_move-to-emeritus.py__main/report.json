@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::main",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.6,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 6894,
+   "completion_tokens": 163,
+   "reasoning_tokens": 109,
+   "cost": 0.000433022,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API via `request_with_retry`/`paginate_rest`; its work begins with network requests that cannot be avoided or satisfied offline."
+  }
+ ],
+ "seconds": 2.0,
+ "cost": 0.00043,
+ "kept": [],
+ "reason": "it cannot run here: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API via `request_with_retry`/`paginate_rest`; its work begins with network requests that cannot be avoided or satisfied offline."
+}

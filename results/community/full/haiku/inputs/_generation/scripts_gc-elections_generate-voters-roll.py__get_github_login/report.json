@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/gc-elections/generate-voters-roll.py::get_github_login",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.1,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 2303,
+   "completion_tokens": 94,
+   "reasoning_tokens": 37,
+   "cost": 0.0001151808,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get` (plus a `time.sleep`), so it needs network access that is unavailable here and no input can avoid it."
+  }
+ ],
+ "seconds": 2.3,
+ "cost": 0.00012,
+ "kept": [],
+ "reason": "it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get` (plus a `time.sleep`), so it needs network access that is unavailable here and no input can avoid it."
+}

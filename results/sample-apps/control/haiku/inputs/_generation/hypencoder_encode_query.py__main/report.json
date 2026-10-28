@@ -1,0 +1,143 @@
+{
+ "unit": "hypencoder/encode_query.py::main",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 36.6,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 2618,
+   "completion_tokens": 12839,
+   "reasoning_tokens": 12017,
+   "cost": 0.008456314,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "default-short-large",
+     "ok": false,
+     "joules": 3.7624333333333335,
+     "seconds": 0.09023693297058344,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "default-long-large",
+     "ok": true,
+     "joules": 7.198414714285718,
+     "seconds": 0.1518506808206439
+    },
+    {
+     "label": "default-huge-small",
+     "ok": true,
+     "joules": 4.8207787999999825,
+     "seconds": 0.11063358560204506
+    },
+    {
+     "label": "default-mixed-hits100",
+     "ok": true,
+     "joules": 4.431901090909088,
+     "seconds": 0.09471562504768372
+    },
+    {
+     "label": "rerank-medium",
+     "ok": true,
+     "joules": 3.9316862500000127,
+     "seconds": 0.06591439060866833
+    },
+    {
+     "label": "rerank-long-small",
+     "ok": false,
+     "joules": 3.1442215714285857,
+     "seconds": 0.07150947488844395,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "lexical-medium",
+     "ok": false,
+     "joules": 3.8278424545454652,
+     "seconds": 0.09178855177015066,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "cosine-long",
+     "ok": false,
+     "joules": 0.10135961563517869,
+     "seconds": 0.0016306238248944283,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-query",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-token",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "cosine-empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 100.3,
+   "coverage": 0.7878787878787878,
+   "missed": [
+    59,
+    60,
+    61,
+    66,
+    78,
+    80,
+    81
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 81.2
+  }
+ ],
+ "seconds": 141.9,
+ "cost": 0.00846,
+ "kept": [
+  {
+   "label": "default-long-large",
+   "mj_per_call": 7198.4147,
+   "ms_per_call": 151.851
+  },
+  {
+   "label": "default-huge-small",
+   "mj_per_call": 4820.7788,
+   "ms_per_call": 110.634
+  },
+  {
+   "label": "default-mixed-hits100",
+   "mj_per_call": 4431.9011,
+   "ms_per_call": 94.716
+  },
+  {
+   "label": "rerank-medium",
+   "mj_per_call": 3931.6863,
+   "ms_per_call": 65.914
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `DXGlobalWorkflow._get_run_input` begins with `dxpy.api.project_describe(project, ...)`, a live DNAnexus API call to the platform, and then calls `get_underlying_workflow(region)`, which also resolves/describes remote workflows; no input can avoid these network requests.

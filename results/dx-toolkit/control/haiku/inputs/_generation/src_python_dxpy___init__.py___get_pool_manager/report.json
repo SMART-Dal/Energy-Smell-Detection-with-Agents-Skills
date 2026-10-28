@@ -1,0 +1,145 @@
+{
+ "unit": "src/python/dxpy/__init__.py::_get_pool_manager",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 29.8,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 4254,
+   "completion_tokens": 7943,
+   "reasoning_tokens": 7200,
+   "cost": 0.002978775,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "verify-false",
+     "ok": true,
+     "joules": 0.0012747986715259815,
+     "seconds": 2.9391609132289886e-05
+    },
+    {
+     "label": "verify-path",
+     "ok": false,
+     "joules": 0.0011068202753820554,
+     "seconds": 3.026239573955536e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "cert-file",
+     "ok": false,
+     "joules": 0.0010676472384492821,
+     "seconds": 3.3192336559295654e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "ssl-context",
+     "ok": false,
+     "joules": 0.0012163897551200021,
+     "seconds": 4.888046532869339e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dx-ca-noverify",
+     "ok": true,
+     "joules": 0.0014337244512342207,
+     "seconds": 4.0203332901000977e-05
+    },
+    {
+     "label": "proxy-auth",
+     "ok": true,
+     "joules": 0.006095321570424658,
+     "seconds": 0.00015277881175279617
+    },
+    {
+     "label": "proxy-noauth",
+     "ok": true,
+     "joules": 0.0053759674128648184,
+     "seconds": 0.00014169514179229736
+    },
+    {
+     "label": "cached-os-ca",
+     "ok": false,
+     "joules": 0.0002341105128205247,
+     "seconds": 0.00012821238487958908,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "default",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "noverify-env",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "odd-verify",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 69.3,
+   "coverage": 0.5909090909090909,
+   "missed": [
+    247,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    266,
+    267
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 51.9
+  }
+ ],
+ "seconds": 114.6,
+ "cost": 0.00298,
+ "kept": [
+  {
+   "label": "proxy-auth",
+   "mj_per_call": 6.0953,
+   "ms_per_call": 0.153
+  },
+  {
+   "label": "proxy-noauth",
+   "mj_per_call": 5.376,
+   "ms_per_call": 0.142
+  },
+  {
+   "label": "dx-ca-noverify",
+   "mj_per_call": 1.4337,
+   "ms_per_call": 0.04
+  },
+  {
+   "label": "verify-false",
+   "mj_per_call": 1.2748,
+   "ms_per_call": 0.029
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

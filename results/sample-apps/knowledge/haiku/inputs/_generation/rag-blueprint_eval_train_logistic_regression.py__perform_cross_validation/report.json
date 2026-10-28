@@ -1,0 +1,138 @@
+{
+ "unit": "rag-blueprint/eval/train_logistic_regression.py::perform_cross_validation",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 14.6,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 4238,
+   "completion_tokens": 3453,
+   "reasoning_tokens": 2513,
+   "cost": 0.001609194,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small-baseline",
+     "ok": false,
+     "joules": 14.878124333333332,
+     "seconds": 0.18762608524411917,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "medium-15f",
+     "ok": false,
+     "joules": 15.726713799999999,
+     "seconds": 0.21549994871020317,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "wide-30f",
+     "ok": true,
+     "joules": 19.8941678,
+     "seconds": 0.23220793809741735
+    },
+    {
+     "label": "large-2500",
+     "ok": false,
+     "joules": 15.449454833333334,
+     "seconds": 0.19403792452067137,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "imbalanced",
+     "ok": true,
+     "joules": 20.298968599999988,
+     "seconds": 0.21556193474680185
+    },
+    {
+     "label": "high-dim",
+     "ok": true,
+     "joules": 20.454977750000012,
+     "seconds": 0.2756299441680312
+    },
+    {
+     "label": "noisy",
+     "ok": true,
+     "joules": 16.450427999999988,
+     "seconds": 0.28362753614783287
+    },
+    {
+     "label": "scaled-features",
+     "ok": false,
+     "joules": 15.761623999999937,
+     "seconds": 0.2091383244842291,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "one-row",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "missing-file",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 45.1,
+   "coverage": 0.9722222222222222,
+   "missed": [
+    79,
+    80
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 17.4
+  }
+ ],
+ "seconds": 62.4,
+ "cost": 0.00161,
+ "kept": [
+  {
+   "label": "high-dim",
+   "mj_per_call": 20454.9778,
+   "ms_per_call": 275.63
+  },
+  {
+   "label": "imbalanced",
+   "mj_per_call": 20298.9686,
+   "ms_per_call": 215.562
+  },
+  {
+   "label": "wide-30f",
+   "mj_per_call": 19894.1678,
+   "ms_per_call": 232.208
+  },
+  {
+   "label": "noisy",
+   "mj_per_call": 16450.428,
+   "ms_per_call": 283.628
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

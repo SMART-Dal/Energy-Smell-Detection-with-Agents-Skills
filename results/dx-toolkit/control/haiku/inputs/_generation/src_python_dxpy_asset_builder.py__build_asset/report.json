@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/asset_builder.py::build_asset",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.7,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 4722,
+   "completion_tokens": 229,
+   "reasoning_tokens": 151,
+   "cost": 0.000533334,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `build_asset` requires the DNAnexus platform \u2014 it calls `dxpy.api.system_whoami()`, uploads files via `dxpy.upload_local_file`, and runs jobs with `dxpy.api.app_run`/`dxpy.api.job_describe` over the network with credentials, which cannot be avoided by any input."
+  }
+ ],
+ "seconds": 17.7,
+ "cost": 0.00053,
+ "kept": [],
+ "reason": "it cannot run here: `build_asset` requires the DNAnexus platform \u2014 it calls `dxpy.api.system_whoami()`, uploads files via `dxpy.upload_local_file`, and runs jobs with `dxpy.api.app_run`/`dxpy.api.job_describe` over the network with credentials, which cannot be avoided by any input."
+}

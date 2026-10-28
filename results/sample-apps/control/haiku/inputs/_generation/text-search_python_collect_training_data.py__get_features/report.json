@@ -1,0 +1,25 @@
+{
+ "unit": "text-search/python/collect_training_data.py::get_features",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.0,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2384,
+   "completion_tokens": 139,
+   "reasoning_tokens": 91,
+   "cost": 9.8782e-05,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `get_features` performs an HTTP POST to a server via `requests.post(url, json=body)` as its first action; there is no input that avoids network access, and mocking the request is not allowed."
+  }
+ ],
+ "seconds": 4.5,
+ "cost": 0.0001,
+ "kept": [],
+ "reason": "it cannot run here: `get_features` performs an HTTP POST to a server via `requests.post(url, json=body)` as its first action; there is no input that avoids network access, and mocking the request is not allowed."
+}

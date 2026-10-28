@@ -1,0 +1,1 @@
+The function calls ChatOpenAI (network) via chain.invoke. That requires network access. The task says: "A function whose work starts with a request to a server (an HTTP client's get, a database query) cannot run here". This function invokes an OpenAI model — network access needed. So reply CANNOT RUN.

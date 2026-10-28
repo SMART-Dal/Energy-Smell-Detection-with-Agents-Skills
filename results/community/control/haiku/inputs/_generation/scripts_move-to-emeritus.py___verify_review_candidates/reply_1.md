@@ -1,0 +1,1 @@
+CANNOT RUN: `_verify_review_candidates` performs live GitHub REST requests via `request_with_retry`/`urllib.request.urlopen` to the hardcoded `https://api.github.com` endpoint; it needs network access (and credentials/rate limits) and cannot be exercised here without mocking the request layer, which is forbidden.

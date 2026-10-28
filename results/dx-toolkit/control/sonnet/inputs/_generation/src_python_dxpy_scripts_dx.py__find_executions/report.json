@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/scripts/dx.py::find_executions",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 4.2,
+   "finish": "stop",
+   "provider": "ModelRun",
+   "prompt_tokens": 8433,
+   "completion_tokens": 555,
+   "reasoning_tokens": 479,
+   "cost": 0.00180546,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `find_executions` iterates over `dxpy.find_executions(**query)` (and may call `dxpy.api.job_describe` / `resolve_existing_path`), all of which make live requests to the DNAnexus API server; there is no input that avoids the network call, and mocking the API is not permitted."
+  }
+ ],
+ "seconds": 12.9,
+ "cost": 0.00181,
+ "kept": [],
+ "reason": "it cannot run here: `find_executions` iterates over `dxpy.find_executions(**query)` (and may call `dxpy.api.job_describe` / `resolve_existing_path`), all of which make live requests to the DNAnexus API server; there is no input that avoids the network call, and mocking the API is not permitted."
+}

@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_sql",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 30.0,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 3020,
+   "completion_tokens": 13609,
+   "reasoning_tokens": 12453,
+   "cost": 0.009100674,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical",
+     "ok": false,
+     "joules": 0.011182859862068965,
+     "seconds": 0.00027587544173002243,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large-select",
+     "ok": true,
+     "joules": 2.1144483461538455,
+     "seconds": 0.039485675282776356
+    },
+    {
+     "label": "distinct",
+     "ok": false,
+     "joules": 0.01249731477927061,
+     "seconds": 0.0002742083743214607,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-return-columns",
+     "ok": true,
+     "joules": 0.9646459591836735,
+     "seconds": 0.020460992120206356
+    },
+    {
+     "label": "no-return-columns",
+     "ok": true,
+     "joules": 0.9642376862745069,
+     "seconds": 0.019901422783732414
+    },
+    {
+     "label": "ref-present",
+     "ok": false,
+     "joules": 0.5007593461538485,
+     "seconds": 0.00969124399125576,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-joins",
+     "ok": false,
+     "joules": 0.08313359081836177,
+     "seconds": 0.001996878534555435,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-where",
+     "ok": true,
+     "joules": 1.0371021777777665,
+     "seconds": 0.022350159473717213
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "no-join",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "join-no-select",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 172.4,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 156.7
+  }
+ ],
+ "seconds": 298.8,
+ "cost": 0.0091,
+ "kept": [
+  {
+   "label": "large-select",
+   "mj_per_call": 2114.4483,
+   "ms_per_call": 39.486
+  },
+  {
+   "label": "long-where",
+   "mj_per_call": 1037.1022,
+   "ms_per_call": 22.35
+  },
+  {
+   "label": "all-return-columns",
+   "mj_per_call": 964.646,
+   "ms_per_call": 20.461
+  },
+  {
+   "label": "no-return-columns",
+   "mj_per_call": 964.2377,
+   "ms_per_call": 19.901
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

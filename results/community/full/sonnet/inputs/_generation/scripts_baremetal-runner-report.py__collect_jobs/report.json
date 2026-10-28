@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/baremetal-runner-report.py::collect_jobs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.3,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3211,
+   "completion_tokens": 301,
+   "reasoning_tokens": 244,
+   "cost": 0.00037527,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `collect_jobs` fetches data by shelling out to the `gh` CLI (`subprocess.run([\"gh\", \"api\", ...])`) against the GitHub API, so it needs network access and an external program that cannot be provided here."
+  }
+ ],
+ "seconds": 3.2,
+ "cost": 0.00038,
+ "kept": [],
+ "reason": "it cannot run here: `collect_jobs` fetches data by shelling out to the `gh` CLI (`subprocess.run([\"gh\", \"api\", ...])`) against the GitHub API, so it needs network access and an external program that cannot be provided here."
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `DXDatabase.get_download_url` performs its work by calling `dxpy.api.database_download_file(self._dxid, args, **kwargs)`, an HTTP request to the DNAnexus API server; with no network access and no way to stub the API call (no monkeypatching/mocks allowed), the only runnable path is a pure cache hit that does no real work.

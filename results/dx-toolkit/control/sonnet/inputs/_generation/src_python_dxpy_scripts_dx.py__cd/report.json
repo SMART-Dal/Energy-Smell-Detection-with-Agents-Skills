@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/scripts/dx.py::cd",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.4,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 6389,
+   "completion_tokens": 183,
+   "reasoning_tokens": 131,
+   "cost": 0.00053873,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `cd` resolves paths and describes projects through the DNAnexus API (`resolve_existing_path`, `dxpy.get_handler(...).describe`, `list_folder`), which all require network access and credentials to a remote service."
+  }
+ ],
+ "seconds": 9.8,
+ "cost": 0.00054,
+ "kept": [],
+ "reason": "it cannot run here: `cd` resolves paths and describes projects through the DNAnexus API (`resolve_existing_path`, `dxpy.get_handler(...).describe`, `list_folder`), which all require network access and credentials to a remote service."
+}

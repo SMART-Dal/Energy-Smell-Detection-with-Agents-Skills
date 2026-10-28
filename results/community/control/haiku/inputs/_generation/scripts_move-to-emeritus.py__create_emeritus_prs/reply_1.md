@@ -1,0 +1,1 @@
+CANNOT RUN: `create_emeritus_prs` calls `fetch_readme`, which performs an HTTP request to the GitHub API (`https://api.github.com/repos/.../readme`) via `request_with_retry`/`urllib.request`; the function cannot run without network access and credentials, and no input can avoid that.

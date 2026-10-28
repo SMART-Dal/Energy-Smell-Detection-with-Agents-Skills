@@ -1,0 +1,157 @@
+{
+ "unit": "src/python/dxpy/dxlog.py::DXLogHandler.truncate_message",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 34.7,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 2917,
+   "completion_tokens": 11096,
+   "reasoning_tokens": 9889,
+   "cost": 0.00575219,
+   "retried": []
+  },
+  {
+   "seconds": 4.9,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 4231,
+   "completion_tokens": 1467,
+   "reasoning_tokens": 238,
+   "cost": 0.00102967,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "the source does not load (cases): OSError: AF_UNIX path too long (at line 22 of your source: `_priority_endpoint.bind(str(_PRI_PATH))`)",
+   "cases": [],
+   "checks": [],
+   "validate_s": 6.3,
+   "coverage": null,
+   "missed": null,
+   "energy_domains": null,
+   "waited_s": null
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "ascii-100k",
+     "ok": false,
+     "joules": 0.3716992296296296,
+     "seconds": 0.007446492090821266,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "ascii-200k",
+     "ok": false,
+     "joules": 0.41975766086956473,
+     "seconds": 0.008732084184885025,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "ascii-boundary-8014",
+     "ok": false,
+     "joules": 0.007342806588902882,
+     "seconds": 0.00015764310956001282,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "control-20k",
+     "ok": true,
+     "joules": 33.58900700000004,
+     "seconds": 0.7040477385744452
+    },
+    {
+     "label": "two-byte-20k",
+     "ok": true,
+     "joules": 11.866852499999936,
+     "seconds": 0.2538015553727746
+    },
+    {
+     "label": "three-byte-20k",
+     "ok": false,
+     "joules": 7.386943250000002,
+     "seconds": 0.132359498180449,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "four-byte-20k",
+     "ok": true,
+     "joules": 10.143854199999987,
+     "seconds": 0.2188673634082079
+    },
+    {
+     "label": "mixed-30k",
+     "ok": true,
+     "joules": 20.630539999999808,
+     "seconds": 0.4322434077039361
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 174.7,
+   "coverage": 0.875,
+   "missed": [
+    75
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 148.7
+  }
+ ],
+ "seconds": 640.3,
+ "cost": 0.00678,
+ "kept": [
+  {
+   "label": "control-20k",
+   "mj_per_call": 33589.007,
+   "ms_per_call": 704.048
+  },
+  {
+   "label": "mixed-30k",
+   "mj_per_call": 20630.54,
+   "ms_per_call": 432.243
+  },
+  {
+   "label": "two-byte-20k",
+   "mj_per_call": 11866.8525,
+   "ms_per_call": 253.802
+  },
+  {
+   "label": "four-byte-20k",
+   "mj_per_call": 10143.8542,
+   "ms_per_call": 218.867
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `_verify_review_candidates` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` for every candidate PR; there is no way to supply the review data without network access, and intercepting the request would require mocking the repository's own code.

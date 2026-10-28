@@ -1,0 +1,1 @@
+CANNOT RUN: the method opens a Vespa session and issues a live HTTP query (`session.query(...)`) to a Vespa application; `VespaQueryClient.__init__` also requires Vespa credentials/URLs and calls `wait_for_application_up()`, so no input can avoid network access.

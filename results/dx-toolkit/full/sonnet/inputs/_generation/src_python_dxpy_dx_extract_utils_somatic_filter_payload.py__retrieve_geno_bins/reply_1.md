@@ -1,0 +1,1 @@
+CANNOT RUN: `retrieve_geno_bins` delegates its entire workload to `retrieve_bins(list_of_genes, project, genome_reference, ...)`, which needs a DNAnexus `project` to fetch the gene manifest data objects from the platform (network/API access); no input can avoid that lookup, so the function cannot run in this offline environment.

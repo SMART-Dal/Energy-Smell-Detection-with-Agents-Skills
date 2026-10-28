@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/bindings/apollo/data_transformations.py::transform_to_expression_matrix",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 27.2,
+   "finish": "stop",
+   "provider": "ModelRun",
+   "prompt_tokens": 2712,
+   "completion_tokens": 2700,
+   "reasoning_tokens": 1761,
+   "cost": 0.00227004,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "dense-full",
+     "ok": true,
+     "joules": 2.4410823809523805,
+     "seconds": 0.04979069344699383
+    },
+    {
+     "label": "sparse-5pct",
+     "ok": false,
+     "joules": 0.7444297547169797,
+     "seconds": 0.019182446412742138,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-samples",
+     "ok": true,
+     "joules": 2.434888449999994,
+     "seconds": 0.05212417338043451
+    },
+    {
+     "label": "few-samples-many-features",
+     "ok": true,
+     "joules": 2.5417892631578884,
+     "seconds": 0.05464903824031353
+    },
+    {
+     "label": "duplicated-entries",
+     "ok": true,
+     "joules": 1.8897081600000092,
+     "seconds": 0.040568494237959385
+    },
+    {
+     "label": "extra-keys",
+     "ok": false,
+     "joules": 1.810300666666653,
+     "seconds": 0.03807609807699919,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "skewed-feature",
+     "ok": false,
+     "joules": 0.960392714285708,
+     "seconds": 0.020427134819328785,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-shuffled",
+     "ok": false,
+     "joules": 1.7105995652174264,
+     "seconds": 0.043541332706809044,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-expression",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 183.2,
+   "coverage": 0.9333333333333333,
+   "missed": [
+    55
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 84.6
+  }
+ ],
+ "seconds": 215.6,
+ "cost": 0.00227,
+ "kept": [
+  {
+   "label": "few-samples-many-features",
+   "mj_per_call": 2541.7893,
+   "ms_per_call": 54.649
+  },
+  {
+   "label": "dense-full",
+   "mj_per_call": 2441.0824,
+   "ms_per_call": 49.791
+  },
+  {
+   "label": "many-samples",
+   "mj_per_call": 2434.8884,
+   "ms_per_call": 52.124
+  },
+  {
+   "label": "duplicated-entries",
+   "mj_per_call": 1889.7082,
+   "ms_per_call": 40.568
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

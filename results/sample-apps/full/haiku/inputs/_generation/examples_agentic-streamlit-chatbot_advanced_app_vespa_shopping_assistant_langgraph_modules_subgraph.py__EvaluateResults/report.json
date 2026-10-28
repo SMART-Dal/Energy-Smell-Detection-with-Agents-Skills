@@ -1,0 +1,25 @@
+{
+ "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::EvaluateResults",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.8,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2734,
+   "completion_tokens": 125,
+   "reasoning_tokens": 81,
+   "cost": 0.000126782,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a live HTTP request to the OpenAI API requiring network access and credentials that are unavailable here."
+  }
+ ],
+ "seconds": 5.0,
+ "cost": 0.00013,
+ "kept": [],
+ "reason": "it cannot run here: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a live HTTP request to the OpenAI API requiring network access and credentials that are unavailable here."
+}

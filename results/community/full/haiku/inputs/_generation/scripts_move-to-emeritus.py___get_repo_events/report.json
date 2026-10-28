@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_get_repo_events",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.1,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3498,
+   "completion_tokens": 191,
+   "reasoning_tokens": 121,
+   "cost": 0.000316814,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_get_repo_events` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` before doing any other work, which requires network access and GitHub credentials/rate limits that are unavailable here; no input can avoid the request."
+  }
+ ],
+ "seconds": 3.9,
+ "cost": 0.00032,
+ "kept": [],
+ "reason": "it cannot run here: `_get_repo_events` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` before doing any other work, which requires network access and GitHub credentials/rate limits that are unavailable here; no input can avoid the request."
+}

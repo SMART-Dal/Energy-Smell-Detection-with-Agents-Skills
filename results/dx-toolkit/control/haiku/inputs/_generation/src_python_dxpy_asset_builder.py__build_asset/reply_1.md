@@ -1,0 +1,1 @@
+CANNOT RUN: `build_asset` requires the DNAnexus platform — it calls `dxpy.api.system_whoami()`, uploads files via `dxpy.upload_local_file`, and runs jobs with `dxpy.api.app_run`/`dxpy.api.job_describe` over the network with credentials, which cannot be avoided by any input.

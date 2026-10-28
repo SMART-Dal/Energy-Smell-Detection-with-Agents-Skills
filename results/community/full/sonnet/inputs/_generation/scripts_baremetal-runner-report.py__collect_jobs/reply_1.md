@@ -1,0 +1,1 @@
+CANNOT RUN: `collect_jobs` fetches data by shelling out to the `gh` CLI (`subprocess.run(["gh", "api", ...])`) against the GitHub API, so it needs network access and an external program that cannot be provided here.

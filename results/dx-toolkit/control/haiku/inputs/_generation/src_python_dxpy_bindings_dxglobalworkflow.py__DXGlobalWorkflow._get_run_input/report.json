@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxglobalworkflow.py::DXGlobalWorkflow._get_run_input",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.6,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 4592,
+   "completion_tokens": 219,
+   "reasoning_tokens": 147,
+   "cost": 0.000509934,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `DXGlobalWorkflow._get_run_input` begins with `dxpy.api.project_describe(project, ...)`, a live DNAnexus API call to the platform, and then calls `get_underlying_workflow(region)`, which also resolves/describes remote workflows; no input can avoid these network requests."
+  }
+ ],
+ "seconds": 10.2,
+ "cost": 0.00051,
+ "kept": [],
+ "reason": "it cannot run here: `DXGlobalWorkflow._get_run_input` begins with `dxpy.api.project_describe(project, ...)`, a live DNAnexus API call to the platform, and then calls `get_underlying_workflow(region)`, which also resolves/describes remote workflows; no input can avoid these network requests."
+}

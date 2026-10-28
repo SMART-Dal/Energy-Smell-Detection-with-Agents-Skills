@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/nextflow/collect_images.py::_populate_cached_file_ids",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 5.0,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 3354,
+   "completion_tokens": 538,
+   "reasoning_tokens": 464,
+   "cost": 0.00123885,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the function's real work is entirely `find_data_objects(...)`, which calls the DNAnexus platform API (`system_find_data_objects`) over the network and needs credentials; with no `DX_PROJECT_CONTEXT_ID` it returns immediately without doing any work, and the lookup path cannot be exercised without mocking that call."
+  }
+ ],
+ "seconds": 18.5,
+ "cost": 0.00124,
+ "kept": [],
+ "reason": "it cannot run here: the function's real work is entirely `find_data_objects(...)`, which calls the DNAnexus platform API (`system_find_data_objects`) over the network and needs credentials; with no `DX_PROJECT_CONTEXT_ID` it returns immediately without doing any work, and the lookup path cannot be exercised without mocking that call."
+}

@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_results",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 25.0,
+   "finish": "stop",
+   "provider": "Together",
+   "prompt_tokens": 2546,
+   "completion_tokens": 10695,
+   "reasoning_tokens": 9120,
+   "cost": 0.0135978,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical",
+     "ok": false,
+     "joules": 0.4664982121212121,
+     "seconds": 0.007590744644403458,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "wide-fields",
+     "ok": true,
+     "joules": 0.7078287352941179,
+     "seconds": 0.014863112010061741
+    },
+    {
+     "label": "many-results",
+     "ok": true,
+     "joules": 0.6444686805555556,
+     "seconds": 0.013947284780442715
+    },
+    {
+     "label": "sparse",
+     "ok": false,
+     "joules": 0.5713200120481933,
+     "seconds": 0.012117821723222733,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dense",
+     "ok": true,
+     "joules": 0.6931261093749992,
+     "seconds": 0.015640764497220516
+    },
+    {
+     "label": "mixed",
+     "ok": false,
+     "joules": 0.6215543600000001,
+     "seconds": 0.013476005755364895,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "extra-fields",
+     "ok": false,
+     "joules": 0.589108641025638,
+     "seconds": 0.012887425720691681,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large",
+     "ok": true,
+     "joules": 0.6321740972222218,
+     "seconds": 0.014002127572894096
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-results",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-fields",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-values",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 53.8,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 19.3
+  }
+ ],
+ "seconds": 86.1,
+ "cost": 0.0136,
+ "kept": [
+  {
+   "label": "wide-fields",
+   "mj_per_call": 707.8287,
+   "ms_per_call": 14.863
+  },
+  {
+   "label": "dense",
+   "mj_per_call": 693.1261,
+   "ms_per_call": 15.641
+  },
+  {
+   "label": "many-results",
+   "mj_per_call": 644.4687,
+   "ms_per_call": 13.947
+  },
+  {
+   "label": "large",
+   "mj_per_call": 632.1741,
+   "ms_per_call": 14.002
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

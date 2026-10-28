@@ -1,0 +1,26 @@
+spell-edits2           regressed       not applied: regressed
+pp-flatten             confirmed       APPLIED
+dxlog-bsearch          confirmed       APPLIED
+cohort-pheno-reduce    confirmed       APPLIED
+resolver-split         confirmed       APPLIED
+resolver-first-pos     confirmed       APPLIED
+resolver-last-pos      confirmed       APPLIED
+gu-infer-hoist         confirmed       APPLIED
+dd-coding-index        negligible      not applied: negligible
+nt-concat              confirmed       APPLIED
+nb-insert              confirmed       APPLIED
+sr-cluster-copy        partial         not applied: partial
+search-limit           regressed       not applied: regressed
+pp-escape              negligible      not applied: negligible
+resolver-dxlink        partial         not applied: partial
+gu-harmonize-results   regressed       not applied: regressed
+fp-validate            confirmed       APPLIED
+oh-sets                over_limit      not applied: over_limit
+dd-load-assign         over_limit      not applied: over_limit
+nb-required-set        partial         not applied: partial
+dxlog-encode           over_limit      not applied: over_limit
+pp-table-len           regressed       not applied: regressed
+describe-locale        regressed       not applied: regressed
+resolver-colon         over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/dx-toolkit/control/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/dx-toolkit/control/sonnet/review/REPORT.md

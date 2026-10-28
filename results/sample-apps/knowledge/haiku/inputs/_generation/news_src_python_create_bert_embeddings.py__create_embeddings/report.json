@@ -1,0 +1,25 @@
+{
+ "unit": "news/src/python/create_bert_embeddings.py::create_embeddings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 0.8,
+   "finish": "stop",
+   "provider": "Together",
+   "prompt_tokens": 2643,
+   "completion_tokens": 240,
+   "reasoning_tokens": 155,
+   "cost": 0.000554052,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8-H-512_A-8')`, which download pretrained weights from the HuggingFace Hub over the network; there is no local model directory available and no input can avoid that request."
+  }
+ ],
+ "seconds": 2.2,
+ "cost": 0.00055,
+ "kept": [],
+ "reason": "it cannot run here: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8-H-512_A-8')`, which download pretrained weights from the HuggingFace Hub over the network; there is no local model directory available and no input can avoid that request."
+}

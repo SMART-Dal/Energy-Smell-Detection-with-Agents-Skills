@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/baremetal-runner-report.py::collect_jobs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.8,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3211,
+   "completion_tokens": 230,
+   "reasoning_tokens": 165,
+   "cost": 0.00033977,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: collect_jobs fetches every workflow run and job through gh_paginated, which shells out to `gh api --paginate` against the GitHub API \u2014 it needs network access and the gh CLI, and that request is the first thing the function does for each workflow."
+  }
+ ],
+ "seconds": 3.2,
+ "cost": 0.00034,
+ "kept": [],
+ "reason": "it cannot run here: collect_jobs fetches every workflow run and job through gh_paginated, which shells out to `gh api --paginate` against the GitHub API \u2014 it needs network access and the gh CLI, and that request is the first thing the function does for each workflow."
+}

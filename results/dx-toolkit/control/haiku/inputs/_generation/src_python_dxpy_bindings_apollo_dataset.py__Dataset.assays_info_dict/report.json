@@ -1,0 +1,172 @@
+{
+ "unit": "src/python/dxpy/bindings/apollo/dataset.py::Dataset.assays_info_dict",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 24.9,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2933,
+   "completion_tokens": 6481,
+   "reasoning_tokens": 5713,
+   "cost": 0.001733692,
+   "retried": []
+  },
+  {
+   "seconds": 66.2,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 4295,
+   "completion_tokens": 16718,
+   "reasoning_tokens": 15714,
+   "cost": 0.004329506,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "tiny-two-models",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "many-assays-few-models",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "many-assays-many-models",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "no-optional-fields",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "reference-only",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "version-only",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "large-mixed",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "single-model",
+     "ok": false,
+     "why": "building or running it failed: DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-assays",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "single-assay-no-optionals",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    },
+    {
+     "label": "missing-model-key",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: Invalid ID of class record: 'dataset-0000' (at line 25 of your source: `ds = Dataset(\"dataset-0000\")`)"
+    }
+   ],
+   "validate_s": 7.8,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 5.9
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "tiny-two-models",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "many-assays-few-models",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "many-assays-many-models",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "no-optional-fields",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "reference-only",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "version-only",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "large-mixed",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "single-model",
+     "ok": false,
+     "why": "building or running it failed: RecursionError: maximum recursion depth exceeded in comparison"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-assays",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "single-assay-no-optionals",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    },
+    {
+     "label": "missing-model-key",
+     "ok": false,
+     "kind": null,
+     "why": "RecursionError: maximum recursion depth exceeded in comparison"
+    }
+   ],
+   "validate_s": 1.8,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 119.1,
+ "cost": 0.00606,
+ "kept": [],
+ "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: RecursionError: maximum recursion depth exceeded in comparison)"
+}

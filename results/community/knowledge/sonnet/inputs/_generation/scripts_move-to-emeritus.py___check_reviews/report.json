@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_check_reviews",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.6,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 4433,
+   "completion_tokens": 254,
+   "reasoning_tokens": 196,
+   "cost": 0.00100737,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: _check_reviews performs live GitHub API calls (request_with_retry -> urllib.request.urlopen against GRAPHQL_API / REST_API) for every non-empty input, so no realistic input can run without network access."
+  }
+ ],
+ "seconds": 2.1,
+ "cost": 0.00101,
+ "kept": [],
+ "reason": "it cannot run here: _check_reviews performs live GitHub API calls (request_with_retry -> urllib.request.urlopen against GRAPHQL_API / REST_API) for every non-empty input, so no realistic input can run without network access."
+}

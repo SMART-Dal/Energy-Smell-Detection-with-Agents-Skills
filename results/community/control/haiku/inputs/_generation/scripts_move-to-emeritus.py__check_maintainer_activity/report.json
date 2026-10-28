@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::check_maintainer_activity",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 7.6,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5192,
+   "completion_tokens": 1938,
+   "reasoning_tokens": 1834,
+   "cost": 0.001705284,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `check_maintainer_activity` needs network access to the GitHub API \u2014 its first step for any non-empty input is `_check_comments` \u2192 `_get_repo_commenters` (REST pagination) and later `_check_reviews`/authored-PR queries hit `GRAPHQL_API`/`api.github.com` with credentials; the only input that avoids the network is empty `usernames`/`repos`, which does no work."
+  }
+ ],
+ "seconds": 8.8,
+ "cost": 0.00171,
+ "kept": [],
+ "reason": "it cannot run here: `check_maintainer_activity` needs network access to the GitHub API \u2014 its first step for any non-empty input is `_check_comments` \u2192 `_get_repo_commenters` (REST pagination) and later `_check_reviews`/authored-PR queries hit `GRAPHQL_API`/`api.github.com` with credentials; the only input that avoids the network is empty `usernames`/`repos`, which does no work."
+}

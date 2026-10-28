@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/utils/pretty_print.py::escape_unicode_string",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 8.6,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3342,
+   "completion_tokens": 1533,
+   "reasoning_tokens": 729,
+   "cost": 0.00100044,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "plain-ascii-1M",
+     "ok": false,
+     "joules": 0.8055233559322033,
+     "seconds": 0.017005150206387043,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "newlines-dense",
+     "ok": false,
+     "joules": 4.201534333333332,
+     "seconds": 0.08810594212263823,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-controls",
+     "ok": true,
+     "joules": 12.065144400000008,
+     "seconds": 0.24557880777865648
+    },
+    {
+     "label": "backslash-heavy",
+     "ok": true,
+     "joules": 5.43279055555556,
+     "seconds": 0.11594623234122992
+    },
+    {
+     "label": "mixed-random",
+     "ok": true,
+     "joules": 6.463033249999967,
+     "seconds": 0.13146906718611717
+    },
+    {
+     "label": "unicode-heavy",
+     "ok": false,
+     "joules": 5.286927500000002,
+     "seconds": 0.10866157617419958,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "del-heavy",
+     "ok": false,
+     "joules": 5.185115499999983,
+     "seconds": 0.10750916600227356,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "tabs-and-cr",
+     "ok": true,
+     "joules": 7.044777571428573,
+     "seconds": 0.1476424690335989
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "only-specials",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 106.3,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 75.7
+  }
+ ],
+ "seconds": 129.1,
+ "cost": 0.001,
+ "kept": [
+  {
+   "label": "all-controls",
+   "mj_per_call": 12065.1444,
+   "ms_per_call": 245.579
+  },
+  {
+   "label": "tabs-and-cr",
+   "mj_per_call": 7044.7776,
+   "ms_per_call": 147.642
+  },
+  {
+   "label": "mixed-random",
+   "mj_per_call": 6463.0332,
+   "ms_per_call": 131.469
+  },
+  {
+   "label": "backslash-heavy",
+   "mj_per_call": 5432.7906,
+   "ms_per_call": 115.946
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

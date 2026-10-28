@@ -1,0 +1,25 @@
+{
+ "unit": "text-search/python/collect_training_data.py::build_dataset",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 4.3,
+   "finish": "stop",
+   "provider": "ModelRun",
+   "prompt_tokens": 3189,
+   "completion_tokens": 406,
+   "reasoning_tokens": 339,
+   "cost": 0.00081415,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `build_dataset` performs its work by calling `get_features`, which issues `requests.post(url, ...)` to a Solr server (`http://localhost:8080/search/`); no input can avoid the network request while still doing the function's real work, and network access is not available here."
+  }
+ ],
+ "seconds": 7.5,
+ "cost": 0.00081,
+ "kept": [],
+ "reason": "it cannot run here: `build_dataset` performs its work by calling `get_features`, which issues `requests.post(url, ...)` to a Solr server (`http://localhost:8080/search/`); no input can avoid the network request while still doing the function's real work, and network access is not available here."
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `build_dataset` performs its work by calling `get_features`, which issues `requests.post(url, ...)` to a Vespa search server (default `http://localhost:8080/search/`) — a network request to a remote service is required for every unprocessed query, and no input can make the function do its real work without that server being available.

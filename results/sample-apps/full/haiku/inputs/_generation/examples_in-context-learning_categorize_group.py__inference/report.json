@@ -1,0 +1,25 @@
+{
+ "unit": "examples/in-context-learning/categorize_group.py::inference",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 0.7,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 4098,
+   "completion_tokens": 102,
+   "reasoning_tokens": 60,
+   "cost": 0.000525944,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: inference performs requests.post to http://localhost:8080/search/, requiring a running Vespa server; no input can avoid the network request."
+  }
+ ],
+ "seconds": 2.5,
+ "cost": 0.00053,
+ "kept": [],
+ "reason": "it cannot run here: inference performs requests.post to http://localhost:8080/search/, requiring a running Vespa server; no input can avoid the network request."
+}

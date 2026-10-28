@@ -1,0 +1,1 @@
+CANNOT RUN: the function's real work is entirely `find_data_objects(...)`, which calls the DNAnexus platform API (`system_find_data_objects`) over the network and needs credentials; with no `DX_PROJECT_CONTEXT_ID` it returns immediately without doing any work, and the lookup path cannot be exercised without mocking that call.

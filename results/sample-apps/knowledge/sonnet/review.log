@@ -1,0 +1,29 @@
+C3S4-predictions-index confirmed       APPLIED
+C3S4-process_docs-docs-count partial         not applied: partial
+C3S2-count_terms-common-once confirmed       APPLIED
+C1S5-sample_valid_data-filter-first negligible      not applied: negligible
+C10S1-remove_control_characters-translate confirmed       APPLIED
+C1S8-extract_documents-tell partial         not applied: partial
+C10S4-split_text-join  negligible      not applied: negligible
+C1S4-what_language-text-once confirmed       APPLIED
+C1S4-ndcg_score-discounts-once mixed           not applied: mixed
+C8S3-add_impressions-content-once confirmed       APPLIED
+C10S2-float_to_binary-bool confirmed       APPLIED
+C3S2-prepare_sim_map-seq-length over_limit      not applied: over_limit
+C6S2-sample_images-index-first confirmed       APPLIED
+C3S6-process_users-limit-first partial         not applied: partial
+C8S2-should_filter_token-compiled-default over_limit      not applied: over_limit
+C10S2-category_ctrs-read_impressions-reader confirmed       APPLIED
+C2S1-lookup_news_index-inline confirmed       APPLIED
+C10S3-train_cold_start-write_embeddings-tolist-once partial         not applied: partial
+C3S5-read_news-lazy-abstract confirmed       APPLIED
+C1S1-process_docs-total_count negligible      not applied: negligible
+C10S3-accepted_words-process_docs-update confirmed       APPLIED
+C3S2-select_documents-bound partial         not applied: partial
+C10S2-evaluate-read_impressions-reader over_limit      not applied: over_limit
+C8S3-read_bert_embeddings_from_file-news-once over_limit      not applied: over_limit
+C10S2-write_json_file-replace over_limit      not applied: over_limit
+C6S2-gen_similarity_maps-no-copy over_limit      not applied: over_limit
+C3S2-gen_similarity_maps-filter-once over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/sample-apps/knowledge/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/knowledge/sonnet/review/REPORT.md

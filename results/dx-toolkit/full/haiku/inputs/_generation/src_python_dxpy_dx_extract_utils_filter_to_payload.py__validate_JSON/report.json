@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 155.3,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2766,
+   "completion_tokens": 25718,
+   "reasoning_tokens": 24361,
+   "cost": 0.006527912,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "case-0-allele",
+     "ok": false,
+     "joules": 0.04516412074303405,
+     "seconds": 0.0010324111208319664,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "case-1-variant",
+     "ok": false,
+     "joules": 0.0862537673076923,
+     "seconds": 0.0019266409799456596,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "case-2-allele",
+     "ok": false,
+     "joules": 0.15471963475177292,
+     "seconds": 0.003558170050382614,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "case-3-variant",
+     "ok": false,
+     "joules": 0.2517524550561796,
+     "seconds": 0.005646878853440285,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "case-4-allele",
+     "ok": true,
+     "joules": 0.4215418468468471,
+     "seconds": 0.009033866226673126
+    },
+    {
+     "label": "case-5-variant",
+     "ok": true,
+     "joules": 0.6211731756756756,
+     "seconds": 0.013650947250425816
+    },
+    {
+     "label": "case-6-allele",
+     "ok": true,
+     "joules": 0.9002949399999989,
+     "seconds": 0.020232858136296272
+    },
+    {
+     "label": "case-7-variant",
+     "ok": true,
+     "joules": 1.5752326071428573,
+     "seconds": 0.03602646943181753
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-filter",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "single-key",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "none-filter",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 21.7,
+   "coverage": 0.8333333333333334,
+   "missed": [
+    307
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 8.8
+  }
+ ],
+ "seconds": 182.1,
+ "cost": 0.00653,
+ "kept": [
+  {
+   "label": "case-7-variant",
+   "mj_per_call": 1575.2326,
+   "ms_per_call": 36.026
+  },
+  {
+   "label": "case-6-allele",
+   "mj_per_call": 900.2949,
+   "ms_per_call": 20.233
+  },
+  {
+   "label": "case-5-variant",
+   "mj_per_call": 621.1732,
+   "ms_per_call": 13.651
+  },
+  {
+   "label": "case-4-allele",
+   "mj_per_call": 421.5418,
+   "ms_per_call": 9.034
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

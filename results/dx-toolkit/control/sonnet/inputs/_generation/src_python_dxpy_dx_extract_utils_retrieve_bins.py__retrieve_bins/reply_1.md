@@ -1,0 +1,1 @@
+CANNOT RUN: `retrieve_bins` calls `dxpy.describe(project)` (a DNAnexus API request) and then shells out to the `dx` CLI (`subprocess.check_output(["dx", "cat", ...])`), both of which require network access and platform credentials; no input can avoid these, and faking them (stubbing `dxpy.describe` or putting a stand-in `dx` on PATH) is disallowed.

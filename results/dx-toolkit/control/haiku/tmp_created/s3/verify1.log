@@ -1,0 +1,112 @@
+waiting for inputs still being generated: 6 unit(s) (src/python/dxpy/bindings/apollo/dataset.py::Dataset.assay_names_list, src/python/dxpy/bindings/dxfile.py::DXFile.__iter__, src/python/dxpy/bindings/dxglobalworkflow.py::DXGlobalWorkflow.get_underlying_workflow, ...)
+waiting for inputs still being generated: 5 unit(s) (src/python/dxpy/bindings/apollo/dataset.py::Dataset.assay_names_list, src/python/dxpy/bindings/dxfile.py::DXFile.__iter__, src/python/dxpy/bindings/dxglobalworkflow.py::DXGlobalWorkflow.get_underlying_workflow, ...)
+waiting for inputs still being generated: 4 unit(s) (src/python/dxpy/bindings/dxfile.py::DXFile.__iter__, src/python/dxpy/bindings/dxglobalworkflow.py::DXGlobalWorkflow.get_underlying_workflow, src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary, ...)
+waiting for inputs still being generated: 3 unit(s) (src/python/dxpy/bindings/dxfile.py::DXFile.__iter__, src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary, src/python/dxpy/cli/output_handling.py::write_expression_output)
+waiting for inputs still being generated: 2 unit(s) (src/python/dxpy/bindings/dxfile.py::DXFile.__iter__, src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary)
+waiting for inputs still being generated: 3 unit(s) (src/python/dxpy/bindings/dxfile.py::DXFile.__iter__, src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary, src/python/dxpy/cli/output_handling.py::write_expression_output)
+waiting for inputs still being generated: 2 unit(s) (src/python/dxpy/bindings/dxfile.py::DXFile.__iter__, src/python/dxpy/cli/output_handling.py::write_expression_output)
+waiting for inputs still being generated: 1 unit(s) (src/python/dxpy/bindings/dxfile.py::DXFile.__iter__)
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-0.76%
+
+
+=== dxlog-truncate-bisect  src/python/dxpy/dxlog.py::DXLogHandler.truncate_message
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           ok  (check only)
+  control-20k    ok
+  two-byte-20k   ok
+  four-byte-20k  ok
+  mixed-30k      ok
+
+sizing
+  control-20k    before   490.3 ms/call  after   658.5 us/call  ->  4 repeats  CLAMPED to keep the slow side under 2s
+  two-byte-20k   before   181.6 ms/call  after   477.1 us/call  ->  11 repeats  CLAMPED to keep the slow side under 2s
+  four-byte-20k  before   154.7 ms/call  after   578.7 us/call  ->  12 repeats  CLAMPED to keep the slow side under 2s
+  mixed-30k      before   309.7 ms/call  after     1.3 ms/call  ->  6 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  control-20k     +99.85% +-0.00% energy saved   significant     +99.85% +-0.00% time saved
+  two-byte-20k    +99.73% +-0.04% energy saved   significant     +99.72% +-0.00% time saved
+  four-byte-20k   +99.63% +-0.05% energy saved   significant     +99.61% +-0.01% time saved
+  mixed-30k       +99.55% +-0.05% energy saved   significant     +99.56% +-0.01% time saved
+
+noise floor  +-0.76% (session calibration)
+
+VERDICT: confirmed
+  99.9% +-0.0% energy saved on 'control-20k', clearing the 0.8% noise floor. Saved energy on all 4 inputs ('control-20k', 'two-byte-20k', 'four-byte-20k', 'mixed-30k'), with behaviour preserved throughout.
+
+=== coding-display-position-dict  src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe
+equivalence
+  empty-flat     ok  (check only)
+  empty-hier     ok  (check only)
+  single-flat    ok  (check only)
+  hier-large     ok
+  hier-wide      ok
+  hier-paginated ok
+  hier-no-concepts ok
+
+sizing
+  hier-large     before    30.7 ms/call  after    30.3 ms/call  ->  33 repeats
+  hier-wide      before    30.0 ms/call  after    29.8 ms/call  ->  34 repeats
+  hier-paginated before    21.8 ms/call  after    22.3 ms/call  ->  46 repeats
+  hier-no-concepts before    23.8 ms/call  after    23.3 ms/call  ->  43 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  hier-large       +0.41% +-3.94% energy saved   not significant +0.42% +-1.76% time saved
+  hier-wide        +3.97% +-13.36% energy saved   not significant +5.43% +-0.57% time saved
+  hier-paginated   -0.03% +-2.11% energy saved   not significant -0.26% +-2.92% time saved
+  hier-no-concepts   +0.97% +-2.30% energy saved   not significant +0.75% +-1.19% time saved
+
+noise floor  +-0.76% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +4.0% +-13.4% on 'hier-wide', against a clean 0.8% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== validate-ids-comprehension  src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids
+
+VERDICT: no_inputs
+  no inputs could be generated for src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids: it cannot run here: `validate_cohort_ids` sends a POST request to a Vizserver via `raw_api_call`, which calls `dxpy.DXHTTPRequest` (network access), and no input can avoid that. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== output-colset-once  src/python/dxpy/cli/output_handling.py::write_expression_output
+
+VERDICT: no_inputs
+  no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe. Next: the unit has had its 3 tries; its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== find-stop-at-limit  src/python/dxpy/bindings/search.py::_find
+equivalence
+  empty-results  ok  (check only)
+  single-result  ok  (check only)
+  zero-limit     ok  (check only)
+  large-pages    ok
+  capped-limit   ok
+  kwarg-project  ok
+  big-pages      ok
+
+sizing
+  large-pages    before     4.6 ms/call  after     4.6 ms/call  ->  217 repeats
+  capped-limit   before     3.4 ms/call  after     3.4 ms/call  ->  297 repeats
+  kwarg-project  before     1.9 ms/call  after     1.9 ms/call  ->  525 repeats
+  big-pages      before     7.0 ms/call  after     7.4 ms/call  ->  143 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-pages      -0.46% +-2.00% energy saved   not significant -0.06% +-3.37% time saved
+  capped-limit     -1.45% +-3.26% energy saved   not significant -1.50% +-2.58% time saved
+  kwarg-project    -0.57% +-3.05% energy saved   not significant -0.59% +-2.99% time saved
+  big-pages        -0.14% +-1.04% energy saved   not significant -0.20% +-1.31% time saved
+
+noise floor  +-0.76% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -1.4% +-3.3% on 'capped-limit', against a clean 0.8% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== all 5 lines of submissions.jsonl
+  confirmed    dxlog-truncate-bisect: 99.9% +-0.0% energy saved on 'control-20k', clearing the 0.8% noise floor
+  negligible   coding-display-position-dict: no case moved more than the noise: the largest reading was +4.0% +-13.4% on 'hier-wide', against a clean 0.8% floor across 4 cases
+  no_inputs    validate-ids-comprehension: no inputs could be generated for src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids: it cannot run here: `validate_cohort_ids` sends a POST request t...
+  no_inputs    output-colset-once: no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe
+  negligible   find-stop-at-limit: no case moved more than the noise: the largest reading was -1.4% +-3.3% on 'capped-limit', against a clean 0.8% floor across 4 cases
+
+3 of this session's 20 places hold a repair with a verdict.
+EXIT 2

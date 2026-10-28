@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxfile.py::DXFile.__iter__",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 15.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 5646,
+   "completion_tokens": 3379,
+   "reasoning_tokens": 3305,
+   "cost": 0.002450858,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `DXFile.__iter__` obtains its data by calling `self.read(...)`, which for a `DXFile` is the remote-file reader that fetches file content from the DNAnexus platform (an API/HTTP download); the class holds no local data source, so no input can make it run without network/service access."
+  }
+ ],
+ "seconds": 25.0,
+ "cost": 0.00245,
+ "kept": [],
+ "reason": "it cannot run here: `DXFile.__iter__` obtains its data by calling `self.read(...)`, which for a `DXFile` is the remote-file reader that fetches file content from the DNAnexus platform (an API/HTTP download); the class holds no local data source, so no input can make it run without network/service access."
+}

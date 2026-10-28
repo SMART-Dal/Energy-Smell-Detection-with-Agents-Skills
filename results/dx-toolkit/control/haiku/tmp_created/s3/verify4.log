@@ -1,0 +1,61 @@
+
+=== dxlog-truncate-bisect  src/python/dxpy/dxlog.py::DXLogHandler.truncate_message
+  already measured: confirmed
+
+=== coding-display-position-dict  src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe
+  already measured: negligible
+
+=== validate-ids-comprehension  src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids
+
+VERDICT: no_inputs
+  no inputs could be generated for src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids: it cannot run here: `validate_cohort_ids` sends a POST request to a Vizserver via `raw_api_call`, which calls `dxpy.DXHTTPRequest` (network access), and no input can avoid that. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== output-colset-once  src/python/dxpy/cli/output_handling.py::write_expression_output
+
+VERDICT: no_inputs
+  no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe. Next: the unit has had its 3 tries; its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== find-stop-at-limit  src/python/dxpy/bindings/search.py::_find
+  already measured: negligible
+
+=== pool-manager-cache  src/python/dxpy/__init__.py::_get_pool_manager
+equivalence
+  default        ok  (check only)
+  noverify-env   ok  (check only)
+  odd-verify     ok  (check only)
+  verify-false   ok
+  dx-ca-noverify ok
+  proxy-auth     ok
+  proxy-noauth   ok
+
+sizing
+  verify-false   before    26.2 us/call  after    22.3 us/call  ->  44,859 repeats
+  dx-ca-noverify before    28.6 us/call  after    24.8 us/call  ->  40,373 repeats
+  proxy-auth     before   109.2 us/call  after    44.9 us/call  ->  18,309 repeats  CLAMPED to keep the slow side under 2s
+  proxy-noauth   before   100.3 us/call  after    42.4 us/call  ->  19,938 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  verify-false    +12.64% +-2.40% energy saved   significant     +12.81% +-2.73% time saved
+  dx-ca-noverify  +14.60% +-0.83% energy saved   significant     +14.69% +-0.61% time saved
+  proxy-auth      +59.12% +-0.66% energy saved   significant     +59.36% +-0.67% time saved
+  proxy-noauth    +57.18% +-0.57% energy saved   significant     +57.37% +-0.66% time saved
+
+noise floor  +-0.76% (session calibration)
+
+VERDICT: confirmed
+  59.1% +-0.7% energy saved on 'proxy-auth', clearing the 0.8% noise floor. Saved energy on all 4 inputs ('verify-false', 'dx-ca-noverify', 'proxy-auth', 'proxy-noauth'), with behaviour preserved throughout.
+
+=== depends-on-no-discarded-describe  src/python/dxpy/utils/local_exec_utils.py::wait_for_depends_on
+  already measured: negligible
+
+=== all 7 lines of submissions.jsonl
+  confirmed    dxlog-truncate-bisect: 99.9% +-0.0% energy saved on 'control-20k', clearing the 0.8% noise floor
+  negligible   coding-display-position-dict: no case moved more than the noise: the largest reading was +4.0% +-13.4% on 'hier-wide', against a clean 0.8% floor across 4 cases
+  no_inputs    validate-ids-comprehension: no inputs could be generated for src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids: it cannot run here: `validate_cohort_ids` sends a POST request t...
+  no_inputs    output-colset-once: no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe
+  negligible   find-stop-at-limit: no case moved more than the noise: the largest reading was -1.4% +-3.3% on 'capped-limit', against a clean 0.8% floor across 4 cases
+  confirmed    pool-manager-cache: 59.1% +-0.7% energy saved on 'proxy-auth', clearing the 0.8% noise floor
+  negligible   depends-on-no-discarded-describe: no case moved more than the noise: the largest reading was +1.0% +-2.8% on 'dense-medium-dict', against a clean 0.8% floor across 4 cases
+
+5 of this session's 20 places hold a repair with a verdict.
+EXIT 2

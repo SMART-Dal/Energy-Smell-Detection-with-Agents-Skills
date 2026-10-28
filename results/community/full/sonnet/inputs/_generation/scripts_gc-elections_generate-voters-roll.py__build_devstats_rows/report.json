@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/gc-elections/generate-voters-roll.py::build_devstats_rows",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.0,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2380,
+   "completion_tokens": 240,
+   "reasoning_tokens": 179,
+   "cost": 0.0006082,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `build_devstats_rows` calls `get_github_login` for every name, which performs `requests.get('https://api.github.com/users/...')` (plus `time.sleep(0.1)`), so it requires network access to GitHub and cannot run here without mocking."
+  }
+ ],
+ "seconds": 1.2,
+ "cost": 0.00061,
+ "kept": [],
+ "reason": "it cannot run here: `build_devstats_rows` calls `get_github_login` for every name, which performs `requests.get('https://api.github.com/users/...')` (plus `time.sleep(0.1)`), so it requires network access to GitHub and cannot run here without mocking."
+}

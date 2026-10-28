@@ -1,0 +1,1 @@
+CANNOT RUN: `_get_repo_commenters` always begins with `request_with_retry("GET", ...)` calling `urllib.request.urlopen` against `https://api.github.com` (as `REST_API`), and reads the response via `read_json`; no input can avoid the network request, and faking the endpoint or serving fake responses is not allowed.

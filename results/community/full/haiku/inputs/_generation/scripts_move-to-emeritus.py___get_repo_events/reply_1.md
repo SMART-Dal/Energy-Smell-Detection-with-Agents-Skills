@@ -1,0 +1,1 @@
+CANNOT RUN: `_get_repo_events` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` before doing any other work, which requires network access and GitHub credentials/rate limits that are unavailable here; no input can avoid the request.

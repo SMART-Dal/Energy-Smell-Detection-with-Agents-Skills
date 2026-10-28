@@ -1,0 +1,142 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 36.7,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 3716,
+   "completion_tokens": 10329,
+   "reasoning_tokens": 9278,
+   "cost": 0.00945672,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "allele-ordered",
+     "ok": true,
+     "joules": 0.19258031854838709,
+     "seconds": 0.004033810459077358
+    },
+    {
+     "label": "allele-unordered",
+     "ok": true,
+     "joules": 0.18879782170542633,
+     "seconds": 0.003876117058098316
+    },
+    {
+     "label": "annotation-ordered",
+     "ok": true,
+     "joules": 0.2633855764705873,
+     "seconds": 0.005903973244130611
+    },
+    {
+     "label": "annotation-unordered",
+     "ok": true,
+     "joules": 0.23164882547169816,
+     "seconds": 0.0047260792925953865
+    },
+    {
+     "label": "genotype-ordered",
+     "ok": false,
+     "joules": 0.18218493822393847,
+     "seconds": 0.003868464380502701,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "genotype-unordered",
+     "ok": false,
+     "joules": 0.16322483154122097,
+     "seconds": 0.0035859299823641777,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "genotype_only-ordered",
+     "ok": false,
+     "joules": 0.14412463554216937,
+     "seconds": 0.0030127260833978653,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "genotype_only-unordered",
+     "ok": false,
+     "joules": 0.1394622852760746,
+     "seconds": 0.0030697770416736603,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-dict",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-values",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-input",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 176.1,
+   "coverage": 0.8285714285714286,
+   "missed": [
+    246,
+    247,
+    250,
+    251,
+    252,
+    255
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 162.0
+  }
+ ],
+ "seconds": 306.2,
+ "cost": 0.00946,
+ "kept": [
+  {
+   "label": "annotation-ordered",
+   "mj_per_call": 263.3856,
+   "ms_per_call": 5.904
+  },
+  {
+   "label": "annotation-unordered",
+   "mj_per_call": 231.6488,
+   "ms_per_call": 4.726
+  },
+  {
+   "label": "allele-ordered",
+   "mj_per_call": 192.5803,
+   "ms_per_call": 4.034
+  },
+  {
+   "label": "allele-unordered",
+   "mj_per_call": 188.7978,
+   "ms_per_call": 3.876
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

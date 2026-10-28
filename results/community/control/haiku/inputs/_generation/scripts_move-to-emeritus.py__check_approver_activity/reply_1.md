@@ -1,0 +1,1 @@
+CANNOT RUN: `check_approver_activity` reaches the GitHub API on every call — it invokes `_check_comments` (which calls `_get_repo_commenters` and its REST requests) and `_check_reviews` (which posts a GraphQL query via `request_with_retry`), so no input can avoid network access and credentials.

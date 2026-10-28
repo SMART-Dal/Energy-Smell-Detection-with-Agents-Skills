@@ -1,0 +1,196 @@
+{
+ "run_id": "community.full.sonnet",
+ "repo": "community",
+ "repo_commit": "910f85d6cf0a6a0417f3c4d1e4d03addf04a4ceb",
+ "arm": "full",
+ "model": "claude-sonnet-5-5",
+ "effort": "high",
+ "auth": "subscription",
+ "status": "done",
+ "agent_exit": 0,
+ "agent_seconds": 1655,
+ "review_seconds": 995,
+ "started": "2026-10-28T08:40:13-03:00",
+ "exp_mode_at_end": "0",
+ "project_commit": "024f75f6c0fd40fc7554fd66c487094b055534b9",
+ "project_uncommitted_files": 0,
+ "claude_version": "2.1.312 (Claude Code)",
+ "exp": "/home/javad/energy-exp",
+ "run": "/home/javad/energy-run",
+ "project": "/home/javad/Energy-Smell-Detection-with-Agents-Skills",
+ "usage": {
+  "result": "success",
+  "is_error": [
+   false
+  ],
+  "api_error_status": [
+   null
+  ],
+  "terminal_reason": [
+   "completed"
+  ],
+  "num_turns": [
+   38
+  ],
+  "duration_ms": [
+   1653249
+  ],
+  "duration_api_ms": 255490,
+  "cost_usd_estimate": 1.3341382,
+  "model_usage": {
+   "claude-sonnet-5-5": {
+    "inputTokens": 62,
+    "outputTokens": 35288,
+    "cacheReadInputTokens": 3410582,
+    "cacheCreationInputTokens": 160019,
+    "webSearchRequests": 0,
+    "costUSD": 1.3341382,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 12298,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 160019,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  }
+ },
+ "tool_calls": 36,
+ "tools_used": {
+  "Skill": 1,
+  "Bash": 22,
+  "Read": 13
+ },
+ "subagent_tool_calls": 0,
+ "subagent_tools_used": {},
+ "energy_api_calls": 0,
+ "findings_lines": 69,
+ "submissions": 17,
+ "agent_verdicts": {
+  "partial": 8,
+  "mixed": 3,
+  "confirmed": 2,
+  "negligible": 3,
+  "regressed": 1
+ },
+ "our_verdicts": {
+  "partial": 7,
+  "negligible": 2,
+  "confirmed": 5,
+  "mixed": 3
+ },
+ "repo_changes": [],
+ "leak_audit": {},
+ "protocol": {
+  "units_examined": 24,
+  "suspicions": 39,
+  "decisions": 40,
+  "accepted": 31,
+  "decided_without_card": [],
+  "root_cause_cards_cut_short": [
+   "C10.S4",
+   "C11.S5",
+   "C4.S2",
+   "C5.S1",
+   "C5.S2",
+   "C6.S1",
+   "C6.S2",
+   "C6.S3",
+   "C8.S1",
+   "C8.S2",
+   "C9.S1",
+   "C9.S3"
+  ],
+  "units_not_found": [],
+  "category_cards_opened": [],
+  "root_cause_cards_opened": [
+   "C1.S1",
+   "C1.S3",
+   "C1.S4",
+   "C10.S4",
+   "C11.S5",
+   "C3.S1",
+   "C3.S2",
+   "C3.S3",
+   "C3.S5",
+   "C4.S2",
+   "C5.S1",
+   "C5.S2",
+   "C6.S1",
+   "C6.S2",
+   "C6.S3",
+   "C8.S1",
+   "C8.S2",
+   "C9.S1",
+   "C9.S3"
+  ],
+  "index_read": true,
+  "unit_rankings": 0,
+  "rule_scans": 2,
+  "invalid_root_cause_ids": [],
+  "keys_off_schema": [],
+  "flags": [
+   "cards_cut_short"
+  ],
+  "blocked_unrequested": []
+ },
+ "rules_overlap": {
+  "units_rules_flag": 17,
+  "units_listed": 24,
+  "units_listed_and_flagged": 13,
+  "accepted": 31,
+  "accepted_unit_flagged": 21,
+  "accepted_lines_flagged": 10,
+  "accepted_root_cause_named": 6
+ },
+ "environment": {},
+ "inputs": {
+  "requested": 21,
+  "ready": 13,
+  "failed": {
+   "scripts/move-to-emeritus.py::check_maintainer_activity": "it cannot run here: `check_maintainer_activity` performs live GitHub API requests (GraphQL `request_with_retry` to `GRAPHQL_API` and REST helpers like `_get_repo_commenters`/`_get_repo_events`), which require network access and credentials that are unavailable here.",
+   "scripts/move-to-emeritus.py::_check_reviews": "it cannot run here: `_check_reviews` performs GitHub GraphQL/REST requests via `request_with_retry` to `https://api.github.com/graphql` and `REST_API` for every user batch; its work begins with a network request to a remote service, so no input can avoid network access.",
+   "scripts/move-to-emeritus.py::_get_repo_commenters": "it cannot run here: `_get_repo_commenters` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` (and follows pagination links), needing network access and GitHub credentials; no input can avoid that and mocking the request machinery is not allowed.",
+   "scripts/baremetal-runner-report.py::collect_jobs": "it cannot run here: `collect_jobs` fetches data by shelling out to the `gh` CLI (`subprocess.run([\"gh\", \"api\", ...])`) against the GitHub API, so it needs network access and an external program that cannot be provided here.",
+   "scripts/gc-elections/generate-voters-roll.py::build_devstats_rows": "it cannot run here: `build_devstats_rows` calls `get_github_login` for every name, which performs `requests.get('https://api.github.com/users/...')` (plus `time.sleep(0.1)`), so it requires network access to GitHub and cannot run here without mocking.",
+   "scripts/gc-elections/generate-voters-roll.py::get_github_login": "it cannot run here: get_github_login performs a live HTTP request to https://api.github.com/users/<username> via requests.get; it needs network access and no input can avoid it.",
+   "scripts/move-to-emeritus.py::paginate_rest": "it cannot run here: `paginate_rest` performs real HTTP requests (it calls `request_with_retry` \u2192 `urllib.request.urlopen` against the GitHub REST API), so its work begins with a request to a remote server and no input can avoid the network.",
+   "scripts/move-to-emeritus.py::main": "it cannot run here: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API via `request_with_retry`/`paginate_rest`; its work begins with network requests that cannot be avoided or satisfied offline."
+  },
+  "cached": 5,
+  "cost_usd": 0.0616,
+  "seconds_max": 206.1,
+  "agent_copy_differs": []
+ },
+ "record": {
+  "steps_done": [
+   1,
+   2,
+   3
+  ],
+  "step_done_at_s": {
+   "1": 78,
+   "2": 163,
+   "3": 1641
+  },
+  "written_early": [],
+  "changed_after_done": [],
+  "submissions_removed": [],
+  "repairs_measured": 17,
+  "card_reads_refused": 0
+ },
+ "scan": {
+  "comparisons": 1,
+  "first_at_s": 73,
+  "listed_at_first": 21,
+  "last_flagged_not_listed": 7,
+  "last_flagged_unsuspected": 8,
+  "last_agrees": 3,
+  "units_added": 3,
+  "suspicions_added": 4,
+  "accepted": 4,
+  "confirmed": 1,
+  "done1_refused": 0
+ }
+}

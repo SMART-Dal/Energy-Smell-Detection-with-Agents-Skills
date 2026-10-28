@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::get_first_pos_of_char",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 35.8,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 3321,
+   "completion_tokens": 8575,
+   "reasoning_tokens": 7810,
+   "cost": 0.002292112,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "stars-dense",
+     "ok": false,
+     "joules": 0.1999639920318725,
+     "seconds": 0.003999688662588596,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "questions-dense",
+     "ok": false,
+     "joules": 0.2285972171945697,
+     "seconds": 0.004526790231466293,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "equals-dense",
+     "ok": false,
+     "joules": 0.26528509289617386,
+     "seconds": 0.00547761470079422,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "colons-dense",
+     "ok": true,
+     "joules": 0.3076280308641967,
+     "seconds": 0.0061849020421504974
+    },
+    {
+     "label": "all-escaped-stars",
+     "ok": true,
+     "joules": 0.3820242846153843,
+     "seconds": 0.007721460424363613
+    },
+    {
+     "label": "mixed-escapes",
+     "ok": true,
+     "joules": 0.3366858239436637,
+     "seconds": 0.007047658786177635
+    },
+    {
+     "label": "mostly-escaped",
+     "ok": true,
+     "joules": 0.29545907926828985,
+     "seconds": 0.006104747764766216
+    },
+    {
+     "label": "glob-path",
+     "ok": false,
+     "joules": 0.13295585674931124,
+     "seconds": 0.0027591530233621597,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-string",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "escaped-only",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-char",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 177.1,
+   "coverage": 0.9285714285714286,
+   "missed": [
+    293
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 162.6
+  }
+ ],
+ "seconds": 306.4,
+ "cost": 0.00229,
+ "kept": [
+  {
+   "label": "all-escaped-stars",
+   "mj_per_call": 382.0243,
+   "ms_per_call": 7.721
+  },
+  {
+   "label": "mixed-escapes",
+   "mj_per_call": 336.6858,
+   "ms_per_call": 7.048
+  },
+  {
+   "label": "colons-dense",
+   "mj_per_call": 307.628,
+   "ms_per_call": 6.185
+  },
+  {
+   "label": "mostly-escaped",
+   "mj_per_call": 295.4591,
+   "ms_per_call": 6.105
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

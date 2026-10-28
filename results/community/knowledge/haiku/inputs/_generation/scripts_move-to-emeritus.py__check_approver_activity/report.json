@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::check_approver_activity",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.6,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3963,
+   "completion_tokens": 375,
+   "reasoning_tokens": 305,
+   "cost": 0.000633189,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: check_approver_activity performs live GitHub API requests (via _get_repo_commenters -> request_with_retry and the GraphQL search in _check_reviews) to api.github.com; no non-trivial input can avoid network access, and mocking the requests is not allowed."
+  }
+ ],
+ "seconds": 4.1,
+ "cost": 0.00063,
+ "kept": [],
+ "reason": "it cannot run here: check_approver_activity performs live GitHub API requests (via _get_repo_commenters -> request_with_retry and the GraphQL search in _check_reviews) to api.github.com; no non-trivial input can avoid network access, and mocking the requests is not allowed."
+}

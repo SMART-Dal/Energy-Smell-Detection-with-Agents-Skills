@@ -1,0 +1,1 @@
+CANNOT RUN: `DXFile.__iter__` calls `self.read(self._read_bufsize)` on a remote file handler; `DXFile.read` fetches the file's download URL and data from the DNAnexus API over the network (and needs `describe` for the file length), so no input can make it run without network access.

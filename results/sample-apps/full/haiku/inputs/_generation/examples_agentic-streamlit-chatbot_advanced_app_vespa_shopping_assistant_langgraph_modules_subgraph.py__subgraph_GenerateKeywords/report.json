@@ -1,0 +1,25 @@
+{
+ "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_GenerateKeywords",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.6,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2637,
+   "completion_tokens": 117,
+   "reasoning_tokens": 68,
+   "cost": 0.000341811,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `subgraph_GenerateKeywords` builds a `ChatOpenAI` model and invokes the chain (`chain.invoke(...)`), which performs a network request to the OpenAI API; no input can avoid that."
+  }
+ ],
+ "seconds": 4.0,
+ "cost": 0.00034,
+ "kept": [],
+ "reason": "it cannot run here: `subgraph_GenerateKeywords` builds a `ChatOpenAI` model and invokes the chain (`chain.invoke(...)`), which performs a network request to the OpenAI API; no input can avoid that."
+}

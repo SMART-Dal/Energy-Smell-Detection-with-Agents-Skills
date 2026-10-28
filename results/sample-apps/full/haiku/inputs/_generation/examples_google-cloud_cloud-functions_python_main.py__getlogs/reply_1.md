@@ -1,0 +1,1 @@
+CANNOT RUN: `getlogs` calls `get_blobs`, which creates a `google.cloud.storage.Client()` and lists blobs from Google Cloud Storage — a network request to a remote service that cannot be avoided or faked here.

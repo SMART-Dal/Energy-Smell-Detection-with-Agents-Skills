@@ -1,0 +1,856 @@
+{
+ "target": "/home/javad/energy-exp/pristine/community",
+ "files_scanned": 9,
+ "units_with_evidence": 17,
+ "findings_total": 20,
+ "findings_shown": 20,
+ "units": [
+  {
+   "unit": "scripts/baremetal-runner-report.py::collect_jobs",
+   "file": "scripts/baremetal-runner-report.py",
+   "qualname": "collect_jobs",
+   "line": 72,
+   "end_line": 138,
+   "findings": [
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 4,
+     "lines": [
+      82,
+      91,
+      113,
+      121
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        82,
+        91,
+        113,
+        121
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/baremetal-runner-report.py::render_table",
+   "file": "scripts/baremetal-runner-report.py",
+   "qualname": "render_table",
+   "line": 141,
+   "end_line": 178,
+   "findings": [
+    {
+     "kind": "ruff_PLR1730",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S1",
+       "name": "Skipping Optimized Built-ins",
+       "card": "reference/root-causes/C10.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      155
+     ],
+     "messages": [
+      {
+       "text": "if/assign that reimplements min() or max() (ruff PLR1730: Replace `if` statement with `a[\"qwait_max\"] = max(a[\"qwait_max\"], r[\"qwait\"])`)",
+       "lines": [
+        155
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S1",
+     "support": "ruff_PLR1730"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/gc-elections/create-github-comments.py::gh_run",
+   "file": "scripts/gc-elections/create-github-comments.py",
+   "qualname": "gh_run",
+   "line": 88,
+   "end_line": 89,
+   "findings": [
+    {
+     "kind": "ruff_RUF005",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      89
+     ],
+     "messages": [
+      {
+       "text": "list concatenation allocating a new list (ruff RUF005: Consider `['gh', *args]` instead of concatenation)",
+       "lines": [
+        89
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S1",
+     "support": "ruff_RUF005"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/gc-elections/generate-voters-roll.py::build_devstats_rows",
+   "file": "scripts/gc-elections/generate-voters-roll.py",
+   "qualname": "build_devstats_rows",
+   "line": 85,
+   "end_line": 98,
+   "findings": [
+    {
+     "kind": "index_based_iteration",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      93
+     ],
+     "messages": [
+      {
+       "text": "iterating `range(len(names))` and indexing back into it; `zip(names, contributions)` walks them together without an index",
+       "lines": [
+        93
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "index_based_iteration"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/gc-elections/generate-voters-roll.py::get_lfx_contributors",
+   "file": "scripts/gc-elections/generate-voters-roll.py",
+   "qualname": "get_lfx_contributors",
+   "line": 102,
+   "end_line": 124,
+   "findings": [
+    {
+     "kind": "io_call_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S4",
+       "name": "Redundant Data Fetching",
+       "card": "reference/root-causes/C8.S4.md"
+      },
+      {
+       "id": "C9.S1",
+       "name": "Fragmented I/O Calls",
+       "card": "reference/root-causes/C9.S1.md"
+      },
+      {
+       "id": "C9.S3",
+       "name": "Inefficient Retrieval Paths",
+       "card": "reference/root-causes/C9.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      114
+     ],
+     "messages": [
+      {
+       "text": "`requests.get()` looks like it leaves the process, and it runs once per iteration; batching would amortise the round trip",
+       "lines": [
+        114
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "repeated_subscript_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S3",
+       "name": "Missing Local Lookup Caching",
+       "card": "reference/root-causes/C8.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      118
+     ],
+     "messages": [
+      {
+       "text": "`payload['meta']` is looked up 3 times in the same pass; its key changes from pass to pass, so it cannot leave the loop, but reading it once at the top of the pass saves the other lookups",
+       "lines": [
+        118
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C9.S3",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C9.S1",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C8.S4",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C8.S3",
+     "support": "repeated_subscript_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::request_with_retry",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "request_with_retry",
+   "line": 118,
+   "end_line": 163,
+   "findings": [
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      126
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        126
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::_check_reviews",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "_check_reviews",
+   "line": 409,
+   "end_line": 468,
+   "findings": [
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      433,
+      449
+     ],
+     "messages": [
+      {
+       "text": "`re.sub()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        433,
+        449
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::check_maintainer_activity",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "check_maintainer_activity",
+   "line": 570,
+   "end_line": 668,
+   "findings": [
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      631,
+      646
+     ],
+     "messages": [
+      {
+       "text": "`re.sub()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        631,
+        646
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::_parse_members",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "_parse_members",
+   "line": 787,
+   "end_line": 803,
+   "findings": [
+    {
+     "kind": "append_only_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      797
+     ],
+     "messages": [
+      {
+       "text": "loop body is a single `.append()`; a comprehension does the same work without a bound-method lookup and call per item",
+       "lines": [
+        797
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_PERF401",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      798
+     ],
+     "messages": [
+      {
+       "text": "append loop that could be a comprehension (ruff PERF401: Use a list comprehension to create a transformed list)",
+       "lines": [
+        798
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "append_only_loop, ruff_PERF401"
+    },
+    {
+     "id": "C10.S3",
+     "support": "append_only_loop, ruff_PERF401"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::_add_to_emeritus",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "_add_to_emeritus",
+   "line": 836,
+   "end_line": 904,
+   "findings": [
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      859,
+      872
+     ],
+     "messages": [
+      {
+       "text": "`re.match()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        859,
+        872
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::_ensure_fork",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "_ensure_fork",
+   "line": 950,
+   "end_line": 991,
+   "findings": [
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      969,
+      983
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        969,
+        983
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::_build_pr_body",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "_build_pr_body",
+   "line": 1080,
+   "end_line": 1108,
+   "findings": [
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      1092
+     ],
+     "messages": [
+      {
+       "text": "`body` is rebuilt by an f-string that interpolates itself inside a loop; f-strings always allocate a new object, so this copies the whole value every iteration even when the accumulator is a plain local",
+       "lines": [
+        1092
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::_build_issue_body",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "_build_issue_body",
+   "line": 1111,
+   "end_line": 1135,
+   "findings": [
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      1120
+     ],
+     "messages": [
+      {
+       "text": "`body` is rebuilt by an f-string that interpolates itself inside a loop; f-strings always allocate a new object, so this copies the whole value every iteration even when the accumulator is a plain local",
+       "lines": [
+        1120
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::create_emeritus_prs",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "create_emeritus_prs",
+   "line": 1166,
+   "end_line": 1275,
+   "findings": [
+    {
+     "kind": "loop_invariant_expression",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S2",
+       "name": "Recomputing Loop-Invariant Values",
+       "card": "reference/root-causes/C3.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      1211
+     ],
+     "messages": [
+      {
+       "text": "`user.lower()` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        1211
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 3,
+     "lines": [
+      1236,
+      1244,
+      1250
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        1236,
+        1244,
+        1250
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    },
+    {
+     "id": "C3.S2",
+     "support": "loop_invariant_expression"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/move-to-emeritus.py::main",
+   "file": "scripts/move-to-emeritus.py",
+   "qualname": "main",
+   "line": 1278,
+   "end_line": 1500,
+   "findings": [
+    {
+     "kind": "loop_invariant_expression",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S2",
+       "name": "Recomputing Loop-Invariant Values",
+       "card": "reference/root-causes/C3.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 5,
+     "lines": [
+      1363,
+      1369,
+      1371,
+      1392,
+      1425
+     ],
+     "messages": [
+      {
+       "text": "`role_priority[label]` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        1363,
+        1369,
+        1371
+       ]
+      },
+      {
+       "text": "`role_priority[role_label]` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        1392
+       ]
+      },
+      {
+       "text": "`data['team_repos']` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        1425
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S2",
+     "support": "loop_invariant_expression"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/update-sig-tables.py::render_group",
+   "file": "scripts/update-sig-tables.py",
+   "qualname": "render_group",
+   "line": 150,
+   "end_line": 162,
+   "findings": [
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      159
+     ],
+     "messages": [
+      {
+       "text": "`content` is rebuilt by an f-string that interpolates itself inside a loop; f-strings always allocate a new object, so this copies the whole value every iteration even when the accumulator is a plain local",
+       "lines": [
+        159
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/validate-workstreams.py::validate_workstreams_semantics",
+   "file": "scripts/validate-workstreams.py",
+   "qualname": "validate_workstreams_semantics",
+   "line": 75,
+   "end_line": 165,
+   "findings": [
+    {
+     "kind": "ruff_PERF401",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      122
+     ],
+     "messages": [
+      {
+       "text": "append loop that could be a comprehension (ruff PERF401: Use `list.extend` to create a transformed list)",
+       "lines": [
+        122
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "ruff_PERF401"
+    },
+    {
+     "id": "C10.S3",
+     "support": "ruff_PERF401"
+    }
+   ]
+  }
+ ]
+}

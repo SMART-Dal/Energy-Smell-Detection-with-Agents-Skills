@@ -1,0 +1,138 @@
+{
+ "unit": "news/src/python/evaluate.py::read_impressions_file",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 15.8,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 2512,
+   "completion_tokens": 4303,
+   "reasoning_tokens": 3511,
+   "cost": 0.002969532,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical",
+     "ok": false,
+     "joules": 0.7054020736842106,
+     "seconds": 0.010612948797643185,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dense",
+     "ok": false,
+     "joules": 1.2683004999999998,
+     "seconds": 0.028306882828474045,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-news-ids",
+     "ok": false,
+     "joules": 0.9545239148936172,
+     "seconds": 0.02173029538244009,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "one-per-line",
+     "ok": true,
+     "joules": 1.4346734864864865,
+     "seconds": 0.0273238904774189
+    },
+    {
+     "label": "many-labels",
+     "ok": true,
+     "joules": 1.4442140624999986,
+     "seconds": 0.0319266514852643
+    },
+    {
+     "label": "medium-sparse",
+     "ok": false,
+     "joules": 1.0545465087719277,
+     "seconds": 0.017781530506908894,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-lengths",
+     "ok": true,
+     "joules": 2.2388172380952343,
+     "seconds": 0.04869465064257383
+    },
+    {
+     "label": "duplicate-news",
+     "ok": true,
+     "joules": 1.8440214800000012,
+     "seconds": 0.04022509232163429
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-line",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "missing-file",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 44.6,
+   "coverage": 0.8823529411764706,
+   "missed": [
+    28,
+    29
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 23.5
+  }
+ ],
+ "seconds": 75.7,
+ "cost": 0.00297,
+ "kept": [
+  {
+   "label": "mixed-lengths",
+   "mj_per_call": 2238.8172,
+   "ms_per_call": 48.695
+  },
+  {
+   "label": "duplicate-news",
+   "mj_per_call": 1844.0215,
+   "ms_per_call": 40.225
+  },
+  {
+   "label": "many-labels",
+   "mj_per_call": 1444.2141,
+   "ms_per_call": 31.927
+  },
+  {
+   "label": "one-per-line",
+   "mj_per_call": 1434.6735,
+   "ms_per_call": 27.324
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

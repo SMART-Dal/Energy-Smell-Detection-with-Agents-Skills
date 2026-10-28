@@ -1,0 +1,1 @@
+CANNOT RUN: `subgraph_EvaluateCategory` builds a `ChatOpenAI` chain and calls `chain.invoke(...)`, which performs a request to the OpenAI API; no input can avoid that network call.

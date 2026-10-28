@@ -1,0 +1,213 @@
+{
+ "run_id": "dx-toolkit.full.haiku",
+ "repo": "dx-toolkit",
+ "repo_commit": "accd86a68683ddc8257f697f06ef64c7be72e5b6",
+ "arm": "full",
+ "model": "claude-haiku-5-5",
+ "effort": "high",
+ "auth": "api",
+ "status": "done",
+ "agent_exit": 0,
+ "agent_seconds": 3160,
+ "review_seconds": 841,
+ "started": "2026-10-26T20:02:39-03:00",
+ "exp_mode_at_end": "0",
+ "project_commit": "1068f79b1d9eb1f894ee1662d5424bce254a1fbb",
+ "project_uncommitted_files": 0,
+ "claude_version": "2.1.311 (Claude Code)",
+ "exp": "/home/javad/energy-exp",
+ "run": "/home/javad/energy-run",
+ "project": "/home/javad/Energy-Smell-Detection-with-Agents-Skills",
+ "usage": {
+  "result": "success",
+  "is_error": [
+   false,
+   false
+  ],
+  "api_error_status": [
+   null,
+   null
+  ],
+  "terminal_reason": [
+   "completed",
+   "completed"
+  ],
+  "num_turns": [
+   44,
+   79
+  ],
+  "duration_ms": [
+   900786,
+   2085016
+  ],
+  "duration_api_ms": 4968843,
+  "cost_usd_estimate": 5.460100414999998,
+  "model_usage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 662,
+    "outputTokens": 1138615,
+    "cacheReadInputTokens": 37736722,
+    "cacheCreationInputTokens": 4280723,
+    "webSearchRequests": 0,
+    "costUSD": 5.460100414999998,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 865251,
+    "cacheCreationEphemeral5mInputTokens": 4280723,
+    "cacheCreationEphemeral1hInputTokens": 0,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  }
+ },
+ "tool_calls": 120,
+ "tools_used": {
+  "Skill": 1,
+  "Bash": 46,
+  "Read": 39,
+  "Agent": 22,
+  "Write": 2,
+  "ToolSearch": 1,
+  "Monitor": 9
+ },
+ "subagent_tool_calls": 636,
+ "subagent_tools_used": {
+  "Read": 541,
+  "Bash": 95
+ },
+ "energy_api_calls": 0,
+ "findings_lines": 516,
+ "submissions": 12,
+ "agent_verdicts": {
+  "confirmed": 5,
+  "negligible": 3,
+  "partial": 4
+ },
+ "our_verdicts": {
+  "confirmed": 5,
+  "partial": 5,
+  "negligible": 2,
+  "no_inputs": 1
+ },
+ "repo_changes": [],
+ "leak_audit": {},
+ "protocol": {
+  "units_examined": 211,
+  "suspicions": 275,
+  "decisions": 276,
+  "accepted": 114,
+  "decided_without_card": [],
+  "root_cause_cards_cut_short": [],
+  "units_not_found": [
+   "src/python/dxpy/templating/templates/python/parallelized/src/code.py::postprocess"
+  ],
+  "category_cards_opened": [],
+  "root_cause_cards_opened": [
+   "C1.S1",
+   "C1.S2",
+   "C1.S4",
+   "C1.S5",
+   "C1.S6",
+   "C10.S1",
+   "C10.S2",
+   "C10.S4",
+   "C11.S5",
+   "C2.S1",
+   "C3.S1",
+   "C3.S2",
+   "C3.S3",
+   "C3.S4",
+   "C3.S5",
+   "C4.S1",
+   "C4.S2",
+   "C4.S4",
+   "C4.S6",
+   "C5.S1",
+   "C5.S2",
+   "C5.S4",
+   "C6.S1",
+   "C6.S2",
+   "C6.S3",
+   "C6.S4",
+   "C6.S6",
+   "C6.S7",
+   "C7.S1",
+   "C8.S1",
+   "C8.S2",
+   "C8.S3",
+   "C8.S4",
+   "C9.S1",
+   "C9.S2",
+   "C9.S3"
+  ],
+  "index_read": true,
+  "unit_rankings": 0,
+  "rule_scans": 1,
+  "invalid_root_cause_ids": [],
+  "keys_off_schema": [],
+  "flags": [
+   "units_not_found"
+  ],
+  "blocked_unrequested": []
+ },
+ "rules_overlap": {
+  "units_rules_flag": 447,
+  "units_listed": 211,
+  "units_listed_and_flagged": 81,
+  "accepted": 114,
+  "accepted_unit_flagged": 67,
+  "accepted_lines_flagged": 20,
+  "accepted_root_cause_named": 6
+ },
+ "environment": {
+  "tmp_created": [
+   "/tmp/allpy.txt",
+   "/tmp/eck"
+  ]
+ },
+ "inputs": {
+  "requested": 19,
+  "ready": 17,
+  "failed": {
+   "src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids": "it cannot run here: `validate_cohort_ids` unconditionally calls `raw_api_call(resp, payload)`, which performs a live HTTP POST to the Vizserver via `dxpy.DXHTTPRequest(resource=resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\", ...)`. No input can avoid this network request, and there is no way to supply `resp_raw` without a real server (mocking `raw_api_call`/`DXHTTPRequest` is forbidden).",
+   "src/python/dxpy/cli/output_handling.py::write_expression_output": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe"
+  },
+  "cached": 10,
+  "cost_usd": 0.0477,
+  "seconds_max": 182.1,
+  "agent_copy_differs": []
+ },
+ "record": {
+  "steps_done": [
+   1,
+   2,
+   3
+  ],
+  "step_done_at_s": {
+   "1": 1316,
+   "2": 1584,
+   "3": 3139
+  },
+  "written_early": [],
+  "changed_after_done": [],
+  "submissions_removed": [
+   "C3S2-output-colset"
+  ],
+  "repairs_measured": 13,
+  "card_reads_refused": 0
+ },
+ "scan": {
+  "comparisons": 1,
+  "first_at_s": 869,
+  "listed_at_first": 210,
+  "last_flagged_not_listed": 367,
+  "last_flagged_unsuspected": 74,
+  "last_agrees": 17,
+  "units_added": 1,
+  "suspicions_added": 1,
+  "accepted": 0,
+  "confirmed": 0,
+  "done1_refused": 0
+ }
+}

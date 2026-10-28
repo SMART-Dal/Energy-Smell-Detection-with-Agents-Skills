@@ -1,0 +1,25 @@
+{
+ "unit": "examples/google-cloud/cloud-functions/python/main.py::get_blobs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.0,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2227,
+   "completion_tokens": 82,
+   "reasoning_tokens": 38,
+   "cost": 0.000120501,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: get_blobs calls google.cloud.storage.Client() and list_blobs(bucket), which performs an authenticated network request to Google Cloud Storage; no input can avoid it."
+  }
+ ],
+ "seconds": 4.2,
+ "cost": 0.00012,
+ "kept": [],
+ "reason": "it cannot run here: get_blobs calls google.cloud.storage.Client() and list_blobs(bucket), which performs an authenticated network request to Google Cloud Storage; no input can avoid it."
+}

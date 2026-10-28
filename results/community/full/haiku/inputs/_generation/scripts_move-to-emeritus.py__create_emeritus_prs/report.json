@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::create_emeritus_prs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.1,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5782,
+   "completion_tokens": 455,
+   "reasoning_tokens": 358,
+   "cost": 0.00031013,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: every non-empty `inactive_report` makes the function start with `fetch_readme(repo)`, an HTTP request to `https://api.github.com`, and it continues with `_get_fork_owner`, `_get_default_branch_sha`, `_ensure_fork`, `_update_file` and `_create_pr` \u2014 all network calls to GitHub that need credentials; no input can avoid this since the work is driven by the report contents."
+  }
+ ],
+ "seconds": 3.2,
+ "cost": 0.00031,
+ "kept": [],
+ "reason": "it cannot run here: every non-empty `inactive_report` makes the function start with `fetch_readme(repo)`, an HTTP request to `https://api.github.com`, and it continues with `_get_fork_owner`, `_get_default_branch_sha`, `_ensure_fork`, `_update_file` and `_create_pr` \u2014 all network calls to GitHub that need credentials; no input can avoid this since the work is driven by the report contents."
+}

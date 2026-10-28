@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/download.py::download",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 7.7,
+   "finish": "stop",
+   "provider": "Cohere",
+   "prompt_tokens": 4136,
+   "completion_tokens": 2624,
+   "reasoning_tokens": 2546,
+   "cost": 0.0043896,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `download()` resolves every path through `resolve_existing_path` and then calls the DNAnexus platform API (`dxpy.list_subfolders`, `object_exists_in_project`, `dxpy.download_folder`, and `download_one_file`'s object download), all of which require network access and credentials; no realistic input can avoid these server requests."
+  }
+ ],
+ "seconds": 16.8,
+ "cost": 0.00439,
+ "kept": [],
+ "reason": "it cannot run here: `download()` resolves every path through `resolve_existing_path` and then calls the DNAnexus platform API (`dxpy.list_subfolders`, `object_exists_in_project`, `dxpy.download_folder`, and `download_one_file`'s object download), all of which require network access and credentials; no realistic input can avoid these server requests."
+}

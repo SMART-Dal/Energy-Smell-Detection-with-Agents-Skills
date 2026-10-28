@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxjob.py::DXJob.wait_on_done",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 50.5,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 6039,
+   "completion_tokens": 9287,
+   "reasoning_tokens": 9181,
+   "cost": 0.00718396,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `DXJob.wait_on_done` polls a remote DNAnexus job by calling `self._get_state(...)` (i.e. `self.describe(io=False)[\"state\"]`) in a loop, which performs an API request to the DNAnexus server and needs network access plus credentials; the only non-raising path requires the server to report a state, and nothing in the task documents a way to supply that state locally, so no input can make this function run here."
+  }
+ ],
+ "seconds": 70.6,
+ "cost": 0.00718,
+ "kept": [],
+ "reason": "it cannot run here: `DXJob.wait_on_done` polls a remote DNAnexus job by calling `self._get_state(...)` (i.e. `self.describe(io=False)[\"state\"]`) in a loop, which performs an API request to the DNAnexus server and needs network access plus credentials; the only non-raising path requires the server to report a state, and nothing in the task documents a way to supply that state locally, so no input can make this function run here."
+}

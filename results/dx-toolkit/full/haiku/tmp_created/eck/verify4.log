@@ -1,0 +1,82 @@
+
+=== C1S1-validate-json-dead-read  src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON
+  already measured: confirmed
+
+=== C1S4-correct-edits-once  src/python/dxpy/utils/spelling_corrector.py::correct
+  already measured: negligible
+
+=== C3S1-pathmatch-comprehension  src/python/dxpy/utils/pathmatch.py::filter
+  already measured: partial
+
+=== C4S6-dlink-precheck  src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink
+  already measured: partial
+
+=== C6S2-cluster-copy-kept  src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec
+  already measured: partial
+
+=== C6S2-get-first-rfind  src/python/dxpy/utils/resolver.py::get_first_pos_of_char
+  already measured: confirmed
+
+=== C6S2-get-last-rfind  src/python/dxpy/utils/resolver.py::get_last_pos_of_char
+  already measured: confirmed
+
+=== C6S2-pheno-comprehension  src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter
+  already measured: confirmed
+
+=== C8S3-infer-hoist  src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type
+  already measured: partial
+
+=== C5S2-display-index  src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe
+  already measured: negligible
+
+=== C3S2-output-colset  src/python/dxpy/cli/output_handling.py::write_expression_output
+
+VERDICT: no_inputs
+  no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe. Next: the generator writes new inputs on every try, so you may ask for it again (`inputs.py request src/python/dxpy/cli/output_handling.py::write_expression_output`) (1 try left); if it fails again, its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C1S6-sessions-guard  src/python/dxpy/utils/config.py::DXConfig.get_session_conf_dir
+  already measured: negligible
+
+=== C7S1-truncate-bsearch  src/python/dxpy/dxlog.py::DXLogHandler.truncate_message
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           ok  (check only)
+  control-20k    ok
+  two-byte-20k   ok
+  four-byte-20k  ok
+  mixed-30k      ok
+
+sizing
+  control-20k    before   491.0 ms/call  after   656.2 us/call  ->  4 repeats  CLAMPED to keep the slow side under 2s
+  two-byte-20k   before   180.7 ms/call  after   477.5 us/call  ->  11 repeats  CLAMPED to keep the slow side under 2s
+  four-byte-20k  before   153.7 ms/call  after   580.8 us/call  ->  13 repeats  CLAMPED to keep the slow side under 2s
+  mixed-30k      before   309.9 ms/call  after     1.3 ms/call  ->  6 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  control-20k     +99.83% +-0.06% energy saved   significant     +99.85% +-0.00% time saved
+  two-byte-20k    +99.74% +-0.06% energy saved   significant     +99.72% +-0.00% time saved
+  four-byte-20k   +99.61% +-0.02% energy saved   significant     +99.61% +-0.02% time saved
+  mixed-30k       +99.55% +-0.04% energy saved   significant     +99.56% +-0.02% time saved
+
+noise floor  +-0.74% (session calibration)
+
+VERDICT: confirmed
+  99.8% +-0.1% energy saved on 'control-20k', clearing the 0.7% noise floor. Saved energy on all 4 inputs ('control-20k', 'two-byte-20k', 'four-byte-20k', 'mixed-30k'), with behaviour preserved throughout.
+
+=== all 13 lines of submissions.jsonl
+  confirmed    C1S1-validate-json-dead-read: 100.0% +-0.0% energy saved on 'case-7-variant', clearing the 0.7% noise floor
+  negligible   C1S4-correct-edits-once: no case moved more than the noise: the largest reading was -0.7% +-0.8% on 'edit2-hit-len13', against a clean 0.7% floor across 4 cases
+  partial      C3S1-pathmatch-comprehension: saves energy on 3 of 4 inputs ('low-hit-100k', 'deep-paths-80k', 'suffix-mix-100k'; best 7.6% +-1.6% on 'low-hit-100k'), and no saving that can be told from noi...
+  partial      C4S6-dlink-precheck: saves energy on 1 of 4 inputs ('big-array-no-link'; best 100.0% +-0.0% on 'big-array-no-link'), and no saving that can be told from noise on the rest: 'big-dict...
+  partial      C6S2-cluster-copy-kept: saves energy on 1 of 4 inputs ('many-entrypoints-no-clusterspec'; best 99.8% +-0.1% on 'many-entrypoints-no-clusterspec'), and no saving that can be told from n...
+  confirmed    C6S2-get-first-rfind: 62.8% +-1.1% energy saved on 'colons-dense', clearing the 0.7% noise floor
+  confirmed    C6S2-get-last-rfind: 83.5% +-0.1% energy saved on 'gapped-escaped', clearing the 0.7% noise floor
+  confirmed    C6S2-pheno-comprehension: 84.2% +-2.6% energy saved on 'exists-plus-in', clearing the 0.7% noise floor
+  partial      C8S3-infer-hoist: saves energy on 3 of 4 inputs ('no-results', 'mixed-medium', 'many-loci-tiny-samples'; best 7.1% +-1.6% on 'mixed-medium'), and no saving that can be told from ...
+  negligible   C5S2-display-index: no case moved more than the noise: the largest reading was +0.6% +-2.9% on 'hier-large', against a clean 0.7% floor across 4 cases
+  no_inputs    C3S2-output-colset: no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe
+  negligible   C1S6-sessions-guard: no case moved more than the noise: the largest reading was +4.1% +-11.2% on 'cleanup-500-dead', against a clean 0.7% floor across 4 cases
+  confirmed    C7S1-truncate-bsearch: 99.8% +-0.1% energy saved on 'control-20k', clearing the 0.7% noise floor
+
+12 of this session's 20 places hold a repair with a verdict.

@@ -1,0 +1,1 @@
+CANNOT RUN: `validate_cohort_ids` calls `raw_api_call`, which performs a network request via `dxpy.DXHTTPRequest` to the Vizserver (`resp["url"] + "/data/3.0/" + resp["dataset"] + "/raw"`); its work starts with that server request and no input can avoid it.

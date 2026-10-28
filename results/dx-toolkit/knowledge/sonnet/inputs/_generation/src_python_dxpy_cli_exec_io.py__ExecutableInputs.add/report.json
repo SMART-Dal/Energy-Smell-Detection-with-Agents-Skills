@@ -1,0 +1,265 @@
+{
+ "unit": "src/python/dxpy/cli/exec_io.py::ExecutableInputs.add",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 35.9,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 8126,
+   "completion_tokens": 14882,
+   "reasoning_tokens": 13690,
+   "cost": 0.01121724,
+   "retried": []
+  },
+  {
+   "seconds": 14.8,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 9637,
+   "completion_tokens": 3144,
+   "reasoning_tokens": 1829,
+   "cost": 0.002439238,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "json-list-append",
+     "ok": true,
+     "joules": 1.1498371960784315,
+     "seconds": 0.019777757115662098
+    },
+    {
+     "label": "json-dict-set",
+     "ok": false,
+     "seconds": 2.7551065953448415,
+     "why": "one call takes 2.76s (limit 1.0s)"
+    },
+    {
+     "label": "spec-hash-append",
+     "ok": false,
+     "seconds": 2.7235683668404818,
+     "why": "one call takes 2.72s (limit 1.0s)"
+    },
+    {
+     "label": "spec-arrayhash-append",
+     "ok": false,
+     "seconds": 2.7241762233898044,
+     "why": "one call takes 2.72s (limit 1.0s)"
+    },
+    {
+     "label": "json-string-resolve",
+     "ok": true,
+     "joules": 0.03454293677325588,
+     "seconds": 0.0007270490750670433
+    },
+    {
+     "label": "spec-string-long",
+     "ok": false,
+     "seconds": 2.2988677509129047,
+     "why": "one call takes 2.30s (limit 1.0s)"
+    },
+    {
+     "label": "job-jbor",
+     "ok": true,
+     "joules": 0.0005254708258036169,
+     "seconds": 1.3690441846847534e-05
+    },
+    {
+     "label": "name-colon-file-resolve",
+     "ok": false,
+     "seconds": 2.304075926542282,
+     "why": "one call takes 2.30s (limit 1.0s)"
+    }
+   ],
+   "checks": [
+    {
+     "label": "prefix-skip",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unknown-input",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-name",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 122.3,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 57.6
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "json-list-append",
+     "ok": false,
+     "joules": 1.0980352307692307,
+     "seconds": 0.019420674070715904,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "json-dict-set",
+     "ok": true,
+     "joules": 1.3833016285714297,
+     "seconds": 0.0286400206387043
+    },
+    {
+     "label": "spec-hash-set",
+     "ok": true,
+     "joules": 18.89585299999999,
+     "seconds": 0.3336156401783228
+    },
+    {
+     "label": "spec-arrayhash-append",
+     "ok": true,
+     "joules": 20.117966749999994,
+     "seconds": 0.33328690845519304
+    },
+    {
+     "label": "json-string-resolve",
+     "ok": false,
+     "joules": 0.03258191865357644,
+     "seconds": 0.0007014349102973938,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "spec-string-long",
+     "ok": true,
+     "joules": 2.1366699545454613,
+     "seconds": 0.04699268098920584
+    },
+    {
+     "label": "job-jbor",
+     "ok": false,
+     "joules": 0.0005051368024583932,
+     "seconds": 1.3597309589385986e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "name-colon-file-resolve",
+     "ok": false,
+     "joules": 0.7456968500000016,
+     "seconds": 0.01677175983786583,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "prefix-skip",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unknown-input",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-name",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 47.3,
+   "coverage": 0.4794520547945205,
+   "missed": [
+    569,
+    570,
+    572,
+    575,
+    576,
+    582,
+    594,
+    595,
+    596,
+    599,
+    600,
+    602,
+    608,
+    613,
+    614,
+    615,
+    618,
+    619,
+    622,
+    630,
+    631,
+    632,
+    634,
+    640,
+    642,
+    646,
+    648,
+    650,
+    652,
+    654,
+    659,
+    660,
+    661,
+    662,
+    665,
+    667,
+    670,
+    672
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 22.9
+  }
+ ],
+ "seconds": 226.1,
+ "cost": 0.01366,
+ "kept": [
+  {
+   "label": "spec-arrayhash-append",
+   "mj_per_call": 20117.9667,
+   "ms_per_call": 333.287
+  },
+  {
+   "label": "spec-hash-set",
+   "mj_per_call": 18895.853,
+   "ms_per_call": 333.616
+  },
+  {
+   "label": "spec-string-long",
+   "mj_per_call": 2136.67,
+   "ms_per_call": 46.993
+  },
+  {
+   "label": "json-dict-set",
+   "mj_per_call": 1383.3016,
+   "ms_per_call": 28.64
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

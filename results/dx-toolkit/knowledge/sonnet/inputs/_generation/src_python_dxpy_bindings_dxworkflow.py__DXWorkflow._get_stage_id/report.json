@@ -1,0 +1,105 @@
+{
+ "unit": "src/python/dxpy/bindings/dxworkflow.py::DXWorkflow._get_stage_id",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 30.8,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 7040,
+   "completion_tokens": 9210,
+   "reasoning_tokens": 8071,
+   "cost": 0.0092148,
+   "retried": []
+  },
+  {
+   "seconds": 102.3,
+   "finish": "length",
+   "provider": "Fireworks",
+   "prompt_tokens": 8055,
+   "completion_tokens": 32000,
+   "reasoning_tokens": 29579,
+   "cost": 0.027149472,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "tiny-index",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "small-str-index",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "medium-id-hit-end",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "large-index-int",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "large-id-hit-start",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "large-id-miss-name-hit",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "large-name-hit-start",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "large-name-hit-end",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-workflow-index",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "missing-stage-name",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    },
+    {
+     "label": "none-stage",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described"
+    }
+   ],
+   "validate_s": 9.7,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 8.3
+  },
+  {
+   "fatal": "no ```python block in the reply"
+  }
+ ],
+ "seconds": 153.3,
+ "cost": 0.03636,
+ "kept": [],
+ "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described)"
+}

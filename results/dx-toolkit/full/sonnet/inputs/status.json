@@ -1,0 +1,166 @@
+{
+ "units": {
+  "src/python/dxpy/utils/resolver.py::get_first_pos_of_char": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__get_first_pos_of_char.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::get_last_pos_of_char": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__get_last_pos_of_char.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::split_unescaped": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__split_unescaped.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::is_glob_pattern": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__is_glob_pattern.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::escape_folder_str": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__escape_folder_str.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pretty_print.py::flatten_json_array": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__flatten_json_array.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pretty_print.py::escape_unicode_string": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__escape_unicode_string.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pretty_print.py::format_table": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__format_table.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/spelling_corrector.py::correct": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_spelling_corrector.py__correct.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/spelling_corrector.py::_edits1": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_spelling_corrector.py___edits1.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dxlog.py::DXLogHandler.truncate_message": {
+   "state": "ready",
+   "file": "src_python_dxpy_dxlog.py__DXLogHandler.truncate_message.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe": {
+   "state": "ready",
+   "file": "src_python_dxpy_cli_dataset_utilities.py__DXDatasetDictionary.create_coding_name_dframe.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter": {
+   "state": "failed",
+   "reason": "the inputs that run here reach only 39% of the function (lines 10, 17, 22, 29, 31, 41, 47, 50-56, 58-59, 62-69, 71-72, 75, ... never ran), so they would not measure its real work",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_filter_to_payload.py__final_payload.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_sql": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_germline_utils.py__harmonize_germline_sql.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/dxfile.py::DXFile.__iter__": {
+   "state": "failed",
+   "reason": "it cannot run here: `DXFile.__iter__` calls `self.read(self._read_bufsize)` on a remote file handler; `DXFile.read` fetches the file's download URL and data from the DNAnexus API over the network (and needs `describe` for the file length), so no input can make it run without network access.",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/dxfile.py::DXFile._write2": {
+   "state": "failed",
+   "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described)",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/__init__.py::normalize_timedelta": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils___init__.py__normalize_timedelta.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src": {
+   "state": "ready",
+   "file": "src_python_dxpy_nextflow_nextflow_templates.py__get_nextflow_src.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/nextflow/nextflow_utils.py::_load_versions_manifest": {
+   "state": "ready",
+   "file": "src_python_dxpy_nextflow_nextflow_utils.py___load_versions_manifest.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec": {
+   "state": "ready",
+   "file": "src_python_dxpy_system_requirements.py__SystemRequirementsDict.override_cluster_spec.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/apollo/json_validation_by_schema.py::JSONValidator.are_list_items_within_range": {
+   "state": "ready",
+   "file": "src_python_dxpy_bindings_apollo_json_validation_by_schema.py__JSONValidator.are_list_items_within_range.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/completer.py::ListCompleter.get_matches": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_completer.py__ListCompleter.get_matches.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/local_exec_utils.py::has_local_job_refs": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_local_exec_utils.py__has_local_job_refs.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/__init__.py::_dict_raise_on_duplicates": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils___init__.py___dict_raise_on_duplicates.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/somatic_filter_payload.py::retrieve_geno_bins": {
+   "state": "failed",
+   "reason": "it cannot run here: `retrieve_geno_bins` delegates its entire workload to `retrieve_bins(list_of_genes, project, genome_reference, ...)`, which needs a DNAnexus `project` to fetch the gene manifest data objects from the platform (network/API access); no input can avoid that lookup, so the function cannot run in this offline environment.",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pathmatch.py::translate": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pathmatch.py__translate.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/output_handling.py::write_expression_output": {
+   "state": "failed",
+   "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe",
+   "attempts": 3
+  },
+  "src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py___maybe_convert_stringified_dxlink.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids": {
+   "state": "failed",
+   "reason": "it cannot run here: `validate_cohort_ids` performs its work by calling `raw_api_call`, which issues a live HTTP POST to a Vizserver (`dxpy.DXHTTPRequest`); the function cannot complete without network access to that remote service, and mocking the request is not allowed.",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/dataset_utilities.py::get_assay_name_info": {
+   "state": "ready",
+   "file": "src_python_dxpy_cli_dataset_utilities.py__get_assay_name_info.py",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 25,
+  "max_holding": 30,
+  "failed": 6,
+  "max_failed": 30
+ },
+ "updated": 1793050973.217674
+}

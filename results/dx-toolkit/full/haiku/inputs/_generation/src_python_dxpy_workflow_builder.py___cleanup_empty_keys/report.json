@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/workflow_builder.py::_cleanup_empty_keys",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 29.0,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 2881,
+   "completion_tokens": 11322,
+   "reasoning_tokens": 10095,
+   "cost": 0.00586267,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical",
+     "ok": false,
+     "joules": 0.07601994184168012,
+     "seconds": 0.001616266556084156,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large-flat",
+     "ok": true,
+     "joules": 0.2935589625000006,
+     "seconds": 0.006268961355090141
+    },
+    {
+     "label": "deep-nested",
+     "ok": false,
+     "joules": 0.025158280401416742,
+     "seconds": 0.0005906037986278534,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "non-word-keys",
+     "ok": true,
+     "joules": 0.13537603021148015,
+     "seconds": 0.003026634454727173
+    },
+    {
+     "label": "lists-of-dicts",
+     "ok": true,
+     "joules": 0.647582014492756,
+     "seconds": 0.014652539975941181
+    },
+    {
+     "label": "tricky-strings",
+     "ok": true,
+     "joules": 0.1677452151162803,
+     "seconds": 0.005839399993419647
+    },
+    {
+     "label": "empty-heavy",
+     "ok": false,
+     "joules": 0.09397574295774858,
+     "seconds": 0.003525461070239544,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-large",
+     "ok": false,
+     "joules": 0.10866301732673293,
+     "seconds": 0.002476939931511879,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-dict",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-string-key",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 117.1,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 104.9
+  }
+ ],
+ "seconds": 151.1,
+ "cost": 0.00586,
+ "kept": [
+  {
+   "label": "lists-of-dicts",
+   "mj_per_call": 647.582,
+   "ms_per_call": 14.653
+  },
+  {
+   "label": "large-flat",
+   "mj_per_call": 293.559,
+   "ms_per_call": 6.269
+  },
+  {
+   "label": "tricky-strings",
+   "mj_per_call": 167.7452,
+   "ms_per_call": 5.839
+  },
+  {
+   "label": "non-word-keys",
+   "mj_per_call": 135.376,
+   "ms_per_call": 3.027
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

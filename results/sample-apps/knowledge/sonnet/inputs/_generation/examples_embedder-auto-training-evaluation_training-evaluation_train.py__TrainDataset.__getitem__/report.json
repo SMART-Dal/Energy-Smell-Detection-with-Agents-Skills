@@ -1,0 +1,105 @@
+{
+ "unit": "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__getitem__",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 105.1,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2577,
+   "completion_tokens": 14682,
+   "reasoning_tokens": 13546,
+   "cost": 0.009577241,
+   "retried": []
+  },
+  {
+   "seconds": 39.1,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 4089,
+   "completion_tokens": 4960,
+   "reasoning_tokens": 4899,
+   "cost": 0.003377167,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-mid",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "first-index",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "last-index",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "long-negatives",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "long-positives",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "balanced-long",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "large-corpus",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "duplicate-negatives",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-queries",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "single-item",
+     "ok": false,
+     "kind": null,
+     "why": "sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "negative-index",
+     "ok": false,
+     "kind": null,
+     "why": "sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    }
+   ],
+   "validate_s": 45.9,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 26.8
+  },
+  {
+   "fatal": "CANNOT RUN: `TrainDataset.__getitem__` always finishes by constructing a `sentence_transformers.InputExample`, and `sentence_transformers` is not available in this environment (it is stubbed), so the real function cannot run here and no input can avoid the dependency."
+  }
+ ],
+ "seconds": 194.7,
+ "cost": 0.01295,
+ "kept": [],
+ "reason": "it cannot run here: `TrainDataset.__getitem__` always finishes by constructing a `sentence_transformers.InputExample`, and `sentence_transformers` is not available in this environment (it is stubbed), so the real function cannot run here and no input can avoid the dependency."
+}

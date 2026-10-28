@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/somatic_filter_payload.py::retrieve_geno_bins",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 71.2,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 2626,
+   "completion_tokens": 22154,
+   "reasoning_tokens": 22074,
+   "cost": 0.0188014932,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `retrieve_geno_bins` delegates its entire workload to `retrieve_bins(list_of_genes, project, genome_reference, ...)`, which needs a DNAnexus `project` to fetch the gene manifest data objects from the platform (network/API access); no input can avoid that lookup, so the function cannot run in this offline environment."
+  }
+ ],
+ "seconds": 85.6,
+ "cost": 0.0188,
+ "kept": [],
+ "reason": "it cannot run here: `retrieve_geno_bins` delegates its entire workload to `retrieve_bins(list_of_genes, project, genome_reference, ...)`, which needs a DNAnexus `project` to fetch the gene manifest data objects from the platform (network/API access); no input can avoid that lookup, so the function cannot run in this offline environment."
+}

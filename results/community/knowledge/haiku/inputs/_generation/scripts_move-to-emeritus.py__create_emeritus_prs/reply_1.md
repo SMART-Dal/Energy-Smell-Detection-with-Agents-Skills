@@ -1,0 +1,1 @@
+CANNOT RUN: the function fetches each repo's README over the network via `fetch_readme` → `request_with_retry` → `urllib.request.urlopen` (GitHub REST API), and also creates forks, branches, commits and PRs through the same API; there is no input that avoids these HTTP requests, and no network access is available.

@@ -1,0 +1,1 @@
+CANNOT RUN: `_get_repo_commenters` performs live HTTP GET requests to the GitHub REST API (`request_with_retry("GET", url)` → `urllib.request.urlopen`) on every non-cached path, so it requires network access to api.github.com; the only network-free path is the trivial `_repo_comments_cache` hit that does no work, and the environment provides no network.

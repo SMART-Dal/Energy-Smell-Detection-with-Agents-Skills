@@ -1,0 +1,135 @@
+{
+ "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.should_filter_token",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 16.2,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 4089,
+   "completion_tokens": 6690,
+   "reasoning_tokens": 6064,
+   "cost": 0.004372166,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "lt-prefix",
+     "ok": false,
+     "joules": 0.012283058642653194,
+     "seconds": 0.00021965522319078445,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-whitespace",
+     "ok": false,
+     "joules": 0.08929246296296298,
+     "seconds": 0.0016837390139698982,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-punctuation",
+     "ok": true,
+     "joules": 0.629248053333334,
+     "seconds": 0.013336378149688244
+    },
+    {
+     "label": "underscore-prefix",
+     "ok": true,
+     "joules": 0.2762118941176475,
+     "seconds": 0.005891374312341213
+    },
+    {
+     "label": "all-word-chars",
+     "ok": true,
+     "joules": 0.2811105480225983,
+     "seconds": 0.005680709145963192
+    },
+    {
+     "label": "digit-at-front",
+     "ok": true,
+     "joules": 0.3351044444444445,
+     "seconds": 0.007427181117236614
+    },
+    {
+     "label": "punct-then-digit",
+     "ok": false,
+     "joules": 0.011652520967248253,
+     "seconds": 0.0003061732277274132,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "whitespace-then-word",
+     "ok": false,
+     "joules": 0.12632798352941202,
+     "seconds": 0.0023534735664725304,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 54.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 28.3
+  }
+ ],
+ "seconds": 71.7,
+ "cost": 0.00437,
+ "kept": [
+  {
+   "label": "all-punctuation",
+   "mj_per_call": 629.2481,
+   "ms_per_call": 13.336
+  },
+  {
+   "label": "digit-at-front",
+   "mj_per_call": 335.1044,
+   "ms_per_call": 7.427
+  },
+  {
+   "label": "all-word-chars",
+   "mj_per_call": 281.1105,
+   "ms_per_call": 5.681
+  },
+  {
+   "label": "underscore-prefix",
+   "mj_per_call": 276.2119,
+   "ms_per_call": 5.891
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

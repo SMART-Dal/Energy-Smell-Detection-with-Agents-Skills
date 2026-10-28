@@ -1,0 +1,107 @@
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-2.43%
+
+
+=== C3S2-validate-hoist-sets  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.3 ms/call  after     2.9 ms/call  ->  318 repeats  CLAMPED to keep the slow side under 2s
+  deep-parent-chain before   227.9 ms/call  after   230.4 ms/call  ->  5 repeats
+  parent-cycle   before    54.7 ms/call  after    51.3 ms/call  ->  20 repeats
+  large-mixed    before    24.1 ms/call  after    10.2 ms/call  ->  83 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree    +52.09% +-1.27% energy saved   significant     +52.08% +-1.55% time saved
+  deep-parent-chain   -0.94% +-0.52% energy saved   significant     -0.63% +-0.43% time saved
+  parent-cycle     +8.04% +-5.73% energy saved   significant     +7.64% +-4.35% time saved
+  large-mixed     +58.42% +-2.33% energy saved   significant     +58.27% +-1.53% time saved
+
+noise floor  +-2.43% (session calibration)
+
+VERDICT: partial
+  saves energy on 3 of 4 inputs ('typical-tree', 'parent-cycle', 'large-mixed'; best 58.4% +-2.3% on 'large-mixed'), and no saving that can be told from noise on the rest: 'deep-parent-chain' -0.9% +-0.5% (within the 2.4% noise floor). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C1S1-validate-dead-parent-kind  scripts/validate-workstreams.py::validate_workstreams_semantics
+  already measured: regressed
+
+=== C10S4-render-group-join  scripts/update-sig-tables.py::render_group
+equivalence
+  empty-group    ok  (check only)
+  one-element    ok  (check only)
+  none-sigs      ok  (check only)
+  deep-resources ok
+  people-heavy   ok
+  bare-meetings  ok
+  mixed-large    ok
+
+sizing
+  deep-resources before    18.6 ms/call  after    18.9 ms/call  ->  54 repeats
+  people-heavy   before    22.8 ms/call  after    23.9 ms/call  ->  44 repeats
+  bare-meetings  before    14.8 ms/call  after    14.8 ms/call  ->  68 repeats
+  mixed-large    before    22.9 ms/call  after    22.7 ms/call  ->  44 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  deep-resources   -3.71% +-12.36% energy saved   not significant -3.04% +-12.25% time saved
+  people-heavy     -0.41% +-2.00% energy saved   not significant -0.29% +-2.43% time saved
+  bare-meetings    +0.05% +-2.29% energy saved   not significant -0.17% +-1.95% time saved
+  mixed-large      -0.35% +-2.16% energy saved   not significant -0.53% +-1.66% time saved
+
+noise floor  +-2.43% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -3.7% +-12.4% on 'deep-resources', against a clean 2.4% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C1S4-sync-mentions-once  scripts/gc-elections/create-github-comments.py::sync
+equivalence
+  empty          ok  (check only)
+  none-body      ok  (check only)
+  no-mentions    ok  (check only)
+  many-comments-few-stale ok
+  all-stale      ok
+  large-comments ok
+  big-file       ok
+
+sizing
+  many-comments-few-stale before    13.3 ms/call  after    11.5 ms/call  ->  87 repeats
+  all-stale      before   318.0 ms/call  after   318.5 ms/call  ->  4 repeats
+  large-comments before   339.7 ms/call  after   338.9 ms/call  ->  3 repeats
+  big-file       before   163.9 ms/call  after   162.4 ms/call  ->  7 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-comments-few-stale   +8.32% +-26.93% energy saved   not significant +14.50% +-4.45% time saved
+  all-stale        +0.67% +-0.93% energy saved   not significant +0.45% +-0.86% time saved
+  large-comments   +0.93% +-1.13% energy saved   not significant +0.61% +-0.77% time saved
+  big-file         +0.26% +-2.86% energy saved   not significant +0.68% +-2.20% time saved
+
+noise floor  +-2.43% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +8.3% +-26.9% on 'many-comments-few-stale', against a clean 2.4% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C10S2-add-emeritus-startswith  scripts/move-to-emeritus.py::_add_to_emeritus
+  already measured: confirmed
+
+=== C1S4-add-emeritus-one-pass  scripts/move-to-emeritus.py::_add_to_emeritus
+  already measured: confirmed
+
+=== C3S5-check-events-early-exit  scripts/move-to-emeritus.py::_check_events
+  already measured: mixed
+
+=== all 7 lines of submissions.jsonl
+  partial      C3S2-validate-hoist-sets: saves energy on 3 of 4 inputs ('typical-tree', 'parent-cycle', 'large-mixed'; best 58.4% +-2.3% on 'large-mixed'), and no saving that can be told from noise on ...
+  regressed    C1S1-validate-dead-parent-kind: the repair costs more than the code it replaces: 7.0% lost on 'deep-parent-chain', above the 5.2% noise floor, and no case improved
+  negligible   C10S4-render-group-join: no case moved more than the noise: the largest reading was -3.7% +-12.4% on 'deep-resources', against a clean 2.4% floor across 4 cases
+  negligible   C1S4-sync-mentions-once: no case moved more than the noise: the largest reading was +8.3% +-26.9% on 'many-comments-few-stale', against a clean 2.4% floor across 4 cases
+  confirmed    C10S2-add-emeritus-startswith: 28.6% +-4.2% energy saved on 'existing-large', clearing the 5.2% noise floor
+  confirmed    C1S4-add-emeritus-one-pass: 16.1% +-2.4% energy saved on 'existing-level2', clearing the 5.2% noise floor
+  mixed        C3S5-check-events-early-exit: a trade-off, not a fix: 17.8% saved on 'big-mixed' but 16.0% lost on 'huge-remaining', both clearing the 5.2% noise floor
+
+7 of this session's 20 places hold a repair with a verdict.

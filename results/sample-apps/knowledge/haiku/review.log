@@ -1,0 +1,24 @@
+C10S4-split-text       negligible      not applied: negligible
+C10S1-control-translate confirmed       APPLIED
+C3S4-process-docs-docs confirmed       APPLIED
+C10S1-count-isdisjoint confirmed       APPLIED
+C10S2-write-replace    partial         not applied: partial
+C9S1-write-once        confirmed       APPLIED
+C10S3-accepted-update  confirmed       APPLIED
+C6S2-sample-index      confirmed       APPLIED
+C5S2-predictions-index confirmed       APPLIED
+C9S1-embedding-join    confirmed       APPLIED
+C10S1-binary-vectorise confirmed       APPLIED
+C10S3-select-update    partial         not applied: partial
+C10S3-filter-tuple     confirmed       APPLIED
+C1S5-describe-stats    over_limit      not applied: over_limit
+C1S4-what-language     confirmed       APPLIED
+C8S2-filter-compiled   over_limit      not applied: over_limit
+C9S1-extract-offset    partial         not applied: partial
+C6S3-init-iterate      regressed       not applied: regressed
+C5S3-bert-float32      partial         not applied: partial
+C1S4-impression-lookup confirmed       APPLIED
+C3S1-users-records     confirmed       APPLIED
+C1S1-dead-total        negligible      not applied: negligible
+
+wrote /home/javad/energy-exp/archive/sample-apps/knowledge/haiku/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/knowledge/haiku/review/REPORT.md

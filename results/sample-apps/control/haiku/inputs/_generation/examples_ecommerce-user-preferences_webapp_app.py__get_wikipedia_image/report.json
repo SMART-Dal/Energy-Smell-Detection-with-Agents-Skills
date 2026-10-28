@@ -1,0 +1,25 @@
+{
+ "unit": "examples/ecommerce-user-preferences/webapp/app.py::get_wikipedia_image",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.7,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 4294,
+   "completion_tokens": 552,
+   "reasoning_tokens": 479,
+   "cost": 0.00097484,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `get_wikipedia_image` fetches data from the Wikipedia API via `requests.get` (search, images, imageinfo endpoints); its real work is network I/O to a remote server, which is unavailable here and cannot be avoided without mocking the HTTP client (forbidden), and forcing cache hits would bypass the function's actual work entirely."
+  }
+ ],
+ "seconds": 7.4,
+ "cost": 0.00097,
+ "kept": [],
+ "reason": "it cannot run here: `get_wikipedia_image` fetches data from the Wikipedia API via `requests.get` (search, images, imageinfo endpoints); its real work is network I/O to a remote server, which is unavailable here and cannot be avoided without mocking the HTTP client (forbidden), and forcing cache hits would bypass the function's actual work entirely."
+}

@@ -1,0 +1,21 @@
+{"unit": "src/python/dxpy/utils/resolver.py::get_last_pos_of_char", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.1, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::get_first_pos_of_char", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::split_unescaped", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/pretty_print.py::flatten_json_array", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/pretty_print.py::format_table", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.1, "reason": null}
+{"unit": "src/python/dxpy/dxlog.py::DXLogHandler.truncate_message", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/spelling_corrector.py::correct", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.1, "reason": null}
+{"unit": "src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids", "cached": false, "ready": false, "cost": 0.0023, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 9.2, "reason": "it cannot run here: `validate_cohort_ids` unconditionally calls `raw_api_call(resp, payload)`, which performs a live HTTP POST to the Vizserver via `dxpy.DXHTTPRequest(resource=resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\", ...)`. No input can avoid this network request, and there is no way to supply `resp_raw` without a real server (mocking `raw_api_call`/`DXHTTPRequest` is forbidden)."}
+{"unit": "src/python/dxpy/cli/output_handling.py::write_expression_output", "cached": false, "ready": false, "seconds": 78.0, "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe"}
+{"unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type", "cached": false, "ready": true, "cost": 0.00416, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 150.8, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::parse_input_keyval", "cached": false, "ready": true, "cost": 0.0086, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 150.5, "reason": null}
+{"unit": "src/python/dxpy/workflow_builder.py::_cleanup_empty_keys", "cached": false, "ready": true, "cost": 0.00586, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 151.1, "reason": null}
+{"unit": "src/python/dxpy/utils/pathmatch.py::filter", "cached": false, "ready": true, "cost": 0.00603, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 157.0, "reason": null}
+{"unit": "src/python/dxpy/utils/config.py::DXConfig.get_session_conf_dir", "cached": false, "ready": true, "cost": 0.01068, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 156.8, "reason": null}
+{"unit": "src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter", "cached": false, "ready": true, "cost": 0.00356, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 179.9, "reason": null}
+{"unit": "src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON", "cached": false, "ready": true, "cost": 0.00653, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 182.1, "reason": null}
+{"unit": "src/python/dxpy/cli/output_handling.py::write_expression_output", "cached": false, "ready": false, "seconds": 21.1, "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe"}
+{"unit": "src/python/dxpy/cli/output_handling.py::write_expression_output", "cached": false, "ready": false, "seconds": 51.5, "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe"}

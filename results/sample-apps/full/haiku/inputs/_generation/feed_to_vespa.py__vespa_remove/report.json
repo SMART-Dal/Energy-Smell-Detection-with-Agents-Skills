@@ -1,0 +1,25 @@
+{
+ "unit": "feed_to_vespa.py::vespa_remove",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 0.8,
+   "finish": "stop",
+   "provider": "Cohere",
+   "prompt_tokens": 2505,
+   "completion_tokens": 245,
+   "reasoning_tokens": 181,
+   "cost": 0.0010455,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `vespa_remove` calls `vespa_delete`, which performs a live HTTP request (`session.delete(url).json()`) against a Vespa endpoint for every document id; it needs network access to a running Vespa server, and no input can avoid that without mocking the session."
+  }
+ ],
+ "seconds": 2.8,
+ "cost": 0.00105,
+ "kept": [],
+ "reason": "it cannot run here: `vespa_remove` calls `vespa_delete`, which performs a live HTTP request (`session.delete(url).json()`) against a Vespa endpoint for every document id; it needs network access to a running Vespa server, and no input can avoid that without mocking the session."
+}

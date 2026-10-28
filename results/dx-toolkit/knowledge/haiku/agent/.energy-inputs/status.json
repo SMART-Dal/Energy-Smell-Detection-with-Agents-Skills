@@ -1,0 +1,91 @@
+{
+ "units": {
+  "src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids": {
+   "state": "failed",
+   "reason": "it cannot run here: `validate_cohort_ids` calls `raw_api_call`, which performs a network request via `dxpy.DXHTTPRequest` to the Vizserver (`resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\"`); its work starts with that server request and no input can avoid it.",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/output_handling.py::write_expression_output": {
+   "state": "failed",
+   "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe",
+   "attempts": 1
+  },
+  "src/python/dxpy/dxlog.py::DXLogHandler.truncate_message": {
+   "state": "ready",
+   "file": "src_python_dxpy_dxlog.py__DXLogHandler.truncate_message.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/spelling_corrector.py::correct": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_spelling_corrector.py__correct.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_filter_to_payload.py__validate_JSON.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_sql": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_germline_utils.py__harmonize_germline_sql.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_filter_to_payload.py__final_payload.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/input_validation.py::is_list_of_strings": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_input_validation.py__is_list_of_strings.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/input_validation_somatic.py::is_list_of_strings": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_input_validation_somatic.py__is_list_of_strings.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe": {
+   "state": "ready",
+   "file": "src_python_dxpy_cli_dataset_utilities.py__DXDatasetDictionary.create_coding_name_dframe.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/input_validation.py::validate_infer_flags": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_input_validation.py__validate_infer_flags.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/search.py::_find": {
+   "state": "ready",
+   "file": "src_python_dxpy_bindings_search.py___find.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/dxfile.py::DXFile._write2": {
+   "state": "failed",
+   "reason": "it cannot run here: `DXFile._write2` performs its real work by dispatching remote upload requests \u2014 `_ensure_write_bufsize` queries the project's upload parameters from the DNAnexus API server and the write path calls `_async_upload_part_request`/`upload_part` (HTTP part uploads) \u2014 so no input can exercise the function (buffering, splitting into parts, uploading) without network access to the DNAnexus API.",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/dxfile.py::DXFile.__iter__": {
+   "state": "failed",
+   "reason": "it cannot run here: `DXFile.__iter__` obtains its data by calling `self.read(...)`, which for a `DXFile` is the remote-file reader that fetches file content from the DNAnexus platform (an API/HTTP download); the class holds no local data source, so no input can make it run without network/service access.",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/dxdatabase.py::DXDatabase.get_download_url": {
+   "state": "failed",
+   "reason": "it cannot run here: `DXDatabase.get_download_url` performs its work by calling `dxpy.api.database_download_file(self._dxid, args, **kwargs)`, an HTTP request to the DNAnexus API server; with no network access and no way to stub the API call (no monkeypatching/mocks allowed), the only runnable path is a pure cache hit that does no real work.",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/dxglobalworkflow.py::DXGlobalWorkflow.describe_underlying_workflow": {
+   "state": "failed",
+   "reason": "it cannot run here: `describe_underlying_workflow` obtains its result by calling `self.describe()` and `dxpy.DXWorkflow(...).describe()`, which issue authenticated HTTP requests to the DNAnexus platform API; there is no input that avoids this network access.",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 10,
+  "max_holding": 30,
+  "failed": 6,
+  "max_failed": 30
+ },
+ "updated": 1793132445.5601585
+}

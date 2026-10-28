@@ -1,0 +1,1 @@
+CANNOT RUN: `validate_cohort_ids` unconditionally calls `raw_api_call`, which performs a network POST to the Vizserver via `dxpy.DXHTTPRequest`; there is no input that avoids this server request, and `err_exit` would terminate on failure.

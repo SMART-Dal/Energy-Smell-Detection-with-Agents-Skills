@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/test/test_dxpy.py::TestDXSearch.test_resolve_data_objects",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.9,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 4425,
+   "completion_tokens": 185,
+   "reasoning_tokens": 101,
+   "cost": 0.000769677,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `TestDXSearch.test_resolve_data_objects` drives the live DNAnexus platform \u2014 it calls `testutil.temporary_project` and `dxpy.new_dxrecord` to create projects/records on a server, and `dxpy.search.resolve_data_objects` performs classify/describe API calls against it. No input can avoid these network/credentialed service requests."
+  }
+ ],
+ "seconds": 14.9,
+ "cost": 0.00077,
+ "kept": [],
+ "reason": "it cannot run here: `TestDXSearch.test_resolve_data_objects` drives the live DNAnexus platform \u2014 it calls `testutil.temporary_project` and `dxpy.new_dxrecord` to create projects/records on a server, and `dxpy.search.resolve_data_objects` performs classify/describe API calls against it. No input can avoid these network/credentialed service requests."
+}

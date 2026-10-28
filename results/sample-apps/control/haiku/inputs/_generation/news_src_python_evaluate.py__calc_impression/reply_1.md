@@ -1,0 +1,1 @@
+CANNOT RUN: `calc_impression` begins by calling `query_user_embedding(user_id, url, cert)` and then `query_news(...)`, both of which issue HTTP requests to a Vespa server (the `url`/`cert` come from `connect()` for a live CLI target); there is no input that avoids the network, and mocking those calls is not permitted.

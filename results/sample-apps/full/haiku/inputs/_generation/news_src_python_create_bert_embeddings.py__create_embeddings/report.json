@@ -1,0 +1,25 @@
+{
+ "unit": "news/src/python/create_bert_embeddings.py::create_embeddings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.0,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2643,
+   "completion_tokens": 331,
+   "reasoning_tokens": 250,
+   "cost": 0.000398344,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8_H-512_A-8')`, which download pretrained models from the Hugging Face Hub and therefore require network access (and the `transformers`/`torch` stack); no input can avoid this."
+  }
+ ],
+ "seconds": 4.4,
+ "cost": 0.0004,
+ "kept": [],
+ "reason": "it cannot run here: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8_H-512_A-8')`, which download pretrained models from the Hugging Face Hub and therefore require network access (and the `transformers`/`torch` stack); no input can avoid this."
+}

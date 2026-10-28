@@ -1,0 +1,205 @@
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-0.82%
+
+
+=== C3S2-validate-hoist-sets  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.1 ms/call  after     2.8 ms/call  ->  329 repeats  CLAMPED to keep the slow side under 2s
+  deep-parent-chain before   228.9 ms/call  after   231.3 ms/call  ->  5 repeats
+  parent-cycle   before    55.2 ms/call  after    51.3 ms/call  ->  20 repeats
+  large-mixed    before    23.2 ms/call  after    10.0 ms/call  ->  86 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree    +52.77% +-0.71% energy saved   significant     +52.85% +-0.23% time saved
+  deep-parent-chain   -0.23% +-1.37% energy saved   not significant -0.29% +-1.60% time saved
+  parent-cycle     +6.25% +-0.69% energy saved   significant     +5.81% +-1.51% time saved
+  large-mixed     +57.91% +-1.46% energy saved   significant     +58.02% +-0.08% time saved
+
+noise floor  +-0.82% (session calibration)
+
+VERDICT: partial
+  saves energy on 3 of 4 inputs ('typical-tree', 'parent-cycle', 'large-mixed'; best 57.9% +-1.5% on 'large-mixed'), and no saving that can be told from noise on the rest: 'deep-parent-chain' -0.2% +-1.4% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C1S1-validate-dead-parent-kind  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.1 ms/call  after     5.9 ms/call  ->  170 repeats
+  deep-parent-chain before   230.0 ms/call  after   236.2 ms/call  ->  5 repeats
+  parent-cycle   before    55.7 ms/call  after    54.0 ms/call  ->  19 repeats
+  large-mixed    before    23.2 ms/call  after    22.9 ms/call  ->  44 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree     +0.86% +-1.19% energy saved   not significant +1.32% +-3.14% time saved
+  deep-parent-chain   -3.40% +-0.99% energy saved   significant     -3.37% +-1.46% time saved
+  parent-cycle     -5.47% +-27.73% energy saved   not significant -7.56% +-39.76% time saved
+  large-mixed      +0.82% +-0.90% energy saved   not significant +0.51% +-1.09% time saved
+
+noise floor  +-0.82% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 3.4% lost on 'deep-parent-chain', above the 0.8% noise floor, and no case improved. Worse on 1 of 4 cases ('deep-parent-chain').
+
+=== C3S5-check-events-break  scripts/move-to-emeritus.py::_check_events
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-events   ok  (check only)
+  single-match   ok  (check only)
+  odd-values     ok  (check only)
+  big-mixed      ok
+  single-type    ok
+  huge-remaining ok
+  exclude-all    ok
+
+sizing
+  big-mixed      before   720.9 us/call  after   597.4 us/call  ->  1,674 repeats
+  single-type    before   830.7 us/call  after   879.9 us/call  ->  1,204 repeats
+  huge-remaining before     2.1 ms/call  after     2.8 ms/call  ->  466 repeats
+  exclude-all    before   820.0 us/call  after   819.5 us/call  ->  1,221 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  big-mixed       +18.24% +-0.46% energy saved   significant     +18.84% +-0.97% time saved
+  single-type      -0.36% +-27.19% energy saved   not significant +6.42% +-30.43% time saved
+  huge-remaining  -19.98% +-9.36% energy saved   significant     -17.00% +-0.91% time saved
+  exclude-all      +0.21% +-5.41% energy saved   not significant +0.01% +-0.70% time saved
+
+noise floor  +-0.82% (session calibration)
+
+VERDICT: mixed
+  a trade-off, not a fix: 18.2% saved on 'big-mixed' but 20.0% lost on 'huge-remaining', both clearing the 0.8% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.
+
+=== C5S2-commenters-seen-set  scripts/move-to-emeritus.py::_get_repo_commenters
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_commenters: it cannot run here: `_get_repo_commenters` fetches GitHub issue comments over HTTP via `request_with_retry`/`urllib.request.urlopen`; any real workload requires network access to `https://api.github.com`, and no input can avoid that (a cache hit would skip the function's work entirely). Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C1S4-add-emeritus-single-match  scripts/move-to-emeritus.py::_add_to_emeritus
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-readme   ok  (check only)
+  section-no-members ok  (check only)
+  duplicate-small ok  (check only)
+  existing-large ok
+  existing-level2 ok
+  existing-mixed-markers ok
+  existing-case-insensitive ok
+
+sizing
+  existing-large before    40.9 ms/call  after    34.1 ms/call  ->  30 repeats
+  existing-level2 before    30.2 ms/call  after    25.5 ms/call  ->  40 repeats
+  existing-mixed-markers before    35.5 ms/call  after    29.9 ms/call  ->  34 repeats
+  existing-case-insensitive before    25.9 ms/call  after    21.3 ms/call  ->  47 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  existing-large  +16.02% +-1.07% energy saved   significant     +15.98% +-1.47% time saved
+  existing-level2  +15.54% +-1.34% energy saved   significant     +15.50% +-0.65% time saved
+  existing-mixed-markers  +16.55% +-1.72% energy saved   significant     +15.85% +-0.25% time saved
+  existing-case-insensitive  +15.98% +-1.72% energy saved   significant     +16.12% +-1.32% time saved
+
+noise floor  +-0.82% (session calibration)
+
+VERDICT: confirmed
+  16.5% +-1.7% energy saved on 'existing-mixed-markers', clearing the 0.8% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C8S4-verify-review-cache  scripts/move-to-emeritus.py::_verify_review_candidates
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::_verify_review_candidates: it cannot run here: `_verify_review_candidates` calls `request_with_retry`, which performs live `urllib.request.urlopen` HTTP GETs to `https://api.github.com` for each candidate PR; its work begins with a network request and no input can avoid that. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C9S2-events-keep-consumed-types  scripts/move-to-emeritus.py::_get_repo_events
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_events: it cannot run here: `_get_repo_events` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` before doing any other work, which requires network access and GitHub credentials/rate limits that are unavailable here; no input can avoid the request. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C1S1-main-team-repos-map  scripts/move-to-emeritus.py::main
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::main: it cannot run here: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API (`paginate_rest`, `request_with_retry`), so it needs network access and credentials that are unavailable here, and no input can avoid those requests. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C9S1-login-session  scripts/gc-elections/generate-voters-roll.py::get_github_login
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/gc-elections/generate-voters-roll.py::get_github_login: it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get` (plus a `time.sleep`), so it needs network access that is unavailable here and no input can avoid it. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C3S2-collect-jobs-parse-run-start-once  scripts/baremetal-runner-report.py::collect_jobs
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/baremetal-runner-report.py::collect_jobs: it cannot run here: collect_jobs fetches every workflow run and job through gh_paginated, which shells out to `gh api --paginate` against the GitHub API — it needs network access and the gh CLI, and that request is the first thing the function does for each workflow. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C8S2-check-reviews-alias-once  scripts/move-to-emeritus.py::_check_reviews
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::_check_reviews: it cannot run here: `_check_reviews` performs live GitHub API calls — it starts with a `request_with_retry("POST", GRAPHQL_API, ...)` GraphQL request and then REST requests to `api.github.com`, requiring network access and credentials that are unavailable here; no input can avoid this, and mocking the HTTP layer is not allowed. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C8S2-check-maintainer-alias-once  scripts/move-to-emeritus.py::check_maintainer_activity
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::check_maintainer_activity: it cannot run here: `check_maintainer_activity` always starts by calling `_check_comments`/`_get_repo_commenters`, `_check_reviews` (GraphQL `request_with_retry` to `https://api.github.com/graphql`) and `_get_repo_events`, all of which make live GitHub API requests; there is no input that avoids network access, and mocking the HTTP layer is not allowed. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C10S3-parse-members-comprehension  scripts/move-to-emeritus.py::_parse_members
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-text     ok  (check only)
+  no-members     ok  (check only)
+  none-text      ok  (check only)
+  large-mixed-25k ok
+  no-trailing-15k ok
+  unicode-8k     ok
+  near-miss-12k  ok
+
+sizing
+  large-mixed-25k before    32.0 ms/call  after    30.1 ms/call  ->  34 repeats
+  no-trailing-15k before    16.5 ms/call  after    15.9 ms/call  ->  63 repeats
+  unicode-8k     before    12.0 ms/call  after    11.6 ms/call  ->  87 repeats
+  near-miss-12k  before    11.8 ms/call  after    11.6 ms/call  ->  87 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-mixed-25k   +3.82% +-7.36% energy saved   not significant +4.22% +-9.00% time saved
+  no-trailing-15k   +2.84% +-0.41% energy saved   significant     +2.78% +-0.84% time saved
+  unicode-8k       +3.90% +-1.75% energy saved   significant     +4.28% +-0.27% time saved
+  near-miss-12k    +0.69% +-6.93% energy saved   not significant +1.29% +-4.97% time saved
+
+noise floor  +-0.82% (session calibration)
+
+VERDICT: partial
+  saves energy on 2 of 4 inputs ('no-trailing-15k', 'unicode-8k'; best 3.9% +-1.8% on 'unicode-8k'), and no saving that can be told from noise on the rest: 'large-mixed-25k' +3.8% +-7.4% (its pairs disagree too much to tell); 'near-miss-12k' +0.7% +-6.9% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C3S2-create-emeritus-lower-once  scripts/move-to-emeritus.py::create_emeritus_prs
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::create_emeritus_prs: it cannot run here: every non-empty `inactive_report` makes the function start with `fetch_readme(repo)`, an HTTP request to `https://api.github.com`, and it continues with `_get_fork_owner`, `_get_default_branch_sha`, `_ensure_fork`, `_update_file` and `_create_pr` — all network calls to GitHub that need credentials; no input can avoid this since the work is driven by the report contents. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== all 14 lines of submissions.jsonl
+  partial      C3S2-validate-hoist-sets: saves energy on 3 of 4 inputs ('typical-tree', 'parent-cycle', 'large-mixed'; best 57.9% +-1.5% on 'large-mixed'), and no saving that can be told from noise on ...
+  regressed    C1S1-validate-dead-parent-kind: the repair costs more than the code it replaces: 3.4% lost on 'deep-parent-chain', above the 0.8% noise floor, and no case improved
+  mixed        C3S5-check-events-break: a trade-off, not a fix: 18.2% saved on 'big-mixed' but 20.0% lost on 'huge-remaining', both clearing the 0.8% noise floor
+  no_inputs    C5S2-commenters-seen-set: no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_commenters: it cannot run here: `_get_repo_commenters` fetches GitHub issue comments ove...
+  confirmed    C1S4-add-emeritus-single-match: 16.5% +-1.7% energy saved on 'existing-mixed-markers', clearing the 0.8% noise floor
+  no_inputs    C8S4-verify-review-cache: no inputs could be generated for scripts/move-to-emeritus.py::_verify_review_candidates: it cannot run here: `_verify_review_candidates` calls `request_with_ret...
+  no_inputs    C9S2-events-keep-consumed-types: no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_events: it cannot run here: `_get_repo_events` performs live HTTP requests to `https://a...
+  no_inputs    C1S1-main-team-repos-map: no inputs could be generated for scripts/move-to-emeritus.py::main: it cannot run here: `main` fetches teams, members, repos and activity from the GitHub REST/G...
+  no_inputs    C9S1-login-session: no inputs could be generated for scripts/gc-elections/generate-voters-roll.py::get_github_login: it cannot run here: `get_github_login` performs a live HTTP req...
+  no_inputs    C3S2-collect-jobs-parse-run-start-once: no inputs could be generated for scripts/baremetal-runner-report.py::collect_jobs: it cannot run here: collect_jobs fetches every workflow run and job through g...
+  no_inputs    C8S2-check-reviews-alias-once: no inputs could be generated for scripts/move-to-emeritus.py::_check_reviews: it cannot run here: `_check_reviews` performs live GitHub API calls — it starts wi...
+  no_inputs    C8S2-check-maintainer-alias-once: no inputs could be generated for scripts/move-to-emeritus.py::check_maintainer_activity: it cannot run here: `check_maintainer_activity` always starts by callin...
+  partial      C10S3-parse-members-comprehension: saves energy on 2 of 4 inputs ('no-trailing-15k', 'unicode-8k'; best 3.9% +-1.8% on 'unicode-8k'), and no saving that can be told from noise on the rest: 'large...
+  no_inputs    C3S2-create-emeritus-lower-once: no inputs could be generated for scripts/move-to-emeritus.py::create_emeritus_prs: it cannot run here: every non-empty `inactive_report` makes the function star...
+
+5 of this session's 20 places hold a repair with a verdict.
+EXIT 2

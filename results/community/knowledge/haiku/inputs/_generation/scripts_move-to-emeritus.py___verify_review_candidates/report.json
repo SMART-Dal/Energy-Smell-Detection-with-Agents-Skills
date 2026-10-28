@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_verify_review_candidates",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.4,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 3439,
+   "completion_tokens": 213,
+   "reasoning_tokens": 139,
+   "cost": 0.0005421948,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_verify_review_candidates` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` for every candidate PR; there is no way to supply the review data without network access, and intercepting the request would require mocking the repository's own code."
+  }
+ ],
+ "seconds": 2.7,
+ "cost": 0.00054,
+ "kept": [],
+ "reason": "it cannot run here: `_verify_review_candidates` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` for every candidate PR; there is no way to supply the review data without network access, and intercepting the request would require mocking the repository's own code."
+}

@@ -1,0 +1,33 @@
+C3S4-count_terms-process_docs-docfreq confirmed       APPLIED
+C10S4-feed_split-split_text-join negligible      not applied: negligible
+C3S4-news_evaluate-predictions-index confirmed       APPLIED
+C10S1-colbert_convert-remove_control_chars-regex regressed       not applied: regressed
+C4S7-colbert_convert-remove_control_chars-isprintable partial         not applied: partial
+C10S3-train_cold_start-write_embeddings-tolist partial         not applied: partial
+C10S1-create_bert-write_embedding-join confirmed       APPLIED
+C6S3-count_terms-process_doc-merge negligible      not applied: negligible
+C10S2-count_terms-count_terms-isdisjoint confirmed       APPLIED
+C10S3-accepted_words-process_docs-update confirmed       APPLIED
+C6S1-prepare_feed-float_to_binary-boolmask confirmed       APPLIED
+C6S1-vespa_app-float_to_binary-boolmask confirmed       APPLIED
+C7S4-mind_data-sample_valid_data-filter_first negligible      not applied: negligible
+C7S4-embedding-sample_images-index_first confirmed       APPLIED
+C10S2-count_terms-write_json_file-replace partial         not applied: partial
+C1S4-count_terms-count_terms-slice_once confirmed       not applied: changes the same function as C10S2-count_terms-count_term
+C1S4-feed_split-what_language-text_once confirmed       APPLIED
+C10S1-train_cold_start-read_bert-np_parse confirmed       APPLIED
+C1S1-count_terms-process_docs-total_count partial         not applied: partial
+C6S1-create_category_ctrs-read_content_file-csvreader confirmed       APPLIED
+C10S3-colpali-prepare_sim_map-index_put over_limit      not applied: over_limit
+C3S2-colpali-prepare_sim_map-hoist_seq_len over_limit      not applied: over_limit
+C8S2-colpali-should_filter_token-precompile over_limit      not applied: over_limit
+C1S4-cache-lrucache_get-single_probe over_limit      not applied: over_limit
+C8S2-vespa_retriever-create_conditions-operators over_limit      not applied: over_limit
+C3S2-feed_to_vespa-get_feed_docids-prefix over_limit      not applied: over_limit
+C6S3-feed_to_vespa-get_feed_docids-setcomp over_limit      not applied: over_limit
+C10S2-mind_data-lookup_index-setdefault over_limit      not applied: over_limit
+C1S4-mind_data-add_impressions-content_once over_limit      not applied: over_limit
+C1S4-mind_data-sample_valid_data-sum_once over_limit      not applied: over_limit
+C8S3-train_cold_start-read_bert-news_map over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/sample-apps/knowledge/opus/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/knowledge/opus/review/REPORT.md

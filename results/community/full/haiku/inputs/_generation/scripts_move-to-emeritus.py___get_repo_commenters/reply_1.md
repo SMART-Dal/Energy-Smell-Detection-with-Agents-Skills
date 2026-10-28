@@ -1,0 +1,1 @@
+CANNOT RUN: `_get_repo_commenters` fetches GitHub issue comments over HTTP via `request_with_retry`/`urllib.request.urlopen`; any real workload requires network access to `https://api.github.com`, and no input can avoid that (a cache hit would skip the function's work entirely).

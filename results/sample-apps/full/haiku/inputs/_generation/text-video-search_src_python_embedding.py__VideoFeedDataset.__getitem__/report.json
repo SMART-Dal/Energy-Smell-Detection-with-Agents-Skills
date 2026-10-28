@@ -1,0 +1,25 @@
+{
+ "unit": "text-video-search/src/python/embedding.py::VideoFeedDataset.__getitem__",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 11.0,
+   "finish": "stop",
+   "provider": "Decart",
+   "prompt_tokens": 3213,
+   "completion_tokens": 1030,
+   "reasoning_tokens": 1038,
+   "cost": 0.00047457,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the class's `__init__` loads the CLIP model via `clip.load(model_name)`, which downloads model weights from a remote server, and `_from_image_to_vector` (called by `__getitem__`) needs that CLIP model to encode frames; no input can avoid this network requirement."
+  }
+ ],
+ "seconds": 14.3,
+ "cost": 0.00047,
+ "kept": [],
+ "reason": "it cannot run here: the class's `__init__` loads the CLIP model via `clip.load(model_name)`, which downloads model weights from a remote server, and `_from_image_to_vector` (called by `__getitem__`) needs that CLIP model to encode frames; no input can avoid this network requirement."
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `search` begins its work with `session.post(args.endpoint, ...)`, an HTTP request to a remote Vespa endpoint, which needs network access that is unavailable here.

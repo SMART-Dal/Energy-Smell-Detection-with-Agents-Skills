@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 13.6,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 3060,
+   "completion_tokens": 5786,
+   "reasoning_tokens": 4570,
+   "cost": 0.0041587,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "many-loci-few-samples",
+     "ok": true,
+     "joules": 1.8552339333333334,
+     "seconds": 0.033890229649841785
+    },
+    {
+     "label": "few-loci-many-samples",
+     "ok": false,
+     "joules": 1.3044072432432425,
+     "seconds": 0.027228033170104027,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dense-coverage",
+     "ok": false,
+     "joules": 0.4998251222222229,
+     "seconds": 0.011154845356941223,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-results",
+     "ok": true,
+     "joules": 1.7782988275861937,
+     "seconds": 0.034986838698387146
+    },
+    {
+     "label": "fully-covered",
+     "ok": false,
+     "joules": 0.3510551617647078,
+     "seconds": 0.00737760029733181,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicated-results",
+     "ok": false,
+     "joules": 0.4639606190476202,
+     "seconds": 0.009578018449246883,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-medium",
+     "ok": true,
+     "joules": 1.3665594736842195,
+     "seconds": 0.026338474825024605
+    },
+    {
+     "label": "many-loci-tiny-samples",
+     "ok": true,
+     "joules": 2.0138616842105446,
+     "seconds": 0.05390700977295637
+    }
+   ],
+   "checks": [
+    {
+     "label": "all-empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-inferred",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-covered",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 132.0,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 71.4
+  }
+ ],
+ "seconds": 150.8,
+ "cost": 0.00416,
+ "kept": [
+  {
+   "label": "many-loci-tiny-samples",
+   "mj_per_call": 2013.8617,
+   "ms_per_call": 53.907
+  },
+  {
+   "label": "many-loci-few-samples",
+   "mj_per_call": 1855.2339,
+   "ms_per_call": 33.89
+  },
+  {
+   "label": "no-results",
+   "mj_per_call": 1778.2988,
+   "ms_per_call": 34.987
+  },
+  {
+   "label": "mixed-medium",
+   "mj_per_call": 1366.5595,
+   "ms_per_call": 26.338
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

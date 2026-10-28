@@ -1,0 +1,143 @@
+{
+ "unit": "scripts/validate-workstreams.py::validate_workstreams_semantics",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 22.5,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 3153,
+   "completion_tokens": 10350,
+   "reasoning_tokens": 7943,
+   "cost": 0.00935613,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-tree",
+     "ok": true,
+     "joules": 0.36944930722891567,
+     "seconds": 0.006034909747540951
+    },
+    {
+     "label": "duplicates-missing-parents",
+     "ok": false,
+     "joules": 0.3213875211267613,
+     "seconds": 0.007077331654727459,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "deep-parent-chain",
+     "ok": true,
+     "joules": 15.275355750000017,
+     "seconds": 0.27248299308121204
+    },
+    {
+     "label": "parent-cycle",
+     "ok": true,
+     "joules": 3.5074937857142947,
+     "seconds": 0.07612558547407389
+    },
+    {
+     "label": "role-membership-errors",
+     "ok": false,
+     "joules": 0.27843578888888865,
+     "seconds": 0.005574287846684456,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "collective-tcsponsorship",
+     "ok": false,
+     "joules": 0.3447196716417863,
+     "seconds": 0.015105405822396278,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large-mixed",
+     "ok": true,
+     "joules": 1.5545539354838946,
+     "seconds": 0.033246747218072414
+    },
+    {
+     "label": "tbd-and-none",
+     "ok": false,
+     "joules": 0.21065326293103617,
+     "seconds": 0.0043147262185812,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-no-people",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "missing-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 306.1,
+   "coverage": 0.875,
+   "missed": [
+    82,
+    138,
+    143,
+    148,
+    154,
+    159,
+    160
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 283.3
+  }
+ ],
+ "seconds": 329.6,
+ "cost": 0.00936,
+ "kept": [
+  {
+   "label": "deep-parent-chain",
+   "mj_per_call": 15275.3558,
+   "ms_per_call": 272.483
+  },
+  {
+   "label": "parent-cycle",
+   "mj_per_call": 3507.4938,
+   "ms_per_call": 76.126
+  },
+  {
+   "label": "large-mixed",
+   "mj_per_call": 1554.5539,
+   "ms_per_call": 33.247
+  },
+  {
+   "label": "typical-tree",
+   "mj_per_call": 369.4493,
+   "ms_per_call": 6.035
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

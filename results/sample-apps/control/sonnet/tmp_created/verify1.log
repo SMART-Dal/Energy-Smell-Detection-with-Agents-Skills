@@ -1,0 +1,618 @@
+
+=== terms-docs-count  incremental-search/search-suggestions/count_terms.py::process_docs
+equivalence
+  empty-list     ok  (check only)
+  empty-fields   ok  (check only)
+  single-doc     ok  (check only)
+  many-docs      ok
+  bigrams        ok
+  trigrams       ok
+  high-duplicates ok
+
+sizing
+  many-docs      before    81.1 ms/call  after    33.5 ms/call  ->  24 repeats  CLAMPED to keep the slow side under 2s
+  bigrams        before    95.3 ms/call  after    54.0 ms/call  ->  19 repeats
+  trigrams       before   148.7 ms/call  after    68.1 ms/call  ->  13 repeats  CLAMPED to keep the slow side under 2s
+  high-duplicates before    57.1 ms/call  after    55.3 ms/call  ->  19 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-docs       +58.70% +-3.40% energy saved   significant     +59.85% +-6.57% time saved
+  bigrams         +43.19% +-0.92% energy saved   significant     +43.41% +-0.64% time saved
+  trigrams        +52.45% +-0.31% energy saved   significant     +52.77% +-0.30% time saved
+  high-duplicates   +2.20% +-1.26% energy saved   significant     +2.28% +-1.07% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: partial
+  saves energy on 3 of 4 inputs ('many-docs', 'bigrams', 'trigrams'; best 58.7% +-3.4% on 'many-docs'), and no saving that can be told from noise on the rest: 'high-duplicates' +2.2% +-1.3% (within the 2.3% noise floor). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== predictions-dict  news/src/python/evaluate.py::predictions
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 103 `train_metrics = calc_metrics(train_impressions_file)` (SystemExit); line 104 `valid_metrics = calc_metrics(valid_impressions_file)` (SystemExit); line 106 `print("Train: " + str(train_metrics))` (NameError); line 107 `print("Valid: " + str(valid_metrics))` (NameError)
+  empty-ids      ok  (check only)
+  single-hit     ok  (check only)
+  missing-id     ok  (check only)
+  wide-children  ok
+  tail-matches   ok
+  float-relevance ok
+  many-children  ok
+
+sizing
+  wide-children  before    91.5 ms/call  after   627.5 us/call  ->  21 repeats  CLAMPED to keep the slow side under 2s
+  tail-matches   before    71.8 ms/call  after   400.3 us/call  ->  27 repeats  CLAMPED to keep the slow side under 2s
+  float-relevance before    41.7 ms/call  after   381.9 us/call  ->  47 repeats  CLAMPED to keep the slow side under 2s
+  many-children  before    52.1 ms/call  after   726.1 us/call  ->  38 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  wide-children   +99.31% +-0.00% energy saved   significant     +99.29% +-0.01% time saved
+  tail-matches    +99.46% +-0.02% energy saved   significant     +99.44% +-0.01% time saved
+  float-relevance  +99.07% +-0.00% energy saved   significant     +99.08% +-0.01% time saved
+  many-children   +98.61% +-0.06% energy saved   significant     +98.61% +-0.02% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  99.5% +-0.0% energy saved on 'tail-matches', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('wide-children', 'tail-matches', 'float-relevance', 'many-children'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 103 `train_metrics = calc_metrics(train_impressions_file)` (SystemExit); line 104 `valid_metrics = calc_metrics(valid_impressions_file)` (SystemExit); line 106 `print("Train: " + str(train_metrics))` (NameError); line 107 `print("Valid: " + str(valid_metrics))` (NameError).
+
+=== ctrl-translate  colbert-long/scripts/convert.py::remove_control_characters
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 17 `documents = load_dataset('Shitao/MLDR', "corpus-en", spli...` (RuntimeError); line 19 `with open(feed_file, "w") as f:` (NameError)
+  empty          ok  (check only)
+  single-ctrl    ok  (check only)
+  none           ok  (check only)
+  ascii-prose    ok
+  unicode-mix    ok
+  long-line      ok
+  log-multiline  ok
+
+sizing
+  ascii-prose    before    99.0 ms/call  after   673.6 us/call  ->  20 repeats  CLAMPED to keep the slow side under 2s
+  unicode-mix    before   107.5 ms/call  after    32.1 ms/call  ->  18 repeats  CLAMPED to keep the slow side under 2s
+  long-line      before   114.6 ms/call  after   722.9 us/call  ->  17 repeats  CLAMPED to keep the slow side under 2s
+  log-multiline  before   103.8 ms/call  after   887.1 us/call  ->  19 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  ascii-prose     +99.32% +-0.03% energy saved   significant     +99.31% +-0.03% time saved
+  unicode-mix     +71.00% +-0.86% energy saved   significant     +70.60% +-0.94% time saved
+  long-line       +99.34% +-0.01% energy saved   significant     +99.33% +-0.00% time saved
+  log-multiline   +99.12% +-0.21% energy saved   significant     +99.12% +-0.10% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  99.3% +-0.0% energy saved on 'long-line', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('ascii-prose', 'unicode-mix', 'long-line', 'log-multiline'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 17 `documents = load_dataset('Shitao/MLDR', "corpus-en", spli...` (RuntimeError); line 19 `with open(feed_file, "w") as f:` (NameError).
+
+=== terms-window-flags  incremental-search/search-suggestions/count_terms.py::count_terms
+equivalence
+  empty-doc      ok  (check only)
+  single-word    ok  (check only)
+  string-doc     ok  (check only)
+  trigrams-long  ok
+  fourgrams      ok
+  fivegrams      ok
+  all-unique-trigrams ok
+
+sizing
+  trigrams-long  before    40.1 ms/call  after    18.8 ms/call  ->  49 repeats  CLAMPED to keep the slow side under 2s
+  fourgrams      before    38.7 ms/call  after    15.5 ms/call  ->  51 repeats  CLAMPED to keep the slow side under 2s
+  fivegrams      before    31.9 ms/call  after    10.4 ms/call  ->  62 repeats  CLAMPED to keep the slow side under 2s
+  all-unique-trigrams before    25.0 ms/call  after    12.0 ms/call  ->  79 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  trigrams-long   +53.22% +-1.73% energy saved   significant     +53.43% +-2.42% time saved
+  fourgrams       +59.82% +-0.05% energy saved   significant     +59.79% +-0.04% time saved
+  fivegrams       +67.23% +-0.23% energy saved   significant     +67.18% +-0.28% time saved
+  all-unique-trigrams  +51.95% +-0.60% energy saved   significant     +51.91% +-0.66% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  67.2% +-0.2% energy saved on 'fivegrams', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('trigrams-long', 'fourgrams', 'fivegrams', 'all-unique-trigrams'), with behaviour preserved throughout.
+
+=== msmarco-tell  text-search/python/extract-msmarco.py::extract_documents
+equivalence
+  empty          ok  (check only)
+  single         ok  (check only)
+  bad-offset     ok  (check only)
+  unicode-1500   ok
+  long-800       ok
+  mixed-3000     ok
+  long-1200      ok
+
+sizing
+  unicode-1500   before   162.2 ms/call  after   153.6 ms/call  ->  7 repeats
+  long-800       before   361.2 ms/call  after   358.3 ms/call  ->  3 repeats
+  mixed-3000     before   545.0 ms/call  after   526.4 ms/call  ->  2 repeats
+  long-1200      before   551.2 ms/call  after   544.0 ms/call  ->  2 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  unicode-1500    +11.03% +-17.65% energy saved   not significant +13.58% +-32.45% time saved
+  long-800         +0.58% +-2.69% energy saved   not significant +0.53% +-1.49% time saved
+  mixed-3000       +3.07% +-2.16% energy saved   significant     +3.05% +-1.75% time saved
+  long-1200        +0.25% +-1.49% energy saved   not significant +0.44% +-1.13% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('mixed-3000'; best 3.1% +-2.2% on 'mixed-3000'), and no saving that can be told from noise on the rest: 'unicode-1500' +11.0% +-17.7% (its pairs disagree too much to tell); 'long-800' +0.6% +-2.7% (its pairs disagree too much to tell); 'long-1200' +0.2% +-1.5% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== valid-filter-first  news/src/python/mind_data.py::MindData.sample_valid_data
+equivalence
+  empty          ok  (check only)
+  single-mixed   ok  (check only)
+  single-all-one ok  (check only)
+  typical-valid  ok
+  many-short-partial ok
+  train-impressions ok
+  many-short-low-prob ok
+
+sizing
+  typical-valid  before    75.5 ms/call  after    72.2 ms/call  ->  14 repeats
+  many-short-partial before    77.4 ms/call  after    80.3 ms/call  ->  13 repeats
+  train-impressions before    69.8 ms/call  after    70.9 ms/call  ->  15 repeats
+  many-short-low-prob before   107.1 ms/call  after   112.1 ms/call  ->  10 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-valid    +3.96% +-22.16% energy saved   not significant +6.54% +-50.47% time saved
+  many-short-partial   -0.96% +-0.71% energy saved   significant     -0.57% +-0.79% time saved
+  train-impressions   +0.52% +-1.11% energy saved   not significant +0.35% +-0.93% time saved
+  many-short-low-prob   -0.49% +-1.15% energy saved   not significant -0.33% +-0.84% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +4.0% +-22.2% on 'typical-valid', against a clean 2.3% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== bert-write-join  news/src/python/create_bert_embeddings.py::write_embedding
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 15 `data_dir = sys.argv[1]` (IndexError); line 18 `train_news_file = os.path.join(data_dir, "train", "news.t...` (NameError); line 19 `train_embedding_file = os.path.join(data_dir, "train", "n...` (NameError); line 20 `dev_news_file = os.path.join(data_dir, "dev", "news.tsv")` (NameError); line 21 `dev_embedding_file = os.path.join(data_dir, "dev", "news_...` (NameError)
+  empty          ok  (check only)
+  single         ok  (check only)
+  none-value     ok  (check only)
+  normal-16384   ok
+  normal-32768   ok
+  normal-50000   ok
+  mixed-magnitudes-20000 ok
+
+sizing
+  normal-16384   before     9.0 ms/call  after     5.6 ms/call  ->  179 repeats
+  normal-32768   before    17.7 ms/call  after    11.5 ms/call  ->  87 repeats
+  normal-50000   before    29.1 ms/call  after    18.3 ms/call  ->  55 repeats
+  mixed-magnitudes-20000 before    11.4 ms/call  after     7.4 ms/call  ->  135 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  normal-16384    +41.66% +-0.80% energy saved   significant     +41.63% +-0.52% time saved
+  normal-32768    +41.27% +-0.64% energy saved   significant     +41.22% +-0.57% time saved
+  normal-50000    +41.18% +-3.90% energy saved   significant     +40.81% +-2.25% time saved
+  mixed-magnitudes-20000  +39.83% +-0.92% energy saved   significant     +39.81% +-0.41% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  41.7% +-0.8% energy saved on 'normal-16384', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('normal-16384', 'normal-32768', 'normal-50000', 'mixed-magnitudes-20000'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 15 `data_dir = sys.argv[1]` (IndexError); line 18 `train_news_file = os.path.join(data_dir, "train", "news.t...` (NameError); line 19 `train_embedding_file = os.path.join(data_dir, "train", "n...` (NameError); line 20 `dev_news_file = os.path.join(data_dir, "dev", "news.tsv")` (NameError); line 21 `dev_embedding_file = os.path.join(data_dir, "dev", "news_...` (NameError).
+
+=== convert-file-dumps  news/src/python/convert_to_vespa_format.py::convert_file
+equivalence
+  empty-file     ok  (check only)
+  single-row     ok  (check only)
+  missing-file   ok  (check only)
+  large-8k       ok
+  long-text      ok
+  short-text-8k  ok
+  entity-heavy   ok
+
+sizing
+  large-8k       before   488.8 ms/call  after   326.9 ms/call  ->  4 repeats
+  long-text      before   326.8 ms/call  after   268.5 ms/call  ->  4 repeats
+  short-text-8k  before   438.5 ms/call  after   275.4 ms/call  ->  4 repeats
+  entity-heavy   before   466.2 ms/call  after   363.9 ms/call  ->  3 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-8k        +33.68% +-2.07% energy saved   significant     +33.79% +-2.34% time saved
+  long-text       +18.83% +-2.77% energy saved   significant     +18.67% +-2.62% time saved
+  short-text-8k   +37.90% +-1.26% energy saved   significant     +37.86% +-1.15% time saved
+  entity-heavy    +21.29% +-1.62% energy saved   significant     +21.22% +-1.31% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  37.9% +-1.3% energy saved on 'short-text-8k', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('large-8k', 'long-text', 'short-text-8k', 'entity-heavy'), with behaviour preserved throughout.
+
+=== write-emb-tolist  news/src/python/train_cold_start.py::write_embeddings
+equivalence
+  empty-map      ok  (check only)
+  single-entry   ok  (check only)
+  none-map       ok  (check only)
+  large          ok
+  wide           ok
+  narrow         ok
+  many           ok
+
+sizing
+  large          before    45.2 ms/call  after    44.7 ms/call  ->  23 repeats
+  wide           before    42.6 ms/call  after    41.7 ms/call  ->  24 repeats
+  narrow         before    52.2 ms/call  after    47.8 ms/call  ->  21 repeats
+  many           before    60.4 ms/call  after    52.5 ms/call  ->  20 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large            +3.92% +-7.50% energy saved   not significant +3.87% +-5.10% time saved
+  wide             -1.26% +-7.59% energy saved   not significant -0.04% +-3.73% time saved
+  narrow           +7.12% +-2.63% energy saved   significant     +7.01% +-0.58% time saved
+  many             +4.88% +-1.25% energy saved   significant     +4.88% +-1.17% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: partial
+  saves energy on 2 of 4 inputs ('narrow', 'many'; best 7.1% +-2.6% on 'narrow'), and no saving that can be told from noise on the rest: 'large' +3.9% +-7.5% (its pairs disagree too much to tell); 'wide' -1.3% +-7.6% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== user-emb-tolist  news/src/python/convert_embeddings_to_vespa_format.py::convert_user_embeddings
+equivalence
+  empty-file     ok  (check only)
+  single-1d      ok  (check only)
+  odd-ids        ok  (check only)
+  wide-128d      ok
+  narrow-32d     ok
+  deep-300d      ok
+  bert-768d      ok
+
+sizing
+  wide-128d      before   230.1 ms/call  after   173.0 ms/call  ->  6 repeats
+  narrow-32d     before   165.2 ms/call  after   123.6 ms/call  ->  9 repeats
+  deep-300d      before   258.0 ms/call  after   197.5 ms/call  ->  6 repeats
+  bert-768d      before   191.2 ms/call  after   146.8 ms/call  ->  7 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  wide-128d       +26.56% +-10.21% energy saved   significant     +29.19% +-22.03% time saved
+  narrow-32d      +24.95% +-3.84% energy saved   significant     +24.83% +-2.89% time saved
+  deep-300d       +24.33% +-6.83% energy saved   significant     +23.90% +-5.05% time saved
+  bert-768d       +21.72% +-3.56% energy saved   significant     +22.10% +-2.17% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  26.6% +-10.2% energy saved on 'wide-128d', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('wide-128d', 'narrow-32d', 'deep-300d', 'bert-768d'), with behaviour preserved throughout.
+
+=== split-text-join  feed-split.py::split_text
+equivalence
+  RELAXED: loaded with these uninstalled packages stood in for: tiktoken
+  empty-body     ok  (check only)
+  single-heading ok  (check only)
+  none-soup      ok  (check only)
+  lists-and-links ok
+  top-level-tables ok
+  tables-inside-divs ok
+  mixed-large    ok
+
+sizing
+  lists-and-links before   196.8 ms/call  after   196.6 ms/call  ->  6 repeats
+  top-level-tables before   184.3 ms/call  after   184.7 ms/call  ->  6 repeats
+  tables-inside-divs before   181.0 ms/call  after   180.9 ms/call  ->  6 repeats
+  mixed-large    before   210.9 ms/call  after   210.5 ms/call  ->  5 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  lists-and-links   +0.41% +-0.62% energy saved   not significant +0.66% +-1.78% time saved
+  top-level-tables   +0.28% +-1.17% energy saved   not significant +0.34% +-1.12% time saved
+  tables-inside-divs   -1.81% +-6.46% energy saved   not significant -2.55% +-10.06% time saved
+  mixed-large      +0.51% +-2.67% energy saved   not significant +0.91% +-3.73% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -1.8% +-6.5% on 'tables-inside-divs', against a clean 2.3% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== sample-images-select  text-video-search/src/python/embedding.py::sample_images
+equivalence
+  RELAXED: loaded with these uninstalled packages stood in for: clip
+  empty-images   ok  (check only)
+  single-frame   ok  (check only)
+  none-images    ok  (check only)
+  sample-8-of-80-uint8 ok
+  sample-30-of-320-mid ok
+  sample-20-of-200-gray ok
+  sample-8-of-80-float32 ok
+
+sizing
+  sample-8-of-80-uint8 before   190.4 us/call  after    70.9 us/call  ->  10,506 repeats  CLAMPED to keep the slow side under 2s
+  sample-30-of-320-mid before   302.9 us/call  after    84.5 us/call  ->  6,602 repeats  CLAMPED to keep the slow side under 2s
+  sample-20-of-200-gray before   227.8 us/call  after    74.4 us/call  ->  8,777 repeats  CLAMPED to keep the slow side under 2s
+  sample-8-of-80-float32 before   466.6 us/call  after    96.2 us/call  ->  4,286 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  sample-8-of-80-uint8  +65.67% +-0.50% energy saved   significant     +65.03% +-0.87% time saved
+  sample-30-of-320-mid  +73.72% +-2.88% energy saved   significant     +73.40% +-1.78% time saved
+  sample-20-of-200-gray  +69.24% +-0.80% energy saved   significant     +68.55% +-0.41% time saved
+  sample-8-of-80-float32  +80.37% +-0.59% energy saved   significant     +79.98% +-0.44% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  80.4% +-0.6% energy saved on 'sample-8-of-80-float32', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('sample-8-of-80-uint8', 'sample-30-of-320-mid', 'sample-20-of-200-gray', 'sample-8-of-80-float32'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: loaded with these uninstalled packages stood in for: clip.
+
+=== simmap-filter-once  visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps
+
+VERDICT: no_inputs
+  no inputs could be generated for visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps: the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== simmap-seqlen-hoist  visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor
+
+VERDICT: no_inputs
+  no inputs could be generated for visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor: the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== terms-merge-counts  incremental-search/search-suggestions/count_terms.py::process_doc
+equivalence
+  both-empty     ok  (check only)
+  empty-content  ok  (check only)
+  punct-only-title ok  (check only)
+  tl3-large      ok
+  tl4-huge       ok
+  common-words   ok
+  repetitive     ok
+
+sizing
+  tl3-large      before    19.7 ms/call  after    19.0 ms/call  ->  53 repeats
+  tl4-huge       before    56.1 ms/call  after    53.6 ms/call  ->  19 repeats
+  common-words   before    11.4 ms/call  after    11.3 ms/call  ->  89 repeats
+  repetitive     before    25.7 ms/call  after    25.7 ms/call  ->  39 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  tl3-large        +4.33% +-0.98% energy saved   significant     +4.70% +-2.31% time saved
+  tl4-huge         +5.45% +-5.70% energy saved   not significant +6.08% +-9.19% time saved
+  common-words     +0.91% +-1.85% energy saved   not significant +1.03% +-1.48% time saved
+  repetitive       +1.72% +-1.82% energy saved   not significant +1.64% +-1.57% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('tl3-large'; best 4.3% +-1.0% on 'tl3-large'), and no saving that can be told from noise on the rest: 'tl4-huge' +5.4% +-5.7% (its pairs disagree too much to tell); 'common-words' +0.9% +-1.8% (its pairs disagree too much to tell); 'repetitive' +1.7% +-1.8% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== suggest-filter-any  use-case-shopping/create_suggestions.py::filter
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 10 `nlp = spacy.load("en_core_web_sm")` (OSError); line 79 `with open(sys.argv[1]) as fp:` (IndexError); line 97 `with open(sys.argv[1]) as fp:` (IndexError)
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           ok  (check only)
+  clean-64-full-scan ok
+  clean-40-full-scan ok
+  hit-late-filter ok
+  numeric-191    ok
+
+sizing
+  clean-64-full-scan before     2.6 us/call  after     3.7 us/call  ->  379,817 repeats
+  clean-40-full-scan before     2.5 us/call  after     3.6 us/call  ->  404,423 repeats
+  hit-late-filter before     2.6 us/call  after     3.6 us/call  ->  383,754 repeats
+  numeric-191    before     2.0 us/call  after     2.7 us/call  ->  494,584 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  clean-64-full-scan  -32.19% +-6.72% energy saved   significant     -30.81% +-11.45% time saved
+  clean-40-full-scan  -29.23% +-1.14% energy saved   significant     -30.80% +-0.78% time saved
+  hit-late-filter  -37.08% +-10.40% energy saved   significant     -35.61% +-6.18% time saved
+  numeric-191     -32.51% +-1.94% energy saved   significant     -32.44% +-0.91% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 37.1% lost on 'hit-late-filter', above the 2.3% noise floor, and no case improved. Worse on 4 of 4 cases ('clean-64-full-scan', 'clean-40-full-scan', 'hit-late-filter', 'numeric-191').
+
+=== liquid-early-return  test/test.py::process_liquid
+equivalence
+  empty          ok  (check only)
+  single-tag     ok  (check only)
+  regex-specials ok  (check only)
+  mixed-dense    ok
+  duplicate-tags ok
+  filters        ok
+  large-mixed    ok
+
+sizing
+  mixed-dense    before    50.9 ms/call  after    50.8 ms/call  ->  20 repeats
+  duplicate-tags before   121.2 ms/call  after   121.0 ms/call  ->  9 repeats
+  filters        before    36.9 ms/call  after    36.7 ms/call  ->  28 repeats
+  large-mixed    before    65.2 ms/call  after    64.8 ms/call  ->  16 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  mixed-dense      +3.87% +-8.99% energy saved   not significant +5.93% +-16.93% time saved
+  duplicate-tags   +3.10% +-9.77% energy saved   not significant +3.76% +-13.73% time saved
+  filters          -0.17% +-2.20% energy saved   not significant -0.05% +-0.91% time saved
+  large-mixed      -0.26% +-0.95% energy saved   not significant -0.19% +-0.72% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +3.9% +-9.0% on 'mixed-dense', against a clean 2.3% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== parse-page-find-all  test/test.py::parse_page
+equivalence
+  empty          ok  (check only)
+  no-match       ok  (check only)
+  file-no-path   ok  (check only)
+  many-exec      ok
+  files          ok
+  run-macro      ok
+  large-few-match ok
+
+sizing
+  many-exec      before    50.9 ms/call  after    52.4 ms/call  ->  20 repeats
+  files          before    39.7 ms/call  after    40.7 ms/call  ->  26 repeats
+  run-macro      before    35.9 ms/call  after    36.3 ms/call  ->  28 repeats
+  large-few-match before   508.7 ms/call  after   507.3 ms/call  ->  2 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-exec        -1.47% +-10.20% energy saved   not significant -0.83% +-9.22% time saved
+  files            -9.02% +-19.49% energy saved   not significant -11.35% +-31.64% time saved
+  run-macro        -0.62% +-2.20% energy saved   not significant -0.65% +-1.76% time saved
+  large-few-match   -2.63% +-9.12% energy saved   not significant -5.79% +-20.21% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -9.0% +-19.5% on 'files', against a clean 2.3% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== recall-vectorised  billion-scale-vector-search/app/src/main/python/recall.py::compute_recall_with_distance_ties
+equivalence
+  empty          ok  (check only)
+  single-eq-count ok  (check only)
+  count-gt-size  ok  (check only)
+  count-100-tie-5k ok
+  tie-to-end-20k ok
+  tie-to-end-50k ok
+  partial-tie-100k ok
+
+sizing
+  count-100-tie-5k before     2.2 ms/call  after   776.0 us/call  ->  890 repeats  CLAMPED to keep the slow side under 2s
+  tie-to-end-20k before     8.9 ms/call  after     2.9 ms/call  ->  223 repeats  CLAMPED to keep the slow side under 2s
+  tie-to-end-50k before    21.0 ms/call  after     5.8 ms/call  ->  95 repeats  CLAMPED to keep the slow side under 2s
+  partial-tie-100k before    21.1 ms/call  after     6.1 ms/call  ->  94 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  count-100-tie-5k  +65.08% +-2.80% energy saved   significant     +64.95% +-3.00% time saved
+  tie-to-end-20k  +66.49% +-0.34% energy saved   significant     +66.25% +-0.21% time saved
+  tie-to-end-50k  +70.93% +-1.14% energy saved   significant     +70.90% +-0.50% time saved
+  partial-tie-100k  +70.31% +-1.42% energy saved   significant     +70.01% +-0.94% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  70.9% +-1.1% energy saved on 'tie-to-end-50k', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('count-100-tie-5k', 'tie-to-end-20k', 'tie-to-end-50k', 'partial-tie-100k'), with behaviour preserved throughout.
+
+=== vespa-packbits-bool  visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 10 `from .colpali import SimMapGenerator` (ImportError)
+  empty-dict     ok  (check only)
+  empty-vector   ok  (check only)
+  none-vector    ok  (check only)
+  all-positive-1024 ok
+  all-negative-1024 ok
+  zeros-mixed-2048 ok
+  wide-8192      ok
+
+sizing
+  all-positive-1024 before     5.1 ms/call  after     4.2 ms/call  ->  240 repeats
+  all-negative-1024 before     5.1 ms/call  after     4.2 ms/call  ->  239 repeats
+  zeros-mixed-2048 before     9.7 ms/call  after     7.8 ms/call  ->  129 repeats
+  wide-8192      before    36.0 ms/call  after    29.5 ms/call  ->  34 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-positive-1024  +18.16% +-0.94% energy saved   significant     +18.42% +-1.66% time saved
+  all-negative-1024  +18.18% +-0.44% energy saved   significant     +18.36% +-0.50% time saved
+  zeros-mixed-2048  +19.51% +-1.49% energy saved   significant     +19.65% +-0.80% time saved
+  wide-8192       +18.16% +-0.09% energy saved   significant     +18.34% +-0.38% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  19.5% +-1.5% energy saved on 'zeros-mixed-2048', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('all-positive-1024', 'all-negative-1024', 'zeros-mixed-2048', 'wide-8192'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 10 `from .colpali import SimMapGenerator` (ImportError).
+
+=== feed-packbits-bool  visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 65 `from colpali_engine.models import ColPali, ColPaliProcessor` (ImportError); line 129 `VESPA_CLOUD_SECRET_TOKEN = os.getenv("VESPA_CLOUD_SECRET_...` (EOFError); line 138 `GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or input(` (EOFError); line 146 `gemini_client = genai.Client(api_key=GEMINI_API_KEY)` (NameError); line 150 `device = get_torch_device("auto")` (TypeError); line 151 `print(f"Using device: {device}")` (NameError); line 154 `model = ColPali.from_pretrained(` (NameError); line 160 `processor = ColPaliProcessor.from_pretrained(MODEL_NAME)` (NameError); line 360 `print(f"Max text length: {np.max(text_lengths)}")` (ValueError); line 361 `print(f"Min text length: {np.min(text_lengths)}")` (ValueError); line 461 `pdf_pages[46]["image"]` (IndexError); line 463 `pdf_pages[46]["queries"]` (IndexError); line 574 `embeddings = generate_embeddings(images, model, processor)` (NameError); line 576 `embeddings.shape` (NameError); line 596 `for pdf, embedding in zip(pdf_pages, embeddings):` (NameError); line 972 `VESPA_TEAM_API_KEY = os.getenv("VESPA_TEAM_API_KEY") or i...` (EOFError); line 977 `vespa_cloud = VespaCloud(` (NameError); line 985 `vespa_cloud.deploy()` (NameError); line 988 `endpoint_url = vespa_cloud.get_token_endpoint()` (NameError); line 989 `print(f"Application deployed. Token endpoint URL: {endpoi...` (NameError); line 1000 `app = Vespa(url=endpoint_url, vespa_cloud_secret_token=VE...` (NameError); line 1001 `app.get_application_status()` (NameError); line 1013 `app.feed_async_iterable(vespa_feed, schema=VESPA_SCHEMA_N...` (NameError)
+  empty-dict     ok  (check only)
+  single-value   ok  (check only)
+  all-zeros      ok  (check only)
+  colpali-large-2048x128 ok
+  dim-64-3000-patches ok
+  dim-1024-900-patches ok
+  many-patches-4096x128 ok
+
+sizing
+  colpali-large-2048x128 before    46.0 ms/call  after    32.5 ms/call  ->  31 repeats
+  dim-64-3000-patches before    53.9 ms/call  after    37.1 ms/call  ->  27 repeats
+  dim-1024-900-patches before    78.8 ms/call  after    62.3 ms/call  ->  17 repeats
+  many-patches-4096x128 before    93.7 ms/call  after    66.9 ms/call  ->  15 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  colpali-large-2048x128  +29.63% +-0.60% energy saved   significant     +29.82% +-0.89% time saved
+  dim-64-3000-patches  +31.53% +-0.60% energy saved   significant     +31.64% +-0.45% time saved
+  dim-1024-900-patches  +21.13% +-0.98% energy saved   significant     +21.30% +-1.32% time saved
+  many-patches-4096x128  +30.35% +-6.05% energy saved   significant     +30.45% +-5.86% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: confirmed
+  31.5% +-0.6% energy saved on 'dim-64-3000-patches', clearing the 2.3% noise floor. Saved energy on all 4 inputs ('colpali-large-2048x128', 'dim-64-3000-patches', 'dim-1024-900-patches', 'many-patches-4096x128'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 65 `from colpali_engine.models import ColPali, ColPaliProcessor` (ImportError); line 129 `VESPA_CLOUD_SECRET_TOKEN = os.getenv("VESPA_CLOUD_SECRET_...` (EOFError); line 138 `GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or input(` (EOFError); line 146 `gemini_client = genai.Client(api_key=GEMINI_API_KEY)` (NameError); line 150 `device = get_torch_device("auto")` (TypeError); line 151 `print(f"Using device: {device}")` (NameError); line 154 `model = ColPali.from_pretrained(` (NameError); line 160 `processor = ColPaliProcessor.from_pretrained(MODEL_NAME)` (NameError); line 360 `print(f"Max text length: {np.max(text_lengths)}")` (ValueError); line 361 `print(f"Min text length: {np.min(text_lengths)}")` (ValueError); line 461 `pdf_pages[46]["image"]` (IndexError); line 463 `pdf_pages[46]["queries"]` (IndexError); line 574 `embeddings = generate_embeddings(images, model, processor)` (NameError); line 576 `embeddings.shape` (NameError); line 596 `for pdf, embedding in zip(pdf_pages, embeddings):` (NameError); line 972 `VESPA_TEAM_API_KEY = os.getenv("VESPA_TEAM_API_KEY") or i...` (EOFError); line 977 `vespa_cloud = VespaCloud(` (NameError); line 985 `vespa_cloud.deploy()` (NameError); line 988 `endpoint_url = vespa_cloud.get_token_endpoint()` (NameError); line 989 `print(f"Application deployed. Token endpoint URL: {endpoi...` (NameError); line 1000 `app = Vespa(url=endpoint_url, vespa_cloud_secret_token=VE...` (NameError); line 1001 `app.get_application_status()` (NameError); line 1013 `app.feed_async_iterable(vespa_feed, schema=VESPA_SCHEMA_N...` (NameError).
+
+=== simmap-dead-copy  visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps
+
+VERDICT: no_inputs
+  no inputs could be generated for visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps: the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== orders-agg-list  examples/workshop-ecommerce/preprocess.py::process_orders
+equivalence
+  no-eval-sets   ok  (check only)
+  limit-zero     ok  (check only)
+  absent-eval-set ok  (check only)
+  prior-limit-10 ok
+  prior-and-train ok
+  mixed-three-sets ok
+  orphan-orders  ok
+
+sizing
+  prior-limit-10 before   602.1 ms/call  after   590.5 ms/call  ->  2 repeats
+  prior-and-train before   827.5 ms/call  after   819.8 ms/call  ->  2 repeats
+  mixed-three-sets before   284.4 ms/call  after   283.2 ms/call  ->  4 repeats
+  orphan-orders  before   136.4 ms/call  after   135.4 ms/call  ->  8 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  prior-limit-10   +1.04% +-0.48% energy saved   significant     +1.41% +-2.08% time saved
+  prior-and-train   +0.27% +-1.35% energy saved   not significant +0.16% +-1.24% time saved
+  mixed-three-sets   +0.30% +-1.20% energy saved   not significant +0.53% +-1.52% time saved
+  orphan-orders    +0.40% +-0.58% energy saved   not significant +0.59% +-0.52% time saved
+
+noise floor  +-2.34% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +1.0% +-0.5% on 'prior-limit-10', against a clean 2.3% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== lang-text-once  feed-split.py::what_language
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== suggest-content-any  use-case-shopping/create_suggestions.py::filter_content
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== suggest-filter-dead  use-case-shopping/create_suggestions.py::filter
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== parse-file-typename  test/test.py::parse_file
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== add-impr-lookup  news/src/python/mind_data.py::MindData.add_impressions
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== terms-replace-slash  incremental-search/search-suggestions/count_terms.py::write_json_file
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== terms-total-count  incremental-search/search-suggestions/count_terms.py::process_docs
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== all 30 lines of submissions.jsonl
+  partial      terms-docs-count: saves energy on 3 of 4 inputs ('many-docs', 'bigrams', 'trigrams'; best 58.7% +-3.4% on 'many-docs'), and no saving that can be told from noise on the rest: 'hi...
+  confirmed    predictions-dict: 99.5% +-0.0% energy saved on 'tail-matches', clearing the 2.3% noise floor
+  confirmed    ctrl-translate: 99.3% +-0.0% energy saved on 'long-line', clearing the 2.3% noise floor
+  confirmed    terms-window-flags: 67.2% +-0.2% energy saved on 'fivegrams', clearing the 2.3% noise floor
+  partial      msmarco-tell: saves energy on 1 of 4 inputs ('mixed-3000'; best 3.1% +-2.2% on 'mixed-3000'), and no saving that can be told from noise on the rest: 'unicode-1500' +11.0% +-1...
+  negligible   valid-filter-first: no case moved more than the noise: the largest reading was +4.0% +-22.2% on 'typical-valid', against a clean 2.3% floor across 4 cases
+  confirmed    bert-write-join: 41.7% +-0.8% energy saved on 'normal-16384', clearing the 2.3% noise floor
+  confirmed    convert-file-dumps: 37.9% +-1.3% energy saved on 'short-text-8k', clearing the 2.3% noise floor
+  partial      write-emb-tolist: saves energy on 2 of 4 inputs ('narrow', 'many'; best 7.1% +-2.6% on 'narrow'), and no saving that can be told from noise on the rest: 'large' +3.9% +-7.5% (its...
+  confirmed    user-emb-tolist: 26.6% +-10.2% energy saved on 'wide-128d', clearing the 2.3% noise floor
+  negligible   split-text-join: no case moved more than the noise: the largest reading was -1.8% +-6.5% on 'tables-inside-divs', against a clean 2.3% floor across 4 cases
+  confirmed    sample-images-select: 80.4% +-0.6% energy saved on 'sample-8-of-80-float32', clearing the 2.3% noise floor
+  no_inputs    simmap-filter-once: no inputs could be generated for visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps: the unit's module does not load here: Att...
+  no_inputs    simmap-seqlen-hoist: no inputs could be generated for visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor: the unit's module does not loa...
+  partial      terms-merge-counts: saves energy on 1 of 4 inputs ('tl3-large'; best 4.3% +-1.0% on 'tl3-large'), and no saving that can be told from noise on the rest: 'tl4-huge' +5.4% +-5.7% (it...
+  regressed    suggest-filter-any: the repair costs more than the code it replaces: 37.1% lost on 'hit-late-filter', above the 2.3% noise floor, and no case improved
+  negligible   liquid-early-return: no case moved more than the noise: the largest reading was +3.9% +-9.0% on 'mixed-dense', against a clean 2.3% floor across 4 cases
+  negligible   parse-page-find-all: no case moved more than the noise: the largest reading was -9.0% +-19.5% on 'files', against a clean 2.3% floor across 4 cases
+  confirmed    recall-vectorised: 70.9% +-1.1% energy saved on 'tie-to-end-50k', clearing the 2.3% noise floor
+  confirmed    vespa-packbits-bool: 19.5% +-1.5% energy saved on 'zeros-mixed-2048', clearing the 2.3% noise floor
+  confirmed    feed-packbits-bool: 31.5% +-0.6% energy saved on 'dim-64-3000-patches', clearing the 2.3% noise floor
+  no_inputs    simmap-dead-copy: no inputs could be generated for visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps: the unit's module does not load here: Att...
+  negligible   orders-agg-list: no case moved more than the noise: the largest reading was +1.0% +-0.5% on 'prior-limit-10', against a clean 2.3% floor across 4 cases
+  over_limit   lang-text-once: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   suggest-content-any: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   suggest-filter-dead: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   parse-file-typename: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   add-impr-lookup: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   terms-replace-slash: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   terms-total-count: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+
+20 of this session's 20 places hold a repair with a verdict.

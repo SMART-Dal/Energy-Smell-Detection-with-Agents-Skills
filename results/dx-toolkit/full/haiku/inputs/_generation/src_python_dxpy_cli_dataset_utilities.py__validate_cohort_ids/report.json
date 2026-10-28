@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 4.0,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 5675,
+   "completion_tokens": 1874,
+   "reasoning_tokens": 1776,
+   "cost": 0.00229635,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `validate_cohort_ids` unconditionally calls `raw_api_call(resp, payload)`, which performs a live HTTP POST to the Vizserver via `dxpy.DXHTTPRequest(resource=resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\", ...)`. No input can avoid this network request, and there is no way to supply `resp_raw` without a real server (mocking `raw_api_call`/`DXHTTPRequest` is forbidden)."
+  }
+ ],
+ "seconds": 9.2,
+ "cost": 0.0023,
+ "kept": [],
+ "reason": "it cannot run here: `validate_cohort_ids` unconditionally calls `raw_api_call(resp, payload)`, which performs a live HTTP POST to the Vizserver via `dxpy.DXHTTPRequest(resource=resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\", ...)`. No input can avoid this network request, and there is no way to supply `resp_raw` without a real server (mocking `raw_api_call`/`DXHTTPRequest` is forbidden)."
+}

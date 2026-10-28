@@ -1,0 +1,1 @@
+CANNOT RUN: `validate_cohort_ids` performs its work by calling `raw_api_call`, which issues a live HTTP POST to a Vizserver (`dxpy.DXHTTPRequest`); the function cannot complete without network access to that remote service, and mocking the request is not allowed.

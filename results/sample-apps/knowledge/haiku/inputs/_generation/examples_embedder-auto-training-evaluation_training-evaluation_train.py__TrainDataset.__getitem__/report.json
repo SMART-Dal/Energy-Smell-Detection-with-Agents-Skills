@@ -1,0 +1,105 @@
+{
+ "unit": "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__getitem__",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 93.9,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2577,
+   "completion_tokens": 19935,
+   "reasoning_tokens": 18964,
+   "cost": 0.012068351,
+   "retried": []
+  },
+  {
+   "seconds": 3.1,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3919,
+   "completion_tokens": 568,
+   "reasoning_tokens": 512,
+   "cost": 0.000513417,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small-short",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "medium",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "large-docs",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "large-queries",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "long-text",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "many-queries",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "huge",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    },
+    {
+     "label": "mixed",
+     "ok": false,
+     "why": "building or running it failed: sentence_transformers.InputExample was called while the unit ran, so it needs the real library; measuring it against a stub would mean nothing"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-dataset",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-positives",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "index-out-of-range",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 17.8,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.0
+  },
+  {
+   "fatal": "CANNOT RUN: every call of `TrainDataset.__getitem__` returns a `sentence_transformers.InputExample`, so the function always needs the real `sentence_transformers` library, which is not available in this environment; no input can avoid it."
+  }
+ ],
+ "seconds": 116.1,
+ "cost": 0.01258,
+ "kept": [],
+ "reason": "it cannot run here: every call of `TrainDataset.__getitem__` returns a `sentence_transformers.InputExample`, so the function always needs the real `sentence_transformers` library, which is not available in this environment; no input can avoid it."
+}

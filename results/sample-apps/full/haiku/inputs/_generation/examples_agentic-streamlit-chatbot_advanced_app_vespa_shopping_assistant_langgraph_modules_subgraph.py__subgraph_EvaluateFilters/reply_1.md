@@ -1,0 +1,1 @@
+CANNOT RUN: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a request to the OpenAI API and needs network access plus credentials; no input can avoid that.

@@ -1,0 +1,248 @@
+Rules compared with step1.jsonl -- 21 unit(s) on your list -- at 08:41.
+Target scripts: 9 file(s) scanned, 17 unit(s) flagged, 20 finding(s).
+
+Part 1: the rules flag 7 unit(s) that are not on your list.
+Part 2: 8 unit(s) on your list where a rule names a root cause you did not suspect there.
+Part 3: 3 unit(s) on your list where a rule agrees with you.
+
+For every entry in parts 1 and 2, read the unit's code and decide for
+yourself: add the unit, or the suspicion, to step1.jsonl if you agree; leave it
+if you do not. Each fact names the root causes it could be, as
+reference/README.md lists them; two labels on one fact are one thing to look
+at, not two. Within each part the units are in file and line order, which
+says nothing about which matter. Every unit starts with `== `.
+
+##############################################################################
+PART 1: THE RULES FLAG 7 UNIT(S) THAT ARE NOT ON YOUR LIST
+##############################################################################
+
+==============================================================================
+== scripts/gc-elections/create-github-comments.py:88  gh_run  (lines 88-89)
+
+  ruff_RUF005
+         C6.S1   Unnecessary Object
+           list concatenation allocating a new list (ruff RUF005: Consider
+           `['gh', *args]` instead of concatenation)
+           at 89
+                89 |     subprocess.run(['gh'] + args, input=input_text, text=True, check=True)
+
+==============================================================================
+== scripts/gc-elections/generate-voters-roll.py:102  get_lfx_contributors  (lines 102-124)
+
+  io_call_in_loop
+         C8.S4   Redundant Data Fetching
+         C9.S1   Fragmented I/O Calls
+         C9.S3   Inefficient Retrieval Paths
+           `requests.get()` looks like it leaves the process, and it runs once
+           per iteration; batching would amortise the round trip
+           at 114
+               114 |         response = requests.get(LFX_URL, params=params, timeout=30)
+
+  repeated_subscript_in_loop
+         C8.S3   Missing Local Lookup Caching
+           `payload['meta']` is looked up 3 times in the same pass; its key
+           changes from pass to pass, so it cannot leave the loop, but reading
+           it once at the top of the pass saves the other lookups
+           at 118
+               118 |         next_offset = payload["meta"]["offset"] + payload["meta"]["limit"]
+
+==============================================================================
+== scripts/move-to-emeritus.py:118  request_with_retry  (lines 118-163)
+
+  try_except_in_loop
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 126
+               126 |         try:
+
+==============================================================================
+== scripts/move-to-emeritus.py:787  _parse_members  (lines 787-803)
+
+  append_only_loop
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           loop body is a single `.append()`; a comprehension does the same
+           work without a bound-method lookup and call per item
+           at 797
+               797 |     for m in member_re.finditer(text):
+
+  ruff_PERF401
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           append loop that could be a comprehension (ruff PERF401: Use a list
+           comprehension to create a transformed list)
+           at 798
+               798 |         members.append({
+
+==============================================================================
+== scripts/move-to-emeritus.py:950  _ensure_fork  (lines 950-991)
+
+  try_except_in_loop  x2
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 969, 983
+               969 |             try:
+               983 |         try:
+
+==============================================================================
+== scripts/move-to-emeritus.py:1080  _build_pr_body  (lines 1080-1108)
+
+  string_concat_in_loop
+         C10.S4  Inefficient String Concatenation
+           `body` is rebuilt by an f-string that interpolates itself inside a
+           loop; f-strings always allocate a new object, so this copies the
+           whole value every iteration even when the accumulator is a plain
+           local
+           at 1092
+              1092 |         body += f"- @{user} ({role_label}, Remove from team(s): {teams_str})\n"
+
+==============================================================================
+== scripts/move-to-emeritus.py:1111  _build_issue_body  (lines 1111-1135)
+
+  string_concat_in_loop
+         C10.S4  Inefficient String Concatenation
+           `body` is rebuilt by an f-string that interpolates itself inside a
+           loop; f-strings always allocate a new object, so this copies the
+           whole value every iteration even when the accumulator is a plain
+           local
+           at 1120
+              1120 |         body += f"- @{user} ({role_label}, Remove from team(s): {teams_str})\n"
+
+##############################################################################
+PART 2: 8 UNIT(S) ON YOUR LIST WHERE A RULE NAMES A ROOT CAUSE YOU DID NOT SUSPECT THERE
+##############################################################################
+
+==============================================================================
+== scripts/baremetal-runner-report.py:72  collect_jobs  (lines 72-138)
+   on your list, suspected: C1.S4, C6.S3, C9.S3
+
+  try_except_in_loop  x4
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 82, 91, 113, 121
+                82 |         try:
+                91 |             try:
+               113 |                 try:
+               121 |                     try:
+
+==============================================================================
+== scripts/baremetal-runner-report.py:141  render_table  (lines 141-178)
+   on your list, suspected: C6.S1
+
+  ruff_PLR1730
+         C10.S1  Skipping Optimized Built-ins
+           if/assign that reimplements min() or max() (ruff PLR1730: Replace
+           `if` statement with `a["qwait_max"] = max(a["qwait_max"],
+           r["qwait"])`)
+           at 155
+               155 |         if r["qwait"] > a["qwait_max"]:
+
+==============================================================================
+== scripts/gc-elections/generate-voters-roll.py:85  build_devstats_rows  (lines 85-98)
+   on your list, suspected: C11.S5, C9.S1
+
+  index_based_iteration
+         C3.S1   Inefficient Iteration Construct
+           iterating `range(len(names))` and indexing back into it;
+           `zip(names, contributions)` walks them together without an index
+           at 93
+                93 |         for i in range(len(names)):
+
+==============================================================================
+== scripts/move-to-emeritus.py:409  _check_reviews  (lines 409-468)
+   on your list, suspected: C1.S3, C1.S4, C11.S5
+
+  regex_in_loop  x2
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.sub()` is called once per element; the pattern is re-resolved
+           every time
+           at 433, 449
+               433 |             safe = "u_" + re.sub(r"[^a-zA-Z0-9]", "_", user)
+               449 |             safe = "u_" + re.sub(r"[^a-zA-Z0-9]", "_", user)
+
+==============================================================================
+== scripts/move-to-emeritus.py:570  check_maintainer_activity  (lines 570-668)
+   on your list, suspected: C1.S4, C3.S1, C3.S2, C4.S2
+
+  regex_in_loop  x2
+         C3.S3   Inefficient Per-Iteration Setup
+         C8.S2   Missing Derived-Value Reuse
+           `re.sub()` is called once per element; the pattern is re-resolved
+           every time
+           at 631, 646
+               631 |                 safe = "u_" + re.sub(r"[^a-zA-Z0-9]", "_", user)
+               646 |                 safe = "u_" + re.sub(r"[^a-zA-Z0-9]", "_", user)
+
+==============================================================================
+== scripts/move-to-emeritus.py:1166  create_emeritus_prs  (lines 1166-1275)
+   on your list, suspected: C3.S2, C5.S2
+
+  try_except_in_loop  x3
+         C4.S6   Expensive Exception Control Flow
+           try/except sits on the per-iteration path; if the exception is the
+           common case, each raise allocates and unwinds
+           at 1236, 1244, 1250
+              1236 |                 try:
+              1244 |         try:
+              1250 |             try:
+
+==============================================================================
+== scripts/move-to-emeritus.py:1278  main  (lines 1278-1500)
+   on your list, suspected: C1.S4, C5.S1
+
+  loop_invariant_expression  x5
+         C3.S2   Recomputing Loop-Invariant Values
+           `role_priority[label]` does not change across loop iterations but
+           is re-evaluated every time
+           at 1363, 1369, 1371
+              1363 |                         "priority": role_priority[label],
+              1369 |                 if role_priority[label] > all_user_data[user]["priority"]:
+              1371 |                     all_user_data[user]["priority"] = role_priority[label]
+           `role_priority[role_label]` does not change across loop iterations
+           but is re-evaluated every time
+           at 1392
+              1392 |                 if current is None or role_priority[role_label] > role_priority[current]:
+           `data['team_repos']` does not change across loop iterations but is
+           re-evaluated every time
+           at 1425
+              1425 |             for repo in data["team_repos"][team_name]:
+
+==============================================================================
+== scripts/validate-workstreams.py:75  validate_workstreams_semantics  (lines 75-165)
+   on your list, suspected: C1.S1, C3.S2
+
+  ruff_PERF401
+         C10.S3  Missing Bulk Primitive Usage
+         C3.S1   Inefficient Iteration Construct
+           append loop that could be a comprehension (ruff PERF401: Use
+           `list.extend` to create a transformed list)
+           at 122
+               122 |                 errors.append(
+
+##############################################################################
+PART 3: 3 UNIT(S) ON YOUR LIST WHERE A RULE AGREES WITH YOU
+##############################################################################
+
+== scripts/move-to-emeritus.py::_add_to_emeritus  (lines 836-904): regex_in_loop (C8.S2)
+
+== scripts/move-to-emeritus.py::create_emeritus_prs  (lines 1166-1275): loop_invariant_expression (C3.S2)
+
+== scripts/update-sig-tables.py::render_group  (lines 150-162): string_concat_in_loop (C10.S4)
+
+------------------------------------------------------------------------------
+What this output is and is not:
+  - Every line is a fact about syntax. None of them is a verdict. Each of
+    these shapes is the right thing to write somewhere, so the question is
+    always whether it is right *here* -- which depends on what the code is
+    for, and a rule cannot see that.
+  - Every finding is listed, in one of the three parts, in file and line
+    order within it. The order says nothing about which ones matter. Read
+    in whatever order you think right.
+  - The rules only recognise shapes somebody thought to describe in
+    advance. Waste with no fixed shape leaves no trace here at all. What
+    this output does not mention is not thereby absent, and no part of the
+    taxonomy is ruled out by not appearing.

@@ -1,0 +1,135 @@
+{
+ "unit": "scripts/update-sig-tables.py::render_group",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 115.7,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3167,
+   "completion_tokens": 18568,
+   "reasoning_tokens": 16920,
+   "cost": 0.011308921,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "many-sigs",
+     "ok": false,
+     "joules": 0.8490014137931033,
+     "seconds": 0.01726328581571579,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "deep-resources",
+     "ok": true,
+     "joules": 1.304148297297296,
+     "seconds": 0.027773083187639713
+    },
+    {
+     "label": "slack-heavy",
+     "ok": false,
+     "joules": 0.35234570895522327,
+     "seconds": 0.007482296787202358,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "people-heavy",
+     "ok": true,
+     "joules": 1.5556032903225807,
+     "seconds": 0.032392426393926144
+    },
+    {
+     "label": "collective-sponsors",
+     "ok": false,
+     "joules": 0.6520926438356177,
+     "seconds": 0.013843227177858353,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "bare-meetings",
+     "ok": true,
+     "joules": 0.9547113636363643,
+     "seconds": 0.018483825027942657
+    },
+    {
+     "label": "special-names",
+     "ok": false,
+     "joules": 0.4222494140625024,
+     "seconds": 0.00783031340688467,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-large",
+     "ok": true,
+     "joules": 1.4196858421052734,
+     "seconds": 0.02660012524574995
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-group",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "one-element",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-sigs",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 89.3,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 55.4
+  }
+ ],
+ "seconds": 206.1,
+ "cost": 0.01131,
+ "kept": [
+  {
+   "label": "people-heavy",
+   "mj_per_call": 1555.6033,
+   "ms_per_call": 32.392
+  },
+  {
+   "label": "mixed-large",
+   "mj_per_call": 1419.6858,
+   "ms_per_call": 26.6
+  },
+  {
+   "label": "deep-resources",
+   "mj_per_call": 1304.1483,
+   "ms_per_call": 27.773
+  },
+  {
+   "label": "bare-meetings",
+   "mj_per_call": 954.7114,
+   "ms_per_call": 18.484
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

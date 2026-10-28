@@ -1,0 +1,1 @@
+CANNOT RUN: `build_devstats_rows` calls `get_github_login` for every name, which performs `requests.get('https://api.github.com/users/...')` (plus `time.sleep(0.1)`), so it requires network access to GitHub and cannot run here without mocking.

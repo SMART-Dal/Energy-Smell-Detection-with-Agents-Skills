@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::check_triager_activity",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.0,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 3400,
+   "completion_tokens": 564,
+   "reasoning_tokens": 465,
+   "cost": 0.000693624,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `check_triager_activity` delegates to `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` / `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub repository data over the network (via `paginate_rest`/`request_with_retry`), and neither their cache format nor any offline data source is given, so no input can make the function run without network access."
+  }
+ ],
+ "seconds": 3.5,
+ "cost": 0.00069,
+ "kept": [],
+ "reason": "it cannot run here: `check_triager_activity` delegates to `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` / `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub repository data over the network (via `paginate_rest`/`request_with_retry`), and neither their cache format nor any offline data source is given, so no input can make the function run without network access."
+}

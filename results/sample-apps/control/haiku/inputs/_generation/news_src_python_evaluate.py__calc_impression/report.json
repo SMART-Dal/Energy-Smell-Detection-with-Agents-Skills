@@ -1,0 +1,25 @@
+{
+ "unit": "news/src/python/evaluate.py::calc_impression",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.4,
+   "finish": "stop",
+   "provider": "Cohere",
+   "prompt_tokens": 2528,
+   "completion_tokens": 443,
+   "reasoning_tokens": 358,
+   "cost": 0.00129,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `calc_impression` begins by calling `query_user_embedding(user_id, url, cert)` and then `query_news(...)`, both of which issue HTTP requests to a Vespa server (the `url`/`cert` come from `connect()` for a live CLI target); there is no input that avoids the network, and mocking those calls is not permitted."
+  }
+ ],
+ "seconds": 6.3,
+ "cost": 0.00129,
+ "kept": [],
+ "reason": "it cannot run here: `calc_impression` begins by calling `query_user_embedding(user_id, url, cert)` and then `query_news(...)`, both of which issue HTTP requests to a Vespa server (the `url`/`cert` come from `connect()` for a live CLI target); there is no input that avoids the network, and mocking those calls is not permitted."
+}

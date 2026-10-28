@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.5,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 5675,
+   "completion_tokens": 261,
+   "reasoning_tokens": 196,
+   "cost": 0.0012479,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `validate_cohort_ids` calls `raw_api_call`, which performs a network request via `dxpy.DXHTTPRequest` to the Vizserver (`resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\"`); its work starts with that server request and no input can avoid it."
+  }
+ ],
+ "seconds": 11.3,
+ "cost": 0.00125,
+ "kept": [],
+ "reason": "it cannot run here: `validate_cohort_ids` calls `raw_api_call`, which performs a network request via `dxpy.DXHTTPRequest` to the Vizserver (`resp[\"url\"] + \"/data/3.0/\" + resp[\"dataset\"] + \"/raw\"`); its work starts with that server request and no input can avoid it."
+}

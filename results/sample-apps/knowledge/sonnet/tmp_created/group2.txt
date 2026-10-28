@@ -1,0 +1,14 @@
+visual-retrieval-colpali/src/frontend/app.py
+hypencoder/model2onnx.py
+incremental-search/search-as-you-type/feed_to_vespa.py
+msmarco-ranking/python/evaluate_passage_run.py
+news/src/python/evaluate.py
+examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/update_vespa.py
+examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/main_graph.py
+visual-retrieval-colpali/refeed_from_hf.py
+incremental-search/search-suggestions/accepted_words.py
+custom-embeddings/model.py
+scaling-tutorial/ext/transform_ms_marco.py
+examples/part-purchases-demo/ext/parts.py
+commerce-product-ranking/scripts/export-bi-encoder.py
+msmarco-ranking/python/dump_passage_dev_qrels.py

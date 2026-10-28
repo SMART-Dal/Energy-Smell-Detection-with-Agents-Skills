@@ -1,0 +1,1 @@
+visual-retrieval-colpali/src/backend/testquery.py

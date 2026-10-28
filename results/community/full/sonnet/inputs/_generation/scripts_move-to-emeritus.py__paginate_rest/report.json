@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::paginate_rest",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 6.2,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3423,
+   "completion_tokens": 668,
+   "reasoning_tokens": 609,
+   "cost": 0.000583129,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `paginate_rest` performs real HTTP requests (it calls `request_with_retry` \u2192 `urllib.request.urlopen` against the GitHub REST API), so its work begins with a request to a remote server and no input can avoid the network."
+  }
+ ],
+ "seconds": 6.4,
+ "cost": 0.00058,
+ "kept": [],
+ "reason": "it cannot run here: `paginate_rest` performs real HTTP requests (it calls `request_with_retry` \u2192 `urllib.request.urlopen` against the GitHub REST API), so its work begins with a request to a remote server and no input can avoid the network."
+}

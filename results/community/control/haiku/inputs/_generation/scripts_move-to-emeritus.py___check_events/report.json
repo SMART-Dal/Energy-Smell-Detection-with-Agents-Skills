@@ -1,0 +1,218 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_check_events",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 17.3,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 3274,
+   "completion_tokens": 6690,
+   "reasoning_tokens": 5667,
+   "cost": 0.00497056,
+   "retried": []
+  },
+  {
+   "seconds": 4.6,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 4866,
+   "completion_tokens": 1739,
+   "reasoning_tokens": 728,
+   "cost": 0.00148529,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "big-mixed",
+     "ok": false,
+     "why": "second run failed: took over 20s"
+    },
+    {
+     "label": "mostly-misses",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "exclude-pr",
+     "ok": false,
+     "why": "second run failed: took over 20s"
+    },
+    {
+     "label": "duplicates",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "single-type",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "huge-remaining",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "all-remaining",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "exclude-all",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-events",
+     "ok": false,
+     "kind": null,
+     "why": "took over 20s"
+    },
+    {
+     "label": "single-match",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "odd-values",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 335.8,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 29.3
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "big-mixed",
+     "ok": true,
+     "joules": 0.0383774688593422,
+     "seconds": 0.0006997920572757721
+    },
+    {
+     "label": "mostly-misses",
+     "ok": false,
+     "joules": 0.027350901785714286,
+     "seconds": 0.000558110885322094,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "exclude-pr",
+     "ok": false,
+     "joules": 0.030009132271892214,
+     "seconds": 0.0006123753264546394,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicates",
+     "ok": false,
+     "joules": 0.035050558032786866,
+     "seconds": 0.0006561269983649254,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "single-type",
+     "ok": true,
+     "joules": 0.04392272207792209,
+     "seconds": 0.0008664773777127266
+    },
+    {
+     "label": "huge-remaining",
+     "ok": true,
+     "joules": 0.12314554094292807,
+     "seconds": 0.002481590025126934
+    },
+    {
+     "label": "all-remaining",
+     "ok": false,
+     "joules": 0.03560313031550067,
+     "seconds": 0.0006860261783003807,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "exclude-all",
+     "ok": true,
+     "joules": 0.04370929758064515,
+     "seconds": 0.000806739553809166
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-events",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-match",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "odd-values",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 25.3,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 384.4,
+ "cost": 0.00646,
+ "kept": [
+  {
+   "label": "huge-remaining",
+   "mj_per_call": 123.1455,
+   "ms_per_call": 2.482
+  },
+  {
+   "label": "single-type",
+   "mj_per_call": 43.9227,
+   "ms_per_call": 0.866
+  },
+  {
+   "label": "exclude-all",
+   "mj_per_call": 43.7093,
+   "ms_per_call": 0.807
+  },
+  {
+   "label": "big-mixed",
+   "mj_per_call": 38.3775,
+   "ms_per_call": 0.7
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

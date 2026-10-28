@@ -1,0 +1,135 @@
+{
+ "unit": "rag-blueprint/eval/collect_pyvespa.py::feature_collection_second_phase_query_fn",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 9.2,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2450,
+   "completion_tokens": 1267,
+   "reasoning_tokens": 530,
+   "cost": 0.00085447,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "short-default",
+     "ok": false,
+     "joules": 0.0009271049121085035,
+     "seconds": 2.2307969629764557e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-sentence-top50",
+     "ok": false,
+     "joules": 0.0009989122845834252,
+     "seconds": 2.4584122002124786e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "multilingual-top1",
+     "ok": false,
+     "joules": 0.001044512094340499,
+     "seconds": 2.3214146494865417e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "numeric-top100",
+     "ok": false,
+     "joules": 0.0012020882361153773,
+     "seconds": 2.7922913432121277e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "chars-4000-top10",
+     "ok": true,
+     "joules": 0.0014038399330296284,
+     "seconds": 3.8936734199523926e-05
+    },
+    {
+     "label": "long-words-top500",
+     "ok": true,
+     "joules": 0.0062280404180113675,
+     "seconds": 0.00015369243919849396
+    },
+    {
+     "label": "repeated-top1000",
+     "ok": true,
+     "joules": 0.0014006135692165313,
+     "seconds": 3.559701144695282e-05
+    },
+    {
+     "label": "with-query-id-top25",
+     "ok": true,
+     "joules": 0.0012025393423928572,
+     "seconds": 4.751700907945633e-05
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-topk-zero",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-query-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 23.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 10.4
+  }
+ ],
+ "seconds": 36.0,
+ "cost": 0.00085,
+ "kept": [
+  {
+   "label": "long-words-top500",
+   "mj_per_call": 6.228,
+   "ms_per_call": 0.154
+  },
+  {
+   "label": "chars-4000-top10",
+   "mj_per_call": 1.4038,
+   "ms_per_call": 0.039
+  },
+  {
+   "label": "repeated-top1000",
+   "mj_per_call": 1.4006,
+   "ms_per_call": 0.036
+  },
+  {
+   "label": "with-query-id-top25",
+   "mj_per_call": 1.2025,
+   "ms_per_call": 0.048
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

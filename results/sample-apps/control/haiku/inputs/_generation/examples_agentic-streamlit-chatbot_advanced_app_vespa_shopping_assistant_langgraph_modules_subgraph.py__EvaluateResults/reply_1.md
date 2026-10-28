@@ -1,0 +1,1 @@
+CANNOT RUN: `EvaluateResults` invokes a `ChatOpenAI` chain (`chain.invoke(...)`), which performs a network request to the OpenAI API and needs credentials; no input can avoid that.

@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::create_emeritus_prs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.3,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5782,
+   "completion_tokens": 189,
+   "reasoning_tokens": 112,
+   "cost": 0.000645134,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the function fetches each repo's README over the network via `fetch_readme` \u2192 `request_with_retry` \u2192 `urllib.request.urlopen` (GitHub REST API), and also creates forks, branches, commits and PRs through the same API; there is no input that avoids these HTTP requests, and no network access is available."
+  }
+ ],
+ "seconds": 2.5,
+ "cost": 0.00065,
+ "kept": [],
+ "reason": "it cannot run here: the function fetches each repo's README over the network via `fetch_readme` \u2192 `request_with_retry` \u2192 `urllib.request.urlopen` (GitHub REST API), and also creates forks, branches, commits and PRs through the same API; there is no input that avoids these HTTP requests, and no network access is available."
+}

@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_get_repo_commenters",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 37.2,
+   "finish": "stop",
+   "provider": "Baidu",
+   "prompt_tokens": 3639,
+   "completion_tokens": 6178,
+   "reasoning_tokens": 6069,
+   "cost": 0.0024612732,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_get_repo_commenters` performs live HTTP requests to the GitHub REST API (`request_with_retry` \u2192 `urllib.request.urlopen` on `https://api.github.com/repos/open-telemetry/<repo>/issues/comments`), so every call requires network access to a remote service and credentials/rate limits; no input can avoid that (pre-filling the module cache or pointing the API base at fake data would be a mock, not a real input)."
+  }
+ ],
+ "seconds": 37.3,
+ "cost": 0.00246,
+ "kept": [],
+ "reason": "it cannot run here: `_get_repo_commenters` performs live HTTP requests to the GitHub REST API (`request_with_retry` \u2192 `urllib.request.urlopen` on `https://api.github.com/repos/open-telemetry/<repo>/issues/comments`), so every call requires network access to a remote service and credentials/rate limits; no input can avoid that (pre-filling the module cache or pointing the API base at fake data would be a mock, not a real input)."
+}

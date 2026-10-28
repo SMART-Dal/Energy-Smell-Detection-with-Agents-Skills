@@ -1,0 +1,138 @@
+{
+ "unit": "news/src/python/create_category_ctrs.py::read_content_file",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 26.2,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 2368,
+   "completion_tokens": 9085,
+   "reasoning_tokens": 7785,
+   "cost": 0.00626045,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-2k",
+     "ok": false,
+     "joules": 0.8144484418604651,
+     "seconds": 0.011750499717891216,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "medium-8k",
+     "ok": false,
+     "joules": 2.962911,
+     "seconds": 0.06608437933027744,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large-30k",
+     "ok": true,
+     "joules": 11.223921999999988,
+     "seconds": 0.25204126071184874
+    },
+    {
+     "label": "duplicates-15k",
+     "ok": true,
+     "joules": 5.649892375000007,
+     "seconds": 0.13040676712989807
+    },
+    {
+     "label": "unicode-10k",
+     "ok": false,
+     "joules": 4.825061699999992,
+     "seconds": 0.10882903635501862,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-text-5k",
+     "ok": true,
+     "joules": 5.748895272727251,
+     "seconds": 0.09647146053612232
+    },
+    {
+     "label": "empty-cat-12k",
+     "ok": false,
+     "joules": 4.671810399999958,
+     "seconds": 0.10346479713916779,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "short-text-20k",
+     "ok": true,
+     "joules": 5.594778000000032,
+     "seconds": 0.12286825198680162
+    }
+   ],
+   "checks": [
+    {
+     "label": "missing-file",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "blank-category",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 124.0,
+   "coverage": 0.7777777777777778,
+   "missed": [
+    45,
+    46
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 92.5
+  }
+ ],
+ "seconds": 153.3,
+ "cost": 0.00626,
+ "kept": [
+  {
+   "label": "large-30k",
+   "mj_per_call": 11223.922,
+   "ms_per_call": 252.041
+  },
+  {
+   "label": "long-text-5k",
+   "mj_per_call": 5748.8953,
+   "ms_per_call": 96.471
+  },
+  {
+   "label": "duplicates-15k",
+   "mj_per_call": 5649.8924,
+   "ms_per_call": 130.407
+  },
+  {
+   "label": "short-text-20k",
+   "mj_per_call": 5594.778,
+   "ms_per_call": 122.868
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

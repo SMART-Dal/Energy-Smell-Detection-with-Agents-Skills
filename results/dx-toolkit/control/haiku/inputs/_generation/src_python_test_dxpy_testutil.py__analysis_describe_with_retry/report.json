@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/test/dxpy_testutil.py::analysis_describe_with_retry",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 6.8,
+   "finish": "stop",
+   "provider": "ModelRun",
+   "prompt_tokens": 2956,
+   "completion_tokens": 1120,
+   "reasoning_tokens": 1046,
+   "cost": 0.00125292,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the function's entire work is polling a DNAnexus API object's `describe()` (a remote server request) \u2014 whether given an analysis ID (via `dxpy.get_handler`) or a handler, and no input avoids that network access; faking a handler with canned `describe()` output would be a mock, which is not allowed."
+  }
+ ],
+ "seconds": 20.7,
+ "cost": 0.00125,
+ "kept": [],
+ "reason": "it cannot run here: the function's entire work is polling a DNAnexus API object's `describe()` (a remote server request) \u2014 whether given an analysis ID (via `dxpy.get_handler`) or a handler, and no input avoids that network access; faking a handler with canned `describe()` output would be a mock, which is not allowed."
+}

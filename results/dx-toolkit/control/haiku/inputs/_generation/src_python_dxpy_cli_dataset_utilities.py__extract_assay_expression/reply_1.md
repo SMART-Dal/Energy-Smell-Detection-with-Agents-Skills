@@ -1,0 +1,1 @@
+CANNOT RUN: `extract_assay_expression` starts by resolving the `--path` argument through `resolve_existing_path`, then builds `DXRecord`/`Dataset` objects and reads dataset descriptors and assay info from the DNAnexus platform API, all of which require network access and credentials that are unavailable here.

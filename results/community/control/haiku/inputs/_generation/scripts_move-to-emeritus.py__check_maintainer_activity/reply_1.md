@@ -1,0 +1,1 @@
+CANNOT RUN: `check_maintainer_activity` needs network access to the GitHub API — its first step for any non-empty input is `_check_comments` → `_get_repo_commenters` (REST pagination) and later `_check_reviews`/authored-PR queries hit `GRAPHQL_API`/`api.github.com` with credentials; the only input that avoids the network is empty `usernames`/`repos`, which does no work.

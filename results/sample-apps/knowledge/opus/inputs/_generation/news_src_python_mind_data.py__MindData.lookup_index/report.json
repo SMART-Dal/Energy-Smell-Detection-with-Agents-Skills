@@ -1,0 +1,226 @@
+{
+ "unit": "news/src/python/mind_data.py::MindData.lookup_index",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 12.8,
+   "finish": "stop",
+   "provider": "Together",
+   "prompt_tokens": 2960,
+   "completion_tokens": 3884,
+   "reasoning_tokens": 3154,
+   "cost": 0.0055488,
+   "retried": []
+  },
+  {
+   "seconds": 10.0,
+   "finish": "stop",
+   "provider": "Together",
+   "prompt_tokens": 4190,
+   "completion_tokens": 3044,
+   "reasoning_tokens": 2331,
+   "cost": 0.004044264,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "news-hit-large",
+     "ok": false,
+     "seconds": 2.5266781449317932e-06,
+     "why": "each of the 791,554 calls in a window gets fresh arguments, and building them would take 2,075.1 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "news-miss-large",
+     "ok": false,
+     "seconds": 2.8098002076148987e-06,
+     "why": "each of the 711,795 calls in a window gets fresh arguments, and building them would take 1,866.0 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "small-hit",
+     "ok": false,
+     "seconds": 6.649643182754517e-07,
+     "why": "each of the 3,007,681 calls in a window gets fresh arguments, and building them would take about 25.8s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "small-miss",
+     "ok": true,
+     "joules": 2.2216344757682254e-05,
+     "seconds": 8.00006091594696e-07
+    },
+    {
+     "label": "empty-miss",
+     "ok": true,
+     "joules": 2.5635137023037686e-05,
+     "seconds": 9.76957380771637e-07
+    },
+    {
+     "label": "int-hit",
+     "ok": false,
+     "seconds": 2.061016857624054e-06,
+     "why": "each of the 970,395 calls in a window gets fresh arguments, and building them would take 1,272.0 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "int-miss",
+     "ok": false,
+     "seconds": 3.7671998143196106e-06,
+     "why": "each of the 530,899 calls in a window gets fresh arguments, and building them would take 695.9 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "long-key-hit",
+     "ok": false,
+     "seconds": 2.028420567512512e-06,
+     "why": "each of the 985,989 calls in a window gets fresh arguments, and building them would take 581.7 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-map",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "existing-key",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 44.2,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 10.8
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "news-hit-large",
+     "ok": false,
+     "joules": 1.2050878083287198e-05,
+     "seconds": 6.407499313354492e-07,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "small-hit",
+     "ok": false,
+     "joules": 1.217648157690948e-05,
+     "seconds": 5.783513188362122e-07,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "int-hit",
+     "ok": false,
+     "joules": 1.4634479965142243e-05,
+     "seconds": 6.388872861862183e-07,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-key-hit",
+     "ok": false,
+     "joules": 1.1350159329359305e-05,
+     "seconds": 5.997717380523682e-07,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "news-miss-empty",
+     "ok": true,
+     "joules": 2.1725254093061712e-05,
+     "seconds": 7.199123501777649e-07
+    },
+    {
+     "label": "small-miss-tiny",
+     "ok": true,
+     "joules": 1.815341470119579e-05,
+     "seconds": 7.012858986854553e-07
+    },
+    {
+     "label": "int-miss-empty",
+     "ok": true,
+     "joules": 2.6717110461161006e-05,
+     "seconds": 9.462237358093262e-07
+    },
+    {
+     "label": "long-key-miss",
+     "ok": true,
+     "joules": 2.5740997817034623e-05,
+     "seconds": 1.1334195733070374e-06
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-map",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "existing-key",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 104.8,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 5.9
+  }
+ ],
+ "seconds": 173.2,
+ "cost": 0.00959,
+ "kept": [
+  {
+   "label": "int-miss-empty",
+   "mj_per_call": 0.0267,
+   "ms_per_call": 0.001
+  },
+  {
+   "label": "long-key-miss",
+   "mj_per_call": 0.0257,
+   "ms_per_call": 0.001
+  },
+  {
+   "label": "news-miss-empty",
+   "mj_per_call": 0.0217,
+   "ms_per_call": 0.001
+  },
+  {
+   "label": "small-miss-tiny",
+   "mj_per_call": 0.0182,
+   "ms_per_call": 0.001
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

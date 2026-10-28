@@ -1,0 +1,226 @@
+{
+ "unit": "visual-retrieval-colpali/src/backend/cache.py::LRUCache.get",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 36.3,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2752,
+   "completion_tokens": 12774,
+   "reasoning_tokens": 12362,
+   "cost": 0.00882598,
+   "retried": []
+  },
+  {
+   "seconds": 72.1,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 3862,
+   "completion_tokens": 23899,
+   "reasoning_tokens": 23411,
+   "cost": 0.01626813,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "tiny-hit",
+     "ok": false,
+     "seconds": 1.017935574054718e-06,
+     "why": "each of the 1,964,761 calls in a window gets fresh arguments, and building them would take about 12.2s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "tiny-miss",
+     "ok": false,
+     "seconds": 6.835907697677612e-07,
+     "why": "each of the 2,925,728 calls in a window gets fresh arguments, and building them would take about 15.8s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "medium-hit-front",
+     "ok": false,
+     "seconds": 2.668239176273346e-06,
+     "why": "each of the 749,558 calls in a window gets fresh arguments, and building them would take 559.3 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "medium-hit-back",
+     "ok": false,
+     "seconds": 2.8600916266441345e-06,
+     "why": "each of the 699,279 calls in a window gets fresh arguments, and building them would take 521.8 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "large-hit-middle",
+     "ok": false,
+     "seconds": 8.296221494674683e-06,
+     "why": "each of the 241,074 calls in a window gets fresh arguments, and building them would take 1,270.5 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "large-miss",
+     "ok": false,
+     "seconds": 5.107372999191284e-06,
+     "why": "each of the 391,591 calls in a window gets fresh arguments, and building them would take 2,063.8 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "int-keys-hit",
+     "ok": false,
+     "seconds": 2.5099143385887146e-06,
+     "why": "each of the 796,840 calls in a window gets fresh arguments, and building them would take 594.6 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "long-string-keys-hit",
+     "ok": true,
+     "joules": 0.12513890625000001,
+     "seconds": 0.003479665145277977
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-cache",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-entry",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unhashable-key",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 20.6,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 9.3
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "hit-250k-small",
+     "ok": false,
+     "joules": 0.01545472883231876,
+     "seconds": 0.0002767210826277733,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "hit-500k-small",
+     "ok": true,
+     "joules": 0.03514483711615489,
+     "seconds": 0.0006677741184830666
+    },
+    {
+     "label": "miss-500k-small",
+     "ok": false,
+     "joules": 0.025383992349726794,
+     "seconds": 0.0005467049777507782,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "hit-500k-medium",
+     "ok": false,
+     "joules": 0.031042630944407207,
+     "seconds": 0.0006698807701468468,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "miss-500k-medium",
+     "ok": false,
+     "joules": 0.029530888586956558,
+     "seconds": 0.000543658621609211,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "hit-1m-large",
+     "ok": true,
+     "joules": 0.0611013438789547,
+     "seconds": 0.0013761287555098534
+    },
+    {
+     "label": "miss-1m-large",
+     "ok": true,
+     "joules": 0.041501428416486026,
+     "seconds": 0.001085769385099411
+    },
+    {
+     "label": "hit-2m-small",
+     "ok": true,
+     "joules": 0.11163374509803811,
+     "seconds": 0.0021827835589647293
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-hit",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unhashable",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 57.6,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 34.9
+  }
+ ],
+ "seconds": 187.9,
+ "cost": 0.02509,
+ "kept": [
+  {
+   "label": "hit-2m-small",
+   "mj_per_call": 111.6337,
+   "ms_per_call": 2.183
+  },
+  {
+   "label": "hit-1m-large",
+   "mj_per_call": 61.1013,
+   "ms_per_call": 1.376
+  },
+  {
+   "label": "miss-1m-large",
+   "mj_per_call": 41.5014,
+   "ms_per_call": 1.086
+  },
+  {
+   "label": "hit-500k-small",
+   "mj_per_call": 35.1448,
+   "ms_per_call": 0.668
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

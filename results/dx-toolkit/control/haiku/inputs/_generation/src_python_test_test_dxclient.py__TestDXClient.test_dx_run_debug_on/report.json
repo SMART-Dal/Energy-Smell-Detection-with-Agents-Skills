@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/test/test_dxclient.py::TestDXClient.test_dx_run_debug_on",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.3,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 8845,
+   "completion_tokens": 153,
+   "reasoning_tokens": 87,
+   "cost": 0.000844755,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the test creates applets and jobs on the DNAnexus platform (`dxpy.api.applet_new`, `dx run`, `dxpy.describe`) and opens an SSH session to a running job with pexpect, all of which require network access to a remote server and real platform credentials."
+  }
+ ],
+ "seconds": 19.3,
+ "cost": 0.00084,
+ "kept": [],
+ "reason": "it cannot run here: the test creates applets and jobs on the DNAnexus platform (`dxpy.api.applet_new`, `dx run`, `dxpy.describe`) and opens an SSH session to a running job with pexpect, all of which require network access to a remote server and real platform credentials."
+}

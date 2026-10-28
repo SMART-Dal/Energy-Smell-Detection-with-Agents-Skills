@@ -1,0 +1,10 @@
+validate-team-sets     partial         not applied: partial
+validate-dead-parent-kind negligible      not applied: negligible
+render-table-runs-set  confirmed       APPLIED
+sync-single-pass-removal partial         not applied: partial
+sync-mentions-once     partial         not applied: partial
+voter-comment-header-prefilter partial         not applied: partial
+emeritus-single-match-pass confirmed       APPLIED
+render-group-skip-people confirmed       APPLIED
+
+wrote /home/javad/energy-exp/archive/community/control/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/community/control/sonnet/review/REPORT.md

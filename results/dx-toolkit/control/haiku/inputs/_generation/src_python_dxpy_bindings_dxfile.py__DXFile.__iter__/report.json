@@ -1,0 +1,172 @@
+{
+ "unit": "src/python/dxpy/bindings/dxfile.py::DXFile.__iter__",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 126.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 5646,
+   "completion_tokens": 24087,
+   "reasoning_tokens": 23123,
+   "cost": 0.014510858,
+   "retried": []
+  },
+  {
+   "seconds": 105.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 7028,
+   "completion_tokens": 22724,
+   "reasoning_tokens": 21680,
+   "cost": 0.013835404,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "many-lines",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "long-lines",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "small-buffer",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "no-trailing-nl",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "blank-lines",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "crlf-lines",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "single-long-line",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "big-many-lines",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "binary-mode",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "one-line-no-newline",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    }
+   ],
+   "validate_s": 5.2,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 3.1
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "many-lines",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148342.6079443, Request ID=1793148342882-600039"
+    },
+    {
+     "label": "long-lines",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148342.9087992, Request ID=1793148343086-274978"
+    },
+    {
+     "label": "no-trailing-nl",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148343.1082647, Request ID=1793148343290-696080"
+    },
+    {
+     "label": "blank-lines",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148343.3138654, Request ID=1793148343492-942828"
+    },
+    {
+     "label": "crlf-lines",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148343.5163949, Request ID=1793148343687-548314"
+    },
+    {
+     "label": "single-long-line",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148343.7111259, Request ID=1793148343880-834753"
+    },
+    {
+     "label": "big-many-lines",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148343.9033177, Request ID=1793148344072-987509"
+    },
+    {
+     "label": "very-long-lines",
+     "ok": false,
+     "why": "building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148344.096147, Request ID=1793148344274-223766"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": false,
+     "kind": null,
+     "why": "ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148344.3136656, Request ID=1793148344496-123096"
+    },
+    {
+     "label": "binary-mode",
+     "ok": false,
+     "kind": null,
+     "why": "ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148344.5205185, Request ID=1793148344698-925481"
+    },
+    {
+     "label": "one-line-no-newline",
+     "ok": false,
+     "kind": null,
+     "why": "ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148344.7217085, Request ID=1793148344899-314756"
+    }
+   ],
+   "validate_s": 4.0,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 261.2,
+ "cost": 0.02835,
+ "kept": [],
+ "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: ResourceNotFound: The entity file-000000000000000000000000 could not be found, code 404. Request Time=1793148343.9033177, Request ID=1793148344072-987509)"
+}

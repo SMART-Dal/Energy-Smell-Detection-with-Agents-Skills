@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/utils/__init__.py::normalize_timedelta",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 21.4,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2811,
+   "completion_tokens": 5056,
+   "reasoning_tokens": 4786,
+   "cost": 0.00382049,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "plain-seconds",
+     "ok": false,
+     "joules": 0.005360515091647459,
+     "seconds": 0.00010976474732160568,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "plain-negative",
+     "ok": false,
+     "joules": 0.0048000310616597,
+     "seconds": 0.0001545380800962448,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "suffix-s",
+     "ok": true,
+     "joules": 0.010598536106149557,
+     "seconds": 0.0002551749348640442
+    },
+    {
+     "label": "suffix-m",
+     "ok": false,
+     "joules": 0.009862490143668471,
+     "seconds": 0.0003341361880302429,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "suffix-h",
+     "ok": true,
+     "joules": 0.012467987372380437,
+     "seconds": 0.0002686837688088417
+    },
+    {
+     "label": "suffix-d",
+     "ok": true,
+     "joules": 0.010517637334472366,
+     "seconds": 0.00021360907703638077
+    },
+    {
+     "label": "suffix-w",
+     "ok": false,
+     "joules": 0.008320681911135934,
+     "seconds": 0.00018594041466712952,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "suffix-y",
+     "ok": true,
+     "joules": 0.011483220167215624,
+     "seconds": 0.0002534007653594017
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "bad-suffix",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 90.2,
+   "coverage": 0.8571428571428571,
+   "missed": [
+    212
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 79.0
+  }
+ ],
+ "seconds": 126.4,
+ "cost": 0.00382,
+ "kept": [
+  {
+   "label": "suffix-h",
+   "mj_per_call": 12.468,
+   "ms_per_call": 0.269
+  },
+  {
+   "label": "suffix-y",
+   "mj_per_call": 11.4832,
+   "ms_per_call": 0.253
+  },
+  {
+   "label": "suffix-s",
+   "mj_per_call": 10.5985,
+   "ms_per_call": 0.255
+  },
+  {
+   "label": "suffix-d",
+   "mj_per_call": 10.5176,
+   "ms_per_call": 0.214
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `inference` performs an HTTP POST to a Vespa server at `http://localhost:8080/search/`, which needs a running Vespa instance and network access that is not available here.

@@ -1,0 +1,141 @@
+{
+ "units": {
+  "src/python/dxpy/utils/pretty_print.py::format_table": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__format_table.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pretty_print.py::flatten_json_array": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__flatten_json_array.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/pretty_print.py::escape_unicode_string": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_pretty_print.py__escape_unicode_string.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::split_unescaped": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__split_unescaped.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::get_first_pos_of_char": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__get_first_pos_of_char.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::parse_input_keyval": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__parse_input_keyval.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py___maybe_convert_stringified_dxlink.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/spelling_corrector.py::correct": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_spelling_corrector.py__correct.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_results": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_germline_utils.py__harmonize_germline_results.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_germline_utils.py__infer_genotype_type.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/apollo/data_transformations.py::transform_to_expression_matrix": {
+   "state": "ready",
+   "file": "src_python_dxpy_bindings_apollo_data_transformations.py__transform_to_expression_matrix.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/output_handling.py::write_expression_output": {
+   "state": "failed",
+   "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe",
+   "attempts": 2
+  },
+  "src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_cohort_filter_payload.py__generate_pheno_filter.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe": {
+   "state": "ready",
+   "file": "src_python_dxpy_cli_dataset_utilities.py__DXDatasetDictionary.create_coding_name_dframe.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dxlog.py::DXLogHandler.truncate_message": {
+   "state": "ready",
+   "file": "src_python_dxpy_dxlog.py__DXLogHandler.truncate_message.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec": {
+   "state": "ready",
+   "file": "src_python_dxpy_system_requirements.py__SystemRequirementsDict.override_cluster_spec.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs": {
+   "state": "ready",
+   "file": "src_python_dxpy_nextflow_nextflow_builder.py__prepare_custom_inputs.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/germline_utils.py::filter_results": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_germline_utils.py__filter_results.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src": {
+   "state": "ready",
+   "file": "src_python_dxpy_nextflow_nextflow_templates.py__get_nextflow_src.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/germline_utils.py::_harmonize_sql_select_named_expression": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_germline_utils.py___harmonize_sql_select_named_expression.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/cli/exec_io.py::ExecutableInputs.add": {
+   "state": "ready",
+   "file": "src_python_dxpy_cli_exec_io.py__ExecutableInputs.add.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_filter_to_payload.py__final_payload.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON": {
+   "state": "ready",
+   "file": "src_python_dxpy_dx_extract_utils_filter_to_payload.py__validate_JSON.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/utils/resolver.py::get_last_pos_of_char": {
+   "state": "ready",
+   "file": "src_python_dxpy_utils_resolver.py__get_last_pos_of_char.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/nextflow/nextflow_utils.py::_load_versions_manifest": {
+   "state": "ready",
+   "file": "src_python_dxpy_nextflow_nextflow_utils.py___load_versions_manifest.py",
+   "attempts": 1
+  },
+  "src/python/dxpy/bindings/dxworkflow.py::DXWorkflow._get_stage_id": {
+   "state": "failed",
+   "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described)",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 24,
+  "max_holding": 30,
+  "failed": 2,
+  "max_failed": 30
+ },
+ "updated": 1793111846.2988088
+}

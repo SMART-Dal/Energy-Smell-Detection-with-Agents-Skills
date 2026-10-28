@@ -1,0 +1,25 @@
+{
+ "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_GenerateKeywords",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.1,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2637,
+   "completion_tokens": 167,
+   "reasoning_tokens": 111,
+   "cost": 0.000201571,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a request to the OpenAI API (network access and credentials required); this happens unconditionally inside the timed call and cannot be avoided by any input."
+  }
+ ],
+ "seconds": 4.2,
+ "cost": 0.0002,
+ "kept": [],
+ "reason": "it cannot run here: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a request to the OpenAI API (network access and credentials required); this happens unconditionally inside the timed call and cannot be avoided by any input."
+}

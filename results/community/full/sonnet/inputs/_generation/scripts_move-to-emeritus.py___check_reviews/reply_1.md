@@ -1,0 +1,1 @@
+CANNOT RUN: `_check_reviews` performs GitHub GraphQL/REST requests via `request_with_retry` to `https://api.github.com/graphql` and `REST_API` for every user batch; its work begins with a network request to a remote service, so no input can avoid network access.

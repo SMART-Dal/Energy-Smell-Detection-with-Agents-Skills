@@ -1,0 +1,1 @@
+CANNOT RUN: `get_valid_bill_to` always begins with `dxpy.whoami()` (an API call to the DNAnexus platform) and then calls `dxpy.api.user_describe` / `dxpy.api.org_describe`, which are remote server requests; no input can avoid the network access and no offline/local mode is available.

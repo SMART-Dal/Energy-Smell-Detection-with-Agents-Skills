@@ -1,0 +1,66 @@
+{
+ "units": {
+  "scripts/validate-workstreams.py::validate_workstreams_semantics": {
+   "state": "ready",
+   "file": "scripts_validate-workstreams.py__validate_workstreams_semantics.py",
+   "attempts": 1
+  },
+  "scripts/gc-elections/create-github-comments.py::sync": {
+   "state": "ready",
+   "file": "scripts_gc-elections_create-github-comments.py__sync.py",
+   "attempts": 1
+  },
+  "scripts/gc-elections/generate-voters-roll.py::get_github_login": {
+   "state": "failed",
+   "reason": "it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get`, which requires network access that is unavailable here.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_get_repo_commenters": {
+   "state": "failed",
+   "reason": "it cannot run here: `_get_repo_commenters` performs live HTTP GET requests to the GitHub REST API (`request_with_retry(\"GET\", url)` \u2192 `urllib.request.urlopen`) on every non-cached path, so it requires network access to api.github.com; the only network-free path is the trivial `_repo_comments_cache` hit that does no work, and the environment provides no network.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_check_events": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___check_events.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_verify_review_candidates": {
+   "state": "failed",
+   "reason": "it cannot run here: `_verify_review_candidates` performs live GitHub REST requests via `request_with_retry`/`urllib.request.urlopen` to the hardcoded `https://api.github.com` endpoint; it needs network access (and credentials/rate limits) and cannot be exercised here without mocking the request layer, which is forbidden.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::check_triager_activity": {
+   "state": "failed",
+   "reason": "it cannot run here: `check_triager_activity` delegates to `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` / `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub repository data over the network (via `paginate_rest`/`request_with_retry`), and neither their cache format nor any offline data source is given, so no input can make the function run without network access.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::check_approver_activity": {
+   "state": "failed",
+   "reason": "it cannot run here: `check_approver_activity` reaches the GitHub API on every call \u2014 it invokes `_check_comments` (which calls `_get_repo_commenters` and its REST requests) and `_check_reviews` (which posts a GraphQL query via `request_with_retry`), so no input can avoid network access and credentials.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::check_maintainer_activity": {
+   "state": "failed",
+   "reason": "it cannot run here: `check_maintainer_activity` needs network access to the GitHub API \u2014 its first step for any non-empty input is `_check_comments` \u2192 `_get_repo_commenters` (REST pagination) and later `_check_reviews`/authored-PR queries hit `GRAPHQL_API`/`api.github.com` with credentials; the only input that avoids the network is empty `usernames`/`repos`, which does no work.",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_add_to_emeritus": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___add_to_emeritus.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::create_emeritus_prs": {
+   "state": "failed",
+   "reason": "it cannot run here: `create_emeritus_prs` calls `fetch_readme`, which performs an HTTP request to the GitHub API (`https://api.github.com/repos/.../readme`) via `request_with_retry`/`urllib.request`; the function cannot run without network access and credentials, and no input can avoid that.",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 4,
+  "max_holding": 30,
+  "failed": 7,
+  "max_failed": 30
+ },
+ "updated": 1793184667.8397932
+}

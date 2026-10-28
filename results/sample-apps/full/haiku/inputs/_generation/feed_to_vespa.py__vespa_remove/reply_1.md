@@ -1,0 +1,1 @@
+CANNOT RUN: `vespa_remove` calls `vespa_delete`, which performs a live HTTP request (`session.delete(url).json()`) against a Vespa endpoint for every document id; it needs network access to a running Vespa server, and no input can avoid that without mocking the session.

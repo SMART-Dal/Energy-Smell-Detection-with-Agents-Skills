@@ -1,0 +1,24 @@
+C3S4-count_terms-process_docs-docfreq partial         not applied: partial
+C1S1-count_terms-process_docs-total negligible      not applied: negligible
+C3S2-count_terms-count_terms-mask confirmed       APPLIED
+C4S7-count_terms-count_terms-guard partial         not applied: partial
+C1S4-count_terms-count_terms-slice partial         not applied: partial
+C1S4-count_terms-process_doc-merge partial         not applied: partial
+C10S4-feed_split-split_text-join negligible      not applied: negligible
+C10S1-convert-remove_control-translate over_limit      not applied: over_limit
+C8S3-convert-remove_control-local confirmed       APPLIED
+C7S4-mind_data-sample_valid_data-filter-first negligible      not applied: negligible
+C3S4-news_evaluate-predictions-index confirmed       APPLIED
+C10S3-train_cold_start-write_embeddings-bulk confirmed       APPLIED
+C10S3-create_bert-write_embedding-join confirmed       APPLIED
+C3S2-colpali-prepare_sim_map-hoist partial         not applied: partial
+C10S3-colpali-prepare_sim_map-bulk-assign confirmed       APPLIED
+C6S1-vespa_app-float_to_binary-boolmask confirmed       APPLIED
+C10S3-vespa_app-format_q_embs-bulk over_limit      not applied: over_limit
+C6S2-embedding-sample_images-select-first confirmed       APPLIED
+C10S3-accepted_words-process_docs-update confirmed       APPLIED
+C4S5-test-parse_file-isinstance mixed           not applied: mixed
+C1S4-mind_data-sample_valid_data-sum negligible      not applied: negligible
+C3S2-feed_to_vespa-get_feed_docids-hoist confirmed       APPLIED
+
+wrote /home/javad/energy-exp/archive/sample-apps/full/opus/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/full/opus/review/REPORT.md

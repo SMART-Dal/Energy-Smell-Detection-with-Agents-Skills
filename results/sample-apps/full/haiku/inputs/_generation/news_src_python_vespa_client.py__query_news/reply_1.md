@@ -1,0 +1,1 @@
+CANNOT RUN: `query_news` performs `requests.post(f'{url}/search/', ...)` to a Vespa search server; its work is a network request, and no input can avoid it (and faking a server/network is not allowed).

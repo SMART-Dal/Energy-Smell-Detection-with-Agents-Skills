@@ -1,0 +1,25 @@
+{
+ "unit": "visual-retrieval-colpali/tests/huggingface_smoke.py::main",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 21.3,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2684,
+   "completion_tokens": 1914,
+   "reasoning_tokens": 1821,
+   "cost": 0.000569532,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `main` unconditionally imports `dotenv`, `gradio`, `starlette.testclient`, `torch` and the `visual-retrieval-colpali` application module (which itself needs the full ColPali/transformers stack) and patches `vespa.application.Vespa.wait_for_application_up`; these heavy third-party ML/web packages are not available in this environment, and no input can avoid them."
+  }
+ ],
+ "seconds": 23.8,
+ "cost": 0.00057,
+ "kept": [],
+ "reason": "it cannot run here: `main` unconditionally imports `dotenv`, `gradio`, `starlette.testclient`, `torch` and the `visual-retrieval-colpali` application module (which itself needs the full ColPali/transformers stack) and patches `vespa.application.Vespa.wait_for_application_up`; these heavy third-party ML/web packages are not available in this environment, and no input can avoid them."
+}

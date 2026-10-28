@@ -1,0 +1,139 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/input_validation_somatic.py::is_list_of_strings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 27.2,
+   "finish": "stop",
+   "provider": "Baidu",
+   "prompt_tokens": 2455,
+   "completion_tokens": 5055,
+   "reasoning_tokens": 4486,
+   "cost": 0.003169965,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "all-strings-250k",
+     "ok": true,
+     "joules": 2.269293,
+     "seconds": 0.039819720201194286
+    },
+    {
+     "label": "all-strings-120k",
+     "ok": false,
+     "joules": 1.0585719545454553,
+     "seconds": 0.023165266029536724,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-strings-60k",
+     "ok": false,
+     "joules": 0.5608788076923066,
+     "seconds": 0.012982405722141266,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "unicode-strings-120k",
+     "ok": true,
+     "joules": 1.1044751627906926,
+     "seconds": 0.023344910703599453
+    },
+    {
+     "label": "empty-strings-250k",
+     "ok": true,
+     "joules": 2.235371181818168,
+     "seconds": 0.04719547927379608
+    },
+    {
+     "label": "nonstr-at-end-150k",
+     "ok": true,
+     "joules": 1.3330681666666666,
+     "seconds": 0.028494244441390038
+    },
+    {
+     "label": "nonstr-at-mid-120k",
+     "ok": false,
+     "joules": 0.529192359550563,
+     "seconds": 0.01134045422077179,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "bytes-at-end-120k",
+     "ok": false,
+     "joules": 0.9481817045454529,
+     "seconds": 0.02273443527519703,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "tuple",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-list",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 65.8,
+   "coverage": 0.6666666666666666,
+   "missed": [
+    12,
+    16,
+    17
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 33.2
+  }
+ ],
+ "seconds": 99.0,
+ "cost": 0.00317,
+ "kept": [
+  {
+   "label": "all-strings-250k",
+   "mj_per_call": 2269.293,
+   "ms_per_call": 39.82
+  },
+  {
+   "label": "empty-strings-250k",
+   "mj_per_call": 2235.3712,
+   "ms_per_call": 47.195
+  },
+  {
+   "label": "nonstr-at-end-150k",
+   "mj_per_call": 1333.0682,
+   "ms_per_call": 28.494
+  },
+  {
+   "label": "unicode-strings-120k",
+   "mj_per_call": 1104.4752,
+   "ms_per_call": 23.345
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

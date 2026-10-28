@@ -1,0 +1,3 @@
+```python
+CANNOT RUN: `_get_repo_commenters` performs live HTTP requests to the GitHub REST API (`request_with_retry` → `urllib.request.urlopen` on `https://api.github.com/repos/open-telemetry/<repo>/issues/comments`), so every call requires network access to a remote service and credentials/rate limits; no input can avoid that (pre-filling the module cache or pointing the API base at fake data would be a mock, not a real input).
+```

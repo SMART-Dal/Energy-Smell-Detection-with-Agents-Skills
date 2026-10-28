@@ -1,0 +1,1 @@
+CANNOT RUN: `find_executions` iterates over `dxpy.find_executions(**query)` (and may call `dxpy.api.job_describe` / `resolve_existing_path`), all of which make live requests to the DNAnexus API server; there is no input that avoids the network call, and mocking the API is not permitted.

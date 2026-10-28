@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxfile.py::DXFile.__iter__",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 18.3,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 5646,
+   "completion_tokens": 2656,
+   "reasoning_tokens": 2581,
+   "cost": 0.002017058,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `DXFile.__iter__` calls `self.read(self._read_bufsize)` on a remote file handler; `DXFile.read` fetches the file's download URL and data from the DNAnexus API over the network (and needs `describe` for the file length), so no input can make it run without network access."
+  }
+ ],
+ "seconds": 38.9,
+ "cost": 0.00202,
+ "kept": [],
+ "reason": "it cannot run here: `DXFile.__iter__` calls `self.read(self._read_bufsize)` on a remote file handler; `DXFile.read` fetches the file's download URL and data from the DNAnexus API over the network (and needs `describe` for the file length), so no input can make it run without network access."
+}

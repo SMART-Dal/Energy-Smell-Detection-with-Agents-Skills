@@ -1,0 +1,255 @@
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-2.55%
+
+
+=== C3S5-first-pos  src/python/dxpy/utils/resolver.py::get_first_pos_of_char
+  already measured: confirmed
+
+=== C6S2-last-pos  src/python/dxpy/utils/resolver.py::get_last_pos_of_char
+  already measured: confirmed
+
+=== C7S1-split-unescaped  src/python/dxpy/utils/resolver.py::split_unescaped
+  already measured: confirmed
+
+=== C4S7-is-glob  src/python/dxpy/utils/resolver.py::is_glob_pattern
+  already measured: regressed
+
+=== C10S1-escape-folder  src/python/dxpy/utils/resolver.py::escape_folder_str
+  already measured: confirmed
+
+=== C1S4-flatten-subn  src/python/dxpy/utils/pretty_print.py::flatten_json_array
+  already measured: confirmed
+
+=== C10S1-escape-unicode  src/python/dxpy/utils/pretty_print.py::escape_unicode_string
+  already measured: confirmed
+
+=== C6S3-table-first-row  src/python/dxpy/utils/pretty_print.py::format_table
+equivalence
+  empty-with-names ok  (check only)
+  single-cell    ok  (check only)
+  none-and-odd-types ok  (check only)
+  large-12col    ok
+  narrow-truncation ok
+  no-column-names ok
+  many-duplicates ok
+
+sizing
+  large-12col    before   149.2 ms/call  after   150.9 ms/call  ->  7 repeats
+  narrow-truncation before    32.2 ms/call  after    32.7 ms/call  ->  32 repeats
+  no-column-names before    71.3 ms/call  after    72.5 ms/call  ->  15 repeats
+  many-duplicates before    60.9 ms/call  after    61.4 ms/call  ->  17 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-12col      -1.19% +-2.87% energy saved   not significant -0.93% +-2.24% time saved
+  narrow-truncation   +0.04% +-4.99% energy saved   not significant -0.31% +-2.85% time saved
+  no-column-names   -1.42% +-1.50% energy saved   not significant -1.35% +-1.02% time saved
+  many-duplicates   -1.77% +-2.08% energy saved   not significant -1.85% +-2.01% time saved
+
+noise floor  +-2.55% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -1.8% +-2.1% on 'many-duplicates', against a clean 2.5% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C3S2-table-border  src/python/dxpy/utils/pretty_print.py::format_table
+equivalence
+  empty-with-names ok  (check only)
+  single-cell    ok  (check only)
+  none-and-odd-types ok  (check only)
+  large-12col    ok
+  narrow-truncation ok
+  no-column-names ok
+  many-duplicates ok
+
+sizing
+  large-12col    before   150.0 ms/call  after   148.0 ms/call  ->  7 repeats
+  narrow-truncation before    32.8 ms/call  after    31.9 ms/call  ->  32 repeats
+  no-column-names before    72.0 ms/call  after    70.0 ms/call  ->  15 repeats
+  many-duplicates before    62.7 ms/call  after    59.7 ms/call  ->  17 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-12col      -1.80% +-19.79% energy saved   not significant -7.28% +-43.64% time saved
+  narrow-truncation   -0.60% +-5.43% energy saved   not significant +0.32% +-3.54% time saved
+  no-column-names   +1.16% +-5.58% energy saved   not significant +1.73% +-3.00% time saved
+  many-duplicates   +3.71% +-0.64% energy saved   significant     +3.77% +-0.46% time saved
+
+noise floor  +-2.55% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('many-duplicates'; best 3.7% +-0.6% on 'many-duplicates'), and no saving that can be told from noise on the rest: 'large-12col' -1.8% +-19.8% (its pairs disagree too much to tell); 'narrow-truncation' -0.6% +-5.4% (its pairs disagree too much to tell); 'no-column-names' +1.2% +-5.6% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C6S2-edits1-set  src/python/dxpy/utils/spelling_corrector.py::_edits1
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           ok  (check only)
+  word-90        ok
+  word-150       ok
+  word-260       ok
+  word-400-mixed ok
+
+sizing
+  word-90        before     2.0 ms/call  after     1.8 ms/call  ->  551 repeats
+  word-150       before     3.5 ms/call  after     3.5 ms/call  ->  290 repeats
+  word-260       before     8.2 ms/call  after     8.1 ms/call  ->  124 repeats
+  word-400-mixed before    18.2 ms/call  after    18.3 ms/call  ->  55 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  word-90          +0.45% +-1.67% energy saved   not significant +1.39% +-0.91% time saved
+  word-150         -0.33% +-0.11% energy saved   significant     +0.04% +-0.26% time saved
+  word-260         -0.54% +-0.85% energy saved   not significant -0.10% +-0.66% time saved
+  word-400-mixed   +0.88% +-2.04% energy saved   not significant +0.79% +-1.61% time saved
+
+noise floor  +-2.55% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +0.9% +-2.0% on 'word-400-mixed', against a clean 2.5% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C4S7-truncate-guard  src/python/dxpy/dxlog.py::DXLogHandler.truncate_message
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           ok  (check only)
+  control-20k    ok
+  two-byte-20k   ok
+  four-byte-20k  ok
+  mixed-30k      ok
+
+sizing
+  control-20k    before   491.7 ms/call  after   492.0 ms/call  ->  3 repeats
+  two-byte-20k   before   180.9 ms/call  after   180.8 ms/call  ->  6 repeats
+  four-byte-20k  before   153.9 ms/call  after   154.0 ms/call  ->  7 repeats
+  mixed-30k      before   309.4 ms/call  after   309.8 ms/call  ->  4 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  control-20k      +1.74% +-3.33% energy saved   not significant +1.97% +-4.33% time saved
+  two-byte-20k     +3.87% +-14.37% energy saved   not significant +6.04% +-25.70% time saved
+  four-byte-20k    -0.08% +-0.95% energy saved   not significant +0.01% +-0.54% time saved
+  mixed-30k        -1.89% +-6.76% energy saved   not significant -1.21% +-4.39% time saved
+
+noise floor  +-2.55% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +3.9% +-14.4% on 'two-byte-20k', against a clean 2.5% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C3S4-coding-display-index  src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe
+equivalence
+  empty-flat     ok  (check only)
+  empty-hier     ok  (check only)
+  single-flat    ok  (check only)
+  hier-large     ok
+  hier-wide      ok
+  hier-paginated ok
+  hier-no-concepts ok
+
+sizing
+  hier-large     before    31.4 ms/call  after    30.9 ms/call  ->  33 repeats
+  hier-wide      before    30.3 ms/call  after    29.9 ms/call  ->  34 repeats
+  hier-paginated before    22.7 ms/call  after    22.6 ms/call  ->  45 repeats
+  hier-no-concepts before    36.8 ms/call  after    24.0 ms/call  ->  42 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  hier-large       -0.74% +-2.44% energy saved   not significant -0.82% +-2.89% time saved
+  hier-wide        +0.60% +-2.91% energy saved   not significant +0.53% +-2.75% time saved
+  hier-paginated   -1.33% +-2.46% energy saved   not significant -1.12% +-3.11% time saved
+  hier-no-concepts   -0.26% +-2.65% energy saved   not significant -0.14% +-2.11% time saved
+
+noise floor  +-2.55% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -1.3% +-2.5% on 'hier-paginated', against a clean 2.5% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C8S1-final-payload-columns  src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload
+equivalence
+  empty-dict     ok  (check only)
+  none-values    ok  (check only)
+  none-input     ok  (check only)
+  allele-ordered ok
+  allele-unordered ok
+  annotation-ordered ok
+  annotation-unordered ok
+
+sizing
+  allele-ordered before     2.8 ms/call  after     2.7 ms/call  ->  376 repeats
+  allele-unordered before     2.6 ms/call  after     2.5 ms/call  ->  396 repeats
+  annotation-ordered before     3.7 ms/call  after     3.6 ms/call  ->  276 repeats
+  annotation-unordered before     3.2 ms/call  after     3.1 ms/call  ->  320 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  allele-ordered   +1.13% +-7.68% energy saved   not significant +4.26% +-2.41% time saved
+  allele-unordered   +3.70% +-1.68% energy saved   significant     +4.14% +-0.79% time saved
+  annotation-ordered   +2.66% +-4.61% energy saved   not significant +3.09% +-3.83% time saved
+  annotation-unordered   +4.09% +-3.54% energy saved   significant     +4.01% +-3.71% time saved
+
+noise floor  +-2.55% (session calibration)
+
+VERDICT: partial
+  saves energy on 2 of 4 inputs ('allele-unordered', 'annotation-unordered'; best 4.1% +-3.5% on 'annotation-unordered'), and no saving that can be told from noise on the rest: 'allele-ordered' +1.1% +-7.7% (its pairs disagree too much to tell); 'annotation-ordered' +2.7% +-4.6% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C8S1-harmonize-columns  src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_sql
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== C4S6-timedelta-suffix  src/python/dxpy/utils/__init__.py::normalize_timedelta
+  already measured: confirmed
+
+=== C10S4-nextflow-src-join  src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src
+  already measured: confirmed
+
+=== C8S1-versions-manifest  src/python/dxpy/nextflow/nextflow_utils.py::_load_versions_manifest
+  already measured: regressed
+
+=== C7S4-cluster-filter-first  src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== C1S4-range-int-once  src/python/dxpy/bindings/apollo/json_validation_by_schema.py::JSONValidator.are_list_items_within_range
+  already measured: mixed
+
+=== C1S4-listcompleter-rfind  src/python/dxpy/utils/completer.py::ListCompleter.get_matches
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== C1S4-localrefs-bind  src/python/dxpy/utils/local_exec_utils.py::has_local_job_refs
+  already measured: confirmed
+
+=== C10S1-dupkeys-dict  src/python/dxpy/utils/__init__.py::_dict_raise_on_duplicates
+  already measured: confirmed
+
+=== C10S4-glob-translate-join  src/python/dxpy/utils/pathmatch.py::translate
+  already measured: confirmed
+
+=== C3S2-expr-output-set  src/python/dxpy/cli/output_handling.py::write_expression_output
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== C4S6-dxlink-guard  src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== C7S1-cohort-ids-comprehension  src/python/dxpy/cli/dataset_utilities.py::validate_cohort_ids
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== all 26 lines of submissions.jsonl
+  confirmed    C3S5-first-pos: 100.0% +-0.1% energy saved on 'colons-dense', clearing the 3.9% noise floor
+  confirmed    C6S2-last-pos: 83.7% +-2.1% energy saved on 'gapped-escaped', clearing the 3.9% noise floor
+  confirmed    C7S1-split-unescaped: 78.1% +-0.8% energy saved on 'mixed-include-empty', clearing the 3.9% noise floor
+  regressed    C4S7-is-glob: the repair costs more than the code it replaces: 6.3% lost on 'very-dense-mixed-10000', above the 4.5% noise floor, and no case improved
+  confirmed    C10S1-escape-folder: 83.5% +-1.2% energy saved on 'all-specials', clearing the 4.5% noise floor
+  confirmed    C1S4-flatten-subn: 43.5% +-0.3% energy saved on 'deep-inputspec', clearing the 3.9% noise floor
+  confirmed    C10S1-escape-unicode: 88.4% +-0.3% energy saved on 'all-controls', clearing the 3.9% noise floor
+  negligible   C6S3-table-first-row: no case moved more than the noise: the largest reading was -1.8% +-2.1% on 'many-duplicates', against a clean 2.5% floor across 4 cases
+  partial      C3S2-table-border: saves energy on 1 of 4 inputs ('many-duplicates'; best 3.7% +-0.6% on 'many-duplicates'), and no saving that can be told from noise on the rest: 'large-12col' -...
+  negligible   C6S2-edits1-set: no case moved more than the noise: the largest reading was +0.9% +-2.0% on 'word-400-mixed', against a clean 2.5% floor across 4 cases
+  negligible   C4S7-truncate-guard: no case moved more than the noise: the largest reading was +3.9% +-14.4% on 'two-byte-20k', against a clean 2.5% floor across 4 cases
+  negligible   C3S4-coding-display-index: no case moved more than the noise: the largest reading was -1.3% +-2.5% on 'hier-paginated', against a clean 2.5% floor across 4 cases
+  partial      C8S1-final-payload-columns: saves energy on 2 of 4 inputs ('allele-unordered', 'annotation-unordered'; best 4.1% +-3.5% on 'annotation-unordered'), and no saving that can be told from nois...
+  over_limit   C8S1-harmonize-columns: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  confirmed    C4S6-timedelta-suffix: 53.3% +-0.5% energy saved on 'suffix-d', clearing the 3.9% noise floor
+  confirmed    C10S4-nextflow-src-join: 9.1% +-2.4% energy saved on 'files-200', clearing the 3.9% noise floor
+  regressed    C8S1-versions-manifest: the repair costs more than the code it replaces: 250.8% lost on 'many-minimal', above the 3.9% noise floor, and no case improved
+  over_limit   C7S4-cluster-filter-first: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  mixed        C1S4-range-int-once: a trade-off, not a fix: 32.3% saved on 'string-values-80k' but 14.8% lost on 'each-separately-over-window', both clearing the 3.9% noise floor
+  over_limit   C1S4-listcompleter-rfind: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  confirmed    C1S4-localrefs-bind: 9.6% +-1.1% energy saved on 'deep-tree', clearing the 3.9% noise floor
+  confirmed    C10S1-dupkeys-dict: 38.7% +-0.3% energy saved on 'nested-tuples-50k', clearing the 3.9% noise floor
+  confirmed    C10S4-glob-translate-join: 23.5% +-5.3% energy saved on 'many-questions', clearing the 3.9% noise floor
+  over_limit   C3S2-expr-output-set: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   C4S6-dxlink-guard: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+  over_limit   C7S1-cohort-ids-comprehension: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+
+20 of this session's 20 places hold a repair with a verdict.

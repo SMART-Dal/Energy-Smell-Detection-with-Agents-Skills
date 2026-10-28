@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/scripts/dx.py::generate_batch_inputs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.7,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 6352,
+   "completion_tokens": 291,
+   "reasoning_tokens": 228,
+   "cost": 0.000785534,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `generate_batch_inputs` resolves a project/folder path and then calls `dxpy.api.system_generate_batch_inputs`, which issues an HTTP request to the DNAnexus platform API; the batch results it processes exist only in that server response, so no input can avoid the network call."
+  }
+ ],
+ "seconds": 10.2,
+ "cost": 0.00079,
+ "kept": [],
+ "reason": "it cannot run here: `generate_batch_inputs` resolves a project/folder path and then calls `dxpy.api.system_generate_batch_inputs`, which issues an HTTP request to the DNAnexus platform API; the batch results it processes exist only in that server response, so no input can avoid the network call."
+}

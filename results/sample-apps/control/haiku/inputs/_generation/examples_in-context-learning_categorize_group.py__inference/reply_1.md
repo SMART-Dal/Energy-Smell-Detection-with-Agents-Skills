@@ -1,0 +1,1 @@
+CANNOT RUN: `inference` begins by posting a query to a Vespa search server at `http://localhost:8080/search/`; it needs a running Vespa instance (with configured embedders/rank profiles) and network access, so no input can make it run here.

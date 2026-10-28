@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxglobalworkflow.py::DXGlobalWorkflow.describe_underlying_workflow",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.0,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 4570,
+   "completion_tokens": 321,
+   "reasoning_tokens": 261,
+   "cost": 0.000341022,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `describe_underlying_workflow` obtains its result by calling `self.describe()` and `dxpy.DXWorkflow(...).describe()`, which issue authenticated HTTP requests to the DNAnexus platform API; there is no input that avoids this network access."
+  }
+ ],
+ "seconds": 12.4,
+ "cost": 0.00034,
+ "kept": [],
+ "reason": "it cannot run here: `describe_underlying_workflow` obtains its result by calling `self.describe()` and `dxpy.DXWorkflow(...).describe()`, which issue authenticated HTTP requests to the DNAnexus platform API; there is no input that avoids this network access."
+}

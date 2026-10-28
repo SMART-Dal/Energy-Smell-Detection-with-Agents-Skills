@@ -1,0 +1,5 @@
+{"id": "C3S2-output-colset", "root_cause": "C3.S2", "repo": "/home/javad/energy-run/dx-toolkit",
+ "unit": "src/python/dxpy/cli/output_handling.py::write_expression_output",
+ "edits": [["        if not all(\n            set(i.keys()) == set(COLUMN_NAMES) for i in output_listdict_or_string\n        ):", "        column_set = set(COLUMN_NAMES)\n        if not all(\n            set(i.keys()) == column_set for i in output_listdict_or_string\n        ):", 1]],
+ "evidence": "write_expression_output is called from the extract commands in cli/dataset_utilities.py; COLUMN_NAMES is bound once above this check and not rebound or mutated before the rows are written, so the set built once holds the same members as the per-row sets did.",
+ "notes": "C3.S2. set(COLUMN_NAMES) was rebuilt inside the per-row generator for every row; it is now built once before the check. The comparison and the error_handler outcome are unchanged."}

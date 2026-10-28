@@ -1,0 +1,1 @@
+CANNOT RUN: `_verify_review_candidates` calls `request_with_retry`, which performs live `urllib.request.urlopen` HTTP GETs to `https://api.github.com` for each candidate PR; its work begins with a network request and no input can avoid that.

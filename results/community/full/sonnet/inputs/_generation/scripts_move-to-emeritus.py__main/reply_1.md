@@ -1,0 +1,1 @@
+CANNOT RUN: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API via `request_with_retry`/`paginate_rest`; its work begins with network requests that cannot be avoided or satisfied offline.

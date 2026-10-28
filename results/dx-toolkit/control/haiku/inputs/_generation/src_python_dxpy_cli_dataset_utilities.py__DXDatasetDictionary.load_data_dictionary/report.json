@@ -1,0 +1,105 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 60.5,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 6449,
+   "completion_tokens": 15599,
+   "reasoning_tokens": 15599,
+   "cost": 0.005344052,
+   "retried": []
+  },
+  {
+   "seconds": 10.6,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 21691,
+   "completion_tokens": 4005,
+   "reasoning_tokens": 3020,
+   "cost": 0.002983612,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "no ```python block in the reply"
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "many-entities",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "many-fields",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "large",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "many-joins",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "diverse-types",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "primary-key-variation",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    },
+    {
+     "label": "max",
+     "ok": false,
+     "why": "the original raises TypeError: list indices must be integers or slices, not dict"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "zero-fields",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "one-field",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 6.5,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 78.0,
+ "cost": 0.00833,
+ "kept": [],
+ "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: the original raises TypeError: list indices must be integers or slices, not dict)"
+}

@@ -1,0 +1,183 @@
+{
+ "run_id": "community.full.haiku",
+ "repo": "community",
+ "repo_commit": "910f85d6cf0a6a0417f3c4d1e4d03addf04a4ceb",
+ "arm": "full",
+ "model": "claude-haiku-5-5",
+ "effort": "high",
+ "auth": "subscription",
+ "status": "done",
+ "agent_exit": 0,
+ "agent_seconds": 756,
+ "review_seconds": 222,
+ "started": "2026-10-28T08:03:30-03:00",
+ "exp_mode_at_end": "0",
+ "project_commit": "024f75f6c0fd40fc7554fd66c487094b055534b9",
+ "project_uncommitted_files": 0,
+ "claude_version": "2.1.312 (Claude Code)",
+ "exp": "/home/javad/energy-exp",
+ "run": "/home/javad/energy-run",
+ "project": "/home/javad/Energy-Smell-Detection-with-Agents-Skills",
+ "usage": {
+  "result": "success",
+  "is_error": [
+   false
+  ],
+  "api_error_status": [
+   null
+  ],
+  "terminal_reason": [
+   "completed"
+  ],
+  "num_turns": [
+   48
+  ],
+  "duration_ms": [
+   753990
+  ],
+  "duration_api_ms": 431839,
+  "cost_usd_estimate": 0.67919511,
+  "model_usage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 84,
+    "outputTokens": 97036,
+    "cacheReadInputTokens": 6363191,
+    "cacheCreationInputTokens": 227838,
+    "webSearchRequests": 0,
+    "costUSD": 0.67919511,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 71559,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 227838,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  }
+ },
+ "tool_calls": 46,
+ "tools_used": {
+  "Skill": 1,
+  "Bash": 42,
+  "Write": 2,
+  "Monitor": 1
+ },
+ "subagent_tool_calls": 0,
+ "subagent_tools_used": {},
+ "energy_api_calls": 0,
+ "findings_lines": 49,
+ "submissions": 14,
+ "agent_verdicts": {
+  "partial": 2,
+  "regressed": 1,
+  "mixed": 1,
+  "no_inputs": 9,
+  "confirmed": 1
+ },
+ "our_verdicts": {
+  "confirmed": 3,
+  "negligible": 1,
+  "mixed": 1,
+  "no_inputs": 9
+ },
+ "repo_changes": [],
+ "leak_audit": {},
+ "protocol": {
+  "units_examined": 18,
+  "suspicions": 20,
+  "decisions": 20,
+  "accepted": 14,
+  "decided_without_card": [
+   "C10.S3",
+   "C3.S5",
+   "C5.S2",
+   "C8.S2",
+   "C8.S4",
+   "C9.S1",
+   "C9.S2",
+   "C9.S3"
+  ],
+  "root_cause_cards_cut_short": [],
+  "units_not_found": [],
+  "category_cards_opened": [],
+  "root_cause_cards_opened": [
+   "C1.S1",
+   "C1.S4",
+   "C3.S1",
+   "C3.S2"
+  ],
+  "index_read": true,
+  "unit_rankings": 0,
+  "rule_scans": 2,
+  "invalid_root_cause_ids": [],
+  "keys_off_schema": [],
+  "flags": [
+   "decided_without_their_card"
+  ],
+  "blocked_unrequested": []
+ },
+ "rules_overlap": {
+  "units_rules_flag": 17,
+  "units_listed": 18,
+  "units_listed_and_flagged": 10,
+  "accepted": 14,
+  "accepted_unit_flagged": 9,
+  "accepted_lines_flagged": 5,
+  "accepted_root_cause_named": 4
+ },
+ "environment": {
+  "tmp_created": [
+   "/tmp/energy-work"
+  ]
+ },
+ "inputs": {
+  "requested": 13,
+  "ready": 4,
+  "failed": {
+   "scripts/move-to-emeritus.py::_get_repo_commenters": "it cannot run here: `_get_repo_commenters` fetches GitHub issue comments over HTTP via `request_with_retry`/`urllib.request.urlopen`; any real workload requires network access to `https://api.github.com`, and no input can avoid that (a cache hit would skip the function's work entirely).",
+   "scripts/move-to-emeritus.py::_verify_review_candidates": "it cannot run here: `_verify_review_candidates` calls `request_with_retry`, which performs live `urllib.request.urlopen` HTTP GETs to `https://api.github.com` for each candidate PR; its work begins with a network request and no input can avoid that.",
+   "scripts/move-to-emeritus.py::_get_repo_events": "it cannot run here: `_get_repo_events` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` before doing any other work, which requires network access and GitHub credentials/rate limits that are unavailable here; no input can avoid the request.",
+   "scripts/move-to-emeritus.py::main": "it cannot run here: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API (`paginate_rest`, `request_with_retry`), so it needs network access and credentials that are unavailable here, and no input can avoid those requests.",
+   "scripts/gc-elections/generate-voters-roll.py::get_github_login": "it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get` (plus a `time.sleep`), so it needs network access that is unavailable here and no input can avoid it.",
+   "scripts/baremetal-runner-report.py::collect_jobs": "it cannot run here: collect_jobs fetches every workflow run and job through gh_paginated, which shells out to `gh api --paginate` against the GitHub API \u2014 it needs network access and the gh CLI, and that request is the first thing the function does for each workflow.",
+   "scripts/move-to-emeritus.py::_check_reviews": "it cannot run here: `_check_reviews` performs live GitHub API calls \u2014 it starts with a `request_with_retry(\"POST\", GRAPHQL_API, ...)` GraphQL request and then REST requests to `api.github.com`, requiring network access and credentials that are unavailable here; no input can avoid this, and mocking the HTTP layer is not allowed.",
+   "scripts/move-to-emeritus.py::check_maintainer_activity": "it cannot run here: `check_maintainer_activity` always starts by calling `_check_comments`/`_get_repo_commenters`, `_check_reviews` (GraphQL `request_with_retry` to `https://api.github.com/graphql`) and `_get_repo_events`, all of which make live GitHub API requests; there is no input that avoids network access, and mocking the HTTP layer is not allowed.",
+   "scripts/move-to-emeritus.py::create_emeritus_prs": "it cannot run here: every non-empty `inactive_report` makes the function start with `fetch_readme(repo)`, an HTTP request to `https://api.github.com`, and it continues with `_get_fork_owner`, `_get_default_branch_sha`, `_ensure_fork`, `_update_file` and `_create_pr` \u2014 all network calls to GitHub that need credentials; no input can avoid this since the work is driven by the report contents."
+  },
+  "cached": 3,
+  "cost_usd": 0.0205,
+  "seconds_max": 49.3,
+  "agent_copy_differs": []
+ },
+ "record": {
+  "steps_done": [
+   1,
+   2,
+   3
+  ],
+  "step_done_at_s": {
+   "1": 159,
+   "2": 296,
+   "3": 730
+  },
+  "written_early": [],
+  "changed_after_done": [],
+  "submissions_removed": [],
+  "repairs_measured": 14,
+  "card_reads_refused": 0
+ },
+ "scan": {
+  "comparisons": 2,
+  "first_at_s": 121,
+  "listed_at_first": 13,
+  "last_flagged_not_listed": 7,
+  "last_flagged_unsuspected": 6,
+  "last_agrees": 5,
+  "units_added": 5,
+  "suspicions_added": 5,
+  "accepted": 4,
+  "confirmed": 1,
+  "done1_refused": 0
+ }
+}

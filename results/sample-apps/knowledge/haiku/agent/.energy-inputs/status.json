@@ -1,0 +1,176 @@
+{
+ "units": {
+  "feed-split.py::split_text": {
+   "state": "ready",
+   "file": "feed-split.py__split_text.py",
+   "attempts": 1
+  },
+  "colbert-long/scripts/convert.py::remove_control_characters": {
+   "state": "ready",
+   "file": "colbert-long_scripts_convert.py__remove_control_characters.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::process_docs": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__process_docs.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::count_terms": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__count_terms.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::write_json_file": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__write_json_file.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/accepted_words.py::process_docs": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_accepted_words.py__process_docs.py",
+   "attempts": 1
+  },
+  "text-video-search/src/python/embedding.py::sample_images": {
+   "state": "ready",
+   "file": "text-video-search_src_python_embedding.py__sample_images.py",
+   "attempts": 1
+  },
+  "news/src/python/evaluate.py::predictions": {
+   "state": "ready",
+   "file": "news_src_python_evaluate.py__predictions.py",
+   "attempts": 1
+  },
+  "news/src/python/create_bert_embeddings.py::write_embedding": {
+   "state": "ready",
+   "file": "news_src_python_create_bert_embeddings.py__write_embedding.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding": {
+   "state": "ready",
+   "file": "visual-retrieval-colpali_prepare_feed_deploy.py__float_to_binary_embedding.py",
+   "attempts": 1
+  },
+  "text-search/python/sample-queries-and-documents.py::select_documents": {
+   "state": "ready",
+   "file": "text-search_python_sample-queries-and-documents.py__select_documents.py",
+   "attempts": 1
+  },
+  "use-case-shopping/create_suggestions.py::filter_content": {
+   "state": "ready",
+   "file": "use-case-shopping_create_suggestions.py__filter_content.py",
+   "attempts": 1
+  },
+  "rag-blueprint/eval/train_logistic_regression.py::perform_cross_validation": {
+   "state": "ready",
+   "file": "rag-blueprint_eval_train_logistic_regression.py__perform_cross_validation.py",
+   "attempts": 1
+  },
+  "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__init__": {
+   "state": "ready",
+   "file": "examples_embedder-auto-training-evaluation_training-evaluation_train.py__TrainDataset.__init__.py",
+   "attempts": 1
+  },
+  "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__getitem__": {
+   "state": "failed",
+   "reason": "it cannot run here: every call of `TrainDataset.__getitem__` returns a `sentence_transformers.InputExample`, so the function always needs the real `sentence_transformers` library, which is not available in this environment; no input can avoid it.",
+   "attempts": 1
+  },
+  "feed-split.py::what_language": {
+   "state": "ready",
+   "file": "feed-split.py__what_language.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.should_filter_token": {
+   "state": "failed",
+   "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "attempts": 1
+  },
+  "multilingual-search/ext/evaluate.py::search": {
+   "state": "failed",
+   "reason": "it cannot run here: `search` performs an HTTP POST to `args.endpoint` via `requests.Session`, requiring a live Vespa endpoint; no input can avoid the network request.",
+   "attempts": 1
+  },
+  "text-search/python/collect_training_data.py::build_dataset": {
+   "state": "failed",
+   "reason": "it cannot run here: `build_dataset` calls `get_features`, which performs `requests.post(url, json=body)` against a Vespa server; every measured call would need network access to a live search endpoint, which is unavailable here.",
+   "attempts": 1
+  },
+  "text-search/python/extract-msmarco.py::extract_documents": {
+   "state": "ready",
+   "file": "text-search_python_extract-msmarco.py__extract_documents.py",
+   "attempts": 1
+  },
+  "news/src/python/train_cold_start.py::read_bert_embeddings": {
+   "state": "ready",
+   "file": "news_src_python_train_cold_start.py__read_bert_embeddings.py",
+   "attempts": 1
+  },
+  "news/src/python/mind_data.py::MindData.add_impressions": {
+   "state": "ready",
+   "file": "news_src_python_mind_data.py__MindData.add_impressions.py",
+   "attempts": 1
+  },
+  "news/src/python/mind_data.py::MindData.read_data": {
+   "state": "ready",
+   "file": "news_src_python_mind_data.py__MindData.read_data.py",
+   "attempts": 1
+  },
+  "examples/workshop-ecommerce/preprocess.py::process_users": {
+   "state": "ready",
+   "file": "examples_workshop-ecommerce_preprocess.py__process_users.py",
+   "attempts": 1
+  },
+  "examples/workshop-ecommerce/preprocess.py::process_products": {
+   "state": "ready",
+   "file": "examples_workshop-ecommerce_preprocess.py__process_products.py",
+   "attempts": 1
+  },
+  "examples/workshop-ecommerce/preprocess.py::process_orders": {
+   "state": "ready",
+   "file": "examples_workshop-ecommerce_preprocess.py__process_orders.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor": {
+   "state": "failed",
+   "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps": {
+   "state": "failed",
+   "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "attempts": 1
+  },
+  "use-case-shopping/create_suggestions.py::filter": {
+   "state": "ready",
+   "file": "use-case-shopping_create_suggestions.py__filter.py",
+   "attempts": 1
+  },
+  "news/src/python/create_bert_embeddings.py::create_embeddings": {
+   "state": "failed",
+   "reason": "it cannot run here: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8-H-512_A-8')`, which download pretrained weights from the HuggingFace Hub over the network; there is no local model directory available and no input can avoid that request.",
+   "attempts": 1
+  },
+  "text-search/python/extract-msmarco.py::load_msmarco_queries": {
+   "state": "ready",
+   "file": "text-search_python_extract-msmarco.py__load_msmarco_queries.py",
+   "attempts": 1
+  },
+  "text-video-search/src/python/embedding.py::extract_images": {
+   "state": "ready",
+   "file": "text-video-search_src_python_embedding.py__extract_images.py",
+   "attempts": 1
+  },
+  "examples/in-context-learning/categorize_group.py::inference": {
+   "state": "failed",
+   "reason": "it cannot run here: `inference` performs an HTTP POST to a Vespa server at `http://localhost:8080/search/`, which needs a running Vespa instance and network access that is not available here.",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 25,
+  "max_holding": 30,
+  "failed": 8,
+  "max_failed": 30
+ },
+ "updated": 1793142981.3132653
+}

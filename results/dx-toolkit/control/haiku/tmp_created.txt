@@ -1,0 +1,5 @@
+/tmp/allpy.txt
+/tmp/covered.txt
+/tmp/cov_sorted.txt
+/tmp/s2
+/tmp/s3

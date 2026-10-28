@@ -1,0 +1,1 @@
+CANNOT RUN: `get_codings` does its work by issuing an HTTP request to the DNAnexus API server through `dxpy.DXHTTPRequest` (via `viz_meta_codings_page`), so it needs network access and credentials; the only way to give it inputs here would be to replace that request with canned responses, which the rules forbid (no mocks/monkeypatching, no fake servers).

@@ -1,0 +1,221 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 41.4,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 7633,
+   "completion_tokens": 11196,
+   "reasoning_tokens": 9605,
+   "cost": 0.00613231,
+   "retried": []
+  },
+  {
+   "seconds": 4.4,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 9443,
+   "completion_tokens": 1694,
+   "reasoning_tokens": 57,
+   "cost": 0.001039786,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "hier-large",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    },
+    {
+     "label": "hier-wide",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    },
+    {
+     "label": "hier-deep",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    },
+    {
+     "label": "hier-paginated",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    },
+    {
+     "label": "hier-no-concepts",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    },
+    {
+     "label": "flat-large",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    },
+    {
+     "label": "flat-with-display",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    },
+    {
+     "label": "flat-paginated",
+     "ok": false,
+     "why": "the original raises NameError: name 'pd' is not defined"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-flat",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-hier",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "single-flat",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 80.5,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 72.6
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "hier-large",
+     "ok": true,
+     "joules": 2.6367090869565217,
+     "seconds": 0.04455337021499872
+    },
+    {
+     "label": "hier-wide",
+     "ok": true,
+     "joules": 2.576915,
+     "seconds": 0.044844385236501694
+    },
+    {
+     "label": "hier-deep",
+     "ok": false,
+     "joules": 1.2368105744680846,
+     "seconds": 0.021592854522168636,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "hier-paginated",
+     "ok": true,
+     "joules": 1.8709728387096756,
+     "seconds": 0.03227734938263893
+    },
+    {
+     "label": "hier-no-concepts",
+     "ok": true,
+     "joules": 1.965371266666663,
+     "seconds": 0.033813273534178734
+    },
+    {
+     "label": "flat-large",
+     "ok": false,
+     "joules": 1.1570808999999997,
+     "seconds": 0.025078939273953438,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "flat-with-display",
+     "ok": false,
+     "joules": 1.1597538780487822,
+     "seconds": 0.024600382894277573,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "flat-paginated",
+     "ok": false,
+     "joules": 0.8038245862068976,
+     "seconds": 0.017258486710488796,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-flat",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-hier",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "single-flat",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 60.4,
+   "coverage": 0.8333333333333334,
+   "missed": [
+    2249,
+    2285,
+    2286,
+    2287,
+    2314
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 35.1
+  }
+ ],
+ "seconds": 646.9,
+ "cost": 0.00717,
+ "kept": [
+  {
+   "label": "hier-large",
+   "mj_per_call": 2636.7091,
+   "ms_per_call": 44.553
+  },
+  {
+   "label": "hier-wide",
+   "mj_per_call": 2576.915,
+   "ms_per_call": 44.844
+  },
+  {
+   "label": "hier-no-concepts",
+   "mj_per_call": 1965.3713,
+   "ms_per_call": 33.813
+  },
+  {
+   "label": "hier-paginated",
+   "mj_per_call": 1870.9728,
+   "ms_per_call": 32.277
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,27 @@
+{"unit": "src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::parse_input_keyval", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/pretty_print.py::format_table", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/pretty_print.py::flatten_json_array", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/pretty_print.py::escape_unicode_string", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::split_unescaped", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::get_first_pos_of_char", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_results", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.1, "reason": null}
+{"unit": "src/python/dxpy/dxlog.py::DXLogHandler.truncate_message", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/resolver.py::get_last_pos_of_char", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/nextflow/nextflow_utils.py::_load_versions_manifest", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/utils/spelling_corrector.py::correct", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec", "cached": true, "ready": true, "cost": 0.0, "seconds": 0.0, "reason": null}
+{"unit": "src/python/dxpy/cli/output_handling.py::write_expression_output", "cached": false, "ready": false, "seconds": 91.0, "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe"}
+{"unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::_harmonize_sql_select_named_expression", "cached": false, "ready": true, "cost": 0.0068, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 148.6, "reason": null}
+{"unit": "src/python/dxpy/bindings/dxworkflow.py::DXWorkflow._get_stage_id", "cached": false, "ready": false, "cost": 0.03636, "rounds": 2, "calls": 2, "timeouts": 0, "seconds": 153.3, "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: DXError: This DXWorkflow handler has not been initialized with a workflow ID and cannot be described)"}
+{"unit": "src/python/dxpy/dx_extract_utils/germline_utils.py::filter_results", "cached": false, "ready": true, "cost": 0.00306, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 201.4, "reason": null}
+{"unit": "src/python/dxpy/bindings/apollo/data_transformations.py::transform_to_expression_matrix", "cached": false, "ready": true, "cost": 0.00227, "rounds": 1, "calls": 1, "timeouts": 0, "seconds": 215.6, "reason": null}
+{"unit": "src/python/dxpy/cli/output_handling.py::write_expression_output", "cached": false, "ready": false, "seconds": 77.2, "reason": "the generator failed: BrokenPipeError: [Errno 32] Broken pipe"}
+{"unit": "src/python/dxpy/cli/exec_io.py::ExecutableInputs.add", "cached": false, "ready": true, "cost": 0.01366, "rounds": 2, "calls": 2, "timeouts": 0, "seconds": 226.1, "reason": null}

@@ -1,0 +1,140 @@
+{
+ "unit": "src/python/dxpy/utils/config.py::DXConfig.get_session_conf_dir",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 18.0,
+   "finish": "stop",
+   "provider": "Together",
+   "prompt_tokens": 4849,
+   "completion_tokens": 7685,
+   "reasoning_tokens": 6226,
+   "cost": 0.0106767,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "cleanup-500-dead",
+     "ok": true,
+     "joules": 0.9517788750000001,
+     "seconds": 0.12887821719050407
+    },
+    {
+     "label": "cleanup-mixed-names",
+     "ok": true,
+     "joules": 0.5679569090909188,
+     "seconds": 0.09646385442465544
+    },
+    {
+     "label": "cleanup-missing-dir",
+     "ok": false,
+     "joules": 0.12350562068965554,
+     "seconds": 0.0028779832646250725,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-cleanup-parent-hit",
+     "ok": false,
+     "seconds": 0.0008172458037734032,
+     "why": "each of the 2,448 calls in a window gets fresh arguments, and building them would take about 311.1s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "no-cleanup-grandparent-hit",
+     "ok": false,
+     "joules": 0.05048147607934691,
+     "seconds": 0.0011677257716655731,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-cleanup-no-dir",
+     "ok": false,
+     "joules": 0.12208737234042463,
+     "seconds": 0.002661767415702343,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "cleanup-alive-plus-dead",
+     "ok": true,
+     "joules": 0.2473962666666921,
+     "seconds": 0.06680219620466232
+    },
+    {
+     "label": "cleanup-deep-trees",
+     "ok": true,
+     "joules": 1.1425081428572281,
+     "seconds": 0.15019863191992044
+    }
+   ],
+   "checks": [
+    {
+     "label": "no-sessions-dir",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-sessions-dir",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "non-integer-entry",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 133.6,
+   "coverage": 0.7777777777777778,
+   "missed": [
+    186,
+    199,
+    210,
+    211,
+    213,
+    214
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 82.3
+  }
+ ],
+ "seconds": 156.8,
+ "cost": 0.01068,
+ "kept": [
+  {
+   "label": "cleanup-deep-trees",
+   "mj_per_call": 1142.5081,
+   "ms_per_call": 150.199
+  },
+  {
+   "label": "cleanup-500-dead",
+   "mj_per_call": 951.7789,
+   "ms_per_call": 128.878
+  },
+  {
+   "label": "cleanup-mixed-names",
+   "mj_per_call": 567.9569,
+   "ms_per_call": 96.464
+  },
+  {
+   "label": "cleanup-alive-plus-dead",
+   "mj_per_call": 247.3963,
+   "ms_per_call": 66.802
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

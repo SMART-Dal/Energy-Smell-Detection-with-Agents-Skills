@@ -1,0 +1,22 @@
+C3S4-process-docs-docs-in-loop partial         not applied: partial
+C1S1-process-docs-dead-total negligible      not applied: negligible
+C10S1-count-terms-isdisjoint confirmed       APPLIED
+C1S4-count-terms-window-once confirmed       not applied: changes the same function as C10S1-count-terms-isdisjoint
+C10S2-write-json-replace confirmed       APPLIED
+C10S3-accepted-process-update confirmed       APPLIED
+C10S3-accepted-write-join partial         not applied: partial
+C5S3-bert-float32-buffer confirmed       APPLIED
+C1S5-read-data-no-timestamp confirmed       APPLIED
+C6S2-sample-images-copy-kept confirmed       APPLIED
+C10S1-remove-control-fast-path partial         not applied: partial
+C10S4-split-text-parts-list negligible      not applied: negligible
+C9S1-extract-docs-running-offset partial         not applied: partial
+C10S2-convert-main-one-write confirmed       APPLIED
+C3S2-select-documents-min-hoist regressed       not applied: regressed
+C3S1-products-records  confirmed       APPLIED
+C3S1-users-purchases-records confirmed       APPLIED
+C3S1-orders-records-new regressed       not applied: regressed
+C10S3-prepare-binary-packbits-bool confirmed       APPLIED
+C10S3-vespa-binary-packbits-bool confirmed       APPLIED
+
+wrote /home/javad/energy-exp/archive/sample-apps/full/haiku/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/full/haiku/review/REPORT.md

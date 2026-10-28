@@ -1,0 +1,9 @@
+C3S2-validate-hoist-sets mixed           not applied: mixed
+C1S1-validate-dead-parent-kind partial         not applied: partial
+C10S4-render-group-join negligible      not applied: negligible
+C1S4-sync-mentions-once partial         not applied: partial
+C10S2-add-emeritus-startswith confirmed       APPLIED
+C1S4-add-emeritus-one-pass confirmed       not applied: changes the same function as C10S2-add-emeritus-startswit
+C3S5-check-events-early-exit mixed           not applied: mixed
+
+wrote /home/javad/energy-exp/archive/community/knowledge/haiku/review/results.jsonl and /home/javad/energy-exp/archive/community/knowledge/haiku/review/REPORT.md

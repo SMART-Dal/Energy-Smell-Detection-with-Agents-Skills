@@ -1,0 +1,135 @@
+{
+ "unit": "news/src/python/train_mf.py::write_embeddings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 18.4,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2881,
+   "completion_tokens": 6736,
+   "reasoning_tokens": 5993,
+   "cost": 0.00492579,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "news-typical",
+     "ok": false,
+     "joules": 2.7507747142857144,
+     "seconds": 0.048193284310400486,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "users-large",
+     "ok": true,
+     "joules": 3.250052733333333,
+     "seconds": 0.0682962341234088
+    },
+    {
+     "label": "small-dim",
+     "ok": true,
+     "joules": 3.4375922307692295,
+     "seconds": 0.07827554550021887
+    },
+    {
+     "label": "large-dim",
+     "ok": false,
+     "joules": 2.472101947368422,
+     "seconds": 0.0555241284891963,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "int-ids",
+     "ok": false,
+     "joules": 3.0830549333333312,
+     "seconds": 0.0708754863590002,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "shuffled-indices",
+     "ok": false,
+     "joules": 3.071769066666669,
+     "seconds": 0.07023188099265099,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "sparse-indices",
+     "ok": true,
+     "joules": 3.7517833333333215,
+     "seconds": 0.08587752003222704
+    },
+    {
+     "label": "duplicate-indices",
+     "ok": true,
+     "joules": 4.525441899999987,
+     "seconds": 0.10696219746023417
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "numpy-array",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 36.0,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 11.8
+  }
+ ],
+ "seconds": 55.1,
+ "cost": 0.00493,
+ "kept": [
+  {
+   "label": "duplicate-indices",
+   "mj_per_call": 4525.4419,
+   "ms_per_call": 106.962
+  },
+  {
+   "label": "sparse-indices",
+   "mj_per_call": 3751.7833,
+   "ms_per_call": 85.878
+  },
+  {
+   "label": "small-dim",
+   "mj_per_call": 3437.5922,
+   "ms_per_call": 78.276
+  },
+  {
+   "label": "users-large",
+   "mj_per_call": 3250.0527,
+   "ms_per_call": 68.296
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

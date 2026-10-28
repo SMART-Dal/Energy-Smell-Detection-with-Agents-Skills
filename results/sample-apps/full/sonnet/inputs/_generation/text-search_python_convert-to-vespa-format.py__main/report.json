@@ -1,0 +1,138 @@
+{
+ "unit": "text-search/python/convert-to-vespa-format.py::main",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 147.6,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2388,
+   "completion_tokens": 22731,
+   "reasoning_tokens": 20848,
+   "cost": 0.013726484,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical",
+     "ok": false,
+     "joules": 8.672717875,
+     "seconds": 0.1308845765888691,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large",
+     "ok": true,
+     "joules": 18.480285999999996,
+     "seconds": 0.34763955045491457
+    },
+    {
+     "label": "long-body",
+     "ok": false,
+     "joules": 4.596321363636367,
+     "seconds": 0.09277800749987364,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-fields",
+     "ok": false,
+     "joules": 10.284192166666648,
+     "seconds": 0.18229019828140736,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "with-skips",
+     "ok": false,
+     "joules": 9.648912000000019,
+     "seconds": 0.21126430574804544,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "tiny-lines",
+     "ok": true,
+     "joules": 31.14164649999998,
+     "seconds": 0.6755212927237153
+    },
+    {
+     "label": "long-titles",
+     "ok": true,
+     "joules": 12.156254499999989,
+     "seconds": 0.2654041973873973
+    },
+    {
+     "label": "single-field",
+     "ok": true,
+     "joules": 35.22848699999997,
+     "seconds": 0.7871658401563764
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "one-doc",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "offset-past-eof",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 52.9,
+   "coverage": 0.9047619047619048,
+   "missed": [
+    51,
+    53
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 13.3
+  }
+ ],
+ "seconds": 202.9,
+ "cost": 0.01373,
+ "kept": [
+  {
+   "label": "single-field",
+   "mj_per_call": 35228.487,
+   "ms_per_call": 787.166
+  },
+  {
+   "label": "tiny-lines",
+   "mj_per_call": 31141.6465,
+   "ms_per_call": 675.521
+  },
+  {
+   "label": "large",
+   "mj_per_call": 18480.286,
+   "ms_per_call": 347.64
+  },
+  {
+   "label": "long-titles",
+   "mj_per_call": 12156.2545,
+   "ms_per_call": 265.404
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

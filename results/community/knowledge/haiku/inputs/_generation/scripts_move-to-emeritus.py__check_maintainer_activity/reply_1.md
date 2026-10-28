@@ -1,0 +1,1 @@
+CANNOT RUN: `check_maintainer_activity` performs its work by calling the GitHub API over the network — `_check_comments`/`_get_repo_commenters` (REST), `_check_reviews` (GraphQL `POST` to `https://api.github.com/graphql`), and `_check_events`/`_get_repo_events` (REST) — so any non-empty input requires live network access and credentials, which cannot be provided or faked here.

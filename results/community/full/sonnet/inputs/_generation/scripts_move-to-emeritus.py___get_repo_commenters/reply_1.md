@@ -1,0 +1,1 @@
+CANNOT RUN: `_get_repo_commenters` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` (and follows pagination links), needing network access and GitHub credentials; no input can avoid that and mocking the request machinery is not allowed.

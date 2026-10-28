@@ -1,0 +1,135 @@
+{
+ "unit": "scripts/update-community-members.py::render_tc",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 58.7,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2246,
+   "completion_tokens": 9681,
+   "reasoning_tokens": 8725,
+   "cost": 0.005869698,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical",
+     "ok": false,
+     "joules": 0.32373343046357617,
+     "seconds": 0.006664500571787357,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large",
+     "ok": true,
+     "joules": 4.292597199999989,
+     "seconds": 0.107697032392025
+    },
+    {
+     "label": "many-missing",
+     "ok": false,
+     "joules": 1.7861506296296317,
+     "seconds": 0.03707864787429571,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-names",
+     "ok": false,
+     "joules": 1.2488532972972919,
+     "seconds": 0.027686115354299545,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicates",
+     "ok": true,
+     "joules": 2.064379047619046,
+     "seconds": 0.04779517091810703
+    },
+    {
+     "label": "long-prefixes",
+     "ok": true,
+     "joules": 1.9264300000000019,
+     "seconds": 0.0443564523011446
+    },
+    {
+     "label": "unicode-names",
+     "ok": true,
+     "joules": 2.1146872499999745,
+     "seconds": 0.06267809215933084
+    },
+    {
+     "label": "sparse-companies",
+     "ok": false,
+     "joules": 1.874174090909078,
+     "seconds": 0.047136091627180576,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "no-teams-key",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-tc",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "tc-none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 130.7,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 100.6
+  }
+ ],
+ "seconds": 190.7,
+ "cost": 0.00587,
+ "kept": [
+  {
+   "label": "large",
+   "mj_per_call": 4292.5972,
+   "ms_per_call": 107.697
+  },
+  {
+   "label": "unicode-names",
+   "mj_per_call": 2114.6872,
+   "ms_per_call": 62.678
+  },
+  {
+   "label": "duplicates",
+   "mj_per_call": 2064.379,
+   "ms_per_call": 47.795
+  },
+  {
+   "label": "long-prefixes",
+   "mj_per_call": 1926.43,
+   "ms_per_call": 44.356
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

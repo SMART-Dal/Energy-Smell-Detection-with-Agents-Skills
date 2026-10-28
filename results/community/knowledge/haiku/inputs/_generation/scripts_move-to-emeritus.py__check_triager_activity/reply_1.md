@@ -1,0 +1,1 @@
+CANNOT RUN: `check_triager_activity` reaches the network through `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` and `_get_repo_events(repo, cutoff)` — these fetch GitHub API data (via `paginate_rest`/`request_with_retry`/`urllib.request`), and the task exposes no cache variable or other data hook that could supply that data without a request.

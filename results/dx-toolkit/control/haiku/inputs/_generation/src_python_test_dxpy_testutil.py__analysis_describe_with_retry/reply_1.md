@@ -1,0 +1,1 @@
+CANNOT RUN: the function's entire work is polling a DNAnexus API object's `describe()` (a remote server request) — whether given an analysis ID (via `dxpy.get_handler`) or a handler, and no input avoids that network access; faking a handler with canned `describe()` output would be a mock, which is not allowed.

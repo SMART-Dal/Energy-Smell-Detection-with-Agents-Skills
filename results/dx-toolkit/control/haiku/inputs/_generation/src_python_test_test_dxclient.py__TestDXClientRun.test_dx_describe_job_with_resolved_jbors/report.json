@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/test/test_dxclient.py::TestDXClientRun.test_dx_describe_job_with_resolved_jbors",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.6,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 7949,
+   "completion_tokens": 163,
+   "reasoning_tokens": 101,
+   "cost": 0.000758467,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: the test creates applets and runs jobs on the DNAnexus platform (dxpy.api.applet_new, dxpy.api.applet_run, job.wait_on_done, `dx describe`), requiring network access, valid credentials and a live remote project that are unavailable here."
+  }
+ ],
+ "seconds": 19.8,
+ "cost": 0.00076,
+ "kept": [],
+ "reason": "it cannot run here: the test creates applets and runs jobs on the DNAnexus platform (dxpy.api.applet_new, dxpy.api.applet_run, job.wait_on_done, `dx describe`), requiring network access, valid credentials and a live remote project that are unavailable here."
+}

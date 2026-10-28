@@ -1,0 +1,155 @@
+{
+ "unit": "text-video-search/src/python/embedding.py::extract_images",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 109.6,
+   "finish": "stop",
+   "provider": "ModelRun",
+   "prompt_tokens": 2646,
+   "completion_tokens": 17000,
+   "reasoning_tokens": 15757,
+   "cost": 0.011545932,
+   "retried": []
+  },
+  {
+   "seconds": 99.6,
+   "finish": "stop",
+   "provider": "ModelRun",
+   "prompt_tokens": 4058,
+   "completion_tokens": 12884,
+   "reasoning_tokens": 11624,
+   "cost": 0.0089023,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "the source does not load (cases): ValueError: Could not find a backend to open `/home/javad/energy-run/inputs-work/jobs/text-video-search_src_python_embedding.py__extract_images/round_1/io-before/extract_images_videos/v60_64x64.mp4`` with iomo... (at line 32 of your source: `writer = imageio.get_writer(str(path), fps=1, macro_block_size=1)`)",
+   "cases": [],
+   "checks": [],
+   "validate_s": 7.4,
+   "coverage": null,
+   "missed": null,
+   "energy_domains": null,
+   "waited_s": null
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "sample-4-of-60",
+     "ok": true,
+     "joules": 1.019630126984127,
+     "seconds": 0.01600773073732853
+    },
+    {
+     "label": "sample-5-of-240",
+     "ok": true,
+     "joules": 3.8479245624999994,
+     "seconds": 0.06650552339851856
+    },
+    {
+     "label": "sample-3-of-40-gradient",
+     "ok": false,
+     "joules": 0.7308767000000003,
+     "seconds": 0.012592785991728306,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-5-frames",
+     "ok": false,
+     "joules": 0.10509492678227358,
+     "seconds": 0.001927172765135765,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "single-frame",
+     "ok": false,
+     "joules": 0.5385487943925236,
+     "seconds": 0.009411005303263664,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "wide-3-of-50",
+     "ok": true,
+     "joules": 0.9928769999999998,
+     "seconds": 0.01736415084451437
+    },
+    {
+     "label": "tall-3-of-50",
+     "ok": true,
+     "joules": 1.034928357142858,
+     "seconds": 0.017977851442992687
+    },
+    {
+     "label": "hires-2-of-12",
+     "ok": false,
+     "joules": 0.31437161878453024,
+     "seconds": 0.005543407052755356,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "zero-frames",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "one-frame-video",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "missing-file",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 32.6,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 267.9,
+ "cost": 0.02045,
+ "kept": [
+  {
+   "label": "sample-5-of-240",
+   "mj_per_call": 3847.9246,
+   "ms_per_call": 66.506
+  },
+  {
+   "label": "tall-3-of-50",
+   "mj_per_call": 1034.9284,
+   "ms_per_call": 17.978
+  },
+  {
+   "label": "sample-4-of-60",
+   "mj_per_call": 1019.6301,
+   "ms_per_call": 16.008
+  },
+  {
+   "label": "wide-3-of-50",
+   "mj_per_call": 992.877,
+   "ms_per_call": 17.364
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

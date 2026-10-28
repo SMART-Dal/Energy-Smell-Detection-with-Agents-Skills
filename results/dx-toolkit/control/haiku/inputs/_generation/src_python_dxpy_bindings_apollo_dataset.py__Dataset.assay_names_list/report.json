@@ -1,0 +1,45 @@
+{
+ "unit": "src/python/dxpy/bindings/apollo/dataset.py::Dataset.assay_names_list",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 112.7,
+   "finish": "length",
+   "provider": "Wafer",
+   "prompt_tokens": 3052,
+   "completion_tokens": 32000,
+   "reasoning_tokens": 32000,
+   "cost": 0.02137988,
+   "retried": []
+  },
+  {
+   "seconds": 35.9,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 17969,
+   "completion_tokens": 15862,
+   "reasoning_tokens": 14765,
+   "cost": 0.01372441,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "no ```python block in the reply"
+  },
+  {
+   "fatal": "the source does not load (cases): DXError: Invalid ID of class record: 'dataset-0000' (at line 51 of your source: `ds = Dataset(\"dataset-0000\", detail)`)",
+   "cases": [],
+   "checks": [],
+   "validate_s": 1.2,
+   "coverage": null,
+   "missed": null,
+   "energy_domains": null,
+   "waited_s": null
+  }
+ ],
+ "seconds": 163.8,
+ "cost": 0.0351,
+ "kept": [],
+ "reason": "the generated inputs could not be used: the source does not load (cases): DXError: Invalid ID of class record: 'dataset-0000' (at line 51 of your source: `ds = Dataset(\"dataset-0000\", detail)`)"
+}

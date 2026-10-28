@@ -1,0 +1,1 @@
+CANNOT RUN: `batch_run` calls `executable.describe()` and `executable.run(...)`, which are DNAnexus API requests to a remote server (requiring network access and credentials); a stand-in executable returning canned results would be a mock, which is not allowed.

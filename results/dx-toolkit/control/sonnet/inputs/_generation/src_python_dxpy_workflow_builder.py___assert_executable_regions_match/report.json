@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/workflow_builder.py::_assert_executable_regions_match",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 7.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3478,
+   "completion_tokens": 975,
+   "reasoning_tokens": 876,
+   "cost": 0.000943234,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: every non-trivial input makes the function query the DNAnexus platform API (`dxpy.DXApplet(...).project`, `dxpy.DXProject(...).region`, `dxpy.api.app_describe`, `dxpy.api.workflow_describe`) for each stage, so it needs network access and credentials; no input can avoid that (only an empty enabled-regions set returns without a request, which is not a real workload)."
+  }
+ ],
+ "seconds": 12.0,
+ "cost": 0.00094,
+ "kept": [],
+ "reason": "it cannot run here: every non-trivial input makes the function query the DNAnexus platform API (`dxpy.DXApplet(...).project`, `dxpy.DXProject(...).region`, `dxpy.api.app_describe`, `dxpy.api.workflow_describe`) for each stage, so it needs network access and credentials; no input can avoid that (only an empty enabled-regions set returns without a request, which is not a real workload)."
+}

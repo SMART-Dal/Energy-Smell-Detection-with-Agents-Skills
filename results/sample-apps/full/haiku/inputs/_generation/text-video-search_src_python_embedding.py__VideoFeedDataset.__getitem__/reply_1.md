@@ -1,0 +1,1 @@
+CANNOT RUN: the class's `__init__` loads the CLIP model via `clip.load(model_name)`, which downloads model weights from a remote server, and `_from_image_to_vector` (called by `__getitem__`) needs that CLIP model to encode frames; no input can avoid this network requirement.

@@ -1,0 +1,142 @@
+{
+ "unit": "src/python/dxpy/utils/local_exec_utils.py::wait_for_depends_on",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 25.0,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2901,
+   "completion_tokens": 6003,
+   "reasoning_tokens": 5282,
+   "cost": 0.001611312,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "empty",
+     "ok": false,
+     "seconds": 9.499490261077881e-07,
+     "why": "each of the 2,105,377 calls in a window gets fresh arguments, and building them would take about 10.5s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "single",
+     "ok": false,
+     "joules": 0.0017519027764750022,
+     "seconds": 4.69014048576355e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "small",
+     "ok": false,
+     "joules": 0.007078249090247455,
+     "seconds": 0.00018197763711214066,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "medium",
+     "ok": true,
+     "joules": 0.15568232442748092,
+     "seconds": 0.0038178609684109688
+    },
+    {
+     "label": "large",
+     "ok": true,
+     "joules": 0.6297910821917805,
+     "seconds": 0.013758648186922073
+    },
+    {
+     "label": "huge",
+     "ok": true,
+     "joules": 1.0361965555555495,
+     "seconds": 0.02256685681641102
+    },
+    {
+     "label": "dense-small-dict",
+     "ok": false,
+     "joules": 0.14938489542483616,
+     "seconds": 0.003271830268204212,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dense-medium-dict",
+     "ok": true,
+     "joules": 1.0342937111111192,
+     "seconds": 0.022699790075421333
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "missing-localjob",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "none-depends-on",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 93.8,
+   "coverage": 0.4666666666666667,
+   "missed": [
+    204,
+    205,
+    206,
+    207,
+    209,
+    210,
+    211,
+    213
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 15.6
+  }
+ ],
+ "seconds": 132.2,
+ "cost": 0.00161,
+ "kept": [
+  {
+   "label": "huge",
+   "mj_per_call": 1036.1966,
+   "ms_per_call": 22.567
+  },
+  {
+   "label": "dense-medium-dict",
+   "mj_per_call": 1034.2937,
+   "ms_per_call": 22.7
+  },
+  {
+   "label": "large",
+   "mj_per_call": 629.7911,
+   "ms_per_call": 13.759
+  },
+  {
+   "label": "medium",
+   "mj_per_call": 155.6823,
+   "ms_per_call": 3.818
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

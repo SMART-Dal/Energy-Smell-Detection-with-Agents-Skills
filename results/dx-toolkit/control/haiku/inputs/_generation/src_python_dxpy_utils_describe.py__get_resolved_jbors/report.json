@@ -1,0 +1,206 @@
+{
+ "unit": "src/python/dxpy/utils/describe.py::get_resolved_jbors",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 88.8,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3866,
+   "completion_tokens": 23657,
+   "reasoning_tokens": 21841,
+   "cost": 0.01209912,
+   "retried": []
+  },
+  {
+   "seconds": 74.8,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 5892,
+   "completion_tokens": 24144,
+   "reasoning_tokens": 22496,
+   "cost": 0.01248444,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "flat-plain-jbors",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "flat-wrapped-jbors",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "indexed-jbors",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "list-of-dicts",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "nested-tree",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "deep-tree",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "realistic-runinput",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "dict-of-lists",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    }
+   ],
+   "checks": [
+    {
+     "label": "equal-nested",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-list",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "top-level-jbor",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 178.8,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 9.1
+  },
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "flat-ints",
+     "ok": true,
+     "joules": 5.819997799999999,
+     "seconds": 0.10320959612727165
+    },
+    {
+     "label": "list-of-lists",
+     "ok": true,
+     "joules": 4.218994230769231,
+     "seconds": 0.07841990515589714
+    },
+    {
+     "label": "dict-of-lists",
+     "ok": false,
+     "joules": 2.509694090909092,
+     "seconds": 0.045984609983861446,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "list-of-dicts",
+     "ok": false,
+     "joules": 1.7042384687500007,
+     "seconds": 0.03142010048031807,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "nested-dicts",
+     "ok": true,
+     "joules": 3.4837190000000007,
+     "seconds": 0.06315940339118242
+    },
+    {
+     "label": "mixed-tree",
+     "ok": true,
+     "joules": 3.0107365555555563,
+     "seconds": 0.05819854699075222
+    },
+    {
+     "label": "flat-jbors",
+     "ok": false,
+     "joules": 2.541638090909089,
+     "seconds": 0.046900843270123005,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "nested-jbors",
+     "ok": false,
+     "joules": 2.042404777777771,
+     "seconds": 0.0374479191377759,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "equal-nested",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-list",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "top-jbor-known",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 40.0,
+   "coverage": 0.36363636363636365,
+   "missed": [
+    291,
+    293,
+    294,
+    295,
+    296,
+    297,
+    298,
+    299,
+    300,
+    301,
+    302,
+    303,
+    305,
+    309
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 388.0,
+ "cost": 0.02458,
+ "kept": [],
+ "reason": "the inputs that run here reach only 36% of the function (lines 291, 293-303, 305, 309 never ran), so they would not measure its real work"
+}

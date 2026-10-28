@@ -1,0 +1,1 @@
+CANNOT RUN: every non-trivial input makes the function query the DNAnexus platform API (`dxpy.DXApplet(...).project`, `dxpy.DXProject(...).region`, `dxpy.api.app_describe`, `dxpy.api.workflow_describe`) for each stage, so it needs network access and credentials; no input can avoid that (only an empty enabled-regions set returns without a request, which is not a real workload).

@@ -1,0 +1,216 @@
+waiting for inputs still being generated: 4 unit(s) (scripts/gc-elections/create-github-comments.py::sync, scripts/move-to-emeritus.py::_add_to_emeritus, scripts/move-to-emeritus.py::_check_events, ...)
+waiting for inputs still being generated: 2 unit(s) (scripts/move-to-emeritus.py::_check_events, scripts/validate-workstreams.py::validate_workstreams_semantics)
+waiting for inputs still being generated: 1 unit(s) (scripts/move-to-emeritus.py::_check_events)
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-2.37%
+
+
+=== validate-drop-parent-kind  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.2 ms/call  after     6.2 ms/call  ->  162 repeats
+  deep-parent-chain before   230.2 ms/call  after   234.8 ms/call  ->  5 repeats
+  parent-cycle   before    54.7 ms/call  after    55.4 ms/call  ->  19 repeats
+  large-mixed    before    23.9 ms/call  after    23.8 ms/call  ->  43 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree     +2.38% +-1.52% energy saved   significant     +2.90% +-2.67% time saved
+  deep-parent-chain   -1.35% +-1.27% energy saved   significant     -1.63% +-1.80% time saved
+  parent-cycle     -2.53% +-5.43% energy saved   not significant -2.13% +-4.41% time saved
+  large-mixed      +1.91% +-2.51% energy saved   not significant +2.24% +-1.17% time saved
+
+noise floor  +-2.37% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('typical-tree'; best 2.4% +-1.5% on 'typical-tree'), and no saving that can be told from noise on the rest: 'deep-parent-chain' -1.4% +-1.3% (within the 2.4% noise floor); 'parent-cycle' -2.5% +-5.4% (its pairs disagree too much to tell); 'large-mixed' +1.9% +-2.5% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== validate-hoist-team-sets  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.3 ms/call  after     2.9 ms/call  ->  318 repeats  CLAMPED to keep the slow side under 2s
+  deep-parent-chain before   244.6 ms/call  after   241.2 ms/call  ->  5 repeats
+  parent-cycle   before    57.8 ms/call  after    55.5 ms/call  ->  19 repeats
+  large-mixed    before    24.0 ms/call  after    10.0 ms/call  ->  83 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree    +54.04% +-1.67% energy saved   significant     +54.22% +-1.06% time saved
+  deep-parent-chain   +2.55% +-0.73% energy saved   significant     +2.49% +-0.53% time saved
+  parent-cycle     +4.79% +-0.97% energy saved   significant     +4.87% +-0.61% time saved
+  large-mixed     +59.05% +-0.97% energy saved   significant     +58.98% +-0.96% time saved
+
+noise floor  +-2.37% (session calibration)
+
+VERDICT: confirmed
+  59.1% +-1.0% energy saved on 'large-mixed', clearing the 2.4% noise floor. Saved energy on all 4 inputs ('typical-tree', 'deep-parent-chain', 'parent-cycle', 'large-mixed'), with behaviour preserved throughout.
+
+=== sync-single-pass-removal  scripts/gc-elections/create-github-comments.py::sync
+equivalence
+  empty          ok  (check only)
+  none-body      ok  (check only)
+  no-mentions    ok  (check only)
+  many-comments-few-stale ok
+  all-stale      ok
+  large-comments ok
+  big-file       ok
+
+sizing
+  many-comments-few-stale before    13.6 ms/call  after    11.6 ms/call  ->  87 repeats
+  all-stale      before   314.7 ms/call  after     9.4 ms/call  ->  6 repeats  CLAMPED to keep the slow side under 2s
+  large-comments before   338.1 ms/call  after     9.3 ms/call  ->  5 repeats  CLAMPED to keep the slow side under 2s
+  big-file       before   162.6 ms/call  after    13.7 ms/call  ->  12 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-comments-few-stale  +12.25% +-6.73% energy saved   significant     +12.60% +-7.96% time saved
+  all-stale       +95.38% +-7.08% energy saved   significant     +95.37% +-7.11% time saved
+  large-comments  +95.99% +-5.08% energy saved   significant     +95.99% +-5.06% time saved
+  big-file        +89.91% +-5.54% energy saved   significant     +89.98% +-5.44% time saved
+
+noise floor  +-2.37% (session calibration)
+
+VERDICT: confirmed
+  96.0% +-5.1% energy saved on 'large-comments', clearing the 2.4% noise floor. Saved energy on all 4 inputs ('many-comments-few-stale', 'all-stale', 'large-comments', 'big-file'), with behaviour preserved throughout.
+
+=== sync-reuse-mentions  scripts/gc-elections/create-github-comments.py::sync
+equivalence
+  empty          ok  (check only)
+  none-body      ok  (check only)
+  no-mentions    ok  (check only)
+  many-comments-few-stale ok
+  all-stale      ok
+  large-comments ok
+  big-file       ok
+
+sizing
+  many-comments-few-stale before    14.3 ms/call  after    12.3 ms/call  ->  81 repeats
+  all-stale      before   317.3 ms/call  after   317.0 ms/call  ->  4 repeats
+  large-comments before   342.5 ms/call  after   340.8 ms/call  ->  3 repeats
+  big-file       before   163.8 ms/call  after   162.0 ms/call  ->  7 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-comments-few-stale  +13.81% +-2.28% energy saved   significant     +13.93% +-2.82% time saved
+  all-stale        +0.37% +-1.40% energy saved   not significant +0.13% +-0.45% time saved
+  large-comments   +0.65% +-0.94% energy saved   not significant +0.56% +-0.45% time saved
+  big-file         +1.03% +-0.76% energy saved   significant     +1.15% +-0.54% time saved
+
+noise floor  +-2.37% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('many-comments-few-stale'; best 13.8% +-2.3% on 'many-comments-few-stale'), and no saving that can be told from noise on the rest: 'all-stale' +0.4% +-1.4% (its pairs disagree too much to tell); 'large-comments' +0.6% +-0.9% (its pairs disagree too much to tell); 'big-file' +1.0% +-0.8% (within the 2.4% noise floor). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== gh-login-session  scripts/gc-elections/generate-voters-roll.py::get_github_login
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/gc-elections/generate-voters-roll.py::get_github_login: it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get`, which requires network access that is unavailable here. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== commenters-set-membership  scripts/move-to-emeritus.py::_get_repo_commenters
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_commenters: it cannot run here: `_get_repo_commenters` performs live HTTP GET requests to the GitHub REST API (`request_with_retry("GET", url)` → `urllib.request.urlopen`) on every non-cached path, so it requires network access to api.github.com; the only network-free path is the trivial `_repo_comments_cache` hit that does no work, and the environment provides no network. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== events-stop-when-all-found  scripts/move-to-emeritus.py::_check_events
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-events   ok  (check only)
+  single-match   ok  (check only)
+  odd-values     ok  (check only)
+  big-mixed      ok
+  single-type    ok
+  huge-remaining ok
+  exclude-all    ok
+
+sizing
+  big-mixed      before   721.3 us/call  after     1.4 ms/call  ->  1,387 repeats
+  single-type    before   834.9 us/call  after     2.0 ms/call  ->  1,010 repeats  CLAMPED to keep the slow side under 2s
+  huge-remaining before     2.2 ms/call  after     3.6 ms/call  ->  456 repeats
+  exclude-all    before   821.8 us/call  after     1.9 ms/call  ->  1,027 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  big-mixed       -60.10% +-35.25% energy saved   significant     -59.30% +-32.05% time saved
+  single-type     -99.08% +-2.05% energy saved   significant     -98.09% +-1.26% time saved
+  huge-remaining  -46.20% +-2.01% energy saved   significant     -45.86% +-2.16% time saved
+  exclude-all     -95.77% +-1.92% energy saved   significant     -95.07% +-1.42% time saved
+
+noise floor  +-2.37% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 46.2% lost on 'huge-remaining', above the 2.4% noise floor, and no case improved. Worse on 4 of 4 cases ('big-mixed', 'single-type', 'huge-remaining', 'exclude-all').
+
+=== verify-reviews-cache  scripts/move-to-emeritus.py::_verify_review_candidates
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::_verify_review_candidates: it cannot run here: `_verify_review_candidates` performs live GitHub REST requests via `request_with_retry`/`urllib.request.urlopen` to the hardcoded `https://api.github.com` endpoint; it needs network access (and credentials/rate limits) and cannot be exercised here without mocking the request layer, which is forbidden. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== triager-guard-debug  scripts/move-to-emeritus.py::check_triager_activity
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::check_triager_activity: it cannot run here: `check_triager_activity` delegates to `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` / `_get_repo_events(repo, cutoff)` — these fetch GitHub repository data over the network (via `paginate_rest`/`request_with_retry`), and neither their cache format nor any offline data source is given, so no input can make the function run without network access. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== approver-guard-debug  scripts/move-to-emeritus.py::check_approver_activity
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::check_approver_activity: it cannot run here: `check_approver_activity` reaches the GitHub API on every call — it invokes `_check_comments` (which calls `_get_repo_commenters` and its REST requests) and `_check_reviews` (which posts a GraphQL query via `request_with_retry`), so no input can avoid network access and credentials. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== maintainer-guard-debug  scripts/move-to-emeritus.py::check_maintainer_activity
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::check_maintainer_activity: it cannot run here: `check_maintainer_activity` needs network access to the GitHub API — its first step for any non-empty input is `_check_comments` → `_get_repo_commenters` (REST pagination) and later `_check_reviews`/authored-PR queries hit `GRAPHQL_API`/`api.github.com` with credentials; the only input that avoids the network is empty `usernames`/`repos`, which does no work. Next: its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== add-emeritus-single-scan  scripts/move-to-emeritus.py::_add_to_emeritus
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-readme   ok  (check only)
+  section-no-members ok  (check only)
+  duplicate-small ok  (check only)
+  existing-large ok
+  existing-level2 ok
+  existing-mixed-markers ok
+  existing-case-insensitive ok
+
+sizing
+  existing-large before    40.4 ms/call  after    34.1 ms/call  ->  30 repeats
+  existing-level2 before    30.0 ms/call  after    25.5 ms/call  ->  40 repeats
+  existing-mixed-markers before    35.4 ms/call  after    30.0 ms/call  ->  34 repeats
+  existing-case-insensitive before    25.1 ms/call  after    21.2 ms/call  ->  48 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  existing-large  +14.67% +-3.66% energy saved   significant     +15.05% +-4.68% time saved
+  existing-level2  +15.38% +-0.49% energy saved   significant     +15.12% +-0.20% time saved
+  existing-mixed-markers  +15.57% +-0.27% energy saved   significant     +15.40% +-0.07% time saved
+  existing-case-insensitive  +15.82% +-0.87% energy saved   significant     +15.62% +-0.65% time saved
+
+noise floor  +-2.37% (session calibration)
+
+VERDICT: confirmed
+  15.8% +-0.9% energy saved on 'existing-case-insensitive', clearing the 2.4% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== all 12 lines of submissions.jsonl
+  partial      validate-drop-parent-kind: saves energy on 1 of 4 inputs ('typical-tree'; best 2.4% +-1.5% on 'typical-tree'), and no saving that can be told from noise on the rest: 'deep-parent-chain' -...
+  confirmed    validate-hoist-team-sets: 59.1% +-1.0% energy saved on 'large-mixed', clearing the 2.4% noise floor
+  confirmed    sync-single-pass-removal: 96.0% +-5.1% energy saved on 'large-comments', clearing the 2.4% noise floor
+  partial      sync-reuse-mentions: saves energy on 1 of 4 inputs ('many-comments-few-stale'; best 13.8% +-2.3% on 'many-comments-few-stale'), and no saving that can be told from noise on the rest...
+  no_inputs    gh-login-session: no inputs could be generated for scripts/gc-elections/generate-voters-roll.py::get_github_login: it cannot run here: `get_github_login` performs a live HTTP req...
+  no_inputs    commenters-set-membership: no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_commenters: it cannot run here: `_get_repo_commenters` performs live HTTP GET requests t...
+  regressed    events-stop-when-all-found: the repair costs more than the code it replaces: 46.2% lost on 'huge-remaining', above the 2.4% noise floor, and no case improved
+  no_inputs    verify-reviews-cache: no inputs could be generated for scripts/move-to-emeritus.py::_verify_review_candidates: it cannot run here: `_verify_review_candidates` performs live GitHub RE...
+  no_inputs    triager-guard-debug: no inputs could be generated for scripts/move-to-emeritus.py::check_triager_activity: it cannot run here: `check_triager_activity` delegates to `_check_comments...
+  no_inputs    approver-guard-debug: no inputs could be generated for scripts/move-to-emeritus.py::check_approver_activity: it cannot run here: `check_approver_activity` reaches the GitHub API on e...
+  no_inputs    maintainer-guard-debug: no inputs could be generated for scripts/move-to-emeritus.py::check_maintainer_activity: it cannot run here: `check_maintainer_activity` needs network access to...
+  confirmed    add-emeritus-single-scan: 15.8% +-0.9% energy saved on 'existing-case-insensitive', clearing the 2.4% noise floor
+
+6 of this session's 20 places hold a repair with a verdict.

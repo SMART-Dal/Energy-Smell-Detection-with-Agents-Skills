@@ -1,0 +1,135 @@
+{
+ "unit": "scripts/baremetal-runner-report.py::render_table",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 15.3,
+   "finish": "stop",
+   "provider": "Together",
+   "prompt_tokens": 2735,
+   "completion_tokens": 6826,
+   "reasoning_tokens": 5811,
+   "cost": 0.0090117,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "wide-groups",
+     "ok": true,
+     "joules": 3.046572,
+     "seconds": 0.06984445732086897
+    },
+    {
+     "label": "deep-runs",
+     "ok": false,
+     "joules": 0.9930470217391303,
+     "seconds": 0.021887768991291523,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "half-filtered",
+     "ok": true,
+     "joules": 2.1139387,
+     "seconds": 0.050081594847142696
+    },
+    {
+     "label": "no-slash-repos",
+     "ok": false,
+     "joules": 1.5856037333333386,
+     "seconds": 0.033692979253828526,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "huge-values",
+     "ok": false,
+     "joules": 1.340066999999996,
+     "seconds": 0.03542627394199371,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "single-group",
+     "ok": false,
+     "joules": 1.5389921785714316,
+     "seconds": 0.035876826383173466,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed",
+     "ok": true,
+     "joules": 3.4507732142857157,
+     "seconds": 0.07568690273910761
+    },
+    {
+     "label": "many-distinct-runs",
+     "ok": true,
+     "joules": 3.2778901666666798,
+     "seconds": 0.08484680484980345
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "all-before",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 148.0,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 90.3
+  }
+ ],
+ "seconds": 165.5,
+ "cost": 0.00901,
+ "kept": [
+  {
+   "label": "mixed",
+   "mj_per_call": 3450.7732,
+   "ms_per_call": 75.687
+  },
+  {
+   "label": "many-distinct-runs",
+   "mj_per_call": 3277.8902,
+   "ms_per_call": 84.847
+  },
+  {
+   "label": "wide-groups",
+   "mj_per_call": 3046.572,
+   "ms_per_call": 69.844
+  },
+  {
+   "label": "half-filtered",
+   "mj_per_call": 2113.9387,
+   "ms_per_call": 50.082
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

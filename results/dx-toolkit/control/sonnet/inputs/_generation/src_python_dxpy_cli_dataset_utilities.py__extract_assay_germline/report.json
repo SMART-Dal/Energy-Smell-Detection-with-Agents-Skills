@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::extract_assay_germline",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.8,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 10619,
+   "completion_tokens": 199,
+   "reasoning_tokens": 117,
+   "cost": 0.001055077,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `extract_assay_germline` requires DNAnexus platform access \u2014 it calls `dxpy.DXHTTPRequest` (via `resolve_validate_record_path`, `raw_api_call`, `raw_query_api_call`) and `DXDataset(...).get_descriptor()` to fetch a dataset descriptor from a remote server, with no way to supply that data locally."
+  }
+ ],
+ "seconds": 10.8,
+ "cost": 0.00106,
+ "kept": [],
+ "reason": "it cannot run here: `extract_assay_germline` requires DNAnexus platform access \u2014 it calls `dxpy.DXHTTPRequest` (via `resolve_validate_record_path`, `raw_api_call`, `raw_query_api_call`) and `DXDataset(...).get_descriptor()` to fetch a dataset descriptor from a remote server, with no way to supply that data locally."
+}

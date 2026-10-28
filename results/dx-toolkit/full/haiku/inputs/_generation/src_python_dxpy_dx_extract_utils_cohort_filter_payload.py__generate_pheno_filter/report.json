@@ -1,0 +1,159 @@
+{
+ "unit": "src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 79.1,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 3322,
+   "completion_tokens": 13063,
+   "reasoning_tokens": 11511,
+   "cost": 0.00356473,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "in-large-values",
+     "ok": true,
+     "joules": 1.0238865499999998,
+     "seconds": 0.025472041219472885
+    },
+    {
+     "label": "not-in-large-values",
+     "ok": true,
+     "joules": 3.211911428571422,
+     "seconds": 0.07346538174897432
+    },
+    {
+     "label": "exists-plus-in",
+     "ok": true,
+     "joules": 1.9455770357142879,
+     "seconds": 0.03592219203710556
+    },
+    {
+     "label": "multi-compound-match-later",
+     "ok": true,
+     "joules": 1.2096878717948714,
+     "seconds": 0.026167550124228
+    },
+    {
+     "label": "entity-name-match",
+     "ok": false,
+     "seconds": 2.6905909180641174e-05,
+     "why": "each of the 74,334 calls in a window gets fresh arguments, and building them would take 4.6 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "same-entity-other-field",
+     "ok": false,
+     "seconds": 0.0005698176100850105,
+     "why": "each of the 3,510 calls in a window gets fresh arguments, and building them would take about 220.0s (limit 10s): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "no-pheno-filters",
+     "ok": false,
+     "joules": 0.0004955988482059699,
+     "seconds": 4.7050416469573975e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "non-compound-wrap",
+     "ok": false,
+     "joules": 0.0006633937312711772,
+     "seconds": 3.264285624027252e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-values-empty-filters",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "non-and-logic-raises",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "non-compound-pheno-filter",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 95.2,
+   "coverage": 0.41304347826086957,
+   "missed": [
+    10,
+    17,
+    22,
+    31,
+    41,
+    47,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    58,
+    59,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    71,
+    72,
+    75,
+    83
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 63.2
+  }
+ ],
+ "seconds": 179.9,
+ "cost": 0.00356,
+ "kept": [
+  {
+   "label": "not-in-large-values",
+   "mj_per_call": 3211.9114,
+   "ms_per_call": 73.465
+  },
+  {
+   "label": "exists-plus-in",
+   "mj_per_call": 1945.577,
+   "ms_per_call": 35.922
+  },
+  {
+   "label": "multi-compound-match-later",
+   "mj_per_call": 1209.6879,
+   "ms_per_call": 26.168
+  },
+  {
+   "label": "in-large-values",
+   "mj_per_call": 1023.8865,
+   "ms_per_call": 25.472
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

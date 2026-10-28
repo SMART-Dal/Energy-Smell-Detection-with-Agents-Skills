@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_verify_review_candidates",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.4,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 3439,
+   "completion_tokens": 249,
+   "reasoning_tokens": 174,
+   "cost": 0.0005724348,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_verify_review_candidates` performs live GitHub REST requests via `request_with_retry`/`urllib.request.urlopen` to the hardcoded `https://api.github.com` endpoint; it needs network access (and credentials/rate limits) and cannot be exercised here without mocking the request layer, which is forbidden."
+  }
+ ],
+ "seconds": 3.0,
+ "cost": 0.00057,
+ "kept": [],
+ "reason": "it cannot run here: `_verify_review_candidates` performs live GitHub REST requests via `request_with_retry`/`urllib.request.urlopen` to the hardcoded `https://api.github.com` endpoint; it needs network access (and credentials/rate limits) and cannot be exercised here without mocking the request layer, which is forbidden."
+}

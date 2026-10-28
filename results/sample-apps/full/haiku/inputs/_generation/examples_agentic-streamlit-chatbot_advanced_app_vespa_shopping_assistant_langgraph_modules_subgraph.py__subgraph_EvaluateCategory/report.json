@@ -1,0 +1,25 @@
+{
+ "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_EvaluateCategory",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.4,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 2995,
+   "completion_tokens": 66,
+   "reasoning_tokens": 19,
+   "cost": 0.00024265,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `subgraph_EvaluateCategory` builds a `ChatOpenAI` chain and calls `chain.invoke(...)`, which performs a request to the OpenAI API; no input can avoid that network call."
+  }
+ ],
+ "seconds": 3.5,
+ "cost": 0.00024,
+ "kept": [],
+ "reason": "it cannot run here: `subgraph_EvaluateCategory` builds a `ChatOpenAI` chain and calls `chain.invoke(...)`, which performs a request to the OpenAI API; no input can avoid that network call."
+}

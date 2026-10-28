@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::get_codings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.3,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5861,
+   "completion_tokens": 535,
+   "reasoning_tokens": 440,
+   "cost": 0.00110968,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `get_codings` begins by calling `viz_meta_codings_page`, which issues a live `dxpy.DXHTTPRequest` to the DNAnexus API (`resp[\"url\"] + \"/viz-meta/3.0/...\"`); it needs network access and credentials, and the only way to supply pages is to replace `dxpy.DXHTTPRequest`, which is monkeypatching and is not allowed."
+  }
+ ],
+ "seconds": 8.7,
+ "cost": 0.00111,
+ "kept": [],
+ "reason": "it cannot run here: `get_codings` begins by calling `viz_meta_codings_page`, which issues a live `dxpy.DXHTTPRequest` to the DNAnexus API (`resp[\"url\"] + \"/viz-meta/3.0/...\"`); it needs network access and credentials, and the only way to supply pages is to replace `dxpy.DXHTTPRequest`, which is monkeypatching and is not allowed."
+}

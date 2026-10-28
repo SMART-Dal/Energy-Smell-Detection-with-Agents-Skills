@@ -1,0 +1,1 @@
+CANNOT RUN: `collect_jobs` fetches GitHub Actions workflow runs and jobs via `gh_paginated`, which shells out to the `gh api` CLI to query github.com — it needs network access and subprocesses, both unavailable here, and no input can avoid that first request.

@@ -1,0 +1,1 @@
+CANNOT RUN: `search` performs an HTTP POST to `args.endpoint` via `requests.Session`, requiring a live Vespa endpoint; no input can avoid the network request.

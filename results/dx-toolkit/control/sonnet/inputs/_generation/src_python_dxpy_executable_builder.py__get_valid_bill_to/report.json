@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/executable_builder.py::get_valid_bill_to",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.3,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 2583,
+   "completion_tokens": 644,
+   "reasoning_tokens": 567,
+   "cost": 0.000525014,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `get_valid_bill_to` always begins with `dxpy.whoami()` (an API call to the DNAnexus platform) and then calls `dxpy.api.user_describe` / `dxpy.api.org_describe`, which are remote server requests; no input can avoid the network access and no offline/local mode is available."
+  }
+ ],
+ "seconds": 8.3,
+ "cost": 0.00053,
+ "kept": [],
+ "reason": "it cannot run here: `get_valid_bill_to` always begins with `dxpy.whoami()` (an API call to the DNAnexus platform) and then calls `dxpy.api.user_describe` / `dxpy.api.org_describe`, which are remote server requests; no input can avoid the network access and no offline/local mode is available."
+}

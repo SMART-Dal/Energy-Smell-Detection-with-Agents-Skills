@@ -1,0 +1,5 @@
+from dec_part1 import d
+d("incremental-search/search-suggestions/count_terms.py::write_json_file", "b", "accepted", "C9.S1 — json.dump writes the encoder's chunks one fp.write at a time (lines 38-39); json.dumps builds the same text (same indent, same bytes) and one write puts it in the file. The pure-Python encoder is used either way, so the saving is the many calls, not the encoder")
+d("visual-retrieval-colpali/src/main.py::fetch_results", "a", "accepted", "C11.S4 — the synchronous ColPali query embedding runs inside an async def (lines 205-207), holding the event loop for the forward pass (blocked: needs the ColPali model)")
+d("examples/embedder-auto-training-evaluation/training-evaluation/evaluate.py::main", "a", "accepted", "C11.S5 — each query's blocking search runs in sequence (lines 82-86) although the requests are independent; a thread pool overlaps the waits (blocked: needs Vespa)")
+d("examples/embedder-auto-training-evaluation/training-evaluation/positives-negatives.py::main", "a", "accepted", "C11.S5 — the same sequential per-query search as evaluate.py (lines 91-93) (blocked: needs Vespa)")

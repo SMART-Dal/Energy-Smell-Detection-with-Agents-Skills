@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::get_codings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 7.1,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5861,
+   "completion_tokens": 2046,
+   "reasoning_tokens": 1956,
+   "cost": 0.001862454,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `get_codings` does its work by issuing an HTTP request to the DNAnexus API server through `dxpy.DXHTTPRequest` (via `viz_meta_codings_page`), so it needs network access and credentials; the only way to give it inputs here would be to replace that request with canned responses, which the rules forbid (no mocks/monkeypatching, no fake servers)."
+  }
+ ],
+ "seconds": 16.1,
+ "cost": 0.00186,
+ "kept": [],
+ "reason": "it cannot run here: `get_codings` does its work by issuing an HTTP request to the DNAnexus API server through `dxpy.DXHTTPRequest` (via `viz_meta_codings_page`), so it needs network access and credentials; the only way to give it inputs here would be to replace that request with canned responses, which the rules forbid (no mocks/monkeypatching, no fake servers)."
+}

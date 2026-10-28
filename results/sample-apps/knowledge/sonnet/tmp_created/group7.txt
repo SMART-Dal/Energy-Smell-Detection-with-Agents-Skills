@@ -1,0 +1,15 @@
+test/test.py
+rag-blueprint/eval/train_lightgbm.py
+news/src/python/train_cold_start.py
+visual-retrieval-colpali/src/frontend/layout.py
+incremental-search/search-suggestions/count_terms.py
+colbert-long/scripts/evaluate.py
+news/src/python/convert_to_vespa_format.py
+visual-retrieval-colpali/tests/huggingface_smoke.py
+text-video-search/src/python/app.py
+colbert/model2onnx.py
+visual-retrieval-colpali/vespa_feed_to_hf_dataset.py
+colbert-long/scripts/convert.py
+visual-retrieval-colpali/src/backend/cache.py
+custom-embeddings/create-weights.py
+examples/aws/lambda/hello_function.py

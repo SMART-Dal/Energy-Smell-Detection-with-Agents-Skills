@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/baremetal-runner-report.py::collect_jobs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 6.5,
+   "finish": "stop",
+   "provider": "Baidu",
+   "prompt_tokens": 3211,
+   "completion_tokens": 940,
+   "reasoning_tokens": 809,
+   "cost": 0.00062739,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `collect_jobs` fetches its data by looping over `WORKFLOWS` and calling `gh_paginated`, which shells out to the `gh api` CLI (`subprocess.run([\"gh\", \"api\", \"--paginate\", ...])`) to reach the GitHub REST API. That needs network access, GitHub credentials and an external `gh` binary on `PATH`; no argument it accepts can avoid it (only the `since` timestamp is an input), and standing in for `gh` or patching `gh_paginated` would be faking the environment/a mock, which is not allowed."
+  }
+ ],
+ "seconds": 7.0,
+ "cost": 0.00063,
+ "kept": [],
+ "reason": "it cannot run here: `collect_jobs` fetches its data by looping over `WORKFLOWS` and calling `gh_paginated`, which shells out to the `gh api` CLI (`subprocess.run([\"gh\", \"api\", \"--paginate\", ...])`) to reach the GitHub REST API. That needs network access, GitHub credentials and an external `gh` binary on `PATH`; no argument it accepts can avoid it (only the `since` timestamp is an input), and standing in for `gh` or patching `gh_paginated` would be faking the environment/a mock, which is not allowed."
+}

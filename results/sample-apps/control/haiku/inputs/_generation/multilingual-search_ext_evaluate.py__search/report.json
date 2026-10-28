@@ -1,0 +1,25 @@
+{
+ "unit": "multilingual-search/ext/evaluate.py::search",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.3,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2683,
+   "completion_tokens": 315,
+   "reasoning_tokens": 274,
+   "cost": 0.000169692,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `search` begins its work with `session.post(args.endpoint, ...)`, an HTTP request to a remote Vespa endpoint, which needs network access that is unavailable here."
+  }
+ ],
+ "seconds": 8.4,
+ "cost": 0.00017,
+ "kept": [],
+ "reason": "it cannot run here: `search` begins its work with `session.post(args.endpoint, ...)`, an HTTP request to a remote Vespa endpoint, which needs network access that is unavailable here."
+}

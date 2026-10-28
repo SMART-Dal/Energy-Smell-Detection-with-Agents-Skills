@@ -1,0 +1,138 @@
+{
+ "unit": "scripts/gc-elections/create-github-comments.py::sync",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 24.0,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 3027,
+   "completion_tokens": 8919,
+   "reasoning_tokens": 7952,
+   "cost": 0.005961484,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-mixed",
+     "ok": false,
+     "joules": 0.189713452,
+     "seconds": 0.004014936275780201,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-comments-few-stale",
+     "ok": true,
+     "joules": 0.9284630769230747,
+     "seconds": 0.019588178023695946
+    },
+    {
+     "label": "all-stale",
+     "ok": true,
+     "joules": 21.136978333333293,
+     "seconds": 0.4528048625215888
+    },
+    {
+     "label": "large-comments",
+     "ok": true,
+     "joules": 22.872082666666604,
+     "seconds": 0.4823295706883073
+    },
+    {
+     "label": "no-mentions",
+     "ok": false,
+     "joules": 0.018316765688259122,
+     "seconds": 0.0005061943084001541,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicates",
+     "ok": false,
+     "joules": 0.60122850617284,
+     "seconds": 0.012476040050387383,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "big-file",
+     "ok": true,
+     "joules": 10.962744600000224,
+     "seconds": 0.2346388204023242
+    },
+    {
+     "label": "heavy",
+     "ok": false,
+     "seconds": 1.5205575777217746,
+     "why": "one call takes 1.52s (limit 1.0s)"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-body",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "no-mentions",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 300.8,
+   "coverage": 0.8947368421052632,
+   "missed": [
+    160,
+    169,
+    170,
+    181
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 274.5
+  }
+ ],
+ "seconds": 325.8,
+ "cost": 0.00596,
+ "kept": [
+  {
+   "label": "large-comments",
+   "mj_per_call": 22872.0827,
+   "ms_per_call": 482.33
+  },
+  {
+   "label": "all-stale",
+   "mj_per_call": 21136.9783,
+   "ms_per_call": 452.805
+  },
+  {
+   "label": "big-file",
+   "mj_per_call": 10962.7446,
+   "ms_per_call": 234.639
+  },
+  {
+   "label": "many-comments-few-stale",
+   "mj_per_call": 928.4631,
+   "ms_per_call": 19.588
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,1644 @@
+[
+ {
+  "id": "C3S2-validate-team-sets",
+  "unit": "scripts/validate-workstreams.py::validate_workstreams_semantics",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('typical-tree', 'deep-parent-chain', 'large-mixed'; best 56.0% +-3.3% on 'large-mixed'), and no saving that can be told from noise on the rest: 'parent-cycle' +2.4% +-5.7% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "typical-tree",
+    "repeats": 324,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 110.9388,
+    "after_energy_j": 51.995,
+    "before_time_s": 2.0408,
+    "after_time_s": 0.9564,
+    "before_power_w": 54.36,
+    "after_power_w": 54.37,
+    "before_s_per_call": 0.00616080779582262,
+    "after_s_per_call": 0.0028277169913053513,
+    "energy_ci_pct": 1.21,
+    "significant": true
+   },
+   {
+    "label": "deep-parent-chain",
+    "repeats": 5,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 67.5612,
+    "after_energy_j": 66.4923,
+    "before_time_s": 1.2417,
+    "after_time_s": 1.2212,
+    "before_power_w": 54.41,
+    "after_power_w": 54.45,
+    "before_s_per_call": 0.24181326106190681,
+    "after_s_per_call": 0.2363131418824196,
+    "energy_ci_pct": 0.68,
+    "significant": true
+   },
+   {
+    "label": "parent-cycle",
+    "repeats": 19,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.4452,
+    "after_energy_j": 55.0853,
+    "before_time_s": 1.05,
+    "after_time_s": 1.0216,
+    "before_power_w": 53.75,
+    "after_power_w": 53.91,
+    "before_s_per_call": 0.05761900171637535,
+    "after_s_per_call": 0.05493191163986921,
+    "energy_ci_pct": 5.69,
+    "significant": false
+   },
+   {
+    "label": "large-mixed",
+    "repeats": 85,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 104.3506,
+    "after_energy_j": 45.9113,
+    "before_time_s": 1.9501,
+    "after_time_s": 0.8483,
+    "before_power_w": 53.51,
+    "after_power_w": 54.11,
+    "before_s_per_call": 0.023511601611971855,
+    "after_s_per_call": 0.00988005381077528,
+    "energy_ci_pct": 3.27,
+    "significant": true
+   }
+  ],
+  "submission_hash": "cf61137ae6c23944",
+  "baseline_sha256": "8f8d21e96b0d0c8c",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "C1S1-validate-dead-kind",
+  "unit": "scripts/validate-workstreams.py::validate_workstreams_semantics",
+  "status": "negligible",
+  "reason": "no case moved more than the noise: the largest reading was +2.3% +-7.5% on 'large-mixed', against a clean 0.9% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "typical-tree",
+    "repeats": 162,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 55.6413,
+    "after_energy_j": 55.384,
+    "before_time_s": 1.015,
+    "after_time_s": 1.0072,
+    "before_power_w": 54.82,
+    "after_power_w": 54.99,
+    "before_s_per_call": 0.00621821079403162,
+    "after_s_per_call": 0.006179499439895153,
+    "energy_ci_pct": 0.98,
+    "significant": false
+   },
+   {
+    "label": "deep-parent-chain",
+    "repeats": 5,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 68.5808,
+    "after_energy_j": 67.5333,
+    "before_time_s": 1.2446,
+    "after_time_s": 1.2224,
+    "before_power_w": 55.1,
+    "after_power_w": 55.25,
+    "before_s_per_call": 0.23904338851571083,
+    "after_s_per_call": 0.23669750150293112,
+    "energy_ci_pct": 3.34,
+    "significant": false
+   },
+   {
+    "label": "parent-cycle",
+    "repeats": 19,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 61.2348,
+    "after_energy_j": 60.6464,
+    "before_time_s": 1.1078,
+    "after_time_s": 1.0889,
+    "before_power_w": 55.28,
+    "after_power_w": 55.69,
+    "before_s_per_call": 0.056310863234102726,
+    "after_s_per_call": 0.055348729714751244,
+    "energy_ci_pct": 2.67,
+    "significant": false
+   },
+   {
+    "label": "large-mixed",
+    "repeats": 43,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.4057,
+    "after_energy_j": 56.0689,
+    "before_time_s": 1.0384,
+    "after_time_s": 1.0229,
+    "before_power_w": 55.29,
+    "after_power_w": 54.81,
+    "before_s_per_call": 0.023532874882221222,
+    "after_s_per_call": 0.023505693301558495,
+    "energy_ci_pct": 7.48,
+    "significant": false
+   }
+  ],
+  "submission_hash": "c4998ac02a6f98be",
+  "baseline_sha256": "8f8d21e96b0d0c8c",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "C1S4-emeritus-member-flag",
+  "unit": "scripts/move-to-emeritus.py::_add_to_emeritus",
+  "status": "confirmed",
+  "reason": "13.7% +-2.0% energy saved on 'existing-level2', clearing the 0.9% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "existing-large",
+    "repeats": 29,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 67.2874,
+    "after_energy_j": 58.5296,
+    "before_time_s": 1.2245,
+    "after_time_s": 1.0646,
+    "before_power_w": 54.96,
+    "after_power_w": 54.98,
+    "before_s_per_call": 0.04051261395215988,
+    "after_s_per_call": 0.035289366729557514,
+    "energy_ci_pct": 4.38,
+    "significant": true
+   },
+   {
+    "label": "existing-level2",
+    "repeats": 38,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.5642,
+    "after_energy_j": 57.4553,
+    "before_time_s": 1.1985,
+    "after_time_s": 1.0419,
+    "before_power_w": 55.54,
+    "after_power_w": 55.14,
+    "before_s_per_call": 0.03029334731400013,
+    "after_s_per_call": 0.026350324042141438,
+    "energy_ci_pct": 2.03,
+    "significant": true
+   },
+   {
+    "label": "existing-mixed-markers",
+    "repeats": 33,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 67.2807,
+    "after_energy_j": 58.1471,
+    "before_time_s": 1.2178,
+    "after_time_s": 1.0568,
+    "before_power_w": 55.25,
+    "after_power_w": 55.02,
+    "before_s_per_call": 0.03534214571118355,
+    "after_s_per_call": 0.030827581882476807,
+    "energy_ci_pct": 0.99,
+    "significant": true
+   },
+   {
+    "label": "existing-case-insensitive",
+    "repeats": 46,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.5345,
+    "after_energy_j": 57.4841,
+    "before_time_s": 1.2138,
+    "after_time_s": 1.051,
+    "before_power_w": 54.82,
+    "after_power_w": 54.7,
+    "before_s_per_call": 0.02529572043567896,
+    "after_s_per_call": 0.02196446154266596,
+    "energy_ci_pct": 2.04,
+    "significant": true
+   }
+  ],
+  "submission_hash": "2a9692bd4ae9b97b",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "C8S2-emeritus-compiled-patterns",
+  "unit": "scripts/move-to-emeritus.py::_add_to_emeritus",
+  "status": "confirmed",
+  "reason": "36.3% +-2.8% energy saved on 'existing-case-insensitive', clearing the 0.9% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "existing-large",
+    "repeats": 40,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 88.3482,
+    "after_energy_j": 57.9228,
+    "before_time_s": 1.6462,
+    "after_time_s": 1.0607,
+    "before_power_w": 53.67,
+    "after_power_w": 54.57,
+    "before_s_per_call": 0.040206003934144974,
+    "after_s_per_call": 0.025482790544629097,
+    "energy_ci_pct": 8.08,
+    "significant": true
+   },
+   {
+    "label": "existing-level2",
+    "repeats": 53,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 92.4383,
+    "after_energy_j": 59.4764,
+    "before_time_s": 1.6631,
+    "after_time_s": 1.0738,
+    "before_power_w": 55.57,
+    "after_power_w": 55.39,
+    "before_s_per_call": 0.030263269320130348,
+    "after_s_per_call": 0.01901935413479805,
+    "energy_ci_pct": 3.89,
+    "significant": true
+   },
+   {
+    "label": "existing-mixed-markers",
+    "repeats": 45,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 92.2543,
+    "after_energy_j": 59.6793,
+    "before_time_s": 1.677,
+    "after_time_s": 1.0797,
+    "before_power_w": 55.01,
+    "after_power_w": 55.28,
+    "before_s_per_call": 0.035170093178749084,
+    "after_s_per_call": 0.022268446162343025,
+    "energy_ci_pct": 2.41,
+    "significant": true
+   },
+   {
+    "label": "existing-case-insensitive",
+    "repeats": 64,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 93.6119,
+    "after_energy_j": 59.6,
+    "before_time_s": 1.6851,
+    "after_time_s": 1.078,
+    "before_power_w": 55.55,
+    "after_power_w": 55.28,
+    "before_s_per_call": 0.024976277723908424,
+    "after_s_per_call": 0.015764031559228897,
+    "energy_ci_pct": 2.84,
+    "significant": true
+   }
+  ],
+  "submission_hash": "bb2cfd9fc9de4de3",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "C3S5-events-early-exit",
+  "unit": "scripts/move-to-emeritus.py::_check_events",
+  "status": "mixed",
+  "reason": "a trade-off, not a fix: 20.7% saved on 'big-mixed' but 16.9% lost on 'huge-remaining', both clearing the 0.9% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "big-mixed",
+    "repeats": 1705,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.5243,
+    "after_energy_j": 52.7691,
+    "before_time_s": 1.2429,
+    "after_time_s": 0.9846,
+    "before_power_w": 53.53,
+    "after_power_w": 53.59,
+    "before_s_per_call": 0.0007297135889530182,
+    "after_s_per_call": 0.0005865870043635368,
+    "energy_ci_pct": 0.5,
+    "significant": true
+   },
+   {
+    "label": "single-type",
+    "repeats": 1177,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 52.1166,
+    "after_energy_j": 55.5196,
+    "before_time_s": 0.9748,
+    "after_time_s": 1.0378,
+    "before_power_w": 53.47,
+    "after_power_w": 53.5,
+    "before_s_per_call": 0.0008497023954987526,
+    "after_s_per_call": 0.0008820211514830589,
+    "energy_ci_pct": 0.53,
+    "significant": true
+   },
+   {
+    "label": "huge-remaining",
+    "repeats": 447,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 55.7158,
+    "after_energy_j": 65.1252,
+    "before_time_s": 1.0362,
+    "after_time_s": 1.2023,
+    "before_power_w": 53.77,
+    "after_power_w": 54.17,
+    "before_s_per_call": 0.0022378042340278625,
+    "after_s_per_call": 0.0026242434978485107,
+    "energy_ci_pct": 3.3,
+    "significant": true
+   },
+   {
+    "label": "exclude-all",
+    "repeats": 1183,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 53.0471,
+    "after_energy_j": 52.1989,
+    "before_time_s": 0.9943,
+    "after_time_s": 0.981,
+    "before_power_w": 53.35,
+    "after_power_w": 53.21,
+    "before_s_per_call": 0.0008655153214931488,
+    "after_s_per_call": 0.0008456502109766006,
+    "energy_ci_pct": 1.04,
+    "significant": true
+   }
+  ],
+  "submission_hash": "a35681bdc328343c",
+  "baseline_sha256": "a4dd8fcc55e77b4c",
+  "measured_twice": true,
+  "first_status": "mixed"
+ },
+ {
+  "id": "C6S2-remove-member-line-no-slice",
+  "unit": "scripts/move-to-emeritus.py::_remove_member_line",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('large-hit-last', 'level3-section', 'section-at-eof'; best 3.4% +-1.6% on 'section-at-eof'), and no saving that can be told from noise on the rest: 'large-miss' +0.7% +-0.8% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large-hit-last",
+    "repeats": 6,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 62.4912,
+    "after_energy_j": 60.9122,
+    "before_time_s": 1.1507,
+    "after_time_s": 1.1192,
+    "before_power_w": 54.31,
+    "after_power_w": 54.42,
+    "before_s_per_call": 0.18250783998519182,
+    "after_s_per_call": 0.17947265040129423,
+    "energy_ci_pct": 1.25,
+    "significant": true
+   },
+   {
+    "label": "large-miss",
+    "repeats": 6,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.9461,
+    "after_energy_j": 60.5203,
+    "before_time_s": 1.1195,
+    "after_time_s": 1.1118,
+    "before_power_w": 54.44,
+    "after_power_w": 54.43,
+    "before_s_per_call": 0.1790200611576438,
+    "after_s_per_call": 0.17792213149368763,
+    "energy_ci_pct": 0.82,
+    "significant": false
+   },
+   {
+    "label": "level3-section",
+    "repeats": 7,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.6685,
+    "after_energy_j": 58.9819,
+    "before_time_s": 1.0953,
+    "after_time_s": 1.0836,
+    "before_power_w": 54.47,
+    "after_power_w": 54.43,
+    "before_s_per_call": 0.1459473092108965,
+    "after_s_per_call": 0.14511811081320047,
+    "energy_ci_pct": 1.11,
+    "significant": true
+   },
+   {
+    "label": "section-at-eof",
+    "repeats": 8,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.8582,
+    "after_energy_j": 57.8112,
+    "before_time_s": 1.098,
+    "after_time_s": 1.0619,
+    "before_power_w": 54.51,
+    "after_power_w": 54.44,
+    "before_s_per_call": 0.13137027900665998,
+    "after_s_per_call": 0.12772522028535604,
+    "energy_ci_pct": 1.56,
+    "significant": true
+   }
+  ],
+  "submission_hash": "dd9ff869a4d47390",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "C3S1-parse-members-comprehension",
+  "unit": "scripts/move-to-emeritus.py::_parse_members",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('no-trailing-15k', 'unicode-8k', 'near-miss-12k'; best 7.8% +-0.6% on 'near-miss-12k'), and no saving that can be told from noise on the rest: 'large-mixed-25k' +2.1% +-2.4% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large-mixed-25k",
+    "repeats": 34,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.2082,
+    "after_energy_j": 57.9834,
+    "before_time_s": 1.0924,
+    "after_time_s": 1.0656,
+    "before_power_w": 54.21,
+    "after_power_w": 54.42,
+    "before_s_per_call": 0.031161339953541756,
+    "after_s_per_call": 0.02971795666962862,
+    "energy_ci_pct": 2.42,
+    "significant": false
+   },
+   {
+    "label": "no-trailing-15k",
+    "repeats": 64,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.5104,
+    "after_energy_j": 54.9842,
+    "before_time_s": 1.0561,
+    "after_time_s": 1.0102,
+    "before_power_w": 54.46,
+    "after_power_w": 54.43,
+    "before_s_per_call": 0.016246032901108265,
+    "after_s_per_call": 0.015648167580366135,
+    "energy_ci_pct": 1.98,
+    "significant": true
+   },
+   {
+    "label": "unicode-8k",
+    "repeats": 85,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.4264,
+    "after_energy_j": 55.3099,
+    "before_time_s": 1.0574,
+    "after_time_s": 1.0187,
+    "before_power_w": 54.31,
+    "after_power_w": 54.3,
+    "before_s_per_call": 0.012252431362867355,
+    "after_s_per_call": 0.011899660341441631,
+    "energy_ci_pct": 1.78,
+    "significant": true
+   },
+   {
+    "label": "near-miss-12k",
+    "repeats": 87,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.3432,
+    "after_energy_j": 54.6985,
+    "before_time_s": 1.0982,
+    "after_time_s": 1.0096,
+    "before_power_w": 54.04,
+    "after_power_w": 54.18,
+    "before_s_per_call": 0.011790096759796143,
+    "after_s_per_call": 0.01152404211461544,
+    "energy_ci_pct": 0.64,
+    "significant": true
+   }
+  ],
+  "submission_hash": "8f84e10d8b55c5e1",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "C8S2-parse-members-module-pattern",
+  "unit": "scripts/move-to-emeritus.py::_parse_members",
+  "status": "negligible",
+  "reason": "no case moved more than the noise: the largest reading was +1.1% +-8.0% on 'large-mixed-25k', against a clean 0.9% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large-mixed-25k",
+    "repeats": 33,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 61.2223,
+    "after_energy_j": 60.5129,
+    "before_time_s": 1.1258,
+    "after_time_s": 1.1067,
+    "before_power_w": 54.4,
+    "after_power_w": 54.68,
+    "before_s_per_call": 0.03187808580696583,
+    "after_s_per_call": 0.030861168168485165,
+    "energy_ci_pct": 7.99,
+    "significant": false
+   },
+   {
+    "label": "no-trailing-15k",
+    "repeats": 61,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.4294,
+    "after_energy_j": 57.3696,
+    "before_time_s": 1.0468,
+    "after_time_s": 1.0469,
+    "before_power_w": 54.86,
+    "after_power_w": 54.8,
+    "before_s_per_call": 0.01669476367533207,
+    "after_s_per_call": 0.016551615670323372,
+    "energy_ci_pct": 0.35,
+    "significant": false
+   },
+   {
+    "label": "unicode-8k",
+    "repeats": 82,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.9732,
+    "after_energy_j": 57.7043,
+    "before_time_s": 1.0612,
+    "after_time_s": 1.056,
+    "before_power_w": 54.63,
+    "after_power_w": 54.64,
+    "before_s_per_call": 0.012309347279369831,
+    "after_s_per_call": 0.012261883355677128,
+    "energy_ci_pct": 2.17,
+    "significant": false
+   },
+   {
+    "label": "near-miss-12k",
+    "repeats": 85,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.9179,
+    "after_energy_j": 56.7901,
+    "before_time_s": 1.0431,
+    "after_time_s": 1.0422,
+    "before_power_w": 54.57,
+    "after_power_w": 54.49,
+    "before_s_per_call": 0.011858917772769928,
+    "after_s_per_call": 0.01182570494711399,
+    "energy_ci_pct": 0.56,
+    "significant": false
+   }
+  ],
+  "submission_hash": "9cfe1ade0af90ae3",
+  "baseline_sha256": "a4dd8fcc55e77b4c",
+  "measured_twice": true,
+  "first_status": "negligible"
+ },
+ {
+  "id": "C10S4-pr-body-join",
+  "unit": "scripts/move-to-emeritus.py::_build_pr_body",
+  "status": "confirmed",
+  "reason": "6.7% +-0.8% energy saved on 'with-warning', clearing the 0.9% noise floor. Saved energy on all 4 inputs ('large', 'with-warning', 'same-role', 'duplicates'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large",
+    "repeats": 32,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.5207,
+    "after_energy_j": 54.4887,
+    "before_time_s": 1.0594,
+    "after_time_s": 1.0173,
+    "before_power_w": 53.35,
+    "after_power_w": 53.56,
+    "before_s_per_call": 0.032438864931464195,
+    "after_s_per_call": 0.031543657183647156,
+    "energy_ci_pct": 1.96,
+    "significant": true
+   },
+   {
+    "label": "with-warning",
+    "repeats": 108,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.5999,
+    "after_energy_j": 53.7691,
+    "before_time_s": 1.075,
+    "after_time_s": 1.0014,
+    "before_power_w": 53.58,
+    "after_power_w": 53.7,
+    "before_s_per_call": 0.009998890571296215,
+    "after_s_per_call": 0.009282413870096207,
+    "energy_ci_pct": 0.8,
+    "significant": true
+   },
+   {
+    "label": "same-role",
+    "repeats": 48,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.5415,
+    "after_energy_j": 54.5683,
+    "before_time_s": 1.0551,
+    "after_time_s": 1.0181,
+    "before_power_w": 53.59,
+    "after_power_w": 53.6,
+    "before_s_per_call": 0.021515674889087677,
+    "after_s_per_call": 0.02113413531333208,
+    "energy_ci_pct": 1.5,
+    "significant": true
+   },
+   {
+    "label": "duplicates",
+    "repeats": 118,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.3412,
+    "after_energy_j": 53.8214,
+    "before_time_s": 1.0691,
+    "after_time_s": 1.0036,
+    "before_power_w": 53.64,
+    "after_power_w": 53.63,
+    "before_s_per_call": 0.00911440048366785,
+    "after_s_per_call": 0.008495401591062546,
+    "energy_ci_pct": 0.83,
+    "significant": true
+   }
+  ],
+  "submission_hash": "15c633ed15328b69",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "C10S4-issue-body-join",
+  "unit": "scripts/move-to-emeritus.py::_build_issue_body",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('many-members', 'reverse-sorted', 'duplicates'; best 8.9% +-1.7% on 'reverse-sorted'), and no saving that can be told from noise on the rest: 'unicode' +0.7% +-1.3% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [
+   "the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)"
+  ],
+  "stubbed": [],
+  "skipped_statements": [
+   "line 99 `if not token:` (SystemExit)"
+  ],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "many-members",
+    "repeats": 49,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.6713,
+    "after_energy_j": 54.5647,
+    "before_time_s": 1.0591,
+    "after_time_s": 1.0168,
+    "before_power_w": 53.51,
+    "after_power_w": 53.67,
+    "before_s_per_call": 0.02091559860855341,
+    "after_s_per_call": 0.020413238555192947,
+    "energy_ci_pct": 1.11,
+    "significant": true
+   },
+   {
+    "label": "reverse-sorted",
+    "repeats": 132,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.813,
+    "after_energy_j": 55.393,
+    "before_time_s": 1.1292,
+    "after_time_s": 1.0256,
+    "before_power_w": 53.86,
+    "after_power_w": 54.01,
+    "before_s_per_call": 0.008075837045907974,
+    "after_s_per_call": 0.007622958160936832,
+    "energy_ci_pct": 1.71,
+    "significant": true
+   },
+   {
+    "label": "duplicates",
+    "repeats": 53,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.7999,
+    "after_energy_j": 56.1041,
+    "before_time_s": 1.1233,
+    "after_time_s": 1.0412,
+    "before_power_w": 54.12,
+    "after_power_w": 53.88,
+    "before_s_per_call": 0.02017633430659771,
+    "after_s_per_call": 0.019218730740249157,
+    "energy_ci_pct": 5.68,
+    "significant": true
+   },
+   {
+    "label": "unicode",
+    "repeats": 101,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.5596,
+    "after_energy_j": 57.1539,
+    "before_time_s": 1.0539,
+    "after_time_s": 1.047,
+    "before_power_w": 54.61,
+    "after_power_w": 54.59,
+    "before_s_per_call": 0.010016340762376785,
+    "after_s_per_call": 0.009918923489749432,
+    "energy_ci_pct": 1.33,
+    "significant": false
+   }
+  ],
+  "submission_hash": "1976092586d30952",
+  "baseline_sha256": "a4dd8fcc55e77b4c"
+ },
+ {
+  "id": "C6S1-render-table-runs-set",
+  "unit": "scripts/baremetal-runner-report.py::render_table",
+  "status": "confirmed",
+  "reason": "14.0% +-7.3% energy saved on 'wide-groups', clearing the 0.9% noise floor. Saved energy on all 4 inputs ('wide-groups', 'half-filtered', 'mixed', 'many-distinct-runs'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "wide-groups",
+    "repeats": 26,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 69.432,
+    "after_energy_j": 59.7103,
+    "before_time_s": 1.2724,
+    "after_time_s": 1.0898,
+    "before_power_w": 54.57,
+    "after_power_w": 54.79,
+    "before_s_per_call": 0.04526590742170811,
+    "after_s_per_call": 0.038617403246462345,
+    "energy_ci_pct": 7.34,
+    "significant": true
+   },
+   {
+    "label": "half-filtered",
+    "repeats": 37,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 68.573,
+    "after_energy_j": 60.5806,
+    "before_time_s": 1.2477,
+    "after_time_s": 1.0983,
+    "before_power_w": 54.96,
+    "after_power_w": 55.16,
+    "before_s_per_call": 0.031368822790682316,
+    "after_s_per_call": 0.027533316984772682,
+    "energy_ci_pct": 7.34,
+    "significant": true
+   },
+   {
+    "label": "mixed",
+    "repeats": 23,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.9627,
+    "after_energy_j": 58.9057,
+    "before_time_s": 1.2177,
+    "after_time_s": 1.0685,
+    "before_power_w": 54.99,
+    "after_power_w": 55.13,
+    "before_s_per_call": 0.04908478818833828,
+    "after_s_per_call": 0.04434357490390539,
+    "energy_ci_pct": 6.66,
+    "significant": true
+   },
+   {
+    "label": "many-distinct-runs",
+    "repeats": 25,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 69.4544,
+    "after_energy_j": 61.6093,
+    "before_time_s": 1.243,
+    "after_time_s": 1.114,
+    "before_power_w": 55.88,
+    "after_power_w": 55.3,
+    "before_s_per_call": 0.04519624449312687,
+    "after_s_per_call": 0.04043585527688265,
+    "energy_ci_pct": 6.42,
+    "significant": true
+   }
+  ],
+  "submission_hash": "ea00cbd21f0a480d",
+  "baseline_sha256": "d9a6cd8751920791"
+ },
+ {
+  "id": "C1S4-sync-mentions-once",
+  "unit": "scripts/gc-elections/create-github-comments.py::sync",
+  "status": "partial",
+  "reason": "saves energy on 3 of 4 inputs ('many-comments-few-stale', 'large-comments', 'big-file'; best 15.2% +-10.6% on 'many-comments-few-stale'), and no saving that can be told from noise on the rest: 'all-stale' +0.7% +-0.7% (within the 0.9% noise floor). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "many-comments-few-stale",
+    "repeats": 87,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 65.5143,
+    "after_energy_j": 55.4841,
+    "before_time_s": 1.213,
+    "after_time_s": 1.029,
+    "before_power_w": 54.01,
+    "after_power_w": 53.92,
+    "before_s_per_call": 0.013493631035089493,
+    "after_s_per_call": 0.011573557741940022,
+    "energy_ci_pct": 10.59,
+    "significant": true
+   },
+   {
+    "label": "all-stale",
+    "repeats": 4,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 68.456,
+    "after_energy_j": 67.9808,
+    "before_time_s": 1.2758,
+    "after_time_s": 1.2663,
+    "before_power_w": 53.66,
+    "after_power_w": 53.68,
+    "before_s_per_call": 0.3187102358788252,
+    "after_s_per_call": 0.318317836150527,
+    "energy_ci_pct": 0.69,
+    "significant": true
+   },
+   {
+    "label": "large-comments",
+    "repeats": 3,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 54.8945,
+    "after_energy_j": 54.3332,
+    "before_time_s": 1.0203,
+    "after_time_s": 1.0144,
+    "before_power_w": 53.8,
+    "after_power_w": 53.56,
+    "before_s_per_call": 0.3381915157660842,
+    "after_s_per_call": 0.3378310399129987,
+    "energy_ci_pct": 0.89,
+    "significant": true
+   },
+   {
+    "label": "big-file",
+    "repeats": 7,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 61.6448,
+    "after_energy_j": 60.6899,
+    "before_time_s": 1.1527,
+    "after_time_s": 1.1334,
+    "before_power_w": 53.48,
+    "after_power_w": 53.55,
+    "before_s_per_call": 0.16406144201755524,
+    "after_s_per_call": 0.16139436606317759,
+    "energy_ci_pct": 0.4,
+    "significant": true
+   }
+  ],
+  "submission_hash": "3b20396864a21c44",
+  "baseline_sha256": "35565b5e383e25d9"
+ },
+ {
+  "id": "C3S3-sync-single-pass-removal",
+  "unit": "scripts/gc-elections/create-github-comments.py::sync",
+  "status": "confirmed",
+  "reason": "95.8% +-3.9% energy saved on 'large-comments', clearing the 0.9% noise floor. Saved energy on all 4 inputs ('many-comments-few-stale', 'all-stale', 'large-comments', 'big-file'), with behaviour preserved throughout.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "many-comments-few-stale",
+    "repeats": 81,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 66.3523,
+    "after_energy_j": 57.4125,
+    "before_time_s": 1.2348,
+    "after_time_s": 1.06,
+    "before_power_w": 53.74,
+    "after_power_w": 54.16,
+    "before_s_per_call": 0.014268593862652779,
+    "after_s_per_call": 0.012413566000759602,
+    "energy_ci_pct": 9.35,
+    "significant": true
+   },
+   {
+    "label": "all-stale",
+    "repeats": 6,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 105.2106,
+    "after_energy_j": 4.8659,
+    "before_time_s": 1.9393,
+    "after_time_s": 0.0902,
+    "before_power_w": 54.25,
+    "after_power_w": 53.94,
+    "before_s_per_call": 0.32071008812636137,
+    "after_s_per_call": 0.009577305056154728,
+    "energy_ci_pct": 6.54,
+    "significant": true
+   },
+   {
+    "label": "large-comments",
+    "repeats": 5,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 108.2015,
+    "after_energy_j": 4.674,
+    "before_time_s": 1.7302,
+    "after_time_s": 0.0751,
+    "before_power_w": 62.54,
+    "after_power_w": 63.5,
+    "before_s_per_call": 0.3415814572945237,
+    "after_s_per_call": 0.009695220738649368,
+    "energy_ci_pct": 3.91,
+    "significant": true
+   },
+   {
+    "label": "big-file",
+    "repeats": 12,
+    "reps": 3,
+    "clamped": true,
+    "before_energy_j": 109.8664,
+    "after_energy_j": 10.8101,
+    "before_time_s": 2.0195,
+    "after_time_s": 0.2093,
+    "before_power_w": 54.36,
+    "after_power_w": 51.61,
+    "before_s_per_call": 0.1647687889635563,
+    "after_s_per_call": 0.014331302605569363,
+    "energy_ci_pct": 6.26,
+    "significant": true
+   }
+  ],
+  "submission_hash": "d950c5b25f20d3d0",
+  "baseline_sha256": "35565b5e383e25d9"
+ },
+ {
+  "id": "C10S4-render-group-join",
+  "unit": "scripts/update-sig-tables.py::render_group",
+  "status": "partial",
+  "reason": "saves energy on 1 of 4 inputs ('bare-meetings'; best 3.5% +-1.5% on 'bare-meetings'), and no saving that can be told from noise on the rest: 'deep-resources' +0.5% +-0.6% (its pairs disagree too much to tell); 'people-heavy' +0.0% +-1.8% (its pairs disagree too much to tell); 'mixed-large' +0.9% +-2.6% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "deep-resources",
+    "repeats": 54,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.8853,
+    "after_energy_j": 57.6101,
+    "before_time_s": 1.0644,
+    "after_time_s": 1.0546,
+    "before_power_w": 54.38,
+    "after_power_w": 54.63,
+    "before_s_per_call": 0.018999326042830944,
+    "after_s_per_call": 0.018547482788562775,
+    "energy_ci_pct": 0.63,
+    "significant": false
+   },
+   {
+    "label": "people-heavy",
+    "repeats": 45,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.073,
+    "after_energy_j": 58.0562,
+    "before_time_s": 1.0629,
+    "after_time_s": 1.0642,
+    "before_power_w": 54.63,
+    "after_power_w": 54.56,
+    "before_s_per_call": 0.02277320809662342,
+    "after_s_per_call": 0.02262113895267248,
+    "energy_ci_pct": 1.83,
+    "significant": false
+   },
+   {
+    "label": "bare-meetings",
+    "repeats": 69,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 60.4661,
+    "after_energy_j": 58.3306,
+    "before_time_s": 1.1102,
+    "after_time_s": 1.0702,
+    "before_power_w": 54.46,
+    "after_power_w": 54.5,
+    "before_s_per_call": 0.01528496015816927,
+    "after_s_per_call": 0.014543798752129078,
+    "energy_ci_pct": 1.54,
+    "significant": true
+   },
+   {
+    "label": "mixed-large",
+    "repeats": 45,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.1675,
+    "after_energy_j": 57.6707,
+    "before_time_s": 1.0645,
+    "after_time_s": 1.0554,
+    "before_power_w": 54.65,
+    "after_power_w": 54.64,
+    "before_s_per_call": 0.022992979735136032,
+    "after_s_per_call": 0.02246347162872553,
+    "energy_ci_pct": 2.57,
+    "significant": false
+   }
+  ],
+  "submission_hash": "c88173722edef4ad",
+  "baseline_sha256": "55a8b920c67c5e8d",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "C10S4-render-details-group-join",
+  "unit": "scripts/update-sig-tables.py::render_sig_details_group",
+  "status": "partial",
+  "reason": "saves energy on 2 of 4 inputs ('medium', 'half-empty'; best 4.5% +-4.2% on 'half-empty'), and no saving that can be told from noise on the rest: 'large' +6.1% +-6.6% (its pairs disagree too much to tell); 'huge-mixed' +5.5% +-8.4% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "medium",
+    "repeats": 354,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.5239,
+    "after_energy_j": 56.1975,
+    "before_time_s": 1.0668,
+    "after_time_s": 1.0282,
+    "before_power_w": 54.86,
+    "after_power_w": 54.65,
+    "before_s_per_call": 0.0028795842081308365,
+    "after_s_per_call": 0.002832849510014057,
+    "energy_ci_pct": 2.96,
+    "significant": true
+   },
+   {
+    "label": "large",
+    "repeats": 71,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.9729,
+    "after_energy_j": 55.3607,
+    "before_time_s": 1.0792,
+    "after_time_s": 1.0113,
+    "before_power_w": 54.64,
+    "after_power_w": 54.74,
+    "before_s_per_call": 0.014268525876104832,
+    "after_s_per_call": 0.014089630916714668,
+    "energy_ci_pct": 6.62,
+    "significant": false
+   },
+   {
+    "label": "half-empty",
+    "repeats": 177,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 58.0903,
+    "after_energy_j": 55.4488,
+    "before_time_s": 1.0617,
+    "after_time_s": 1.0118,
+    "before_power_w": 54.71,
+    "after_power_w": 54.8,
+    "before_s_per_call": 0.00578928180038929,
+    "after_s_per_call": 0.005662485957145691,
+    "energy_ci_pct": 4.2,
+    "significant": true
+   },
+   {
+    "label": "huge-mixed",
+    "repeats": 48,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 59.2238,
+    "after_energy_j": 55.975,
+    "before_time_s": 1.0795,
+    "after_time_s": 1.0172,
+    "before_power_w": 54.86,
+    "after_power_w": 55.03,
+    "before_s_per_call": 0.021377302706241608,
+    "after_s_per_call": 0.02117949817329645,
+    "energy_ci_pct": 8.41,
+    "significant": false
+   }
+  ],
+  "submission_hash": "85562347ff4a21d5",
+  "baseline_sha256": "55a8b920c67c5e8d",
+  "measured_twice": true,
+  "first_status": "partial"
+ },
+ {
+  "id": "C1S4-render-gc-display-name",
+  "unit": "scripts/update-community-members.py::render_gc",
+  "status": "mixed",
+  "reason": "a trade-off, not a fix: 4.3% saved on 'duplicates-80k' but 9.5% lost on 'full-40k', both clearing the 0.9% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "full-40k",
+    "repeats": 17,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.7014,
+    "after_energy_j": 63.1883,
+    "before_time_s": 1.0794,
+    "after_time_s": 1.1727,
+    "before_power_w": 53.46,
+    "after_power_w": 53.88,
+    "before_s_per_call": 0.06196277774870396,
+    "after_s_per_call": 0.06685907673090696,
+    "energy_ci_pct": 0.9,
+    "significant": true
+   },
+   {
+    "label": "sparse-35k",
+    "repeats": 24,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.0348,
+    "after_energy_j": 57.7462,
+    "before_time_s": 1.0638,
+    "after_time_s": 1.0793,
+    "before_power_w": 53.61,
+    "after_power_w": 53.5,
+    "before_s_per_call": 0.04360720794647932,
+    "after_s_per_call": 0.04337896406650543,
+    "energy_ci_pct": 0.4,
+    "significant": true
+   },
+   {
+    "label": "duplicates-80k",
+    "repeats": 9,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 57.707,
+    "after_energy_j": 55.2002,
+    "before_time_s": 1.0818,
+    "after_time_s": 1.0364,
+    "before_power_w": 53.34,
+    "after_power_w": 53.26,
+    "before_s_per_call": 0.11662958469241858,
+    "after_s_per_call": 0.11133335810154676,
+    "energy_ci_pct": 0.11,
+    "significant": true
+   },
+   {
+    "label": "mixed-40k",
+    "repeats": 18,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.0138,
+    "after_energy_j": 59.1115,
+    "before_time_s": 1.0368,
+    "after_time_s": 1.0971,
+    "before_power_w": 54.02,
+    "after_power_w": 53.88,
+    "before_s_per_call": 0.05754525028169155,
+    "after_s_per_call": 0.059282456524670124,
+    "energy_ci_pct": 1.56,
+    "significant": true
+   }
+  ],
+  "submission_hash": "ee6cf6506f30f222",
+  "baseline_sha256": "f61ebbc6148ec776"
+ },
+ {
+  "id": "C1S4-render-tc-display-name",
+  "unit": "scripts/update-community-members.py::render_tc",
+  "status": "mixed",
+  "reason": "a trade-off, not a fix: 3.0% saved on 'duplicates' but 6.3% lost on 'large', both clearing the 0.9% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.",
+  "profile": "fast",
+  "cases_checked": 4,
+  "noise_floor_pct": 0.89,
+  "noise_floor_from": "session calibration",
+  "canary_case": "",
+  "reps": 3,
+  "equivalence_relaxed": [],
+  "stubbed": [],
+  "skipped_statements": [],
+  "coverage": {
+   "meter": "codegreen",
+   "requested_domains": [
+    "package"
+   ],
+   "visible_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "missing_domains": []
+  },
+  "per_case": [
+   {
+    "label": "large",
+    "repeats": 17,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.7274,
+    "after_energy_j": 60.3071,
+    "before_time_s": 1.0625,
+    "after_time_s": 1.1286,
+    "before_power_w": 53.4,
+    "after_power_w": 53.44,
+    "before_s_per_call": 0.06185013800859451,
+    "after_s_per_call": 0.06544393952935934,
+    "energy_ci_pct": 5.25,
+    "significant": true
+   },
+   {
+    "label": "duplicates",
+    "repeats": 36,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 56.4647,
+    "after_energy_j": 54.7477,
+    "before_time_s": 1.048,
+    "after_time_s": 1.0184,
+    "before_power_w": 53.88,
+    "after_power_w": 53.76,
+    "before_s_per_call": 0.028894119895994663,
+    "after_s_per_call": 0.028111555613577366,
+    "energy_ci_pct": 0.55,
+    "significant": true
+   },
+   {
+    "label": "long-prefixes",
+    "repeats": 38,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 55.8814,
+    "after_energy_j": 54.9275,
+    "before_time_s": 1.0393,
+    "after_time_s": 1.0211,
+    "before_power_w": 53.77,
+    "after_power_w": 53.79,
+    "before_s_per_call": 0.026903843507170677,
+    "after_s_per_call": 0.026533921249210835,
+    "energy_ci_pct": 1.46,
+    "significant": true
+   },
+   {
+    "label": "unicode-names",
+    "repeats": 33,
+    "reps": 3,
+    "clamped": false,
+    "before_energy_j": 55.1919,
+    "after_energy_j": 55.1507,
+    "before_time_s": 1.0299,
+    "after_time_s": 1.028,
+    "before_power_w": 53.59,
+    "after_power_w": 53.65,
+    "before_s_per_call": 0.030926060862839222,
+    "after_s_per_call": 0.030866049230098724,
+    "energy_ci_pct": 1.66,
+    "significant": false
+   }
+  ],
+  "submission_hash": "f18ce09b773ece62",
+  "baseline_sha256": "f61ebbc6148ec776"
+ }
+]

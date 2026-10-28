@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/bindings/dxfile.py::DXFile._write2",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 8.2,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 6186,
+   "completion_tokens": 2616,
+   "reasoning_tokens": 2523,
+   "cost": 0.001718148,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `DXFile._write2` performs its real work by dispatching remote upload requests \u2014 `_ensure_write_bufsize` queries the project's upload parameters from the DNAnexus API server and the write path calls `_async_upload_part_request`/`upload_part` (HTTP part uploads) \u2014 so no input can exercise the function (buffering, splitting into parts, uploading) without network access to the DNAnexus API."
+  }
+ ],
+ "seconds": 17.5,
+ "cost": 0.00172,
+ "kept": [],
+ "reason": "it cannot run here: `DXFile._write2` performs its real work by dispatching remote upload requests \u2014 `_ensure_write_bufsize` queries the project's upload parameters from the DNAnexus API server and the write path calls `_async_upload_part_request`/`upload_part` (HTTP part uploads) \u2014 so no input can exercise the function (buffering, splitting into parts, uploading) without network access to the DNAnexus API."
+}

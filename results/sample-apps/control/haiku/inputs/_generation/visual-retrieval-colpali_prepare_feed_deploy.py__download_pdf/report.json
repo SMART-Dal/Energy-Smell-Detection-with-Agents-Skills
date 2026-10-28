@@ -1,0 +1,25 @@
+{
+ "unit": "visual-retrieval-colpali/prepare_feed_deploy.py::download_pdf",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 5.9,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2799,
+   "completion_tokens": 830,
+   "reasoning_tokens": 769,
+   "cost": 0.000308882,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `download_pdf` begins its work by awaiting an HTTP request (`await session.get(url)`) on the session it is given, so it needs a live server / network access; providing a session that answers without a real request would be a mock, which is not allowed."
+  }
+ ],
+ "seconds": 8.6,
+ "cost": 0.00031,
+ "kept": [],
+ "reason": "it cannot run here: `download_pdf` begins its work by awaiting an HTTP request (`await session.get(url)`) on the session it is given, so it needs a live server / network access; providing a session that answers without a real request would be a mock, which is not allowed."
+}

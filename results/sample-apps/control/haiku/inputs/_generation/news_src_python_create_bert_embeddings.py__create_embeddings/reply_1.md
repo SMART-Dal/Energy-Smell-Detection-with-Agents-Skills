@@ -1,0 +1,1 @@
+CANNOT RUN: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8_H-512_A-8')`, which require downloading pretrained models from the Hugging Face Hub (network access) or a pre-populated local model cache, neither of which is available here.

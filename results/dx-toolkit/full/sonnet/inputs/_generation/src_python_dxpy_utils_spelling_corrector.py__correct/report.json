@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/utils/spelling_corrector.py::correct",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 81.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2512,
+   "completion_tokens": 13917,
+   "reasoning_tokens": 13032,
+   "cost": 0.008450856,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "self-known",
+     "ok": false,
+     "joules": 0.07956209895833333,
+     "seconds": 0.0017368244007229805,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "edit1-hit",
+     "ok": false,
+     "joules": 0.32741455714285783,
+     "seconds": 0.007160072214901447,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "edit2-hit-len10",
+     "ok": false,
+     "joules": 8.235756142857099,
+     "seconds": 0.1644122926518321,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "edit2-hit-len12",
+     "ok": true,
+     "joules": 10.787201399999958,
+     "seconds": 0.23007427621632814
+    },
+    {
+     "label": "edit2-hit-len13",
+     "ok": true,
+     "joules": 13.147238749999815,
+     "seconds": 0.28646156936883926
+    },
+    {
+     "label": "no-hit-len10",
+     "ok": false,
+     "joules": 7.970852999999958,
+     "seconds": 0.171156395226717,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-hit-len11",
+     "ok": true,
+     "joules": 10.24679660000038,
+     "seconds": 0.22200119215995073
+    },
+    {
+     "label": "no-hit-len13",
+     "ok": true,
+     "joules": 13.207404999999653,
+     "seconds": 0.27436746563762426
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-word-empty-vocab",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char-known",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-word",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 251.8,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 223.0
+  }
+ ],
+ "seconds": 617.7,
+ "cost": 0.00845,
+ "kept": [
+  {
+   "label": "no-hit-len13",
+   "mj_per_call": 13207.405,
+   "ms_per_call": 274.367
+  },
+  {
+   "label": "edit2-hit-len13",
+   "mj_per_call": 13147.2387,
+   "ms_per_call": 286.462
+  },
+  {
+   "label": "edit2-hit-len12",
+   "mj_per_call": 10787.2014,
+   "ms_per_call": 230.074
+  },
+  {
+   "label": "no-hit-len11",
+   "mj_per_call": 10246.7966,
+   "ms_per_call": 222.001
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,16 @@
+visual-retrieval-colpali/src/backend/vespa_app.py
+examples/in-context-learning/categorize_group.py
+rag-blueprint/eval/train_logistic_regression.py
+feed-split.py
+examples/agentic-streamlit-chatbot/simple_app/streamlit_vespa_app.py
+examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/vespa_retriever.py
+text-search/python/sample-queries-and-documents.py
+news/src/python/create_bert_embeddings.py
+use-case-shopping/convert_meta.py
+news/src/python/metrics.py
+text-search/python/create-sample-data.py
+examples/in-context-learning/feed_examples.py
+billion-scale-image-search/app/src/main/python/create-centroid-feed.py
+scripts/print-app-endpoints.py
+billion-scale-image-search/app/src/main/python/quantize.py
+examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/utils/secrets.py

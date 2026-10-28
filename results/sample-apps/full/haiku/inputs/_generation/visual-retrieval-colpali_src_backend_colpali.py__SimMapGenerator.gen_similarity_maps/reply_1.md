@@ -1,0 +1,1 @@
+CANNOT RUN: constructing `SimMapGenerator` loads the ColPali model from the HuggingFace hub (network access) as the repository's own caller does at startup, and the internal structure of the Vespa similarity maps consumed by the elided `_prepare_similarity_map_tensor` is not specified, so no valid input can be built.

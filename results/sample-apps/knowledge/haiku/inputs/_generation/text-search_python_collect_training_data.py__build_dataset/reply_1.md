@@ -1,0 +1,1 @@
+CANNOT RUN: `build_dataset` calls `get_features`, which performs `requests.post(url, json=body)` against a Vespa server; every measured call would need network access to a live search endpoint, which is unavailable here.

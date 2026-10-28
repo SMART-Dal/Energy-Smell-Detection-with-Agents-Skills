@@ -1,0 +1,5 @@
+{"id": "C1S6-sessions-guard", "root_cause": "C1.S6", "repo": "/home/javad/energy-run/dx-toolkit",
+ "unit": "src/python/dxpy/utils/config.py::DXConfig.get_session_conf_dir",
+ "edits": [["    sessions_dir = os.path.join(self._user_conf_dir, \"sessions\")\n", "    sessions_dir = os.path.join(self._user_conf_dir, \"sessions\")\n    if not os.path.isdir(sessions_dir):\n        return self._get_ppid_session_conf_dir(sessions_dir)\n", 1]],
+ "evidence": "get_session_conf_dir is called from DXConfig.__init__ (utils/config.py, cleanup=True) and from the dxpy config path at import. When the sessions directory does not exist, no session directory can be found by the process walk, so the function returns the same _get_ppid_session_conf_dir value the walk falls back to. The walk runs only when the directory exists.",
+ "notes": "C1.S6. The psutil import and the process-tree walk are skipped when there is no sessions directory. Caveat: on a machine without psutil, the warning that the original prints for the failed import is not printed when the directory is missing; the returned path is the same."}

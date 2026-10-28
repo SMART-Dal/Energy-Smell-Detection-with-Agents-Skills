@@ -1,0 +1,1 @@
+CANNOT RUN: `query_user_embedding` performs `requests.get(url, cert=cert)` against a Vespa search endpoint; it requires network access to a remote service, and no input can avoid that.

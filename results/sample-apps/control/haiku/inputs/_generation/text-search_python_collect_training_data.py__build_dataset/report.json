@@ -1,0 +1,25 @@
+{
+ "unit": "text-search/python/collect_training_data.py::build_dataset",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.7,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 3189,
+   "completion_tokens": 740,
+   "reasoning_tokens": 661,
+   "cost": 0.001383525,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `build_dataset` performs its work by calling `get_features`, which issues `requests.post(url, ...)` to a Vespa search server (default `http://localhost:8080/search/`) \u2014 a network request to a remote service is required for every unprocessed query, and no input can make the function do its real work without that server being available."
+  }
+ ],
+ "seconds": 6.2,
+ "cost": 0.00138,
+ "kept": [],
+ "reason": "it cannot run here: `build_dataset` performs its work by calling `get_features`, which issues `requests.post(url, ...)` to a Vespa search server (default `http://localhost:8080/search/`) \u2014 a network request to a remote service is required for every unprocessed query, and no input can make the function do its real work without that server being available."
+}

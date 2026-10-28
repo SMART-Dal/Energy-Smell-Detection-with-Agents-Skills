@@ -1,0 +1,56 @@
+{
+ "units": {
+  "scripts/validate-workstreams.py::validate_workstreams_semantics": {
+   "state": "ready",
+   "file": "scripts_validate-workstreams.py__validate_workstreams_semantics.py",
+   "attempts": 1
+  },
+  "scripts/baremetal-runner-report.py::render_table": {
+   "state": "ready",
+   "file": "scripts_baremetal-runner-report.py__render_table.py",
+   "attempts": 1
+  },
+  "scripts/baremetal-runner-report.py::collect_jobs": {
+   "state": "failed",
+   "reason": "it cannot run here: `collect_jobs` fetches GitHub Actions workflow runs and jobs via `gh_paginated`, which shells out to the `gh api` CLI to query github.com \u2014 it needs network access and subprocesses, both unavailable here, and no input can avoid that first request.",
+   "attempts": 1
+  },
+  "scripts/gc-elections/create-github-comments.py::sync": {
+   "state": "ready",
+   "file": "scripts_gc-elections_create-github-comments.py__sync.py",
+   "attempts": 1
+  },
+  "scripts/gc-elections/create-github-comments.py::is_voter_comment": {
+   "state": "ready",
+   "file": "scripts_gc-elections_create-github-comments.py__is_voter_comment.py",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_get_repo_commenters": {
+   "state": "failed",
+   "reason": "it cannot run here: `_get_repo_commenters` calls `request_with_retry(\"GET\", url)` which performs a live HTTP request to `https://api.github.com`; its work begins with a network call to a remote server and no input can avoid it (mocking `request_with_retry`/`urllib.request.urlopen` is forbidden).",
+   "attempts": 1
+  },
+  "scripts/move-to-emeritus.py::_add_to_emeritus": {
+   "state": "ready",
+   "file": "scripts_move-to-emeritus.py___add_to_emeritus.py",
+   "attempts": 1
+  },
+  "scripts/update-sig-tables.py::render_group": {
+   "state": "ready",
+   "file": "scripts_update-sig-tables.py__render_group.py",
+   "attempts": 1
+  },
+  "scripts/gc-elections/generate-voters-roll.py::build_devstats_rows": {
+   "state": "failed",
+   "reason": "it cannot run here: `build_devstats_rows` calls `get_github_login` for every name, which issues `requests.get` to `https://api.github.com/users/{username}` (plus a 100 ms sleep); it needs live network access to GitHub and cannot run here.",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 6,
+  "max_holding": 30,
+  "failed": 3,
+  "max_failed": 30
+ },
+ "updated": 1793210811.403674
+}

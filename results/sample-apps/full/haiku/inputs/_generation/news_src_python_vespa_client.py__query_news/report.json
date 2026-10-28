@@ -1,0 +1,25 @@
+{
+ "unit": "news/src/python/vespa_client.py::query_news",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2392,
+   "completion_tokens": 141,
+   "reasoning_tokens": 86,
+   "cost": 0.000172896,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `query_news` performs `requests.post(f'{url}/search/', ...)` to a Vespa search server; its work is a network request, and no input can avoid it (and faking a server/network is not allowed)."
+  }
+ ],
+ "seconds": 4.8,
+ "cost": 0.00017,
+ "kept": [],
+ "reason": "it cannot run here: `query_news` performs `requests.post(f'{url}/search/', ...)` to a Vespa search server; its work is a network request, and no input can avoid it (and faking a server/network is not allowed)."
+}

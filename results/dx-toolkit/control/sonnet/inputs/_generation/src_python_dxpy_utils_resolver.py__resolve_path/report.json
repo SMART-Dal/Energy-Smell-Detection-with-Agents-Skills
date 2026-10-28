@@ -1,0 +1,155 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::resolve_path",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 33.8,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 6266,
+   "completion_tokens": 10458,
+   "reasoning_tokens": 9607,
+   "cost": 0.00761228,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "deep-no-colon",
+     "ok": true,
+     "joules": 0.5732667647058823,
+     "seconds": 0.011819673702120781
+    },
+    {
+     "label": "deep-folder-expected",
+     "ok": false,
+     "joules": 0.5643251071428569,
+     "seconds": 0.012033808045089245,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "proj-name-deep",
+     "ok": true,
+     "joules": 0.570705768292684,
+     "seconds": 0.012242654338479042
+    },
+    {
+     "label": "proj-id-deep",
+     "ok": true,
+     "joules": 0.5708602738095253,
+     "seconds": 0.012032940052449703
+    },
+    {
+     "label": "leading-colon-deep",
+     "ok": true,
+     "joules": 0.5736944404761906,
+     "seconds": 0.011930488981306553
+    },
+    {
+     "label": "escaped-slashes",
+     "ok": false,
+     "joules": 0.33826648091603045,
+     "seconds": 0.007665504701435566,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dotdot-mix",
+     "ok": false,
+     "joules": 0.5261577065217407,
+     "seconds": 0.010978489182889462,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "hash-id",
+     "ok": false,
+     "joules": 0.0018995390702822275,
+     "seconds": 5.534198135137558e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-string",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-not-allowed",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "colon-only",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 42.5,
+   "coverage": 0.6346153846153846,
+   "missed": [
+    482,
+    483,
+    486,
+    491,
+    492,
+    494,
+    497,
+    498,
+    500,
+    503,
+    505,
+    519,
+    528,
+    531,
+    541,
+    546,
+    547,
+    553,
+    562
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 30.0
+  }
+ ],
+ "seconds": 82.5,
+ "cost": 0.00761,
+ "kept": [
+  {
+   "label": "leading-colon-deep",
+   "mj_per_call": 573.6944,
+   "ms_per_call": 11.93
+  },
+  {
+   "label": "deep-no-colon",
+   "mj_per_call": 573.2668,
+   "ms_per_call": 11.82
+  },
+  {
+   "label": "proj-id-deep",
+   "mj_per_call": 570.8603,
+   "ms_per_call": 12.033
+  },
+  {
+   "label": "proj-name-deep",
+   "mj_per_call": 570.7058,
+   "ms_per_call": 12.243
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

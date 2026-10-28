@@ -1,0 +1,135 @@
+{
+ "unit": "scripts/generate-sponsorship-ledger.py::rank_gc",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 20.0,
+   "finish": "stop",
+   "provider": "AtlasCloud",
+   "prompt_tokens": 2156,
+   "completion_tokens": 2811,
+   "reasoning_tokens": 1886,
+   "cost": 0.001809,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-8k",
+     "ok": false,
+     "joules": 1.01530455,
+     "seconds": 0.010062526911497116,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-ties-30k",
+     "ok": true,
+     "joules": 3.5413453333333313,
+     "seconds": 0.057463301345705986
+    },
+    {
+     "label": "all-empty-30k",
+     "ok": true,
+     "joules": 3.624117444444443,
+     "seconds": 0.05814382806420326
+    },
+    {
+     "label": "powerlaw-20k",
+     "ok": false,
+     "joules": 2.6787960344827573,
+     "seconds": 0.03560858964920044,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "wide-lengths",
+     "ok": false,
+     "joules": 0.18784435197368354,
+     "seconds": 0.003298151306807995,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "adversarial-40k",
+     "ok": false,
+     "joules": 3.225221266666669,
+     "seconds": 0.03438935521990061,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "big-60k",
+     "ok": true,
+     "joules": 8.14987187500003,
+     "seconds": 0.1315986094996333
+    },
+    {
+     "label": "int-keys-50k",
+     "ok": true,
+     "joules": 5.856666333333313,
+     "seconds": 0.08710392285138369
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-value",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 61.9,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 0.0
+  }
+ ],
+ "seconds": 82.4,
+ "cost": 0.00181,
+ "kept": [
+  {
+   "label": "big-60k",
+   "mj_per_call": 8149.8719,
+   "ms_per_call": 131.599
+  },
+  {
+   "label": "int-keys-50k",
+   "mj_per_call": 5856.6663,
+   "ms_per_call": 87.104
+  },
+  {
+   "label": "all-empty-30k",
+   "mj_per_call": 3624.1174,
+   "ms_per_call": 58.144
+  },
+  {
+   "label": "all-ties-30k",
+   "mj_per_call": 3541.3453,
+   "ms_per_call": 57.463
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,138 @@
+{
+ "unit": "src/python/dxpy/utils/resolver.py::get_last_pos_of_char",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 34.7,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3525,
+   "completion_tokens": 5411,
+   "reasoning_tokens": 4791,
+   "cost": 0.003609675,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "short-path",
+     "ok": false,
+     "joules": 4.423196716968023e-05,
+     "seconds": 5.887821316719055e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-path",
+     "ok": false,
+     "joules": 4.555270659567733e-05,
+     "seconds": 3.016553819179535e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-escaped-slashes",
+     "ok": true,
+     "joules": 0.6987983749999986,
+     "seconds": 0.014027317054569721
+    },
+    {
+     "label": "gapped-escaped",
+     "ok": true,
+     "joules": 0.5146608222222211,
+     "seconds": 0.011112486012279987
+    },
+    {
+     "label": "gapped-random-escaped",
+     "ok": true,
+     "joules": 0.41706616216216136,
+     "seconds": 0.009072469547390938
+    },
+    {
+     "label": "mixed-random",
+     "ok": false,
+     "joules": 4.884566460128828e-05,
+     "seconds": 2.5238841772079468e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-occurrence",
+     "ok": false,
+     "joules": 0.0010552590246508348,
+     "seconds": 2.544000744819641e-05,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "escaped-colons",
+     "ok": true,
+     "joules": 0.30550701351350923,
+     "seconds": 0.006769450381398201
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-string",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-char",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "char-absent",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 171.9,
+   "coverage": 0.8461538461538461,
+   "missed": [
+    264,
+    265
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 153.5
+  }
+ ],
+ "seconds": 299.7,
+ "cost": 0.00361,
+ "kept": [
+  {
+   "label": "all-escaped-slashes",
+   "mj_per_call": 698.7984,
+   "ms_per_call": 14.027
+  },
+  {
+   "label": "gapped-escaped",
+   "mj_per_call": 514.6608,
+   "ms_per_call": 11.112
+  },
+  {
+   "label": "gapped-random-escaped",
+   "mj_per_call": 417.0662,
+   "ms_per_call": 9.072
+  },
+  {
+   "label": "escaped-colons",
+   "mj_per_call": 305.507,
+   "ms_per_call": 6.769
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

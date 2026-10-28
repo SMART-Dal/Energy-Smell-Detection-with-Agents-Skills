@@ -1,0 +1,15 @@
+C1S1-validate-json-dead-read confirmed       APPLIED
+C1S4-correct-edits-once partial         not applied: partial
+C3S1-pathmatch-comprehension partial         not applied: partial
+C4S6-dlink-precheck    partial         not applied: partial
+C6S2-cluster-copy-kept partial         not applied: partial
+C6S2-get-first-rfind   confirmed       APPLIED
+C6S2-get-last-rfind    confirmed       APPLIED
+C6S2-pheno-comprehension confirmed       APPLIED
+C8S3-infer-hoist       partial         not applied: partial
+C5S2-display-index     negligible      not applied: negligible
+C1S6-sessions-guard    negligible      not applied: negligible
+C7S1-truncate-bsearch  confirmed       APPLIED
+C3S2-output-colset     no_inputs       not applied: no_inputs
+
+wrote /home/javad/energy-exp/archive/dx-toolkit/full/haiku/review/results.jsonl and /home/javad/energy-exp/archive/dx-toolkit/full/haiku/review/REPORT.md

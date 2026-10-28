@@ -1,0 +1,139 @@
+{
+ "unit": "src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 12.0,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 3838,
+   "completion_tokens": 5329,
+   "reasoning_tokens": 4122,
+   "cost": 0.00565965,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "mixed-definitions",
+     "ok": false,
+     "joules": 3.3777234285714286,
+     "seconds": 0.0723022036254406,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dollar-defs",
+     "ok": false,
+     "joules": 3.1401768000000003,
+     "seconds": 0.07051272038370371,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-required",
+     "ok": true,
+     "joules": 4.8196451999999965,
+     "seconds": 0.105335408821702
+    },
+    {
+     "label": "union-types",
+     "ok": true,
+     "joules": 3.9474734166666585,
+     "seconds": 0.08666108548641205
+    },
+    {
+     "label": "many-defaults",
+     "ok": false,
+     "joules": 3.2596078235294166,
+     "seconds": 0.061402829363942146,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-text",
+     "ok": false,
+     "joules": 0.7552784918032811,
+     "seconds": 0.01656355708837509,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "path-formats",
+     "ok": true,
+     "joules": 3.433866214285721,
+     "seconds": 0.07510656304657459
+    },
+    {
+     "label": "many-definitions",
+     "ok": true,
+     "joules": 3.4622396923076884,
+     "seconds": 0.07882826682180166
+    }
+   ],
+   "checks": [
+    {
+     "label": "missing-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "no-definitions-key",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "unsupported-type",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 60.5,
+   "coverage": 0.9210526315789473,
+   "missed": [
+    213,
+    217,
+    223
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 38.0
+  }
+ ],
+ "seconds": 81.5,
+ "cost": 0.00566,
+ "kept": [
+  {
+   "label": "all-required",
+   "mj_per_call": 4819.6452,
+   "ms_per_call": 105.335
+  },
+  {
+   "label": "union-types",
+   "mj_per_call": 3947.4734,
+   "ms_per_call": 86.661
+  },
+  {
+   "label": "many-definitions",
+   "mj_per_call": 3462.2397,
+   "ms_per_call": 78.828
+  },
+  {
+   "label": "path-formats",
+   "mj_per_call": 3433.8662,
+   "ms_per_call": 75.107
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

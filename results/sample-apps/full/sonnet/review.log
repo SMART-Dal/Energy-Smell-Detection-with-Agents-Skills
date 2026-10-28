@@ -1,0 +1,28 @@
+C3S4-process-docs-docfreq partial         not applied: partial
+C10S1-count-terms-isdisjoint confirmed       APPLIED
+C3S4-predictions-dict  confirmed       APPLIED
+C4S2-sample-valid-filter-first negligible      not applied: negligible
+C5S4-float-to-binary-no-where confirmed       APPLIED
+C6S2-sample-images-select-first confirmed       APPLIED
+C3S1-parse-page-findall regressed       not applied: regressed
+C10S4-split-text-parts negligible      not applied: negligible
+C1S4-add-impressions-local confirmed       APPLIED
+C6S1-process-doc-chain negligible      not applied: negligible
+C1S4-what-language-text confirmed       APPLIED
+C10S1-filter-any       regressed       not applied: regressed
+C7S3-find-loop         over_limit      not applied: over_limit
+C6S3-get-feed-docids-setcomp negligible      not applied: negligible
+C10S4-parse-file-parts partial         not applied: partial
+C10S2-convert-file-dumps confirmed       APPLIED
+C10S2-write-json-term-replace partial         not applied: partial
+C10S1-accepted-process-docs-update confirmed       APPLIED
+C6S3-read-common-words-stream confirmed       APPLIED
+C1S1-process-docs-dead-total negligible      not applied: negligible
+C1S4-count-terms-window confirmed       not applied: changes the same function as C10S1-count-terms-isdisjoint
+C4S4-parse-page-elif   over_limit      not applied: over_limit
+C8S3-annotate-data-local over_limit      not applied: over_limit
+C10S4-convert-meta-categories-text over_limit      not applied: over_limit
+C1S3-illegal-chars-single-return over_limit      not applied: over_limit
+C10S2-convert-main-dumps over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/sample-apps/full/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/full/sonnet/review/REPORT.md

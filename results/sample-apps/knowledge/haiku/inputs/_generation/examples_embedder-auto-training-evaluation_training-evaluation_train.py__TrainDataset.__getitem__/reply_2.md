@@ -1,0 +1,1 @@
+CANNOT RUN: every call of `TrainDataset.__getitem__` returns a `sentence_transformers.InputExample`, so the function always needs the real `sentence_transformers` library, which is not available in this environment; no input can avoid it.

@@ -1,0 +1,191 @@
+{
+ "run_id": "community.knowledge.haiku",
+ "repo": "community",
+ "repo_commit": "910f85d6cf0a6a0417f3c4d1e4d03addf04a4ceb",
+ "arm": "knowledge",
+ "model": "claude-haiku-5-5",
+ "effort": "high",
+ "auth": "subscription",
+ "status": "done",
+ "agent_exit": 0,
+ "agent_seconds": 1210,
+ "review_seconds": 363,
+ "started": "2026-10-28T14:30:03-03:00",
+ "exp_mode_at_end": "0",
+ "project_commit": "024f75f6c0fd40fc7554fd66c487094b055534b9",
+ "project_uncommitted_files": 0,
+ "claude_version": "2.1.312 (Claude Code)",
+ "exp": "/home/javad/energy-exp",
+ "run": "/home/javad/energy-run",
+ "project": "/home/javad/Energy-Smell-Detection-with-Agents-Skills",
+ "usage": {
+  "result": "success",
+  "is_error": [
+   false,
+   false,
+   false,
+   false
+  ],
+  "api_error_status": [
+   null,
+   null,
+   null,
+   null
+  ],
+  "terminal_reason": [
+   "completed",
+   "completed",
+   "completed",
+   "completed"
+  ],
+  "num_turns": [
+   51,
+   3,
+   3,
+   1
+  ],
+  "duration_ms": [
+   609287,
+   7766,
+   15102,
+   1528
+  ],
+  "duration_api_ms": 562735,
+  "cost_usd_estimate": 0.8592480000000001,
+  "model_usage": {
+   "claude-haiku-5-5": {
+    "inputTokens": 94,
+    "outputTokens": 125059,
+    "cacheReadInputTokens": 8171290,
+    "cacheCreationInputTokens": 276414,
+    "webSearchRequests": 0,
+    "costUSD": 0.8592480000000001,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 96598,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 276414,
+    "canonicalModel": "claude-haiku-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  }
+ },
+ "tool_calls": 53,
+ "tools_used": {
+  "Skill": 1,
+  "Bash": 47,
+  "Write": 3,
+  "ToolSearch": 1,
+  "Monitor": 1
+ },
+ "subagent_tool_calls": 0,
+ "subagent_tools_used": {},
+ "energy_api_calls": 0,
+ "findings_lines": 55,
+ "submissions": 7,
+ "agent_verdicts": {
+  "partial": 1,
+  "regressed": 1,
+  "negligible": 2,
+  "confirmed": 2,
+  "mixed": 1
+ },
+ "our_verdicts": {
+  "mixed": 2,
+  "partial": 2,
+  "negligible": 1,
+  "confirmed": 2
+ },
+ "repo_changes": [],
+ "leak_audit": {},
+ "protocol": {
+  "units_examined": 20,
+  "suspicions": 29,
+  "decisions": 31,
+  "accepted": 20,
+  "decided_without_card": [],
+  "root_cause_cards_cut_short": [],
+  "units_not_found": [],
+  "category_cards_opened": [],
+  "root_cause_cards_opened": [
+   "C1.S1",
+   "C1.S4",
+   "C1.S5",
+   "C10.S2",
+   "C10.S4",
+   "C11.S5",
+   "C3.S1",
+   "C3.S2",
+   "C3.S5",
+   "C4.S2",
+   "C5.S2",
+   "C6.S2",
+   "C8.S1",
+   "C8.S2",
+   "C8.S4",
+   "C9.S1",
+   "C9.S2",
+   "C9.S3"
+  ],
+  "index_read": true,
+  "unit_rankings": 0,
+  "rule_scans": 0,
+  "invalid_root_cause_ids": [],
+  "keys_off_schema": [],
+  "flags": [],
+  "blocked_unrequested": []
+ },
+ "rules_overlap": {
+  "units_rules_flag": 17,
+  "units_listed": 20,
+  "units_listed_and_flagged": 9,
+  "accepted": 20,
+  "accepted_unit_flagged": 13,
+  "accepted_lines_flagged": 3,
+  "accepted_root_cause_named": 2
+ },
+ "environment": {
+  "tmp_created": [
+   "/tmp/energy-scratch"
+  ]
+ },
+ "inputs": {
+  "requested": 15,
+  "ready": 5,
+  "failed": {
+   "scripts/gc-elections/generate-voters-roll.py::get_github_login": "it cannot run here: `get_github_login` performs a live HTTP request to `https://api.github.com/users/{username}` via `requests.get`, which requires network access that is unavailable here.",
+   "scripts/baremetal-runner-report.py::collect_jobs": "it cannot run here: collect_jobs performs all of its work through gh_paginated, which shells out to the `gh api` command to fetch workflow runs and jobs from GitHub; it needs network access and a working `gh` binary, and no input can avoid that (with an empty WORKFLOWS the function would do nothing at all).",
+   "scripts/move-to-emeritus.py::_get_repo_commenters": "it cannot run here: `_get_repo_commenters` always begins with `request_with_retry(\"GET\", ...)` calling `urllib.request.urlopen` against `https://api.github.com` (as `REST_API`), and reads the response via `read_json`; no input can avoid the network request, and faking the endpoint or serving fake responses is not allowed.",
+   "scripts/move-to-emeritus.py::_verify_review_candidates": "it cannot run here: `_verify_review_candidates` performs live HTTP requests to `https://api.github.com` via `request_with_retry`/`urllib.request.urlopen` for every candidate PR; there is no way to supply the review data without network access, and intercepting the request would require mocking the repository's own code.",
+   "scripts/move-to-emeritus.py::_check_reviews": "it cannot run here: `_check_reviews` performs live HTTP requests to the GitHub GraphQL and REST APIs (`request_with_retry(\"POST\", GRAPHQL_API, ...)` and REST verification) \u2014 it needs network access and GitHub credentials, and no input could avoid that.",
+   "scripts/move-to-emeritus.py::check_triager_activity": "it cannot run here: `check_triager_activity` reaches the network through `_check_comments`/`_check_events`, which call `_get_repo_commenters(repo, cutoff)` and `_get_repo_events(repo, cutoff)` \u2014 these fetch GitHub API data (via `paginate_rest`/`request_with_retry`/`urllib.request`), and the task exposes no cache variable or other data hook that could supply that data without a request.",
+   "scripts/move-to-emeritus.py::check_approver_activity": "it cannot run here: check_approver_activity performs live GitHub API requests (via _get_repo_commenters -> request_with_retry and the GraphQL search in _check_reviews) to api.github.com; no non-trivial input can avoid network access, and mocking the requests is not allowed.",
+   "scripts/move-to-emeritus.py::check_maintainer_activity": "it cannot run here: `check_maintainer_activity` performs its work by calling the GitHub API over the network \u2014 `_check_comments`/`_get_repo_commenters` (REST), `_check_reviews` (GraphQL `POST` to `https://api.github.com/graphql`), and `_check_events`/`_get_repo_events` (REST) \u2014 so any non-empty input requires live network access and credentials, which cannot be provided or faked here.",
+   "scripts/move-to-emeritus.py::create_emeritus_prs": "it cannot run here: the function fetches each repo's README over the network via `fetch_readme` \u2192 `request_with_retry` \u2192 `urllib.request.urlopen` (GitHub REST API), and also creates forks, branches, commits and PRs through the same API; there is no input that avoids these HTTP requests, and no network access is available.",
+   "scripts/move-to-emeritus.py::main": "it cannot run here: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API via `urllib.request`; there is no network access here and the calls cannot be avoided or mocked."
+  },
+  "cached": 5,
+  "cost_usd": 0.0073,
+  "seconds_max": 20.7,
+  "agent_copy_differs": []
+ },
+ "record": {
+  "steps_done": [
+   1,
+   2,
+   3
+  ],
+  "step_done_at_s": {
+   "1": 227,
+   "2": 408,
+   "3": 1072
+  },
+  "written_early": [],
+  "changed_after_done": [],
+  "submissions_removed": [],
+  "repairs_measured": 7,
+  "card_reads_refused": 0
+ },
+ "scan": null
+}

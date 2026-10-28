@@ -1,0 +1,135 @@
+{
+ "unit": "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__init__",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 29.1,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 2768,
+   "completion_tokens": 8679,
+   "reasoning_tokens": 7246,
+   "cost": 0.003351552,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "balanced",
+     "ok": false,
+     "joules": 6.659757428571429,
+     "seconds": 0.15164425689727068,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "docs_heavy",
+     "ok": true,
+     "joules": 12.541703600000005,
+     "seconds": 0.22720446810126305
+    },
+    {
+     "label": "queries_heavy",
+     "ok": true,
+     "joules": 11.064211666666685,
+     "seconds": 0.18822541367262602
+    },
+    {
+     "label": "dup_docs",
+     "ok": false,
+     "joules": 7.994531571428573,
+     "seconds": 0.14358357060700655,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dup_queries",
+     "ok": false,
+     "joules": 7.05690525,
+     "seconds": 0.12898434232920408,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long_text",
+     "ok": false,
+     "joules": 4.144794999999991,
+     "seconds": 0.0668181637302041,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "sparse_fields",
+     "ok": true,
+     "joules": 8.43209614285716,
+     "seconds": 0.146376620978117
+    },
+    {
+     "label": "string_ids",
+     "ok": true,
+     "joules": 12.274578800000018,
+     "seconds": 0.21290300879627466
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "missing-doc-id",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 57.1,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 6.1
+  }
+ ],
+ "seconds": 87.8,
+ "cost": 0.00335,
+ "kept": [
+  {
+   "label": "docs_heavy",
+   "mj_per_call": 12541.7036,
+   "ms_per_call": 227.204
+  },
+  {
+   "label": "string_ids",
+   "mj_per_call": 12274.5788,
+   "ms_per_call": 212.903
+  },
+  {
+   "label": "queries_heavy",
+   "mj_per_call": 11064.2117,
+   "ms_per_call": 188.225
+  },
+  {
+   "label": "sparse_fields",
+   "mj_per_call": 8432.0961,
+   "ms_per_call": 146.377
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

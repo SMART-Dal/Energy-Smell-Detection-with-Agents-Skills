@@ -1,0 +1,135 @@
+{
+ "unit": "visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 12.8,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2677,
+   "completion_tokens": 1795,
+   "reasoning_tokens": 1214,
+   "cost": 0.00068968,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "colpali-typical-1030x128",
+     "ok": false,
+     "joules": 1.568453380952381,
+     "seconds": 0.023821142502129078,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "colpali-large-2048x128",
+     "ok": true,
+     "joules": 3.111994761904763,
+     "seconds": 0.049125662073493004
+    },
+    {
+     "label": "dim-768-512-patches",
+     "ok": false,
+     "joules": 2.3176531428571443,
+     "seconds": 0.04955626744776964,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "dim-64-3000-patches",
+     "ok": true,
+     "joules": 3.718357000000004,
+     "seconds": 0.07868505362421274
+    },
+    {
+     "label": "dim-1024-900-patches",
+     "ok": true,
+     "joules": 5.4955242,
+     "seconds": 0.10940962936729193
+    },
+    {
+     "label": "many-patches-4096x128",
+     "ok": true,
+     "joules": 6.62794550000001,
+     "seconds": 0.12660597637295723
+    },
+    {
+     "label": "small-batch-32x128",
+     "ok": false,
+     "joules": 0.05248459133126913,
+     "seconds": 0.0010328581556677818,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "sparse-mostly-negative",
+     "ok": false,
+     "joules": 2.2667517142857228,
+     "seconds": 0.04767568036913872,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-dict",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-value",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "all-zeros",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 122.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 67.7
+  }
+ ],
+ "seconds": 140.1,
+ "cost": 0.00069,
+ "kept": [
+  {
+   "label": "many-patches-4096x128",
+   "mj_per_call": 6627.9455,
+   "ms_per_call": 126.606
+  },
+  {
+   "label": "dim-1024-900-patches",
+   "mj_per_call": 5495.5242,
+   "ms_per_call": 109.41
+  },
+  {
+   "label": "dim-64-3000-patches",
+   "mj_per_call": 3718.357,
+   "ms_per_call": 78.685
+  },
+  {
+   "label": "colpali-large-2048x128",
+   "mj_per_call": 3111.9948,
+   "ms_per_call": 49.126
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

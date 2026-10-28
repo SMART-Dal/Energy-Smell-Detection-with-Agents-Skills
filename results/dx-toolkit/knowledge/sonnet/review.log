@@ -1,0 +1,26 @@
+C3S2-format-table-bar  negligible      not applied: negligible
+C6S2-format-table-len  regressed       not applied: regressed
+C1S4-flatten-subn      confirmed       APPLIED
+C8S2-escape-translate  confirmed       APPLIED
+C6S2-last-pos-rfind    confirmed       APPLIED
+C6S2-split-unescaped-noslice confirmed       not applied: changes src/python/dxpy/utils/resolver.py::get_last_pos_o
+C3S5-first-pos-leftscan confirmed       APPLIED
+C1S4-keyval-name       confirmed       APPLIED
+C4S7-dxlink-guard      partial         not applied: partial
+C1S4-correct-edits1    negligible      not applied: negligible
+C10S2-harmonize-results-get regressed       not applied: regressed
+C8S3-infer-genotype-locals confirmed       APPLIED
+C8S3-expression-matrix-locals confirmed       APPLIED
+C3S2-expression-output-colset over_limit      not applied: over_limit
+C7S1-pheno-filter-noreduce confirmed       APPLIED
+C5S2-coding-display-index negligible      not applied: negligible
+C6S2-cluster-spec-filter-first partial         not applied: partial
+C5S1-custom-inputs-required-set partial         not applied: partial
+C3S3-custom-inputs-type-tables over_limit      not applied: over_limit
+C10S4-nextflow-src-join confirmed       APPLIED
+C4S6-exec-input-json-guard over_limit      not applied: over_limit
+C1S1-validate-json-schema confirmed       APPLIED
+C5S1-filter-results-set confirmed       APPLIED
+C3S5-stage-id-any      over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/dx-toolkit/knowledge/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/dx-toolkit/knowledge/sonnet/review/REPORT.md

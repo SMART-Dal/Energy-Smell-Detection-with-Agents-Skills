@@ -1,0 +1,28 @@
+C3S5-first-pos         confirmed       APPLIED
+C6S2-last-pos          confirmed       APPLIED
+C7S1-split-unescaped   confirmed       APPLIED
+C4S7-is-glob           mixed           not applied: mixed
+C10S1-escape-folder    confirmed       APPLIED
+C1S4-flatten-subn      confirmed       APPLIED
+C10S1-escape-unicode   confirmed       APPLIED
+C6S3-table-first-row   regressed       not applied: regressed
+C3S2-table-border      partial         not applied: partial
+C6S2-edits1-set        negligible      not applied: negligible
+C4S7-truncate-guard    negligible      not applied: negligible
+C3S4-coding-display-index negligible      not applied: negligible
+C8S1-final-payload-columns partial         not applied: partial
+C8S1-harmonize-columns over_limit      not applied: over_limit
+C4S6-timedelta-suffix  confirmed       APPLIED
+C10S4-nextflow-src-join confirmed       APPLIED
+C8S1-versions-manifest regressed       not applied: regressed
+C7S4-cluster-filter-first over_limit      not applied: over_limit
+C1S4-range-int-once    mixed           not applied: mixed
+C1S4-listcompleter-rfind over_limit      not applied: over_limit
+C1S4-localrefs-bind    confirmed       APPLIED
+C10S1-dupkeys-dict     confirmed       APPLIED
+C10S4-glob-translate-join confirmed       APPLIED
+C3S2-expr-output-set   over_limit      not applied: over_limit
+C4S6-dxlink-guard      over_limit      not applied: over_limit
+C7S1-cohort-ids-comprehension over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/dx-toolkit/full/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/dx-toolkit/full/sonnet/review/REPORT.md

@@ -1,0 +1,206 @@
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-5.23%
+
+
+=== C3S2-validate-hoist-sets  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.3 ms/call  after     3.0 ms/call  ->  318 repeats  CLAMPED to keep the slow side under 2s
+  deep-parent-chain before   244.7 ms/call  after   247.2 ms/call  ->  5 repeats
+  parent-cycle   before    58.9 ms/call  after    55.3 ms/call  ->  19 repeats
+  large-mixed    before    24.3 ms/call  after    10.1 ms/call  ->  82 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree    +53.59% +-0.35% energy saved   significant     +53.45% +-0.37% time saved
+  deep-parent-chain   -1.34% +-1.79% energy saved   not significant -1.25% +-0.87% time saved
+  parent-cycle     +4.16% +-9.02% energy saved   not significant +1.07% +-25.21% time saved
+  large-mixed     +56.99% +-0.72% energy saved   significant     +56.97% +-0.59% time saved
+
+noise floor  +-5.23% (session calibration)
+
+VERDICT: inconclusive
+  this host's noise floor measured 5.2%, above the 3.0% needed to resolve anything here -- the largest reading across 4 cases was +57.0% on 'large-mixed'. The canary compares identical code against itself, so that floor is contamination, not the repair. Re-run on an idle machine before concluding anything; this is not evidence either way.
+
+=== C1S1-validate-dead-parent-kind  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.2 ms/call  after     6.0 ms/call  ->  167 repeats
+  deep-parent-chain before   227.4 ms/call  after   235.4 ms/call  ->  5 repeats
+  parent-cycle   before    55.5 ms/call  after    53.7 ms/call  ->  19 repeats
+  large-mixed    before    23.3 ms/call  after    23.5 ms/call  ->  43 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree     +2.73% +-0.71% energy saved   significant     +3.15% +-2.75% time saved
+  deep-parent-chain   -6.98% +-4.43% energy saved   significant     -5.06% +-4.62% time saved
+  parent-cycle     +5.00% +-6.01% energy saved   not significant +4.55% +-3.63% time saved
+  large-mixed      +3.06% +-2.37% energy saved   significant     +3.00% +-2.55% time saved
+
+noise floor  +-5.23% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 7.0% lost on 'deep-parent-chain', above the 5.2% noise floor, and no case improved. Worse on 1 of 4 cases ('deep-parent-chain').
+
+=== C10S4-render-group-join  scripts/update-sig-tables.py::render_group
+equivalence
+  empty-group    ok  (check only)
+  one-element    ok  (check only)
+  none-sigs      ok  (check only)
+  deep-resources ok
+  people-heavy   ok
+  bare-meetings  ok
+  mixed-large    ok
+
+sizing
+  deep-resources before    19.0 ms/call  after    19.2 ms/call  ->  53 repeats
+  people-heavy   before    23.2 ms/call  after    23.4 ms/call  ->  44 repeats
+  bare-meetings  before    14.9 ms/call  after    14.7 ms/call  ->  68 repeats
+  mixed-large    before    23.4 ms/call  after    23.2 ms/call  ->  44 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  deep-resources   -0.09% +-2.70% energy saved   not significant +0.46% +-4.03% time saved
+  people-heavy     -0.00% +-1.23% energy saved   not significant +0.21% +-0.95% time saved
+  bare-meetings    +1.79% +-1.81% energy saved   not significant +1.69% +-1.92% time saved
+  mixed-large      +1.17% +-8.72% energy saved   not significant +1.76% +-3.71% time saved
+
+noise floor  +-5.23% (session calibration)
+
+VERDICT: inconclusive
+  this host's noise floor measured 5.2%, above the 3.0% needed to resolve anything here -- the largest reading across 4 cases was +1.8% on 'bare-meetings'. The canary compares identical code against itself, so that floor is contamination, not the repair. Re-run on an idle machine before concluding anything; this is not evidence either way.
+
+=== C1S4-sync-mentions-once  scripts/gc-elections/create-github-comments.py::sync
+equivalence
+  empty          ok  (check only)
+  none-body      ok  (check only)
+  no-mentions    ok  (check only)
+  many-comments-few-stale ok
+  all-stale      ok
+  large-comments ok
+  big-file       ok
+
+sizing
+  many-comments-few-stale before    14.1 ms/call  after    12.0 ms/call  ->  84 repeats
+  all-stale      before   317.5 ms/call  after   316.3 ms/call  ->  4 repeats
+  large-comments before   338.6 ms/call  after   337.4 ms/call  ->  3 repeats
+  big-file       before   164.4 ms/call  after   163.0 ms/call  ->  7 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-comments-few-stale  +15.65% +-3.07% energy saved   significant     +15.83% +-4.03% time saved
+  all-stale        -0.16% +-24.31% energy saved   not significant -2.30% +-57.26% time saved
+  large-comments   +0.52% +-13.91% energy saved   not significant +0.65% +-8.10% time saved
+  big-file         -0.26% +-7.56% energy saved   not significant +0.40% +-5.07% time saved
+
+noise floor  +-5.23% (session calibration)
+
+VERDICT: inconclusive
+  this host's noise floor measured 5.2%, above the 3.0% needed to resolve anything here -- the largest reading across 4 cases was +15.6% on 'many-comments-few-stale'. The canary compares identical code against itself, so that floor is contamination, not the repair. Re-run on an idle machine before concluding anything; this is not evidence either way.
+
+=== C10S2-add-emeritus-startswith  scripts/move-to-emeritus.py::_add_to_emeritus
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-readme   ok  (check only)
+  section-no-members ok  (check only)
+  duplicate-small ok  (check only)
+  existing-large ok
+  existing-level2 ok
+  existing-mixed-markers ok
+  existing-case-insensitive ok
+
+sizing
+  existing-large before    40.7 ms/call  after    29.6 ms/call  ->  34 repeats
+  existing-level2 before    30.3 ms/call  after    22.1 ms/call  ->  46 repeats
+  existing-mixed-markers before    35.7 ms/call  after    26.1 ms/call  ->  39 repeats
+  existing-case-insensitive before    25.4 ms/call  after    18.4 ms/call  ->  55 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  existing-large  +28.57% +-4.18% energy saved   significant     +28.16% +-3.32% time saved
+  existing-level2  +28.52% +-2.91% energy saved   significant     +27.64% +-0.63% time saved
+  existing-mixed-markers  +26.71% +-0.30% energy saved   significant     +26.43% +-0.52% time saved
+  existing-case-insensitive  +27.67% +-0.61% energy saved   significant     +27.38% +-0.60% time saved
+
+noise floor  +-5.23% (session calibration)
+
+VERDICT: confirmed
+  28.6% +-4.2% energy saved on 'existing-large', clearing the 5.2% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C1S4-add-emeritus-one-pass  scripts/move-to-emeritus.py::_add_to_emeritus
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-readme   ok  (check only)
+  section-no-members ok  (check only)
+  duplicate-small ok  (check only)
+  existing-large ok
+  existing-level2 ok
+  existing-mixed-markers ok
+  existing-case-insensitive ok
+
+sizing
+  existing-large before    40.1 ms/call  after    34.1 ms/call  ->  30 repeats
+  existing-level2 before    30.2 ms/call  after    25.6 ms/call  ->  40 repeats
+  existing-mixed-markers before    35.2 ms/call  after    30.0 ms/call  ->  34 repeats
+  existing-case-insensitive before    25.0 ms/call  after    21.2 ms/call  ->  48 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  existing-large  +15.66% +-0.89% energy saved   significant     +16.10% +-2.66% time saved
+  existing-level2  +16.06% +-2.39% energy saved   significant     +15.31% +-0.32% time saved
+  existing-mixed-markers  +15.45% +-1.00% energy saved   significant     +15.43% +-0.72% time saved
+  existing-case-insensitive  +15.40% +-3.14% energy saved   significant     +15.48% +-1.96% time saved
+
+noise floor  +-5.23% (session calibration)
+
+VERDICT: confirmed
+  16.1% +-2.4% energy saved on 'existing-level2', clearing the 5.2% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C3S5-check-events-early-exit  scripts/move-to-emeritus.py::_check_events
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-events   ok  (check only)
+  single-match   ok  (check only)
+  odd-values     ok  (check only)
+  big-mixed      ok
+  single-type    ok
+  huge-remaining ok
+  exclude-all    ok
+
+sizing
+  big-mixed      before   712.4 us/call  after   585.2 us/call  ->  1,709 repeats
+  single-type    before   834.6 us/call  after   871.6 us/call  ->  1,199 repeats
+  huge-remaining before     2.1 ms/call  after     2.7 ms/call  ->  474 repeats
+  exclude-all    before   814.5 us/call  after   820.6 us/call  ->  1,228 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  big-mixed       +17.76% +-2.15% energy saved   significant     +17.97% +-1.08% time saved
+  single-type      -4.77% +-2.21% energy saved   significant     -4.63% +-2.16% time saved
+  huge-remaining  -15.97% +-1.72% energy saved   significant     -15.85% +-1.70% time saved
+  exclude-all      -1.26% +-4.39% energy saved   not significant -2.22% +-0.57% time saved
+
+noise floor  +-5.23% (session calibration)
+
+VERDICT: mixed
+  a trade-off, not a fix: 17.8% saved on 'big-mixed' but 16.0% lost on 'huge-remaining', both clearing the 5.2% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.
+
+=== all 7 lines of submissions.jsonl
+  inconclusive C3S2-validate-hoist-sets: this host's noise floor measured 5.2%, above the 3.0% needed to resolve anything here -- the largest reading across 4 cases was +57.0% on 'large-mixed'
+  regressed    C1S1-validate-dead-parent-kind: the repair costs more than the code it replaces: 7.0% lost on 'deep-parent-chain', above the 5.2% noise floor, and no case improved
+  inconclusive C10S4-render-group-join: this host's noise floor measured 5.2%, above the 3.0% needed to resolve anything here -- the largest reading across 4 cases was +1.8% on 'bare-meetings'
+  inconclusive C1S4-sync-mentions-once: this host's noise floor measured 5.2%, above the 3.0% needed to resolve anything here -- the largest reading across 4 cases was +15.6% on 'many-comments-few-sta...
+  confirmed    C10S2-add-emeritus-startswith: 28.6% +-4.2% energy saved on 'existing-large', clearing the 5.2% noise floor
+  confirmed    C1S4-add-emeritus-one-pass: 16.1% +-2.4% energy saved on 'existing-level2', clearing the 5.2% noise floor
+  mixed        C3S5-check-events-early-exit: a trade-off, not a fix: 17.8% saved on 'big-mixed' but 16.0% lost on 'huge-remaining', both clearing the 5.2% noise floor
+
+4 of this session's 20 places hold a repair with a verdict.

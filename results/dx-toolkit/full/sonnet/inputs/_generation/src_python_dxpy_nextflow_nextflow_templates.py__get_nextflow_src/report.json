@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 42.9,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 3188,
+   "completion_tokens": 7665,
+   "reasoning_tokens": 7027,
+   "cost": 0.004927364,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "empty",
+     "ok": false,
+     "joules": 0.009953010689273865,
+     "seconds": 0.00018431339412927628,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "profile-only",
+     "ok": false,
+     "joules": 0.008810145563502814,
+     "seconds": 0.0001933220773935318,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "few-file-inputs",
+     "ok": false,
+     "joules": 0.012532113611049235,
+     "seconds": 0.00022280029952526093,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-100-with-resources",
+     "ok": false,
+     "joules": 0.025408711074561427,
+     "seconds": 0.0005482817068696022,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "files-200",
+     "ok": true,
+     "joules": 0.043975499498495135,
+     "seconds": 0.0010038763284683228
+    },
+    {
+     "label": "strings-300-abs-resources",
+     "ok": true,
+     "joules": 0.04108880705191004,
+     "seconds": 0.0009797587990760803
+    },
+    {
+     "label": "mixed-150-file-heavy",
+     "ok": true,
+     "joules": 0.035324361295681346,
+     "seconds": 0.0008309567347168922
+    },
+    {
+     "label": "mixed-400-profile-resources",
+     "ok": true,
+     "joules": 0.08953613114754094,
+     "seconds": 0.0020520593971014023
+    }
+   ],
+   "checks": [
+    {
+     "label": "none-args",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-list",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-file-input",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 165.6,
+   "coverage": 0.9473684210526315,
+   "missed": [
+    79
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 153.5
+  }
+ ],
+ "seconds": 468.9,
+ "cost": 0.00493,
+ "kept": [
+  {
+   "label": "mixed-400-profile-resources",
+   "mj_per_call": 89.5361,
+   "ms_per_call": 2.052
+  },
+  {
+   "label": "files-200",
+   "mj_per_call": 43.9755,
+   "ms_per_call": 1.004
+  },
+  {
+   "label": "strings-300-abs-resources",
+   "mj_per_call": 41.0888,
+   "ms_per_call": 0.98
+  },
+  {
+   "label": "mixed-150-file-heavy",
+   "mj_per_call": 35.3244,
+   "ms_per_call": 0.831
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

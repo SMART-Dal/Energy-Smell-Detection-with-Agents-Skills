@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_get_repo_commenters",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 19.7,
+   "finish": "stop",
+   "provider": "Baidu",
+   "prompt_tokens": 3639,
+   "completion_tokens": 3017,
+   "reasoning_tokens": 2934,
+   "cost": 0.0006879666,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_get_repo_commenters` always begins with `request_with_retry(\"GET\", ...)` calling `urllib.request.urlopen` against `https://api.github.com` (as `REST_API`), and reads the response via `read_json`; no input can avoid the network request, and faking the endpoint or serving fake responses is not allowed."
+  }
+ ],
+ "seconds": 20.7,
+ "cost": 0.00069,
+ "kept": [],
+ "reason": "it cannot run here: `_get_repo_commenters` always begins with `request_with_retry(\"GET\", ...)` calling `urllib.request.urlopen` against `https://api.github.com` (as `REST_API`), and reads the response via `read_json`; no input can avoid the network request, and faking the endpoint or serving fake responses is not allowed."
+}

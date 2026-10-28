@@ -1,0 +1,1 @@
+CANNOT RUN: `paginate_rest` performs real HTTP requests (it calls `request_with_retry` → `urllib.request.urlopen` against the GitHub REST API), so its work begins with a request to a remote server and no input can avoid the network.

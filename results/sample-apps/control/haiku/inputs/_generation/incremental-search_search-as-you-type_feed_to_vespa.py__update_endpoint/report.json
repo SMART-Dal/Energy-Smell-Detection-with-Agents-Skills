@@ -1,0 +1,25 @@
+{
+ "unit": "incremental-search/search-as-you-type/feed_to_vespa.py::update_endpoint",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 7.7,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 2996,
+   "completion_tokens": 560,
+   "reasoning_tokens": 492,
+   "cost": 0.000486508,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `update_endpoint` unconditionally calls `get_indexed_docids` \u2192 `vespa_visit` \u2192 `call(...)`, which issues HTTP requests (curl subprocess) to a live Vespa endpoint; it needs a running remote service and network access, and no input can avoid that."
+  }
+ ],
+ "seconds": 12.6,
+ "cost": 0.00049,
+ "kept": [],
+ "reason": "it cannot run here: `update_endpoint` unconditionally calls `get_indexed_docids` \u2192 `vespa_visit` \u2192 `call(...)`, which issues HTTP requests (curl subprocess) to a live Vespa endpoint; it needs a running remote service and network access, and no input can avoid that."
+}

@@ -1,0 +1,1 @@
+CANNOT RUN: `main` fetches teams, members, repos and activity from the GitHub REST/GraphQL API via `urllib.request`; there is no network access here and the calls cannot be avoided or mocked.

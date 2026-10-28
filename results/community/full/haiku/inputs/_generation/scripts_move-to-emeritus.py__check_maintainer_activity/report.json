@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::check_maintainer_activity",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.4,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5192,
+   "completion_tokens": 300,
+   "reasoning_tokens": 203,
+   "cost": 0.0002146,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `check_maintainer_activity` always starts by calling `_check_comments`/`_get_repo_commenters`, `_check_reviews` (GraphQL `request_with_retry` to `https://api.github.com/graphql`) and `_get_repo_events`, all of which make live GitHub API requests; there is no input that avoids network access, and mocking the HTTP layer is not allowed."
+  }
+ ],
+ "seconds": 2.7,
+ "cost": 0.00021,
+ "kept": [],
+ "reason": "it cannot run here: `check_maintainer_activity` always starts by calling `_check_comments`/`_get_repo_commenters`, `_check_reviews` (GraphQL `request_with_retry` to `https://api.github.com/graphql`) and `_get_repo_events`, all of which make live GitHub API requests; there is no input that avoids network access, and mocking the HTTP layer is not allowed."
+}

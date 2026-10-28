@@ -1,0 +1,5581 @@
+{
+ "target": "/home/javad/energy-exp/pristine/sample-apps",
+ "files_scanned": 112,
+ "units_with_evidence": 110,
+ "findings_total": 140,
+ "findings_shown": 140,
+ "units": [
+  {
+   "unit": "billion-scale-image-search/app/src/main/python/clip_export.py::CLIPTransformerExporter.forward",
+   "file": "billion-scale-image-search/app/src/main/python/clip_export.py",
+   "qualname": "CLIPTransformerExporter.forward",
+   "line": 13,
+   "end_line": 14,
+   "findings": [
+    {
+     "kind": "self_delegation_chain",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S1",
+       "name": "Unnecessary Method Delegation",
+       "card": "reference/root-causes/C2.S1.md"
+      },
+      {
+       "id": "C2.S3",
+       "name": "Excessive Modularization in Hot Path",
+       "card": "reference/root-causes/C2.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      14
+     ],
+     "messages": [
+      {
+       "text": "`CLIPTransformerExporter.forward` does nothing but call `self.encode_text()`; the extra frame is paid on every call and buys no work",
+       "lines": [
+        14
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S3",
+     "support": "self_delegation_chain"
+    },
+    {
+     "id": "C2.S1",
+     "support": "self_delegation_chain"
+    }
+   ]
+  },
+  {
+   "unit": "billion-scale-image-search/app/src/main/python/pca_transformer_export.py::PCATransformer.forward",
+   "file": "billion-scale-image-search/app/src/main/python/pca_transformer_export.py",
+   "qualname": "PCATransformer.forward",
+   "line": 15,
+   "end_line": 16,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      15
+     ],
+     "messages": [
+      {
+       "text": "`forward` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        15
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "billion-scale-image-search/app/src/main/python/ranker_export.py::Ranker.forward",
+   "file": "billion-scale-image-search/app/src/main/python/ranker_export.py",
+   "qualname": "Ranker.forward",
+   "line": 11,
+   "end_line": 12,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      11
+     ],
+     "messages": [
+      {
+       "text": "`forward` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        11
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "billion-scale-image-search/app/src/main/python/similarity_export.py::Similarity.forward",
+   "file": "billion-scale-image-search/app/src/main/python/similarity_export.py",
+   "qualname": "Similarity.forward",
+   "line": 12,
+   "end_line": 13,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      12
+     ],
+     "messages": [
+      {
+       "text": "`forward` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        12
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "billion-scale-vector-search/app/src/main/python/recall.py::knn_result_read",
+   "file": "billion-scale-vector-search/app/src/main/python/recall.py",
+   "qualname": "knn_result_read",
+   "line": 43,
+   "end_line": 50,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [
+      "ruff_SIM115"
+     ],
+     "count": 1,
+     "lines": [
+      46
+     ],
+     "messages": [
+      {
+       "text": "`open()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        46
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "ruff_SIM115, unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "billion-scale-vector-search/app/src/main/python/recall.py::main",
+   "file": "billion-scale-vector-search/app/src/main/python/recall.py",
+   "qualname": "main",
+   "line": 75,
+   "end_line": 111,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      99
+     ],
+     "messages": [
+      {
+       "text": "`Session()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        99
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "colbert-long/scripts/evaluate.py::search",
+   "file": "colbert-long/scripts/evaluate.py",
+   "qualname": "search",
+   "line": 9,
+   "end_line": 55,
+   "findings": [
+    {
+     "kind": "expensive_comparison",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      42
+     ],
+     "messages": [
+      {
+       "text": "`str(query_id) == str(id)` builds a new object with `str()` only to compare it and throw it away",
+       "lines": [
+        42
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S1",
+     "support": "expensive_comparison"
+    }
+   ]
+  },
+  {
+   "unit": "colbert-long/scripts/evaluate.py::main",
+   "file": "colbert-long/scripts/evaluate.py",
+   "qualname": "main",
+   "line": 57,
+   "end_line": 99,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      71
+     ],
+     "messages": [
+      {
+       "text": "`Session()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        71
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/main_graph.py::VespaRetrieverTool",
+   "file": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/main_graph.py",
+   "qualname": "VespaRetrieverTool",
+   "line": 19,
+   "end_line": 49,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      47
+     ],
+     "messages": [
+      {
+       "text": "`result` exists only to be returned on the next line",
+       "lines": [
+        47
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/update_vespa.py::fetch_documents",
+   "file": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/update_vespa.py",
+   "qualname": "fetch_documents",
+   "line": 21,
+   "end_line": 37,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      35
+     ],
+     "messages": [
+      {
+       "text": "`filtered_data` exists only to be returned on the next line",
+       "lines": [
+        35
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/vespa_retriever.py::create_conditions",
+   "file": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/vespa_retriever.py",
+   "qualname": "create_conditions",
+   "line": 8,
+   "end_line": 52,
+   "findings": [
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      37
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        37
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "examples/agentic-streamlit-chatbot/simple_app/streamlit_vespa_app.py::VespaRetriever",
+   "file": "examples/agentic-streamlit-chatbot/simple_app/streamlit_vespa_app.py",
+   "qualname": "VespaRetriever",
+   "line": 43,
+   "end_line": 70,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      68
+     ],
+     "messages": [
+      {
+       "text": "`json_string` exists only to be returned on the next line",
+       "lines": [
+        68
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "examples/ecommerce-user-preferences/webapp/app.py::get_wikipedia_image",
+   "file": "examples/ecommerce-user-preferences/webapp/app.py",
+   "qualname": "get_wikipedia_image",
+   "line": 62,
+   "end_line": 214,
+   "findings": [
+    {
+     "kind": "io_call_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S4",
+       "name": "Redundant Data Fetching",
+       "card": "reference/root-causes/C8.S4.md"
+      },
+      {
+       "id": "C9.S1",
+       "name": "Fragmented I/O Calls",
+       "card": "reference/root-causes/C9.S1.md"
+      },
+      {
+       "id": "C9.S3",
+       "name": "Inefficient Retrieval Paths",
+       "card": "reference/root-causes/C9.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      146,
+      179
+     ],
+     "messages": [
+      {
+       "text": "`requests.get()` looks like it leaves the process, and it runs once per iteration; batching would amortise the round trip",
+       "lines": [
+        146,
+        179
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C9.S3",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C9.S1",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C8.S4",
+     "support": "io_call_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "examples/ecommerce-user-preferences/webapp/app.py::query_vespa",
+   "file": "examples/ecommerce-user-preferences/webapp/app.py",
+   "qualname": "query_vespa",
+   "line": 216,
+   "end_line": 308,
+   "findings": [
+    {
+     "kind": "append_only_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 4,
+     "lines": [
+      238,
+      245,
+      252,
+      259
+     ],
+     "messages": [
+      {
+       "text": "loop body is a single `.append()`; a comprehension does the same work without a bound-method lookup and call per item",
+       "lines": [
+        238,
+        245,
+        252,
+        259
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_PERF401",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 4,
+     "lines": [
+      239,
+      246,
+      253,
+      260
+     ],
+     "messages": [
+      {
+       "text": "append loop that could be a comprehension (ruff PERF401: Use a list comprehension to create a transformed list)",
+       "lines": [
+        239,
+        246,
+        253,
+        260
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "append_only_loop, ruff_PERF401"
+    },
+    {
+     "id": "C10.S3",
+     "support": "append_only_loop, ruff_PERF401"
+    }
+   ]
+  },
+  {
+   "unit": "examples/ecommerce-user-preferences/webapp/app.py::chat",
+   "file": "examples/ecommerce-user-preferences/webapp/app.py",
+   "qualname": "chat",
+   "line": 416,
+   "end_line": 513,
+   "findings": [
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      443
+     ],
+     "messages": [
+      {
+       "text": "`filter_context` is rebuilt by an f-string that interpolates itself inside a loop; f-strings always allocate a new object, so this copies the whole value every iteration even when the accumulator is a plain local",
+       "lines": [
+        443
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "examples/embedder-auto-training-evaluation/training-evaluation/evaluate.py::search",
+   "file": "examples/embedder-auto-training-evaluation/training-evaluation/evaluate.py",
+   "qualname": "search",
+   "line": 10,
+   "end_line": 48,
+   "findings": [
+    {
+     "kind": "expensive_comparison",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      35
+     ],
+     "messages": [
+      {
+       "text": "`str(query_id) == str(id)` builds a new object with `str()` only to compare it and throw it away",
+       "lines": [
+        35
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S1",
+     "support": "expensive_comparison"
+    }
+   ]
+  },
+  {
+   "unit": "examples/embedder-auto-training-evaluation/training-evaluation/evaluate.py::main",
+   "file": "examples/embedder-auto-training-evaluation/training-evaluation/evaluate.py",
+   "qualname": "main",
+   "line": 51,
+   "end_line": 89,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      67
+     ],
+     "messages": [
+      {
+       "text": "`Session()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        67
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "examples/embedder-auto-training-evaluation/training-evaluation/positives-negatives.py::main",
+   "file": "examples/embedder-auto-training-evaluation/training-evaluation/positives-negatives.py",
+   "qualname": "main",
+   "line": 51,
+   "end_line": 97,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      69
+     ],
+     "messages": [
+      {
+       "text": "`Session()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        69
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "io_call_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S4",
+       "name": "Redundant Data Fetching",
+       "card": "reference/root-causes/C8.S4.md"
+      },
+      {
+       "id": "C9.S1",
+       "name": "Fragmented I/O Calls",
+       "card": "reference/root-causes/C9.S1.md"
+      },
+      {
+       "id": "C9.S3",
+       "name": "Inefficient Retrieval Paths",
+       "card": "reference/root-causes/C9.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      97
+     ],
+     "messages": [
+      {
+       "text": "`file.write()` looks like it leaves the process, and it runs once per iteration; batching would amortise the round trip",
+       "lines": [
+        97
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C9.S3",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C9.S1",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C8.S4",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C6.S6",
+     "support": "unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__init__",
+   "file": "examples/embedder-auto-training-evaluation/training-evaluation/train.py",
+   "qualname": "TrainDataset.__init__",
+   "line": 9,
+   "end_line": 21,
+   "findings": [
+    {
+     "kind": "whole_file_read",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      12,
+      18
+     ],
+     "messages": [
+      {
+       "text": "`.readlines()` builds the whole content in memory and a loop walks it a line at a time; iterating the handle yields the same lines without the list, though it keeps the trailing newline that `.readlines()` and `.splitlines()` differ on",
+       "lines": [
+        12,
+        18
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S3",
+     "support": "whole_file_read"
+    }
+   ]
+  },
+  {
+   "unit": "examples/google-cloud/cloud-functions/python/main.py::listbucket",
+   "file": "examples/google-cloud/cloud-functions/python/main.py",
+   "qualname": "listbucket",
+   "line": 24,
+   "end_line": 34,
+   "findings": [
+    {
+     "kind": "append_only_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      31
+     ],
+     "messages": [
+      {
+       "text": "loop body is a single `.append()`; a comprehension does the same work without a bound-method lookup and call per item",
+       "lines": [
+        31
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_PERF401",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      32
+     ],
+     "messages": [
+      {
+       "text": "append loop that could be a comprehension (ruff PERF401: Use a list comprehension to create a transformed list)",
+       "lines": [
+        32
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "append_only_loop, ruff_PERF401"
+    },
+    {
+     "id": "C10.S3",
+     "support": "append_only_loop, ruff_PERF401"
+    }
+   ]
+  },
+  {
+   "unit": "examples/google-cloud/cloud-functions/python/main.py::listfiles",
+   "file": "examples/google-cloud/cloud-functions/python/main.py",
+   "qualname": "listfiles",
+   "line": 38,
+   "end_line": 49,
+   "findings": [
+    {
+     "kind": "append_only_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      45
+     ],
+     "messages": [
+      {
+       "text": "loop body is a single `.append()`; a comprehension does the same work without a bound-method lookup and call per item",
+       "lines": [
+        45
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_PERF401",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      47
+     ],
+     "messages": [
+      {
+       "text": "append loop that could be a comprehension (ruff PERF401: Use a list comprehension to create a transformed list)",
+       "lines": [
+        47
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "append_only_loop, ruff_PERF401"
+    },
+    {
+     "id": "C10.S3",
+     "support": "append_only_loop, ruff_PERF401"
+    }
+   ]
+  },
+  {
+   "unit": "examples/google-cloud/cloud-functions/python/main.py::get_blobs",
+   "file": "examples/google-cloud/cloud-functions/python/main.py",
+   "qualname": "get_blobs",
+   "line": 87,
+   "end_line": 90,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      89
+     ],
+     "messages": [
+      {
+       "text": "`blobs` exists only to be returned on the next line",
+       "lines": [
+        89
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "examples/model-exporting/export_hf_model_from_hf.py::export_model",
+   "file": "examples/model-exporting/export_hf_model_from_hf.py",
+   "qualname": "export_model",
+   "line": 12,
+   "end_line": 56,
+   "findings": [
+    {
+     "kind": "index_based_iteration",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      45
+     ],
+     "messages": [
+      {
+       "text": "iterating `range(0, len(files))` and indexing back into it; iterating the sequence directly avoids an index lookup per item",
+       "lines": [
+        45
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "index_based_iteration"
+    }
+   ]
+  },
+  {
+   "unit": "examples/model-exporting/export_model_from_hf.py::export_model",
+   "file": "examples/model-exporting/export_model_from_hf.py",
+   "qualname": "export_model",
+   "line": 10,
+   "end_line": 48,
+   "findings": [
+    {
+     "kind": "index_based_iteration",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      44
+     ],
+     "messages": [
+      {
+       "text": "iterating `range(0, len(files))` and indexing back into it; iterating the sequence directly avoids an index lookup per item",
+       "lines": [
+        44
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "index_based_iteration"
+    }
+   ]
+  },
+  {
+   "unit": "examples/workshop-ecommerce/preprocess.py::check_and_download_dataset",
+   "file": "examples/workshop-ecommerce/preprocess.py",
+   "qualname": "check_and_download_dataset",
+   "line": 25,
+   "end_line": 132,
+   "findings": [
+    {
+     "kind": "constant_sequence_literal",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C5.S3",
+       "name": "Over-Provisioned Data Type",
+       "card": "reference/root-causes/C5.S3.md"
+      },
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      27
+     ],
+     "messages": [
+      {
+       "text": "`required_files` is a list of 5 constants that is never mutated; a tuple literal is stored whole in the code object instead of being rebuilt element by element on every call",
+       "lines": [
+        27
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S1",
+     "support": "constant_sequence_literal"
+    },
+    {
+     "id": "C5.S3",
+     "support": "constant_sequence_literal"
+    }
+   ]
+  },
+  {
+   "unit": "examples/workshop-ecommerce/preprocess.py::process_orders",
+   "file": "examples/workshop-ecommerce/preprocess.py",
+   "qualname": "process_orders",
+   "line": 228,
+   "end_line": 314,
+   "findings": [
+    {
+     "kind": "loop_invariant_expression",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S2",
+       "name": "Recomputing Loop-Invariant Values",
+       "card": "reference/root-causes/C3.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      238
+     ],
+     "messages": [
+      {
+       "text": "`df_order['eval_set']` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        238
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      246
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        246
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    },
+    {
+     "id": "C3.S2",
+     "support": "loop_invariant_expression"
+    }
+   ]
+  },
+  {
+   "unit": "feed-split.py::main",
+   "file": "feed-split.py",
+   "qualname": "main",
+   "line": 147,
+   "end_line": 199,
+   "findings": [
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 3,
+     "lines": [
+      164,
+      166,
+      167
+     ],
+     "messages": [
+      {
+       "text": "`re.sub()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        164,
+        166,
+        167
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_C408",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      183
+     ],
+     "messages": [
+      {
+       "text": "collection call where a literal would do (ruff C408: Unnecessary `dict()` call (rewrite as a literal))",
+       "lines": [
+        183
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C6.S1",
+     "support": "ruff_C408"
+    }
+   ]
+  },
+  {
+   "unit": "feed_to_vespa.py::find",
+   "file": "feed_to_vespa.py",
+   "qualname": "find",
+   "line": 14,
+   "end_line": 17,
+   "findings": [
+    {
+     "kind": "linear_recursion",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C7.S3",
+       "name": "Avoidable Recursive Implementation",
+       "card": "reference/root-causes/C7.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      17
+     ],
+     "messages": [
+      {
+       "text": "`find` recurses once per call; CPython builds a frame per level and does not optimise tail calls",
+       "lines": [
+        17
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C7.S3",
+     "support": "linear_recursion"
+    }
+   ]
+  },
+  {
+   "unit": "feed_to_vespa.py::get_docs",
+   "file": "feed_to_vespa.py",
+   "qualname": "get_docs",
+   "line": 95,
+   "end_line": 97,
+   "findings": [
+    {
+     "kind": "ruff_SIM115",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      96
+     ],
+     "messages": [
+      {
+       "text": "file opened without a context manager (ruff SIM115: Use a context manager for opening files)",
+       "lines": [
+        96
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "ruff_SIM115"
+    }
+   ]
+  },
+  {
+   "unit": "feed_to_vespa.py::get_feed_docids",
+   "file": "feed_to_vespa.py",
+   "qualname": "get_feed_docids",
+   "line": 119,
+   "end_line": 127,
+   "findings": [
+    {
+     "kind": "loop_invariant_expression",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S2",
+       "name": "Recomputing Loop-Invariant Values",
+       "card": "reference/root-causes/C3.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      123,
+      125
+     ],
+     "messages": [
+      {
+       "text": "`'id:{0}:doc::'.format(namespace)` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        123
+       ]
+      },
+      {
+       "text": "`'id:{0}:term::'.format(namespace)` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        125
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_C403",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C5.S4",
+       "name": "Unnecessary Representation Change",
+       "card": "reference/root-causes/C5.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 3,
+     "lines": [
+      123,
+      125,
+      127
+     ],
+     "messages": [
+      {
+       "text": "list comprehension converted to a set (ruff C403: Unnecessary list comprehension (rewrite as a set comprehension))",
+       "lines": [
+        123,
+        125,
+        127
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S4",
+     "support": "ruff_C403"
+    },
+    {
+     "id": "C3.S2",
+     "support": "loop_invariant_expression"
+    }
+   ]
+  },
+  {
+   "unit": "feed_to_vespa.py::main",
+   "file": "feed_to_vespa.py",
+   "qualname": "main",
+   "line": 189,
+   "end_line": 201,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      193
+     ],
+     "messages": [
+      {
+       "text": "`Session()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        193
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "hypencoder/model2onnx.py::QueryEncoderWrapper._get_weights_and_biases_static",
+   "file": "hypencoder/model2onnx.py",
+   "qualname": "QueryEncoderWrapper._get_weights_and_biases_static",
+   "line": 98,
+   "end_line": 125,
+   "findings": [
+    {
+     "kind": "index_based_iteration",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      104
+     ],
+     "messages": [
+      {
+       "text": "iterating `range(len(h.weight_shapes))` and indexing back into it; `zip(h.weight_shapes, h.hyper_base_matrices, h.weight_hyper_projection, h.weight_query_embeddings, keys, values)` walks them together without an index",
+       "lines": [
+        104
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "index_based_iteration"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-as-you-type/feed_to_vespa.py::find",
+   "file": "incremental-search/search-as-you-type/feed_to_vespa.py",
+   "qualname": "find",
+   "line": 11,
+   "end_line": 14,
+   "findings": [
+    {
+     "kind": "linear_recursion",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C7.S3",
+       "name": "Avoidable Recursive Implementation",
+       "card": "reference/root-causes/C7.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      14
+     ],
+     "messages": [
+      {
+       "text": "`find` recurses once per call; CPython builds a frame per level and does not optimise tail calls",
+       "lines": [
+        14
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C7.S3",
+     "support": "linear_recursion"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-as-you-type/feed_to_vespa.py::get_docs",
+   "file": "incremental-search/search-as-you-type/feed_to_vespa.py",
+   "qualname": "get_docs",
+   "line": 89,
+   "end_line": 91,
+   "findings": [
+    {
+     "kind": "ruff_SIM115",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      90
+     ],
+     "messages": [
+      {
+       "text": "file opened without a context manager (ruff SIM115: Use a context manager for opening files)",
+       "lines": [
+        90
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "ruff_SIM115"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-as-you-type/feed_to_vespa.py::get_feed_docids",
+   "file": "incremental-search/search-as-you-type/feed_to_vespa.py",
+   "qualname": "get_feed_docids",
+   "line": 109,
+   "end_line": 112,
+   "findings": [
+    {
+     "kind": "loop_invariant_expression",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S2",
+       "name": "Recomputing Loop-Invariant Values",
+       "card": "reference/root-causes/C3.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      112
+     ],
+     "messages": [
+      {
+       "text": "`'id:{0}:doc::'.format(namespace)` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        112
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_C403",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C5.S4",
+       "name": "Unnecessary Representation Change",
+       "card": "reference/root-causes/C5.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      112
+     ],
+     "messages": [
+      {
+       "text": "list comprehension converted to a set (ruff C403: Unnecessary list comprehension (rewrite as a set comprehension))",
+       "lines": [
+        112
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S4",
+     "support": "ruff_C403"
+    },
+    {
+     "id": "C3.S2",
+     "support": "loop_invariant_expression"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-suggestions/accepted_words.py::read_common_words",
+   "file": "incremental-search/search-suggestions/accepted_words.py",
+   "qualname": "read_common_words",
+   "line": 14,
+   "end_line": 20,
+   "findings": [
+    {
+     "kind": "whole_file_read",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      17
+     ],
+     "messages": [
+      {
+       "text": "`.readlines()` builds the whole content in memory and a loop walks it a line at a time; iterating the handle yields the same lines without the list, though it keeps the trailing newline that `.readlines()` and `.splitlines()` differ on",
+       "lines": [
+        17
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S3",
+     "support": "whole_file_read"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-suggestions/accepted_words.py::process_docs",
+   "file": "incremental-search/search-suggestions/accepted_words.py",
+   "qualname": "process_docs",
+   "line": 25,
+   "end_line": 33,
+   "findings": [
+    {
+     "kind": "repeated_subscript_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S3",
+       "name": "Missing Local Lookup Caching",
+       "card": "reference/root-causes/C8.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      28
+     ],
+     "messages": [
+      {
+       "text": "`doc['fields']` is looked up 4 times in the same pass; its key changes from pass to pass, so it cannot leave the loop, but reading it once at the top of the pass saves the other lookups",
+       "lines": [
+        28
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S3",
+     "support": "repeated_subscript_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-suggestions/count_terms.py::write_json_file",
+   "file": "incremental-search/search-suggestions/count_terms.py",
+   "qualname": "write_json_file",
+   "line": 24,
+   "end_line": 39,
+   "findings": [
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      27
+     ],
+     "messages": [
+      {
+       "text": "`re.sub()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        27
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-suggestions/count_terms.py::read_common_words",
+   "file": "incremental-search/search-suggestions/count_terms.py",
+   "qualname": "read_common_words",
+   "line": 42,
+   "end_line": 48,
+   "findings": [
+    {
+     "kind": "whole_file_read",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      45
+     ],
+     "messages": [
+      {
+       "text": "`.readlines()` builds the whole content in memory and a loop walks it a line at a time; iterating the handle yields the same lines without the list, though it keeps the trailing newline that `.readlines()` and `.splitlines()` differ on",
+       "lines": [
+        45
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S3",
+     "support": "whole_file_read"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-suggestions/count_terms.py::count_terms",
+   "file": "incremental-search/search-suggestions/count_terms.py",
+   "qualname": "count_terms",
+   "line": 55,
+   "end_line": 65,
+   "findings": [
+    {
+     "kind": "ruff_C417",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S2",
+       "name": "Inefficient Built-in Choice",
+       "card": "reference/root-causes/C10.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      60
+     ],
+     "messages": [
+      {
+       "text": "map() where a comprehension is faster (ruff C417: Unnecessary `map()` usage (rewrite using a generator expression))",
+       "lines": [
+        60
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S2",
+     "support": "ruff_C417"
+    }
+   ]
+  },
+  {
+   "unit": "incremental-search/search-suggestions/count_terms.py::process_docs",
+   "file": "incremental-search/search-suggestions/count_terms.py",
+   "qualname": "process_docs",
+   "line": 84,
+   "end_line": 105,
+   "findings": [
+    {
+     "kind": "eager_comprehension",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      92,
+      102
+     ],
+     "messages": [
+      {
+       "text": "a list comprehension is materialised only to be consumed once by `sum()`; a generator expression avoids the allocation",
+       "lines": [
+        92,
+        102
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_C416",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C5.S4",
+       "name": "Unnecessary Representation Change",
+       "card": "reference/root-causes/C5.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      92
+     ],
+     "messages": [
+      {
+       "text": "comprehension that only copies (ruff C416: Unnecessary list comprehension (rewrite using `list()`))",
+       "lines": [
+        92
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_SIM118",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S2",
+       "name": "Inefficient Built-in Choice",
+       "card": "reference/root-causes/C10.S2.md"
+      },
+      {
+       "id": "C4.S8",
+       "name": "Non-Idiomatic Condition",
+       "card": "reference/root-causes/C4.S8.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      100
+     ],
+     "messages": [
+      {
+       "text": "`in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in dict` instead of `key in dict.keys()`)",
+       "lines": [
+        100
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S3",
+     "support": "eager_comprehension"
+    },
+    {
+     "id": "C5.S4",
+     "support": "ruff_C416"
+    },
+    {
+     "id": "C4.S8",
+     "support": "ruff_SIM118"
+    },
+    {
+     "id": "C10.S2",
+     "support": "ruff_SIM118"
+    }
+   ]
+  },
+  {
+   "unit": "model-inference/src/main/application/models/pytorch_transformer.py::TransformerModel.forward",
+   "file": "model-inference/src/main/application/models/pytorch_transformer.py",
+   "qualname": "TransformerModel.forward",
+   "line": 16,
+   "end_line": 19,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      18
+     ],
+     "messages": [
+      {
+       "text": "`output` exists only to be returned on the next line",
+       "lines": [
+        18
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "msmarco-ranking/python/evaluate_passage_run.py::get_result",
+   "file": "msmarco-ranking/python/evaluate_passage_run.py",
+   "qualname": "get_result",
+   "line": 53,
+   "end_line": 83,
+   "findings": [
+    {
+     "kind": "ruff_C408",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      56
+     ],
+     "messages": [
+      {
+       "text": "collection call where a literal would do (ruff C408: Unnecessary `dict()` call (rewrite as a literal))",
+       "lines": [
+        56
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S1",
+     "support": "ruff_C408"
+    }
+   ]
+  },
+  {
+   "unit": "msmarco-ranking/python/evaluate_passage_run.py::eval",
+   "file": "msmarco-ranking/python/evaluate_passage_run.py",
+   "qualname": "eval",
+   "line": 97,
+   "end_line": 109,
+   "findings": [
+    {
+     "kind": "append_only_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      100
+     ],
+     "messages": [
+      {
+       "text": "loop body is a single `.append()`; a comprehension does the same work without a bound-method lookup and call per item",
+       "lines": [
+        100
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "io_call_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S4",
+       "name": "Redundant Data Fetching",
+       "card": "reference/root-causes/C8.S4.md"
+      },
+      {
+       "id": "C9.S1",
+       "name": "Fragmented I/O Calls",
+       "card": "reference/root-causes/C9.S1.md"
+      },
+      {
+       "id": "C9.S3",
+       "name": "Inefficient Retrieval Paths",
+       "card": "reference/root-causes/C9.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      109
+     ],
+     "messages": [
+      {
+       "text": "`fp.write()` looks like it leaves the process, and it runs once per iteration; batching would amortise the round trip",
+       "lines": [
+        109
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C9.S3",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C9.S1",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C8.S4",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C3.S1",
+     "support": "append_only_loop"
+    },
+    {
+     "id": "C10.S3",
+     "support": "append_only_loop"
+    }
+   ]
+  },
+  {
+   "unit": "msmarco-ranking/python/evaluate_passage_run.py::main",
+   "file": "msmarco-ranking/python/evaluate_passage_run.py",
+   "qualname": "main",
+   "line": 111,
+   "end_line": 136,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      125
+     ],
+     "messages": [
+      {
+       "text": "`Session()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        125
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "multilingual-search/ext/evaluate.py::main",
+   "file": "multilingual-search/ext/evaluate.py",
+   "qualname": "main",
+   "line": 47,
+   "end_line": 77,
+   "findings": [
+    {
+     "kind": "unmanaged_resource",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      60
+     ],
+     "messages": [
+      {
+       "text": "`Session()` result is not managed by a `with` block, so the handle is released only when the collector gets to it",
+       "lines": [
+        60
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "unmanaged_resource"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/create_bert_embeddings.py::create_embeddings",
+   "file": "news/src/python/create_bert_embeddings.py",
+   "qualname": "create_embeddings",
+   "line": 26,
+   "end_line": 65,
+   "findings": [
+    {
+     "kind": "float_literal_on_int_data",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C5.S3",
+       "name": "Over-Provisioned Data Type",
+       "card": "reference/root-causes/C5.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      64
+     ],
+     "messages": [
+      {
+       "text": "`100.0 * (i + 1)` forces a float result with the literal `100.0`, which has no fractional part; every element pays for a conversion and a float allocation the value does not need",
+       "lines": [
+        64
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S3",
+     "support": "float_literal_on_int_data"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/evaluate.py::calc_metrics",
+   "file": "news/src/python/evaluate.py",
+   "qualname": "calc_metrics",
+   "line": 81,
+   "end_line": 100,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      94
+     ],
+     "messages": [
+      {
+       "text": "`metrics` exists only to be returned on the next line",
+       "lines": [
+        94
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.add_entities",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.add_entities",
+   "line": 76,
+   "end_line": 80,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      76
+     ],
+     "messages": [
+      {
+       "text": "`add_entities` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        76
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "membership_test_on_sequence",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S4",
+       "name": "Inefficient Nested Iteration",
+       "card": "reference/root-causes/C3.S4.md"
+      },
+      {
+       "id": "C5.S1",
+       "name": "Inefficient Data Structure Choice",
+       "card": "reference/root-causes/C5.S1.md"
+      },
+      {
+       "id": "C5.S2",
+       "name": "Missing Helper Type",
+       "card": "reference/root-causes/C5.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      79
+     ],
+     "messages": [
+      {
+       "text": "membership test `entity_id not in entity_ids` scans a sequence linearly on every iteration; a set or dict index would be constant-time",
+       "lines": [
+        79
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S2",
+     "support": "membership_test_on_sequence"
+    },
+    {
+     "id": "C5.S1",
+     "support": "membership_test_on_sequence"
+    },
+    {
+     "id": "C3.S4",
+     "support": "membership_test_on_sequence"
+    },
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.lookup_user_index",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.lookup_user_index",
+   "line": 116,
+   "end_line": 117,
+   "findings": [
+    {
+     "kind": "self_delegation_chain",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S1",
+       "name": "Unnecessary Method Delegation",
+       "card": "reference/root-causes/C2.S1.md"
+      },
+      {
+       "id": "C2.S3",
+       "name": "Excessive Modularization in Hot Path",
+       "card": "reference/root-causes/C2.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      117
+     ],
+     "messages": [
+      {
+       "text": "`MindData.lookup_user_index` does nothing but call `self.lookup_index()`; the extra frame is paid on every call and buys no work",
+       "lines": [
+        117
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S3",
+     "support": "self_delegation_chain"
+    },
+    {
+     "id": "C2.S1",
+     "support": "self_delegation_chain"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.lookup_news_index",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.lookup_news_index",
+   "line": 119,
+   "end_line": 120,
+   "findings": [
+    {
+     "kind": "self_delegation_chain",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S1",
+       "name": "Unnecessary Method Delegation",
+       "card": "reference/root-causes/C2.S1.md"
+      },
+      {
+       "id": "C2.S3",
+       "name": "Excessive Modularization in Hot Path",
+       "card": "reference/root-causes/C2.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      120
+     ],
+     "messages": [
+      {
+       "text": "`MindData.lookup_news_index` does nothing but call `self.lookup_index()`; the extra frame is paid on every call and buys no work",
+       "lines": [
+        120
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S3",
+     "support": "self_delegation_chain"
+    },
+    {
+     "id": "C2.S1",
+     "support": "self_delegation_chain"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.lookup_category_index",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.lookup_category_index",
+   "line": 122,
+   "end_line": 123,
+   "findings": [
+    {
+     "kind": "self_delegation_chain",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S1",
+       "name": "Unnecessary Method Delegation",
+       "card": "reference/root-causes/C2.S1.md"
+      },
+      {
+       "id": "C2.S3",
+       "name": "Excessive Modularization in Hot Path",
+       "card": "reference/root-causes/C2.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      123
+     ],
+     "messages": [
+      {
+       "text": "`MindData.lookup_category_index` does nothing but call `self.lookup_index()`; the extra frame is paid on every call and buys no work",
+       "lines": [
+        123
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S3",
+     "support": "self_delegation_chain"
+    },
+    {
+     "id": "C2.S1",
+     "support": "self_delegation_chain"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.lookup_subcategory_index",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.lookup_subcategory_index",
+   "line": 125,
+   "end_line": 126,
+   "findings": [
+    {
+     "kind": "self_delegation_chain",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S1",
+       "name": "Unnecessary Method Delegation",
+       "card": "reference/root-causes/C2.S1.md"
+      },
+      {
+       "id": "C2.S3",
+       "name": "Excessive Modularization in Hot Path",
+       "card": "reference/root-causes/C2.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      126
+     ],
+     "messages": [
+      {
+       "text": "`MindData.lookup_subcategory_index` does nothing but call `self.lookup_index()`; the extra frame is paid on every call and buys no work",
+       "lines": [
+        126
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S3",
+     "support": "self_delegation_chain"
+    },
+    {
+     "id": "C2.S1",
+     "support": "self_delegation_chain"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.lookup_entity_index",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.lookup_entity_index",
+   "line": 128,
+   "end_line": 129,
+   "findings": [
+    {
+     "kind": "self_delegation_chain",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S1",
+       "name": "Unnecessary Method Delegation",
+       "card": "reference/root-causes/C2.S1.md"
+      },
+      {
+       "id": "C2.S3",
+       "name": "Excessive Modularization in Hot Path",
+       "card": "reference/root-causes/C2.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      129
+     ],
+     "messages": [
+      {
+       "text": "`MindData.lookup_entity_index` does nothing but call `self.lookup_index()`; the extra frame is paid on every call and buys no work",
+       "lines": [
+        129
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S3",
+     "support": "self_delegation_chain"
+    },
+    {
+     "id": "C2.S1",
+     "support": "self_delegation_chain"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.lookup_index",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.lookup_index",
+   "line": 131,
+   "end_line": 134,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      131
+     ],
+     "messages": [
+      {
+       "text": "`lookup_index` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        131
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.add_impressions",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.add_impressions",
+   "line": 181,
+   "end_line": 201,
+   "findings": [
+    {
+     "kind": "repeated_subscript_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S3",
+       "name": "Missing Local Lookup Caching",
+       "card": "reference/root-causes/C8.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      189,
+      198
+     ],
+     "messages": [
+      {
+       "text": "`self.news_content[pos_news_index]` is looked up 3 times in the same pass; its key changes from pass to pass, so it cannot leave the loop, but reading it once at the top of the pass saves the other lookups",
+       "lines": [
+        189
+       ]
+      },
+      {
+       "text": "`self.news_content[neg_news_index]` is looked up 3 times in the same pass; its key changes from pass to pass, so it cannot leave the loop, but reading it once at the top of the pass saves the other lookups",
+       "lines": [
+        198
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S3",
+     "support": "repeated_subscript_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/mind_data.py::MindData.find_clicked",
+   "file": "news/src/python/mind_data.py",
+   "qualname": "MindData.find_clicked",
+   "line": 203,
+   "end_line": 211,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      203
+     ],
+     "messages": [
+      {
+       "text": "`find_clicked` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        203
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "news/src/python/train_cold_start.py::ContentBasedModel.get_user_embeddings",
+   "file": "news/src/python/train_cold_start.py",
+   "qualname": "ContentBasedModel.get_user_embeddings",
+   "line": 55,
+   "end_line": 56,
+   "findings": [
+    {
+     "kind": "self_delegation_chain",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S1",
+       "name": "Unnecessary Method Delegation",
+       "card": "reference/root-causes/C2.S1.md"
+      },
+      {
+       "id": "C2.S3",
+       "name": "Excessive Modularization in Hot Path",
+       "card": "reference/root-causes/C2.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      56
+     ],
+     "messages": [
+      {
+       "text": "`ContentBasedModel.get_user_embeddings` does nothing but call `self.user_embeddings()`; the extra frame is paid on every call and buys no work",
+       "lines": [
+        56
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S3",
+     "support": "self_delegation_chain"
+    },
+    {
+     "id": "C2.S1",
+     "support": "self_delegation_chain"
+    }
+   ]
+  },
+  {
+   "unit": "rag-blueprint/eval/collect_pyvespa.py::main",
+   "file": "rag-blueprint/eval/collect_pyvespa.py",
+   "qualname": "main",
+   "line": 135,
+   "end_line": 184,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      183
+     ],
+     "messages": [
+      {
+       "text": "`results` exists only to be returned on the next line",
+       "lines": [
+        183
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "rag-blueprint/eval/train_lightgbm.py::strip_feature_prefix",
+   "file": "rag-blueprint/eval/train_lightgbm.py",
+   "qualname": "strip_feature_prefix",
+   "line": 23,
+   "end_line": 26,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      25
+     ],
+     "messages": [
+      {
+       "text": "`stripped` exists only to be returned on the next line",
+       "lines": [
+        25
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "rag-blueprint/eval/train_lightgbm.py::perform_cross_validation",
+   "file": "rag-blueprint/eval/train_lightgbm.py",
+   "qualname": "perform_cross_validation",
+   "line": 53,
+   "end_line": 285,
+   "findings": [
+    {
+     "kind": "membership_test_on_sequence",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S4",
+       "name": "Inefficient Nested Iteration",
+       "card": "reference/root-causes/C3.S4.md"
+      },
+      {
+       "id": "C5.S1",
+       "name": "Inefficient Data Structure Choice",
+       "card": "reference/root-causes/C5.S1.md"
+      },
+      {
+       "id": "C5.S2",
+       "name": "Missing Helper Type",
+       "card": "reference/root-causes/C5.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      101,
+      111
+     ],
+     "messages": [
+      {
+       "text": "membership test `col in feature_cols` scans a sequence linearly on every iteration; a set or dict index would be constant-time",
+       "lines": [
+        101
+       ]
+      },
+      {
+       "text": "membership test `c in feature_cols` scans a sequence linearly on every iteration; a set or dict index would be constant-time",
+       "lines": [
+        111
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_C408",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      165
+     ],
+     "messages": [
+      {
+       "text": "collection call where a literal would do (ruff C408: Unnecessary `dict()` call (rewrite as a literal))",
+       "lines": [
+        165
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S2",
+     "support": "membership_test_on_sequence"
+    },
+    {
+     "id": "C5.S1",
+     "support": "membership_test_on_sequence"
+    },
+    {
+     "id": "C3.S4",
+     "support": "membership_test_on_sequence"
+    },
+    {
+     "id": "C6.S1",
+     "support": "ruff_C408"
+    }
+   ]
+  },
+  {
+   "unit": "rag-blueprint/eval/train_logistic_regression.py::perform_cross_validation",
+   "file": "rag-blueprint/eval/train_logistic_regression.py",
+   "qualname": "perform_cross_validation",
+   "line": 74,
+   "end_line": 208,
+   "findings": [
+    {
+     "kind": "column_major_traversal",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C12.S1",
+       "name": "Inefficient Large-Stride Traversal",
+       "card": "reference/root-causes/C12.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      139
+     ],
+     "messages": [
+      {
+       "text": "`model.predict_proba(X_test_scaled)[:, 1]` walks a column of a row-major array inside a loop, so each cache line loaded yields one useful element",
+       "lines": [
+        139
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C12.S1",
+     "support": "column_major_traversal"
+    }
+   ]
+  },
+  {
+   "unit": "reverse-image-search/script/feed.py::run",
+   "file": "reverse-image-search/script/feed.py",
+   "qualname": "run",
+   "line": 102,
+   "end_line": 192,
+   "findings": [
+    {
+     "kind": "expensive_operand_first",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S1",
+       "name": "Poor Short-Circuit Ordering",
+       "card": "reference/root-causes/C4.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      140
+     ],
+     "messages": [
+      {
+       "text": "`abs_path.exists()` calls a function before the cheaper test `not refeed`, so short-circuiting cannot skip the call; swapping them is only safe if the call has no effect the later operand depends on",
+       "lines": [
+        140
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      143
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        143
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "column_major_traversal",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C12.S1",
+       "name": "Inefficient Large-Stride Traversal",
+       "card": "reference/root-causes/C12.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      170
+     ],
+     "messages": [
+      {
+       "text": "`output.last_hidden_state[:, 0]` walks a column of a row-major array inside a loop, so each cache line loaded yields one useful element",
+       "lines": [
+        170
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    },
+    {
+     "id": "C4.S1",
+     "support": "expensive_operand_first"
+    },
+    {
+     "id": "C12.S1",
+     "support": "column_major_traversal"
+    }
+   ]
+  },
+  {
+   "unit": "scripts/print-app-endpoints.py::main",
+   "file": "scripts/print-app-endpoints.py",
+   "qualname": "main",
+   "line": 13,
+   "end_line": 19,
+   "findings": [
+    {
+     "kind": "ruff_SIM115",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      17
+     ],
+     "messages": [
+      {
+       "text": "file opened without a context manager (ruff SIM115: Use a context manager for opening files)",
+       "lines": [
+        17
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "ruff_SIM115"
+    }
+   ]
+  },
+  {
+   "unit": "test/pseudo_terminal.py::Log.flush",
+   "file": "test/pseudo_terminal.py",
+   "qualname": "Log.flush",
+   "line": 35,
+   "end_line": 36,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      35
+     ],
+     "messages": [
+      {
+       "text": "`flush` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        35
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "test/test.py::exec_script",
+   "file": "test/test.py",
+   "qualname": "exec_script",
+   "line": 119,
+   "end_line": 143,
+   "findings": [
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      136
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        136
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "test/test.py::parse_file",
+   "file": "test/test.py",
+   "qualname": "parse_file",
+   "line": 203,
+   "end_line": 218,
+   "findings": [
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      214,
+      216
+     ],
+     "messages": [
+      {
+       "text": "`content` is grown by concatenation inside a loop, but it is a plain local with no other reference, so CPython resizes it in place and the loop is already linear -- reject unless this runs on another runtime",
+       "lines": [
+        214,
+        216
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "test/test.py::parse_page",
+   "file": "test/test.py",
+   "qualname": "parse_page",
+   "line": 254,
+   "end_line": 282,
+   "findings": [
+    {
+     "kind": "independent_exclusive_ifs",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S4",
+       "name": "Missing Else-If",
+       "card": "reference/root-causes/C4.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      266
+     ],
+     "messages": [
+      {
+       "text": "4 separate `if` statements all test `attr`; every one is evaluated even after an earlier branch has already matched",
+       "lines": [
+        266
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      278,
+      279
+     ],
+     "messages": [
+      {
+       "text": "`re.search()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        278
+       ]
+      },
+      {
+       "text": "`re.sub()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        279
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C4.S4",
+     "support": "independent_exclusive_ifs"
+    }
+   ]
+  },
+  {
+   "unit": "test/test.py::run_url",
+   "file": "test/test.py",
+   "qualname": "run_url",
+   "line": 304,
+   "end_line": 315,
+   "findings": [
+    {
+     "kind": "io_call_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S4",
+       "name": "Redundant Data Fetching",
+       "card": "reference/root-causes/C8.S4.md"
+      },
+      {
+       "id": "C9.S1",
+       "name": "Fragmented I/O Calls",
+       "card": "reference/root-causes/C9.S1.md"
+      },
+      {
+       "id": "C9.S3",
+       "name": "Inefficient Retrieval Paths",
+       "card": "reference/root-causes/C9.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      310
+     ],
+     "messages": [
+      {
+       "text": "`urllib.request.urlopen()` looks like it leaves the process, and it runs once per iteration; batching would amortise the round trip",
+       "lines": [
+        310
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      310,
+      313
+     ],
+     "messages": [
+      {
+       "text": "`allpages` is grown by concatenation inside a loop, but it is a plain local with no other reference, so CPython resizes it in place and the loop is already linear -- reject unless this runs on another runtime",
+       "lines": [
+        310,
+        313
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    },
+    {
+     "id": "C9.S3",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C9.S1",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C8.S4",
+     "support": "io_call_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "test/test.py::run_config",
+   "file": "test/test.py",
+   "qualname": "run_config",
+   "line": 318,
+   "end_line": 334,
+   "findings": [
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      328
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        328
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "test/test.py::run_with_arguments",
+   "file": "test/test.py",
+   "qualname": "run_with_arguments",
+   "line": 347,
+   "end_line": 374,
+   "findings": [
+    {
+     "kind": "missing_early_exit",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S5",
+       "name": "Missing Loop Early Exit",
+       "card": "reference/root-causes/C3.S5.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      360
+     ],
+     "messages": [
+      {
+       "text": "`verbose` is set to its final value and the loop keeps going; no `break` or `return` leaves it, and nothing later can change it",
+       "lines": [
+        360
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S5",
+     "support": "missing_early_exit"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/collect_training_data.py::create_request_specific_ids",
+   "file": "text-search/python/collect_training_data.py",
+   "qualname": "create_request_specific_ids",
+   "line": 10,
+   "end_line": 20,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      11
+     ],
+     "messages": [
+      {
+       "text": "`body` exists only to be returned on the next line",
+       "lines": [
+        11
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/collect_training_data.py::create_request_top_hits",
+   "file": "text-search/python/collect_training_data.py",
+   "qualname": "create_request_top_hits",
+   "line": 23,
+   "end_line": 33,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      25
+     ],
+     "messages": [
+      {
+       "text": "`body` exists only to be returned on the next line",
+       "lines": [
+        25
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/collect_training_data.py::annotate_data",
+   "file": "text-search/python/collect_training_data.py",
+   "qualname": "annotate_data",
+   "line": 49,
+   "end_line": 57,
+   "findings": [
+    {
+     "kind": "repeated_subscript_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S3",
+       "name": "Missing Local Lookup Caching",
+       "card": "reference/root-causes/C8.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      52
+     ],
+     "messages": [
+      {
+       "text": "`h['fields']` is looked up 3 times in the same pass; its key changes from pass to pass, so it cannot leave the loop, but reading it once at the top of the pass saves the other lookups",
+       "lines": [
+        52
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S3",
+     "support": "repeated_subscript_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/collect_training_data.py::load_processed_queries",
+   "file": "text-search/python/collect_training_data.py",
+   "qualname": "load_processed_queries",
+   "line": 60,
+   "end_line": 67,
+   "findings": [
+    {
+     "kind": "ruff_SIM115",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S6",
+       "name": "Leaked Resource Handles",
+       "card": "reference/root-causes/C6.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      62
+     ],
+     "messages": [
+      {
+       "text": "file opened without a context manager (ruff SIM115: Use a context manager for opening files)",
+       "lines": [
+        62
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "whole_file_read",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      63
+     ],
+     "messages": [
+      {
+       "text": "`.readlines()` builds the whole content in memory and a comprehension walks it a line at a time; iterating the handle yields the same lines without the list, though it keeps the trailing newline that `.readlines()` and `.splitlines()` differ on",
+       "lines": [
+        63
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S6",
+     "support": "ruff_SIM115"
+    },
+    {
+     "id": "C6.S3",
+     "support": "whole_file_read"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/convert-to-vespa-format.py::main",
+   "file": "text-search/python/convert-to-vespa-format.py",
+   "qualname": "main",
+   "line": 38,
+   "end_line": 64,
+   "findings": [
+    {
+     "kind": "ruff_SIM118",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S2",
+       "name": "Inefficient Built-in Choice",
+       "card": "reference/root-causes/C10.S2.md"
+      },
+      {
+       "id": "C4.S8",
+       "name": "Non-Idiomatic Condition",
+       "card": "reference/root-causes/C4.S8.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      43
+     ],
+     "messages": [
+      {
+       "text": "`in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in dict` instead of `key in dict.keys()`)",
+       "lines": [
+        43
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S8",
+     "support": "ruff_SIM118"
+    },
+    {
+     "id": "C10.S2",
+     "support": "ruff_SIM118"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/extract-msmarco.py::load_msmarco_queries",
+   "file": "text-search/python/extract-msmarco.py",
+   "qualname": "load_msmarco_queries",
+   "line": 20,
+   "end_line": 28,
+   "findings": [
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      26
+     ],
+     "messages": [
+      {
+       "text": "`re.sub()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        26
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/extract-msmarco.py::load_msmarco_qrels",
+   "file": "text-search/python/extract-msmarco.py",
+   "qualname": "load_msmarco_qrels",
+   "line": 43,
+   "end_line": 58,
+   "findings": [
+    {
+     "kind": "ruff_C405",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C5.S4",
+       "name": "Unnecessary Representation Change",
+       "card": "reference/root-causes/C5.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      57
+     ],
+     "messages": [
+      {
+       "text": "literal converted to a set (ruff C405: Unnecessary list literal (rewrite as a set literal))",
+       "lines": [
+        57
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S4",
+     "support": "ruff_C405"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/extract-msmarco.py::extract_documents",
+   "file": "text-search/python/extract-msmarco.py",
+   "qualname": "extract_documents",
+   "line": 79,
+   "end_line": 86,
+   "findings": [
+    {
+     "kind": "ruff_SIM118",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S2",
+       "name": "Inefficient Built-in Choice",
+       "card": "reference/root-causes/C10.S2.md"
+      },
+      {
+       "id": "C4.S8",
+       "name": "Non-Idiomatic Condition",
+       "card": "reference/root-causes/C4.S8.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      84
+     ],
+     "messages": [
+      {
+       "text": "`in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in dict` instead of `key in dict.keys()`)",
+       "lines": [
+        84
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S8",
+     "support": "ruff_SIM118"
+    },
+    {
+     "id": "C10.S2",
+     "support": "ruff_SIM118"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/extract-msmarco.py::extract_queries",
+   "file": "text-search/python/extract-msmarco.py",
+   "qualname": "extract_queries",
+   "line": 89,
+   "end_line": 94,
+   "findings": [
+    {
+     "kind": "ruff_SIM118",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S2",
+       "name": "Inefficient Built-in Choice",
+       "card": "reference/root-causes/C10.S2.md"
+      },
+      {
+       "id": "C4.S8",
+       "name": "Non-Idiomatic Condition",
+       "card": "reference/root-causes/C4.S8.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      92
+     ],
+     "messages": [
+      {
+       "text": "`in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in dict` instead of `key in dict.keys()`)",
+       "lines": [
+        92
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S8",
+     "support": "ruff_SIM118"
+    },
+    {
+     "id": "C10.S2",
+     "support": "ruff_SIM118"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/sample-queries-and-documents.py::load_queries",
+   "file": "text-search/python/sample-queries-and-documents.py",
+   "qualname": "load_queries",
+   "line": 24,
+   "end_line": 34,
+   "findings": [
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      29
+     ],
+     "messages": [
+      {
+       "text": "`re.sub()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        29
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/sample-queries-and-documents.py::select_queries",
+   "file": "text-search/python/sample-queries-and-documents.py",
+   "qualname": "select_queries",
+   "line": 47,
+   "end_line": 50,
+   "findings": [
+    {
+     "kind": "ruff_SIM118",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S2",
+       "name": "Inefficient Built-in Choice",
+       "card": "reference/root-causes/C10.S2.md"
+      },
+      {
+       "id": "C4.S8",
+       "name": "Non-Idiomatic Condition",
+       "card": "reference/root-causes/C4.S8.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      48
+     ],
+     "messages": [
+      {
+       "text": "`in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in dict` instead of `key in dict.keys()`)",
+       "lines": [
+        48
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C4.S8",
+     "support": "ruff_SIM118"
+    },
+    {
+     "id": "C10.S2",
+     "support": "ruff_SIM118"
+    }
+   ]
+  },
+  {
+   "unit": "text-search/python/sample-queries-and-documents.py::select_documents",
+   "file": "text-search/python/sample-queries-and-documents.py",
+   "qualname": "select_documents",
+   "line": 54,
+   "end_line": 64,
+   "findings": [
+    {
+     "kind": "ruff_C416",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C5.S4",
+       "name": "Unnecessary Representation Change",
+       "card": "reference/root-causes/C5.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      60
+     ],
+     "messages": [
+      {
+       "text": "comprehension that only copies (ruff C416: Unnecessary list comprehension (rewrite using `list()`))",
+       "lines": [
+        60
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_SIM118",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S2",
+       "name": "Inefficient Built-in Choice",
+       "card": "reference/root-causes/C10.S2.md"
+      },
+      {
+       "id": "C4.S8",
+       "name": "Non-Idiomatic Condition",
+       "card": "reference/root-causes/C4.S8.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      60
+     ],
+     "messages": [
+      {
+       "text": "`in dict.keys()` instead of `in dict` (ruff SIM118: Use `key in dict` instead of `key in dict.keys()`)",
+       "lines": [
+        60
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S4",
+     "support": "ruff_C416"
+    },
+    {
+     "id": "C4.S8",
+     "support": "ruff_SIM118"
+    },
+    {
+     "id": "C10.S2",
+     "support": "ruff_SIM118"
+    }
+   ]
+  },
+  {
+   "unit": "text-video-search/src/python/app.py::get_text_processor",
+   "file": "text-video-search/src/python/app.py",
+   "qualname": "get_text_processor",
+   "line": 24,
+   "end_line": 26,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      25
+     ],
+     "messages": [
+      {
+       "text": "`text_processor` exists only to be returned on the next line",
+       "lines": [
+        25
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "text-video-search/src/python/embedding.py::extract_images",
+   "file": "text-video-search/src/python/embedding.py",
+   "qualname": "extract_images",
+   "line": 39,
+   "end_line": 52,
+   "findings": [
+    {
+     "kind": "append_only_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      50
+     ],
+     "messages": [
+      {
+       "text": "loop body is a single `.append()`; a comprehension does the same work without a bound-method lookup and call per item",
+       "lines": [
+        50
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "append_only_loop"
+    },
+    {
+     "id": "C10.S3",
+     "support": "append_only_loop"
+    }
+   ]
+  },
+  {
+   "unit": "text-video-search/src/python/embedding.py::search_video_file_names",
+   "file": "text-video-search/src/python/embedding.py",
+   "qualname": "search_video_file_names",
+   "line": 264,
+   "end_line": 292,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      283
+     ],
+     "messages": [
+      {
+       "text": "`parsed_results` exists only to be returned on the next line",
+       "lines": [
+        283
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "use-case-shopping/convert_meta.py::process",
+   "file": "use-case-shopping/convert_meta.py",
+   "qualname": "process",
+   "line": 10,
+   "end_line": 51,
+   "findings": [
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      40
+     ],
+     "messages": [
+      {
+       "text": "`fields[...]` is grown by concatenation inside a loop; because it is stored through a subscript, CPython cannot resize it in place and copies the whole value every iteration",
+       "lines": [
+        40
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "loop_invariant_expression",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S2",
+       "name": "Recomputing Loop-Invariant Values",
+       "card": "reference/root-causes/C3.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      45
+     ],
+     "messages": [
+      {
+       "text": "`data['related']` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        45
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S2",
+     "support": "loop_invariant_expression"
+    },
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "use-case-shopping/convert_meta.py::main",
+   "file": "use-case-shopping/convert_meta.py",
+   "qualname": "main",
+   "line": 53,
+   "end_line": 68,
+   "findings": [
+    {
+     "kind": "whole_file_read",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      57
+     ],
+     "messages": [
+      {
+       "text": "`.readlines()` builds the whole content in memory and a loop walks it a line at a time; iterating the handle yields the same lines without the list, though it keeps the trailing newline that `.readlines()` and `.splitlines()` differ on",
+       "lines": [
+        57
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      58
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        58
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S3",
+     "support": "whole_file_read"
+    },
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "use-case-shopping/convert_reviews.py::contains_illegal_chars",
+   "file": "use-case-shopping/convert_reviews.py",
+   "qualname": "contains_illegal_chars",
+   "line": 10,
+   "end_line": 17,
+   "findings": [
+    {
+     "kind": "redundant_bool_branch",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S3",
+       "name": "Redundant Control Flow",
+       "card": "reference/root-causes/C1.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      15
+     ],
+     "messages": [
+      {
+       "text": "this branch and the `return` that follows it hand back True/False for a test that already produces a boolean; replacing both with `return '\\x1a' in fields['text']` is the same answer without the jump",
+       "lines": [
+        15
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S3",
+     "support": "redundant_bool_branch"
+    }
+   ]
+  },
+  {
+   "unit": "use-case-shopping/convert_reviews.py::main",
+   "file": "use-case-shopping/convert_reviews.py",
+   "qualname": "main",
+   "line": 42,
+   "end_line": 59,
+   "findings": [
+    {
+     "kind": "whole_file_read",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      46
+     ],
+     "messages": [
+      {
+       "text": "`.readlines()` builds the whole content in memory and a loop walks it a line at a time; iterating the handle yields the same lines without the list, though it keeps the trailing newline that `.readlines()` and `.splitlines()` differ on",
+       "lines": [
+        46
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      47
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        47
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S3",
+     "support": "whole_file_read"
+    },
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "use-case-shopping/create_suggestions.py::filter",
+   "file": "use-case-shopping/create_suggestions.py",
+   "qualname": "filter",
+   "line": 57,
+   "end_line": 65,
+   "findings": [
+    {
+     "kind": "ruff_SIM110",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S1",
+       "name": "Skipping Optimized Built-ins",
+       "card": "reference/root-causes/C10.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      62
+     ],
+     "messages": [
+      {
+       "text": "loop that reimplements any() or all() (ruff SIM110: Use `return any(f in text for f in filters)` instead of `for` loop)",
+       "lines": [
+        62
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S1",
+     "support": "ruff_SIM110"
+    }
+   ]
+  },
+  {
+   "unit": "use-case-shopping/create_suggestions.py::filter_content",
+   "file": "use-case-shopping/create_suggestions.py",
+   "qualname": "filter_content",
+   "line": 67,
+   "end_line": 71,
+   "findings": [
+    {
+     "kind": "ruff_SIM110",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S1",
+       "name": "Skipping Optimized Built-ins",
+       "card": "reference/root-causes/C10.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      68
+     ],
+     "messages": [
+      {
+       "text": "loop that reimplements any() or all() (ruff SIM110: Use `return any(text.startswith(f) for f in invalid_starts)` instead of `for` loop)",
+       "lines": [
+        68
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C10.S1",
+     "support": "ruff_SIM110"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/prepare_feed_deploy.py::download_pdf",
+   "file": "visual-retrieval-colpali/prepare_feed_deploy.py",
+   "qualname": "download_pdf",
+   "line": 248,
+   "end_line": 280,
+   "findings": [
+    {
+     "kind": "try_except_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S6",
+       "name": "Expensive Exception Control Flow",
+       "card": "reference/root-causes/C4.S6.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      251
+     ],
+     "messages": [
+      {
+       "text": "try/except sits on the per-iteration path; if the exception is the common case, each raise allocates and unwinds",
+       "lines": [
+        251
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "regex_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S3",
+       "name": "Inefficient Per-Iteration Setup",
+       "card": "reference/root-causes/C3.S3.md"
+      },
+      {
+       "id": "C8.S2",
+       "name": "Missing Derived-Value Reuse",
+       "card": "reference/root-causes/C8.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      260
+     ],
+     "messages": [
+      {
+       "text": "`re.findall()` is called once per element; the pattern is re-resolved every time",
+       "lines": [
+        260
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S2",
+     "support": "regex_in_loop"
+    },
+    {
+     "id": "C4.S6",
+     "support": "try_except_in_loop"
+    },
+    {
+     "id": "C3.S3",
+     "support": "regex_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/prepare_feed_deploy.py::get_pdf_images",
+   "file": "visual-retrieval-colpali/prepare_feed_deploy.py",
+   "qualname": "get_pdf_images",
+   "line": 319,
+   "end_line": 329,
+   "findings": [
+    {
+     "kind": "index_based_iteration",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      322
+     ],
+     "messages": [
+      {
+       "text": "iterating `range(len(reader.pages))` and indexing back into it; iterating the sequence directly avoids an index lookup per item",
+       "lines": [
+        322
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "index_based_iteration"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/prepare_feed_deploy.py::generate_embeddings",
+   "file": "visual-retrieval-colpali/prepare_feed_deploy.py",
+   "qualname": "generate_embeddings",
+   "line": 534,
+   "end_line": 569,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      568
+     ],
+     "messages": [
+      {
+       "text": "`all_embeddings` exists only to be returned on the next line",
+       "lines": [
+        568
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/refeed_from_hf.py::pil_to_base64",
+   "file": "visual-retrieval-colpali/refeed_from_hf.py",
+   "qualname": "pil_to_base64",
+   "line": 24,
+   "end_line": 30,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      29
+     ],
+     "messages": [
+      {
+       "text": "`image_base64` exists only to be returned on the next line",
+       "lines": [
+        29
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps",
+   "file": "visual-retrieval-colpali/src/backend/colpali.py",
+   "qualname": "SimMapGenerator.gen_similarity_maps",
+   "line": 62,
+   "end_line": 106,
+   "findings": [
+    {
+     "kind": "loop_invariant_expression",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S2",
+       "name": "Recomputing Loop-Invariant Values",
+       "card": "reference/root-causes/C3.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      104
+     ],
+     "messages": [
+      {
+       "text": "`original_sizes[idx]` does not change across loop iterations but is re-evaluated every time",
+       "lines": [
+        104
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S2",
+     "support": "loop_invariant_expression"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._load_image",
+   "file": "visual-retrieval-colpali/src/backend/colpali.py",
+   "qualname": "SimMapGenerator._load_image",
+   "line": 108,
+   "end_line": 124,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      108
+     ],
+     "messages": [
+      {
+       "text": "`_load_image` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        108
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.get_query_embeddings_and_token_map",
+   "file": "visual-retrieval-colpali/src/backend/colpali.py",
+   "qualname": "SimMapGenerator.get_query_embeddings_and_token_map",
+   "line": 259,
+   "end_line": 279,
+   "findings": [
+    {
+     "kind": "ruff_B019",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C8.S1",
+       "name": "Missing Memoization Cache",
+       "card": "reference/root-causes/C8.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      258
+     ],
+     "messages": [
+      {
+       "text": "cache decorator on a method leaks instances (ruff B019: Use of `functools.lru_cache` or `functools.cache` on methods can lead to memory leaks)",
+       "lines": [
+        258
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_C416",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C5.S4",
+       "name": "Unnecessary Representation Change",
+       "card": "reference/root-causes/C5.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      278
+     ],
+     "messages": [
+      {
+       "text": "comprehension that only copies (ruff C416: Unnecessary dict comprehension (rewrite using `dict()`))",
+       "lines": [
+        278
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C8.S1",
+     "support": "ruff_B019"
+    },
+    {
+     "id": "C5.S4",
+     "support": "ruff_C416"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.create_nn_query_strings",
+   "file": "visual-retrieval-colpali/src/backend/vespa_app.py",
+   "qualname": "VespaQueryClient.create_nn_query_strings",
+   "line": 180,
+   "end_line": 202,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      180
+     ],
+     "messages": [
+      {
+       "text": "`create_nn_query_strings` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        180
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "index_based_iteration",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      194
+     ],
+     "messages": [
+      {
+       "text": "iterating `range(len(binary_query_embeddings))` and indexing back into it; `enumerate(binary_query_embeddings)` hands back the index and the item together, so the index costs no lookup",
+       "lines": [
+        194
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "index_based_iteration"
+    },
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.format_q_embs",
+   "file": "visual-retrieval-colpali/src/backend/vespa_app.py",
+   "qualname": "VespaQueryClient.format_q_embs",
+   "line": 204,
+   "end_line": 214,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      204
+     ],
+     "messages": [
+      {
+       "text": "`format_q_embs` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        204
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.get_result_from_query",
+   "file": "visual-retrieval-colpali/src/backend/vespa_app.py",
+   "qualname": "VespaQueryClient.get_result_from_query",
+   "line": 216,
+   "end_line": 258,
+   "findings": [
+    {
+     "kind": "repeated_pure_call",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S4",
+       "name": "Repeated Computation",
+       "card": "reference/root-causes/C1.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      239
+     ],
+     "messages": [
+      {
+       "text": "`ranking.split('_')` is computed 3 times in the same scope; if nothing it reads changes in between, once is enough",
+       "lines": [
+        239
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S4",
+     "support": "repeated_pure_call"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.get_results_children",
+   "file": "visual-retrieval-colpali/src/backend/vespa_app.py",
+   "qualname": "VespaQueryClient.get_results_children",
+   "line": 316,
+   "end_line": 317,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      316
+     ],
+     "messages": [
+      {
+       "text": "`get_results_children` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        316
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.get_suggestions",
+   "file": "visual-retrieval-colpali/src/backend/vespa_app.py",
+   "qualname": "VespaQueryClient.get_suggestions",
+   "line": 333,
+   "end_line": 370,
+   "findings": [
+    {
+     "kind": "ruff_C403",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C5.S4",
+       "name": "Unnecessary Representation Change",
+       "card": "reference/root-causes/C5.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      364
+     ],
+     "messages": [
+      {
+       "text": "list comprehension converted to a set (ruff C403: Unnecessary list comprehension (rewrite as a set comprehension))",
+       "lines": [
+        364
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C5.S4",
+     "support": "ruff_C403"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.get_rank_profile",
+   "file": "visual-retrieval-colpali/src/backend/vespa_app.py",
+   "qualname": "VespaQueryClient.get_rank_profile",
+   "line": 372,
+   "end_line": 376,
+   "findings": [
+    {
+     "kind": "method_ignores_self",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C2.S2",
+       "name": "Missing Static Declaration",
+       "card": "reference/root-causes/C2.S2.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      372
+     ],
+     "messages": [
+      {
+       "text": "`get_rank_profile` never uses `self`, so every call builds a bound method object for nothing",
+       "lines": [
+        372
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C2.S2",
+     "support": "method_ignores_self"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/frontend/app.py::SampleQueries",
+   "file": "visual-retrieval-colpali/src/frontend/app.py",
+   "qualname": "SampleQueries",
+   "line": 273,
+   "end_line": 304,
+   "findings": [
+    {
+     "kind": "constant_sequence_literal",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C5.S3",
+       "name": "Over-Provisioned Data Type",
+       "card": "reference/root-causes/C5.S3.md"
+      },
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      274
+     ],
+     "messages": [
+      {
+       "text": "`sample_queries` is a list of 7 constants that is never mutated; a tuple literal is stored whole in the code object instead of being rebuilt element by element on every call",
+       "lines": [
+        274
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "append_only_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      285
+     ],
+     "messages": [
+      {
+       "text": "loop body is a single `.append()`; a comprehension does the same work without a bound-method lookup and call per item",
+       "lines": [
+        285
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_PERF401",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C10.S3",
+       "name": "Missing Bulk Primitive Usage",
+       "card": "reference/root-causes/C10.S3.md"
+      },
+      {
+       "id": "C3.S1",
+       "name": "Inefficient Iteration Construct",
+       "card": "reference/root-causes/C3.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      286
+     ],
+     "messages": [
+      {
+       "text": "append loop that could be a comprehension (ruff PERF401: Use a list comprehension to create a transformed list)",
+       "lines": [
+        286
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C3.S1",
+     "support": "append_only_loop, ruff_PERF401"
+    },
+    {
+     "id": "C10.S3",
+     "support": "append_only_loop, ruff_PERF401"
+    },
+    {
+     "id": "C6.S1",
+     "support": "constant_sequence_literal"
+    },
+    {
+     "id": "C5.S3",
+     "support": "constant_sequence_literal"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/main.py::get_results_children",
+   "file": "visual-retrieval-colpali/src/main.py",
+   "qualname": "get_results_children",
+   "line": 242,
+   "end_line": 248,
+   "findings": [
+    {
+     "kind": "single_use_temporary",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C1.S7",
+       "name": "Unnecessary Variable",
+       "card": "reference/root-causes/C1.S7.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      243
+     ],
+     "messages": [
+      {
+       "text": "`search_results` exists only to be returned on the next line",
+       "lines": [
+        243
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C1.S7",
+     "support": "single_use_temporary"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/main.py::get_and_store_sim_maps",
+   "file": "visual-retrieval-colpali/src/main.py",
+   "qualname": "get_and_store_sim_maps",
+   "line": 259,
+   "end_line": 294,
+   "findings": [
+    {
+     "kind": "eager_comprehension",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C3.S6",
+       "name": "Unfiltered Bulk Iteration",
+       "card": "reference/root-causes/C3.S6.md"
+      },
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      274,
+      278
+     ],
+     "messages": [
+      {
+       "text": "a list comprehension is materialised only to be consumed once by `all()`; a generator expression avoids the allocation",
+       "lines": [
+        274,
+        278
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "ruff_C419",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S3",
+       "name": "Unnecessary Data Materialization",
+       "card": "reference/root-causes/C6.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 2,
+     "lines": [
+      274,
+      278
+     ],
+     "messages": [
+      {
+       "text": "comprehension materialised inside any()/all() (ruff C419: Unnecessary list comprehension)",
+       "lines": [
+        274,
+        278
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S3",
+     "support": "eager_comprehension, ruff_C419"
+    },
+    {
+     "id": "C3.S6",
+     "support": "eager_comprehension"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/src/main.py::message_generator",
+   "file": "visual-retrieval-colpali/src/main.py",
+   "qualname": "message_generator",
+   "line": 357,
+   "end_line": 406,
+   "findings": [
+    {
+     "kind": "ruff_RUF005",
+     "source": "ruff",
+     "root_causes": [
+      {
+       "id": "C6.S1",
+       "name": "Unnecessary Object",
+       "card": "reference/root-causes/C6.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      398
+     ],
+     "messages": [
+      {
+       "text": "list concatenation allocating a new list (ruff RUF005: Consider `[*images, \"\\n\\n Query: \", query]` instead of concatenation)",
+       "lines": [
+        398
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "string_concat_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C10.S4",
+       "name": "Inefficient String Concatenation",
+       "card": "reference/root-causes/C10.S4.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      402
+     ],
+     "messages": [
+      {
+       "text": "`response_text` is grown by concatenation inside a loop and a reference to it is kept there, so it survives to the next pass and each iteration copies the whole value",
+       "lines": [
+        402
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C6.S1",
+     "support": "ruff_RUF005"
+    },
+    {
+     "id": "C10.S4",
+     "support": "string_concat_in_loop"
+    }
+   ]
+  },
+  {
+   "unit": "visual-retrieval-colpali/tests/huggingface_smoke.py::main",
+   "file": "visual-retrieval-colpali/tests/huggingface_smoke.py",
+   "qualname": "main",
+   "line": 13,
+   "end_line": 80,
+   "findings": [
+    {
+     "kind": "io_call_in_loop",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C8.S4",
+       "name": "Redundant Data Fetching",
+       "card": "reference/root-causes/C8.S4.md"
+      },
+      {
+       "id": "C9.S1",
+       "name": "Fragmented I/O Calls",
+       "card": "reference/root-causes/C9.S1.md"
+      },
+      {
+       "id": "C9.S3",
+       "name": "Inefficient Retrieval Paths",
+       "card": "reference/root-causes/C9.S3.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      61
+     ],
+     "messages": [
+      {
+       "text": "`client.get()` looks like it leaves the process, and it runs once per iteration; batching would amortise the round trip",
+       "lines": [
+        61
+       ]
+      }
+     ]
+    },
+    {
+     "kind": "expensive_operand_first",
+     "source": "ast",
+     "root_causes": [
+      {
+       "id": "C4.S1",
+       "name": "Poor Short-Circuit Ordering",
+       "card": "reference/root-causes/C4.S1.md"
+      }
+     ],
+     "corroborated_by": [],
+     "count": 1,
+     "lines": [
+      77
+     ],
+     "messages": [
+      {
+       "text": "`torch.isfinite(embeddings).all()` calls a function before the cheaper test `tokens`, so short-circuiting cannot skip the call; swapping them is only safe if the call has no effect the later operand depends on",
+       "lines": [
+        77
+       ]
+      }
+     ]
+    }
+   ],
+   "candidates": [
+    {
+     "id": "C9.S3",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C9.S1",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C8.S4",
+     "support": "io_call_in_loop"
+    },
+    {
+     "id": "C4.S1",
+     "support": "expensive_operand_first"
+    }
+   ]
+  }
+ ]
+}

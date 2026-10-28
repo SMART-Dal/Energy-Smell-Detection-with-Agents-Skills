@@ -1,0 +1,1 @@
+CANNOT RUN: `download()` resolves every path through `resolve_existing_path` and then calls the DNAnexus platform API (`dxpy.list_subfolders`, `object_exists_in_project`, `dxpy.download_folder`, and `download_one_file`'s object download), all of which require network access and credentials; no realistic input can avoid these server requests.

@@ -1,0 +1,12 @@
+visual-retrieval-colpali/prepare_feed_deploy.py
+visual-retrieval-colpali/refeed_from_hf.py
+visual-retrieval-colpali/src/backend/cache.py
+visual-retrieval-colpali/src/backend/colpali.py
+visual-retrieval-colpali/src/backend/stopwords.py
+visual-retrieval-colpali/src/backend/vespa_app.py
+visual-retrieval-colpali/src/frontend/app.py
+visual-retrieval-colpali/src/frontend/layout.py
+visual-retrieval-colpali/src/icons.py
+visual-retrieval-colpali/src/main.py
+visual-retrieval-colpali/tests/huggingface_smoke.py
+visual-retrieval-colpali/vespa_feed_to_hf_dataset.py

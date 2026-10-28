@@ -1,0 +1,211 @@
+{
+ "units": {
+  "incremental-search/search-suggestions/count_terms.py::process_docs": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__process_docs.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::count_terms": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__count_terms.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/count_terms.py::write_json_file": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_count_terms.py__write_json_file.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/accepted_words.py::process_docs": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_accepted_words.py__process_docs.py",
+   "attempts": 1
+  },
+  "incremental-search/search-suggestions/accepted_words.py::write_to_file": {
+   "state": "ready",
+   "file": "incremental-search_search-suggestions_accepted_words.py__write_to_file.py",
+   "attempts": 1
+  },
+  "news/src/python/train_cold_start.py::read_bert_embeddings": {
+   "state": "ready",
+   "file": "news_src_python_train_cold_start.py__read_bert_embeddings.py",
+   "attempts": 1
+  },
+  "news/src/python/mind_data.py::MindData.read_data": {
+   "state": "ready",
+   "file": "news_src_python_mind_data.py__MindData.read_data.py",
+   "attempts": 1
+  },
+  "text-video-search/src/python/embedding.py::sample_images": {
+   "state": "ready",
+   "file": "text-video-search_src_python_embedding.py__sample_images.py",
+   "attempts": 1
+  },
+  "colbert-long/scripts/convert.py::remove_control_characters": {
+   "state": "ready",
+   "file": "colbert-long_scripts_convert.py__remove_control_characters.py",
+   "attempts": 1
+  },
+  "feed-split.py::split_text": {
+   "state": "ready",
+   "file": "feed-split.py__split_text.py",
+   "attempts": 1
+  },
+  "text-search/python/extract-msmarco.py::extract_documents": {
+   "state": "ready",
+   "file": "text-search_python_extract-msmarco.py__extract_documents.py",
+   "attempts": 1
+  },
+  "text-search/python/convert-to-vespa-format.py::main": {
+   "state": "ready",
+   "file": "text-search_python_convert-to-vespa-format.py__main.py",
+   "attempts": 1
+  },
+  "text-search/python/sample-queries-and-documents.py::select_documents": {
+   "state": "ready",
+   "file": "text-search_python_sample-queries-and-documents.py__select_documents.py",
+   "attempts": 1
+  },
+  "examples/workshop-ecommerce/preprocess.py::process_products": {
+   "state": "ready",
+   "file": "examples_workshop-ecommerce_preprocess.py__process_products.py",
+   "attempts": 1
+  },
+  "examples/workshop-ecommerce/preprocess.py::process_users": {
+   "state": "ready",
+   "file": "examples_workshop-ecommerce_preprocess.py__process_users.py",
+   "attempts": 1
+  },
+  "examples/workshop-ecommerce/preprocess.py::process_orders": {
+   "state": "ready",
+   "file": "examples_workshop-ecommerce_preprocess.py__process_orders.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding": {
+   "state": "ready",
+   "file": "visual-retrieval-colpali_prepare_feed_deploy.py__float_to_binary_embedding.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/prepare_feed_deploy.py::generate_embeddings": {
+   "state": "failed",
+   "reason": "it cannot run here: `generate_embeddings` requires a pretrained ColPali model and processor obtained via `ColPali.from_pretrained(MODEL_NAME)` / `ColPaliProcessor.from_pretrained(MODEL_NAME)`, which needs network access to Hugging Face (and large-model weights/GPU); no input can avoid obtaining those objects, and even a real 3B-parameter ColPali forward pass on CPU far exceeds the measurement time budget.",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor": {
+   "state": "failed",
+   "reason": "the unit's module does not load here: AttributeError: SimMapGenerator is not defined here: loading the module skipped line 19 `class SimMapGenerator:` (TypeError), with stand-ins for colpali_engine",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding": {
+   "state": "ready",
+   "file": "visual-retrieval-colpali_src_backend_vespa_app.py__VespaQueryClient.float_to_binary_embedding.py",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator.gen_similarity_maps": {
+   "state": "failed",
+   "reason": "it cannot run here: constructing `SimMapGenerator` loads the ColPali model from the HuggingFace hub (network access) as the repository's own caller does at startup, and the internal structure of the Vespa similarity maps consumed by the elided `_prepare_similarity_map_tensor` is not specified, so no valid input can be built.",
+   "attempts": 1
+  },
+  "news/src/python/create_bert_embeddings.py::create_embeddings": {
+   "state": "failed",
+   "reason": "it cannot run here: `create_embeddings` calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8_H-512_A-8')`, which download pretrained models from the Hugging Face Hub and therefore require network access (and the `transformers`/`torch` stack); no input can avoid this.",
+   "attempts": 1
+  },
+  "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_GenerateKeywords": {
+   "state": "failed",
+   "reason": "it cannot run here: `subgraph_GenerateKeywords` builds a `ChatOpenAI` model and invokes the chain (`chain.invoke(...)`), which performs a network request to the OpenAI API; no input can avoid that.",
+   "attempts": 1
+  },
+  "examples/google-cloud/cloud-functions/python/main.py::get_blobs": {
+   "state": "failed",
+   "reason": "it cannot run here: get_blobs calls google.cloud.storage.Client() and list_blobs(bucket), which performs an authenticated network request to Google Cloud Storage; no input can avoid it.",
+   "attempts": 1
+  },
+  "news/src/python/vespa_client.py::query_news": {
+   "state": "failed",
+   "reason": "it cannot run here: `query_news` performs `requests.post(f'{url}/search/', ...)` to a Vespa search server; its work is a network request, and no input can avoid it (and faking a server/network is not allowed).",
+   "attempts": 1
+  },
+  "text-video-search/src/python/embedding.py::TextProcessor.embed": {
+   "state": "failed",
+   "reason": "it cannot run here: `TextProcessor.embed` requires a real CLIP model \u2014 `self.model` comes from `clip.load(\"ViT-B/32\")`, which downloads pretrained weights from the network (and the `clip` library itself is not available in this environment), so no input can make the function run here.",
+   "attempts": 1
+  },
+  "text-video-search/src/python/embedding.py::VideoFeedDataset.__getitem__": {
+   "state": "failed",
+   "reason": "it cannot run here: the class's `__init__` loads the CLIP model via `clip.load(model_name)`, which downloads model weights from a remote server, and `_from_image_to_vector` (called by `__getitem__`) needs that CLIP model to encode frames; no input can avoid this network requirement.",
+   "attempts": 1
+  },
+  "rag-blueprint/eval/collect_pyvespa.py::feature_collection_second_phase_query_fn": {
+   "state": "ready",
+   "file": "rag-blueprint_eval_collect_pyvespa.py__feature_collection_second_phase_query_fn.py",
+   "attempts": 1
+  },
+  "text-search/python/collect_training_data.py::build_dataset": {
+   "state": "failed",
+   "reason": "it cannot run here: `build_dataset` performs its work by calling `get_features`, which issues `requests.post(url, ...)` to a Solr server (`http://localhost:8080/search/`); no input can avoid the network request while still doing the function's real work, and network access is not available here.",
+   "attempts": 1
+  },
+  "visual-retrieval-colpali/src/main.py::full_image": {
+   "state": "failed",
+   "reason": "the inputs that run here reach only 0% of the function (lines 327-329, 331-333, 335-337 never ran), so they would not measure its real work",
+   "attempts": 1
+  },
+  "news/src/python/train_cold_start.py::read_bert_embeddings_from_file": {
+   "state": "ready",
+   "file": "news_src_python_train_cold_start.py__read_bert_embeddings_from_file.py",
+   "attempts": 1
+  },
+  "examples/google-cloud/cloud-functions/python/main.py::getlogs": {
+   "state": "failed",
+   "reason": "it cannot run here: `getlogs` calls `get_blobs`, which creates a `google.cloud.storage.Client()` and lists blobs from Google Cloud Storage \u2014 a network request to a remote service that cannot be avoided or faked here.",
+   "attempts": 1
+  },
+  "examples/in-context-learning/categorize_group.py::inference": {
+   "state": "failed",
+   "reason": "it cannot run here: inference performs requests.post to http://localhost:8080/search/, requiring a running Vespa server; no input can avoid the network request.",
+   "attempts": 1
+  },
+  "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_EvaluateCategory": {
+   "state": "failed",
+   "reason": "it cannot run here: `subgraph_EvaluateCategory` builds a `ChatOpenAI` chain and calls `chain.invoke(...)`, which performs a request to the OpenAI API; no input can avoid that network call.",
+   "attempts": 1
+  },
+  "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_EvaluateFilters": {
+   "state": "failed",
+   "reason": "it cannot run here: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a request to the OpenAI API and needs network access plus credentials; no input can avoid that.",
+   "attempts": 1
+  },
+  "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::EvaluateResults": {
+   "state": "failed",
+   "reason": "it cannot run here: the function builds a `ChatOpenAI` model and calls `chain.invoke(...)`, which performs a live HTTP request to the OpenAI API requiring network access and credentials that are unavailable here.",
+   "attempts": 1
+  },
+  "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/vespa_module/vespa_retriever.py::VespaRetriever": {
+   "state": "failed",
+   "reason": "it cannot run here: `VespaRetriever` builds a `Vespa` client and performs `vespa_app.query(...)`, a request to a Vespa server at `VESPA_URL`; it needs network access and live credentials (cert/key), which are unavailable here.",
+   "attempts": 1
+  },
+  "news/src/python/vespa_client.py::query_user_embedding": {
+   "state": "failed",
+   "reason": "it cannot run here: `query_user_embedding` performs a live HTTP request (`requests.get(url, cert=cert)`) to a Vespa search endpoint; its work begins with that server call, which cannot be made here without network access or mocking.",
+   "attempts": 1
+  },
+  "incremental-search/search-as-you-type/feed_to_vespa.py::vespa_feed": {
+   "state": "failed",
+   "reason": "it cannot run here: `vespa_feed` posts every document to a Vespa endpoint via `vespa_post`, which shells out to `curl` against the network endpoint \u2014 it needs network access and subprocesses, and no input can avoid that.",
+   "attempts": 1
+  },
+  "feed_to_vespa.py::vespa_remove": {
+   "state": "failed",
+   "reason": "it cannot run here: `vespa_remove` calls `vespa_delete`, which performs a live HTTP request (`session.delete(url).json()`) against a Vespa endpoint for every document id; it needs network access to a running Vespa server, and no input can avoid that without mocking the session.",
+   "attempts": 1
+  }
+ },
+ "limits": {
+  "holding": 20,
+  "max_holding": 30,
+  "failed": 20,
+  "max_failed": 30
+ },
+ "updated": 1793174584.4115062
+}

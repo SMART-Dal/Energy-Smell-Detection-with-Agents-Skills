@@ -1,0 +1,115 @@
+{
+ "unit": "use-case-shopping/convert_meta.py::process",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 13.1,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 2523,
+   "completion_tokens": 5498,
+   "reasoning_tokens": 4540,
+   "cost": 0.00292561,
+   "retried": []
+  },
+  {
+   "seconds": 9.1,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 4738,
+   "completion_tokens": 3158,
+   "reasoning_tokens": 2106,
+   "cost": 0.001759876,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "minimal",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726846],[\"title\",\"zycidpyopumz dpamnt woi sdkaaa amvgnxaqhyo rhlhvhyoja\"]]}],[\"put\"'..., second run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726970],[\"title\",\"zycidpyopumz dpamnt woi sdkaaa amvgnxaqhyo rhlhvhyoja\"]]}],[\"put\"'..."
+    },
+    {
+     "label": "brand-and-small-categories",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726853],[\"title\",\"ccl xzvji gtbsvfnumzxq roqibalo mnqfrfhh fkf\"]]}],[\"put\",\"id:item'..., second run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726966],[\"title\",\"ccl xzvji gtbsvfnumzxq roqibalo mnqfrfhh fkf\"]]}],[\"put\",\"id:item'..."
+    },
+    {
+     "label": "many-shallow-categories",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726858],[\"title\",\"reltpusctapi hgwprrpmueh qmxav fysb yaiptxm mxzsoeldb\"]]}],[\"put\"'..., second run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726945],[\"title\",\"reltpusctapi hgwprrpmueh qmxav fysb yaiptxm mxzsoeldb\"]]}],[\"put\"'..."
+    },
+    {
+     "label": "deep-category-chain",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726871],[\"title\",\"dxmpecc mrj hqr iyfdigau zigfjju ctkvmqhf\"]]}],[\"put\",\"id:item:it'..., second run ...'],[\"rating_count\",0],[\"rating_stars\",0],[\"timestamp\",1764726950],[\"title\",\"dxmpecc mrj hqr iyfdigau zigfjju ctkvmqhf\"]]}],[\"put\",\"id:item:it'..."
+    },
+    {
+     "label": "related-many-items-per-key",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'749667736\",\"B409658633\",\"B697443337\"]}],[\"timestamp\",1764726883],[\"title\",\"xlzwxuq oyh fdl hmrdshaxgn fymfyzc ttoee\"]]}],[\"put\",\"id:item:ite'..., second run ...'749667736\",\"B409658633\",\"B697443337\"]}],[\"timestamp\",1764726961],[\"title\",\"xlzwxuq oyh fdl hmrdshaxgn fymfyzc ttoee\"]]}],[\"put\",\"id:item:ite'..."
+    },
+    {
+     "label": "related-many-keys",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'15145845\",\"B528617901\",\"B385861445\"]}],[\"timestamp\",1764726901],[\"title\",\"cpyibaevspyx kyaipzgx rrvdgsrwz vztvcnk lznz owdygwu\"]]}],[\"put\",\"'..., second run ...'15145845\",\"B528617901\",\"B385861445\"]}],[\"timestamp\",1764726963],[\"title\",\"cpyibaevspyx kyaipzgx rrvdgsrwz vztvcnk lznz owdygwu\"]]}],[\"put\",\"'..."
+    },
+    {
+     "label": "categories-and-related",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'47844098\",\"B841001920\",\"B493658125\"]}],[\"timestamp\",1764726924],[\"title\",\"mubcr lsbq bcnnch rnbs huus ssm\"]]}],[\"put\",\"id:item:item::B347712'..., second run ...'47844098\",\"B841001920\",\"B493658125\"]}],[\"timestamp\",1764726955],[\"title\",\"mubcr lsbq bcnnch rnbs huus ssm\"]]}],[\"put\",\"id:item:item::B347712'..."
+    },
+    {
+     "label": "everything-large",
+     "ok": false,
+     "why": "two runs on fresh inputs gave different output: the return value differs; first run ...'79611346\",\"B139973192\",\"B717371796\"]}],[\"timestamp\",1764726934],[\"title\",\"megwbceh gmuaopompsg cphyawiqn mxdvidcmtm vbkh puqg zetcrbpwgeso o'..., second run ...'79611346\",\"B139973192\",\"B717371796\"]}],[\"timestamp\",1764726952],[\"title\",\"megwbceh gmuaopompsg cphyawiqn mxdvidcmtm vbkh puqg zetcrbpwgeso o'..."
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-dict",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    },
+    {
+     "label": "empty-cats-related",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-values",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 128.4,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 107.1
+  },
+  {
+   "fatal": "refused: this source replaces code, at line 15: `convert_meta.time = _FrozenTime`. Everything measured has to run the real code -- a replaced function, a subclass overriding a method, or a mock measures something nobody runs.",
+   "cases": [],
+   "checks": [],
+   "validate_s": 0.0,
+   "coverage": null,
+   "missed": null,
+   "energy_domains": null,
+   "waited_s": null
+  }
+ ],
+ "seconds": 156.7,
+ "cost": 0.00469,
+ "kept": [],
+ "reason": "the generated inputs could not be used: refused: this source replaces code, at line 15: `convert_meta.time = _FrozenTime`. Everything measured has to run the real code -- a replaced function, a subclass overriding a method, or a mock measures something nobody runs."
+}

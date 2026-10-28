@@ -1,0 +1,16 @@
+src/python/dxpy/nextflow/collect_images.py
+src/python/dxpy/nextflow/ImageRefFactory.py
+src/python/dxpy/nextflow/ImageRef.py
+src/python/dxpy/nextflow/__init__.py
+src/python/dxpy/nextflow/nextflow_builder.py
+src/python/dxpy/nextflow/nextflow_templates.py
+src/python/dxpy/nextflow/nextflow_utils.py
+src/python/dxpy/nextflow/validate_nextflow_assets.py
+src/python/test/test_nextflow_collect_images.py
+src/python/test/test_nextflow_ImageRefFactory.py
+src/python/test/test_nextflow_ImageRef.py
+src/python/test/dxpy_testutil.py
+src/python/test/mock_api/api.py
+src/python/test/utils/__init__.py
+src/python/test/utils/test_version.py
+src/python/test/nextflow/__init__.py

@@ -1,0 +1,1 @@
+CANNOT RUN: the test creates applets and jobs on the DNAnexus platform (`dxpy.api.applet_new`, `dx run`, `dxpy.describe`) and opens an SSH session to a running job with pexpect, all of which require network access to a remote server and real platform credentials.

@@ -1,0 +1,1 @@
+CANNOT RUN: `get_blobs` creates a `google.cloud.storage.Client()` and calls `list_blobs(bucket)`, which performs an authenticated network request to the Google Cloud Storage API; no input can avoid that.

@@ -1,0 +1,32 @@
+terms-docs-count       partial         not applied: partial
+predictions-dict       confirmed       APPLIED
+ctrl-translate         confirmed       APPLIED
+terms-window-flags     confirmed       APPLIED
+msmarco-tell           partial         not applied: partial
+valid-filter-first     negligible      not applied: negligible
+bert-write-join        confirmed       APPLIED
+convert-file-dumps     confirmed       APPLIED
+write-emb-tolist       partial         not applied: partial
+user-emb-tolist        confirmed       APPLIED
+split-text-join        negligible      not applied: negligible
+sample-images-select   confirmed       APPLIED
+simmap-filter-once     over_limit      not applied: over_limit
+simmap-seqlen-hoist    over_limit      not applied: over_limit
+terms-merge-counts     negligible      not applied: negligible
+suggest-filter-any     regressed       not applied: regressed
+liquid-early-return    negligible      not applied: negligible
+parse-page-find-all    negligible      not applied: negligible
+recall-vectorised      confirmed       APPLIED
+vespa-packbits-bool    confirmed       APPLIED
+feed-packbits-bool     confirmed       APPLIED
+simmap-dead-copy       over_limit      not applied: over_limit
+orders-agg-list        negligible      not applied: negligible
+lang-text-once         over_limit      not applied: over_limit
+suggest-content-any    over_limit      not applied: over_limit
+suggest-filter-dead    over_limit      not applied: over_limit
+parse-file-typename    over_limit      not applied: over_limit
+add-impr-lookup        over_limit      not applied: over_limit
+terms-replace-slash    over_limit      not applied: over_limit
+terms-total-count      over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/sample-apps/control/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/control/sonnet/review/REPORT.md

@@ -1,0 +1,135 @@
+{
+ "unit": "scripts/update-sig-tables.py::render_sig_details_group",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 43.9,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 2715,
+   "completion_tokens": 16226,
+   "reasoning_tokens": 15112,
+   "cost": 0.0138410748,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "small-typical",
+     "ok": false,
+     "joules": 0.024803605885444037,
+     "seconds": 0.0005255388095974922,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "medium",
+     "ok": true,
+     "joules": 0.1931831266968328,
+     "seconds": 0.00452942680567503
+    },
+    {
+     "label": "large",
+     "ok": true,
+     "joules": 0.9913284791666683,
+     "seconds": 0.021074511110782623
+    },
+    {
+     "label": "many-channels",
+     "ok": false,
+     "joules": 0.07377896325878568,
+     "seconds": 0.0015983618795871735,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-repos",
+     "ok": false,
+     "joules": 0.12864541449275418,
+     "seconds": 0.002902604639530182,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-text",
+     "ok": false,
+     "joules": 0.1654149897959189,
+     "seconds": 0.003406333737075329,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "half-empty",
+     "ok": true,
+     "joules": 0.395598008403359,
+     "seconds": 0.008417668752372265
+    },
+    {
+     "label": "huge-mixed",
+     "ok": true,
+     "joules": 1.4734598125000105,
+     "seconds": 0.03183268941938877
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-group",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-sig",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "blank-sig",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 137.3,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 119.1
+  }
+ ],
+ "seconds": 182.5,
+ "cost": 0.01384,
+ "kept": [
+  {
+   "label": "huge-mixed",
+   "mj_per_call": 1473.4598,
+   "ms_per_call": 31.833
+  },
+  {
+   "label": "large",
+   "mj_per_call": 991.3285,
+   "ms_per_call": 21.075
+  },
+  {
+   "label": "half-empty",
+   "mj_per_call": 395.598,
+   "ms_per_call": 8.418
+  },
+  {
+   "label": "medium",
+   "mj_per_call": 193.1831,
+   "ms_per_call": 4.529
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

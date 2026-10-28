@@ -1,0 +1,137 @@
+{
+ "unit": "src/python/dxpy/utils/__init__.py::_dict_raise_on_duplicates",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 37.5,
+   "finish": "stop",
+   "provider": "Sail Research",
+   "prompt_tokens": 2603,
+   "completion_tokens": 5303,
+   "reasoning_tokens": 4335,
+   "cost": 0.001409492,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "strings-90k",
+     "ok": true,
+     "joules": 1.2214574249999999,
+     "seconds": 0.025612429715692997
+    },
+    {
+     "label": "ints-90k",
+     "ok": true,
+     "joules": 1.3608519687499978,
+     "seconds": 0.03193752560764551
+    },
+    {
+     "label": "tuples-60k",
+     "ok": false,
+     "joules": 0.825602482758623,
+     "seconds": 0.017542204819619656,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-types-70k",
+     "ok": false,
+     "joules": 0.7066695967741907,
+     "seconds": 0.016210947185754776,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "list-pairs-90k",
+     "ok": true,
+     "joules": 1.303050466666673,
+     "seconds": 0.03438952751457691
+    },
+    {
+     "label": "long-keys-50k",
+     "ok": false,
+     "joules": 0.58772202857143,
+     "seconds": 0.014395855367183685,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "nested-tuples-50k",
+     "ok": true,
+     "joules": 0.8920531025641116,
+     "seconds": 0.02601504884660244
+    },
+    {
+     "label": "small-20k",
+     "ok": false,
+     "joules": 0.16287994423791738,
+     "seconds": 0.003717554733157158,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "duplicate",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 232.5,
+   "coverage": 0.8333333333333334,
+   "missed": [
+    266
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 167.9
+  }
+ ],
+ "seconds": 369.4,
+ "cost": 0.00141,
+ "kept": [
+  {
+   "label": "ints-90k",
+   "mj_per_call": 1360.852,
+   "ms_per_call": 31.938
+  },
+  {
+   "label": "list-pairs-90k",
+   "mj_per_call": 1303.0505,
+   "ms_per_call": 34.39
+  },
+  {
+   "label": "strings-90k",
+   "mj_per_call": 1221.4574,
+   "ms_per_call": 25.612
+  },
+  {
+   "label": "nested-tuples-50k",
+   "mj_per_call": 892.0531,
+   "ms_per_call": 26.015
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

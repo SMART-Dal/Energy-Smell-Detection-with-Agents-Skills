@@ -1,0 +1,138 @@
+{
+ "unit": "news/src/python/mind_data.py::MindData.read_news",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 56.0,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3547,
+   "completion_tokens": 16476,
+   "reasoning_tokens": 14449,
+   "cost": 0.00848629,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "no-entities",
+     "ok": false,
+     "joules": 0.8570968541666666,
+     "seconds": 0.010423463769257069,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "few-entities",
+     "ok": true,
+     "joules": 8.601961999999995,
+     "seconds": 0.18156471941620111
+    },
+    {
+     "label": "many-entities",
+     "ok": true,
+     "joules": 8.709610714285711,
+     "seconds": 0.16267946641892195
+    },
+    {
+     "label": "mixed-field-counts",
+     "ok": false,
+     "joules": 7.881759571428574,
+     "seconds": 0.15085705742239952,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicate-ids",
+     "ok": false,
+     "joules": 8.210316999999955,
+     "seconds": 0.19991150684654713,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "all-distinct-keys",
+     "ok": true,
+     "joules": 10.097866333333362,
+     "seconds": 0.19582300633192062
+    },
+    {
+     "label": "long-text",
+     "ok": false,
+     "joules": 5.211621800000012,
+     "seconds": 0.10744855273514986,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "large-mixed",
+     "ok": true,
+     "joules": 9.842856999999944,
+     "seconds": 0.1746605560183525
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-line-6-fields",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-line-8-fields",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 111.3,
+   "coverage": 0.9047619047619048,
+   "missed": [
+    47,
+    48
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 73.6
+  }
+ ],
+ "seconds": 170.3,
+ "cost": 0.00849,
+ "kept": [
+  {
+   "label": "all-distinct-keys",
+   "mj_per_call": 10097.8663,
+   "ms_per_call": 195.823
+  },
+  {
+   "label": "large-mixed",
+   "mj_per_call": 9842.857,
+   "ms_per_call": 174.661
+  },
+  {
+   "label": "many-entities",
+   "mj_per_call": 8709.6107,
+   "ms_per_call": 162.679
+  },
+  {
+   "label": "few-entities",
+   "mj_per_call": 8601.962,
+   "ms_per_call": 181.565
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

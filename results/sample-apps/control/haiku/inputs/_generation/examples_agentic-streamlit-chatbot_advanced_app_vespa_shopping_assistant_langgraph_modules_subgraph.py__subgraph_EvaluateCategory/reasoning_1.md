@@ -1,0 +1,1 @@
+The function calls ChatOpenAI, which makes a network request. This cannot run here. So answer CANNOT RUN.

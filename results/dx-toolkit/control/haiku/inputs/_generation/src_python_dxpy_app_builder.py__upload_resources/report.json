@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/app_builder.py::upload_resources",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 5.4,
+   "finish": "stop",
+   "provider": "Morph",
+   "prompt_tokens": 5341,
+   "completion_tokens": 1070,
+   "reasoning_tokens": 969,
+   "cost": 0.000760789,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `upload_resources` requires network access to the DNAnexus platform for any non-empty resources directory \u2014 it either calls `dxpy.find_one_data_object` (to look for an existing bundle) or `dxpy.upload_local_file` (to upload the new tarball). The only input that avoids the network is an empty/missing resources directory, which returns `[]` without doing the function's real work, so no meaningful measured workload can run here."
+  }
+ ],
+ "seconds": 12.8,
+ "cost": 0.00076,
+ "kept": [],
+ "reason": "it cannot run here: `upload_resources` requires network access to the DNAnexus platform for any non-empty resources directory \u2014 it either calls `dxpy.find_one_data_object` (to look for an existing bundle) or `dxpy.upload_local_file` (to upload the new tarball). The only input that avoids the network is an empty/missing resources directory, which returns `[]` without doing the function's real work, so no meaningful measured workload can run here."
+}

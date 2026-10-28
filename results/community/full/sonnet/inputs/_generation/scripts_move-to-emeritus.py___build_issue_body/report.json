@@ -1,0 +1,135 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_build_issue_body",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 4.4,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 3009,
+   "completion_tokens": 2751,
+   "reasoning_tokens": 2144,
+   "cost": 0.002040884,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "many-members",
+     "ok": true,
+     "joules": 1.1863114166666666,
+     "seconds": 0.021061786450445652
+    },
+    {
+     "label": "wide-teams",
+     "ok": false,
+     "joules": 0.18673331666666684,
+     "seconds": 0.004178465344011784,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "huge-teams",
+     "ok": false,
+     "joules": 0.07043861503759398,
+     "seconds": 0.0015052929520606995,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "sorted-input",
+     "ok": false,
+     "joules": 0.551671788461542,
+     "seconds": 0.019408507272601128,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "reverse-sorted",
+     "ok": true,
+     "joules": 0.5576992999999967,
+     "seconds": 0.014490151777863503
+    },
+    {
+     "label": "duplicates",
+     "ok": true,
+     "joules": 1.3661205294117602,
+     "seconds": 0.02980306651443243
+    },
+    {
+     "label": "long-names",
+     "ok": false,
+     "joules": 0.34663556737588597,
+     "seconds": 0.007109150290489197,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "unicode",
+     "ok": true,
+     "joules": 0.6891248548387129,
+     "seconds": 0.016344082541763783
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "tuple-teams",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 140.9,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 105.0
+  }
+ ],
+ "seconds": 150.1,
+ "cost": 0.00204,
+ "kept": [
+  {
+   "label": "duplicates",
+   "mj_per_call": 1366.1205,
+   "ms_per_call": 29.803
+  },
+  {
+   "label": "many-members",
+   "mj_per_call": 1186.3114,
+   "ms_per_call": 21.062
+  },
+  {
+   "label": "unicode",
+   "mj_per_call": 689.1249,
+   "ms_per_call": 16.344
+  },
+  {
+   "label": "reverse-sorted",
+   "mj_per_call": 557.6993,
+   "ms_per_call": 14.49
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

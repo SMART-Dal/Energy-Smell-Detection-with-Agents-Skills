@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_get_repo_commenters",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.8,
+   "finish": "stop",
+   "provider": "Baidu",
+   "prompt_tokens": 3639,
+   "completion_tokens": 184,
+   "reasoning_tokens": 105,
+   "cost": 5.9762472e-05,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_get_repo_commenters` calls `request_with_retry(\"GET\", url)` which performs a live HTTP request to `https://api.github.com`; its work begins with a network call to a remote server and no input can avoid it (mocking `request_with_retry`/`urllib.request.urlopen` is forbidden)."
+  }
+ ],
+ "seconds": 2.1,
+ "cost": 6e-05,
+ "kept": [],
+ "reason": "it cannot run here: `_get_repo_commenters` calls `request_with_retry(\"GET\", url)` which performs a live HTTP request to `https://api.github.com`; its work begins with a network call to a remote server and no input can avoid it (mocking `request_with_retry`/`urllib.request.urlopen` is forbidden)."
+}

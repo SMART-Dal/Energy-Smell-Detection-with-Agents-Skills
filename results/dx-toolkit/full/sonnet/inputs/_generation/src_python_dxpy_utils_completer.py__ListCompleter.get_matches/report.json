@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/utils/completer.py::ListCompleter.get_matches",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 28.3,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 3674,
+   "completion_tokens": 10121,
+   "reasoning_tokens": 9200,
+   "cost": 0.00531768,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "plain-app",
+     "ok": true,
+     "joules": 1.5867033333333331,
+     "seconds": 0.03392522968351841
+    },
+    {
+     "label": "plain-no-match",
+     "ok": false,
+     "joules": 1.5464059374999977,
+     "seconds": 0.03136176895350218,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "plain-all",
+     "ok": false,
+     "joules": 0.5751426000000026,
+     "seconds": 0.010631431825459003,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "plain-recompute",
+     "ok": true,
+     "joules": 1.6526958709677304,
+     "seconds": 0.032824721187353134
+    },
+    {
+     "label": "path-colon",
+     "ok": true,
+     "joules": 1.9584030833333372,
+     "seconds": 0.04188954271376133
+    },
+    {
+     "label": "path-all-colon",
+     "ok": false,
+     "joules": 0.602212243902436,
+     "seconds": 0.012342853471636772,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "path-folder",
+     "ok": true,
+     "joules": 1.6199967666666757,
+     "seconds": 0.03397510200738907
+    },
+    {
+     "label": "plain-data",
+     "ok": false,
+     "joules": 1.5403027333333132,
+     "seconds": 0.03388985339552164,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-completions",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-element",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "colon-no-match",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 242.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 206.4
+  }
+ ],
+ "seconds": 373.5,
+ "cost": 0.00532,
+ "kept": [
+  {
+   "label": "path-colon",
+   "mj_per_call": 1958.4031,
+   "ms_per_call": 41.89
+  },
+  {
+   "label": "plain-recompute",
+   "mj_per_call": 1652.6959,
+   "ms_per_call": 32.825
+  },
+  {
+   "label": "path-folder",
+   "mj_per_call": 1619.9968,
+   "ms_per_call": 33.975
+  },
+  {
+   "label": "plain-app",
+   "mj_per_call": 1586.7033,
+   "ms_per_call": 33.925
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

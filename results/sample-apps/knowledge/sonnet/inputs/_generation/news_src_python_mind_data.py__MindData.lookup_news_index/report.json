@@ -1,0 +1,131 @@
+{
+ "unit": "news/src/python/mind_data.py::MindData.lookup_news_index",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 49.1,
+   "finish": "stop",
+   "provider": "DigitalOcean",
+   "prompt_tokens": 2981,
+   "completion_tokens": 13584,
+   "reasoning_tokens": 12677,
+   "cost": 0.009172377,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "hit-short-big-map",
+     "ok": true,
+     "joules": 2.3214090579344157e-05,
+     "seconds": 2.2957101464271545e-06
+    },
+    {
+     "label": "hit-32-chars",
+     "ok": true,
+     "joules": 2.258372693630514e-05,
+     "seconds": 1.1362135410308838e-06
+    },
+    {
+     "label": "hit-4000-chars",
+     "ok": false,
+     "joules": 2.1952367554132915e-05,
+     "seconds": 1.953914761543274e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "hit-16000-chars",
+     "ok": false,
+     "joules": 2.1722717711707587e-05,
+     "seconds": 1.455657184123993e-06,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "hit-64000-chars",
+     "ok": true,
+     "joules": 2.3542631728215603e-05,
+     "seconds": 1.432374119758606e-06
+    },
+    {
+     "label": "hit-100000-chars",
+     "ok": true,
+     "joules": 2.3461324188733626e-05,
+     "seconds": 1.5972182154655457e-06
+    },
+    {
+     "label": "miss-short-id",
+     "ok": false,
+     "seconds": 1.7797574400901794e-06,
+     "why": "each of the 1,123,749 calls in a window gets fresh arguments, and building them would take 20.9 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    },
+    {
+     "label": "miss-long-id",
+     "ok": false,
+     "seconds": 1.1669471859931946e-06,
+     "why": "each of the 1,713,874 calls in a window gets fresh arguments, and building them would take 31.9 GB (limit 4.3 GB): one call does too little work for arguments that size; give it arguments that are cheaper to build, or on which one call does more of the work"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-map-empty-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-entry-hit",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 112.2,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 58.5
+  }
+ ],
+ "seconds": 165.0,
+ "cost": 0.00917,
+ "kept": [
+  {
+   "label": "hit-64000-chars",
+   "mj_per_call": 0.0235,
+   "ms_per_call": 0.001
+  },
+  {
+   "label": "hit-100000-chars",
+   "mj_per_call": 0.0235,
+   "ms_per_call": 0.002
+  },
+  {
+   "label": "hit-short-big-map",
+   "mj_per_call": 0.0232,
+   "ms_per_call": 0.002
+  },
+  {
+   "label": "hit-32-chars",
+   "mj_per_call": 0.0226,
+   "ms_per_call": 0.001
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

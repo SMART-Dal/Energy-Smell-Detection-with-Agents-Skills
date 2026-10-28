@@ -1,0 +1,412 @@
+waiting for inputs still being generated: 1 unit(s) (scripts/move-to-emeritus.py::_get_repo_commenters)
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-1.64%
+
+
+=== C3S5-check-events  scripts/move-to-emeritus.py::_check_events
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-events   ok  (check only)
+  single-match   ok  (check only)
+  odd-values     ok  (check only)
+  big-mixed      ok
+  single-type    ok
+  huge-remaining ok
+  exclude-all    ok
+
+sizing
+  big-mixed      before   705.1 us/call  after   592.1 us/call  ->  1,689 repeats
+  single-type    before   815.2 us/call  after   875.4 us/call  ->  1,227 repeats
+  huge-remaining before     2.1 ms/call  after     2.7 ms/call  ->  480 repeats
+  exclude-all    before   815.0 us/call  after   825.1 us/call  ->  1,228 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  big-mixed       +20.00% +-4.46% energy saved   significant     +20.10% +-1.94% time saved
+  single-type      -5.06% +-0.57% energy saved   significant     -5.20% +-0.29% time saved
+  huge-remaining  -14.09% +-1.77% energy saved   significant     -14.15% +-1.67% time saved
+  exclude-all      +0.52% +-0.42% energy saved   significant     +0.64% +-0.25% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: mixed
+  a trade-off, not a fix: 20.0% saved on 'big-mixed' but 14.1% lost on 'huge-remaining', both clearing the 1.6% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.
+
+=== C5S1-commenters-seen  scripts/move-to-emeritus.py::_get_repo_commenters
+
+VERDICT: no_inputs
+  no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_commenters: the generated inputs could not be used: the source does not load (cases): ValueError: too many values to unpack (expected 2) (at line 211 of your source: `return [(_lbl, _thunk(_r)) for _lbl, _r in _CHECKS]`). Next: the generator writes new inputs on every try, so you may ask for it again (`inputs.py request scripts/move-to-emeritus.py::_get_repo_commenters`) (2 tries left); if it fails again, its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== C10S4-pr-body  scripts/move-to-emeritus.py::_build_pr_body
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty          ok  (check only)
+  single         ok  (check only)
+  empty-teams    ok  (check only)
+  large          ok
+  with-warning   ok
+  same-role      ok
+  duplicates     ok
+
+sizing
+  large          before    32.0 ms/call  after    31.2 ms/call  ->  33 repeats
+  with-warning   before     9.7 ms/call  after     9.1 ms/call  ->  110 repeats
+  same-role      before    21.2 ms/call  after    34.8 ms/call  ->  48 repeats
+  duplicates     before     9.0 ms/call  after     8.5 ms/call  ->  118 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large            +3.00% +-0.60% energy saved   significant     +2.95% +-1.10% time saved
+  with-warning    +11.42% +-16.38% energy saved   not significant +15.33% +-33.66% time saved
+  same-role        +2.47% +-1.49% energy saved   significant     +2.39% +-1.73% time saved
+  duplicates       +5.80% +-5.81% energy saved   not significant +6.26% +-4.06% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: partial
+  saves energy on 2 of 4 inputs ('large', 'same-role'; best 3.0% +-0.6% on 'large'), and no saving that can be told from noise on the rest: 'with-warning' +11.4% +-16.4% (its pairs disagree too much to tell); 'duplicates' +5.8% +-5.8% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C10S4-issue-body  scripts/move-to-emeritus.py::_build_issue_body
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty          ok  (check only)
+  single         ok  (check only)
+  tuple-teams    ok  (check only)
+  many-members   ok
+  reverse-sorted ok
+  duplicates     ok
+  unicode        ok
+
+sizing
+  many-members   before    21.1 ms/call  after    20.2 ms/call  ->  50 repeats
+  reverse-sorted before     8.1 ms/call  after     7.6 ms/call  ->  132 repeats
+  duplicates     before    20.2 ms/call  after    19.3 ms/call  ->  52 repeats
+  unicode        before    10.3 ms/call  after    10.0 ms/call  ->  101 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-members     +4.94% +-3.66% energy saved   significant     +4.71% +-2.54% time saved
+  reverse-sorted  +12.53% +-11.62% energy saved   significant     +11.58% +-9.29% time saved
+  duplicates       +5.19% +-0.55% energy saved   significant     +6.40% +-4.81% time saved
+  unicode          +1.65% +-1.09% energy saved   significant     +2.00% +-0.56% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: confirmed
+  12.5% +-11.6% energy saved on 'reverse-sorted', clearing the 1.6% noise floor. Saved energy on all 4 inputs ('many-members', 'reverse-sorted', 'duplicates', 'unicode'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C1S4-add-emeritus-single-pass  scripts/move-to-emeritus.py::_add_to_emeritus
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-readme   ok  (check only)
+  section-no-members ok  (check only)
+  duplicate-small ok  (check only)
+  existing-large ok
+  existing-level2 ok
+  existing-mixed-markers ok
+  existing-case-insensitive ok
+
+sizing
+  existing-large before    41.3 ms/call  after    34.9 ms/call  ->  29 repeats
+  existing-level2 before    32.8 ms/call  after    26.2 ms/call  ->  39 repeats
+  existing-mixed-markers before    36.1 ms/call  after    30.4 ms/call  ->  33 repeats
+  existing-case-insensitive before    25.9 ms/call  after    21.7 ms/call  ->  47 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  existing-large  +16.07% +-1.26% energy saved   significant     +16.27% +-2.32% time saved
+  existing-level2  +14.63% +-2.38% energy saved   significant     +15.56% +-0.16% time saved
+  existing-mixed-markers  +16.43% +-0.81% energy saved   significant     +16.18% +-0.16% time saved
+  existing-case-insensitive  +15.80% +-1.46% energy saved   significant     +15.99% +-0.78% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: confirmed
+  16.4% +-0.8% energy saved on 'existing-mixed-markers', clearing the 1.6% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C8S3-add-emeritus-compiled  scripts/move-to-emeritus.py::_add_to_emeritus
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-readme   ok  (check only)
+  section-no-members ok  (check only)
+  duplicate-small ok  (check only)
+  existing-large ok
+  existing-level2 ok
+  existing-mixed-markers ok
+  existing-case-insensitive ok
+
+sizing
+  existing-large before    41.9 ms/call  after    25.6 ms/call  ->  40 repeats
+  existing-level2 before    31.5 ms/call  after    19.3 ms/call  ->  52 repeats
+  existing-mixed-markers before    36.8 ms/call  after    22.7 ms/call  ->  45 repeats
+  existing-case-insensitive before    26.1 ms/call  after    16.0 ms/call  ->  63 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  existing-large  +38.46% +-4.46% energy saved   significant     +38.78% +-3.64% time saved
+  existing-level2  +38.76% +-0.39% energy saved   significant     +38.55% +-0.46% time saved
+  existing-mixed-markers  +38.56% +-1.32% energy saved   significant     +38.28% +-0.52% time saved
+  existing-case-insensitive  +38.25% +-4.35% energy saved   significant     +38.26% +-2.99% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: confirmed
+  38.8% +-0.4% energy saved on 'existing-level2', clearing the 1.6% noise floor. Saved energy on all 4 inputs ('existing-large', 'existing-level2', 'existing-mixed-markers', 'existing-case-insensitive'), with behaviour preserved throughout. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C3S1-parse-members-comp  scripts/move-to-emeritus.py::_parse_members
+equivalence
+  RELAXED: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit)
+  empty-text     ok  (check only)
+  no-members     ok  (check only)
+  none-text      ok  (check only)
+  large-mixed-25k ok
+  no-trailing-15k ok
+  unicode-8k     ok
+  near-miss-12k  ok
+
+sizing
+  large-mixed-25k before    33.8 ms/call  after    31.6 ms/call  ->  32 repeats
+  no-trailing-15k before    17.5 ms/call  after    16.8 ms/call  ->  60 repeats
+  unicode-8k     before    12.9 ms/call  after    12.3 ms/call  ->  82 repeats
+  near-miss-12k  before    12.4 ms/call  after    12.0 ms/call  ->  84 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-mixed-25k   +3.77% +-3.07% energy saved   significant     +4.08% +-4.72% time saved
+  no-trailing-15k   +3.30% +-0.21% energy saved   significant     +3.42% +-0.56% time saved
+  unicode-8k       +2.74% +-5.29% energy saved   not significant +3.51% +-4.09% time saved
+  near-miss-12k    +4.52% +-5.42% energy saved   not significant +3.86% +-3.50% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: partial
+  saves energy on 2 of 4 inputs ('large-mixed-25k', 'no-trailing-15k'; best 3.8% +-3.1% on 'large-mixed-25k'), and no saving that can be told from noise on the rest: 'unicode-8k' +2.7% +-5.3% (its pairs disagree too much to tell); 'near-miss-12k' +4.5% +-5.4% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does. Behaviour was compared under a relaxed rule, which the report must repeat: the module fails on import, so it was loaded one top-level statement at a time, skipping: line 99 `if not token:` (SystemExit).
+
+=== C3S2-validate-hoist-sets  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.3 ms/call  after     2.8 ms/call  ->  317 repeats  CLAMPED to keep the slow side under 2s
+  deep-parent-chain before   229.2 ms/call  after   230.9 ms/call  ->  5 repeats
+  parent-cycle   before    55.6 ms/call  after    51.4 ms/call  ->  20 repeats
+  large-mixed    before    23.5 ms/call  after     9.9 ms/call  ->  85 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree    +52.96% +-0.60% energy saved   significant     +52.71% +-0.31% time saved
+  deep-parent-chain   +1.30% +-1.86% energy saved   not significant +1.38% +-1.51% time saved
+  parent-cycle    +11.82% +-16.19% energy saved   not significant +15.03% +-31.80% time saved
+  large-mixed     +59.28% +-3.81% energy saved   significant     +58.74% +-1.69% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: partial
+  saves energy on 2 of 4 inputs ('typical-tree', 'large-mixed'; best 59.3% +-3.8% on 'large-mixed'), and no saving that can be told from noise on the rest: 'deep-parent-chain' +1.3% +-1.9% (its pairs disagree too much to tell); 'parent-cycle' +11.8% +-16.2% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C1S1-validate-parent-kind  scripts/validate-workstreams.py::validate_workstreams_semantics
+equivalence
+  empty          ok  (check only)
+  single-no-people ok  (check only)
+  missing-id     ok  (check only)
+  typical-tree   ok
+  deep-parent-chain ok
+  parent-cycle   ok
+  large-mixed    ok
+
+sizing
+  typical-tree   before     6.1 ms/call  after     6.0 ms/call  ->  167 repeats
+  deep-parent-chain before   230.5 ms/call  after   236.0 ms/call  ->  5 repeats
+  parent-cycle   before    55.6 ms/call  after    54.1 ms/call  ->  19 repeats
+  large-mixed    before    23.5 ms/call  after    23.0 ms/call  ->  44 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  typical-tree     +1.45% +-1.79% energy saved   not significant +1.88% +-0.74% time saved
+  deep-parent-chain   -8.12% +-20.43% energy saved   not significant -15.42% +-50.32% time saved
+  parent-cycle     +6.20% +-15.47% energy saved   not significant +8.36% +-24.99% time saved
+  large-mixed      -2.92% +-23.40% energy saved   not significant -8.89% +-43.97% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -8.1% +-20.4% on 'deep-parent-chain', against a clean 1.6% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C1S5-render-group-light  scripts/update-sig-tables.py::render_group
+equivalence
+  empty-group    ok  (check only)
+  one-element    ok  (check only)
+  none-sigs      ok  (check only)
+  deep-resources ok
+  people-heavy   ok
+  bare-meetings  ok
+  mixed-large    ok
+
+sizing
+  deep-resources before    18.8 ms/call  after     3.0 ms/call  ->  106 repeats  CLAMPED to keep the slow side under 2s
+  people-heavy   before    23.0 ms/call  after     2.5 ms/call  ->  87 repeats  CLAMPED to keep the slow side under 2s
+  bare-meetings  before    15.0 ms/call  after     6.0 ms/call  ->  133 repeats  CLAMPED to keep the slow side under 2s
+  mixed-large    before    22.8 ms/call  after     3.9 ms/call  ->  87 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  deep-resources  +84.38% +-0.26% energy saved   significant     +84.33% +-0.21% time saved
+  people-heavy    +88.79% +-0.26% energy saved   significant     +88.78% +-0.16% time saved
+  bare-meetings   +61.59% +-4.27% energy saved   significant     +62.96% +-11.49% time saved
+  mixed-large     +82.84% +-0.22% energy saved   significant     +82.76% +-0.28% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: confirmed
+  88.8% +-0.3% energy saved on 'people-heavy', clearing the 1.6% noise floor. Saved energy on all 4 inputs ('deep-resources', 'people-heavy', 'bare-meetings', 'mixed-large'), with behaviour preserved throughout.
+
+=== C10S4-render-group-join  scripts/update-sig-tables.py::render_group
+equivalence
+  empty-group    ok  (check only)
+  one-element    ok  (check only)
+  none-sigs      ok  (check only)
+  deep-resources ok
+  people-heavy   ok
+  bare-meetings  ok
+  mixed-large    ok
+
+sizing
+  deep-resources before    19.0 ms/call  after    18.8 ms/call  ->  54 repeats
+  people-heavy   before    22.9 ms/call  after    23.1 ms/call  ->  44 repeats
+  bare-meetings  before    14.7 ms/call  after    15.9 ms/call  ->  68 repeats
+  mixed-large    before    22.7 ms/call  after    22.9 ms/call  ->  45 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  deep-resources   +0.50% +-2.73% energy saved   not significant +0.77% +-1.97% time saved
+  people-heavy     +0.07% +-3.22% energy saved   not significant +0.11% +-3.07% time saved
+  bare-meetings    +0.62% +-3.25% energy saved   not significant +0.37% +-3.11% time saved
+  mixed-large      +0.62% +-4.47% energy saved   not significant +0.11% +-2.16% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +0.6% +-4.5% on 'mixed-large', against a clean 1.6% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C10S4-sig-details-join  scripts/update-sig-tables.py::render_sig_details_group
+equivalence
+  empty-group    ok  (check only)
+  single-sig     ok  (check only)
+  blank-sig      ok  (check only)
+  medium         ok
+  large          ok
+  half-empty     ok
+  huge-mixed     ok
+
+sizing
+  medium         before     3.0 ms/call  after     2.8 ms/call  ->  354 repeats
+  large          before    15.3 ms/call  after    14.2 ms/call  ->  71 repeats
+  half-empty     before     6.0 ms/call  after     5.6 ms/call  ->  179 repeats
+  huge-mixed     before    22.6 ms/call  after    21.4 ms/call  ->  47 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  medium           +6.21% +-12.88% energy saved   not significant +5.35% +-16.92% time saved
+  large            +5.41% +-1.37% energy saved   significant     +5.17% +-0.86% time saved
+  half-empty       +5.88% +-2.06% energy saved   significant     +5.75% +-1.88% time saved
+  huge-mixed       +4.34% +-1.88% energy saved   significant     +4.19% +-1.43% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: partial
+  saves energy on 3 of 4 inputs ('large', 'half-empty', 'huge-mixed'; best 5.9% +-2.1% on 'half-empty'), and no saving that can be told from noise on the rest: 'medium' +6.2% +-12.9% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C1S4-sync-mentions-once  scripts/gc-elections/create-github-comments.py::sync
+equivalence
+  empty          ok  (check only)
+  none-body      ok  (check only)
+  no-mentions    ok  (check only)
+  many-comments-few-stale ok
+  all-stale      ok
+  large-comments ok
+  big-file       ok
+
+sizing
+  many-comments-few-stale before    13.4 ms/call  after    11.5 ms/call  ->  88 repeats
+  all-stale      before   318.0 ms/call  after   316.1 ms/call  ->  4 repeats
+  large-comments before   340.8 ms/call  after   338.4 ms/call  ->  3 repeats
+  big-file       before   163.3 ms/call  after   161.7 ms/call  ->  7 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-comments-few-stale  +12.32% +-5.07% energy saved   significant     +12.80% +-5.46% time saved
+  all-stale        +1.01% +-1.71% energy saved   not significant +0.48% +-1.47% time saved
+  large-comments   +0.57% +-1.40% energy saved   not significant +0.37% +-0.47% time saved
+  big-file         -2.68% +-11.96% energy saved   not significant -5.08% +-24.44% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('many-comments-few-stale'; best 12.3% +-5.1% on 'many-comments-few-stale'), and no saving that can be told from noise on the rest: 'all-stale' +1.0% +-1.7% (its pairs disagree too much to tell); 'large-comments' +0.6% +-1.4% (its pairs disagree too much to tell); 'big-file' -2.7% +-12.0% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C6S1-render-table-runs  scripts/baremetal-runner-report.py::render_table
+equivalence
+  empty          ok  (check only)
+  single         ok  (check only)
+  all-before     ok  (check only)
+  wide-groups    ok
+  half-filtered  ok
+  mixed          ok
+  many-distinct-runs ok
+
+sizing
+  wide-groups    before    46.5 ms/call  after    39.1 ms/call  ->  26 repeats
+  half-filtered  before    31.5 ms/call  after    28.0 ms/call  ->  36 repeats
+  mixed          before    51.3 ms/call  after    44.1 ms/call  ->  23 repeats
+  many-distinct-runs before    46.6 ms/call  after    40.6 ms/call  ->  25 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  wide-groups     +13.19% +-3.66% energy saved   significant     +13.75% +-2.74% time saved
+  half-filtered   +10.43% +-5.93% energy saved   significant     +10.40% +-6.04% time saved
+  mixed           +10.00% +-6.12% energy saved   significant     +10.35% +-4.76% time saved
+  many-distinct-runs   +8.13% +-9.85% energy saved   not significant +8.38% +-9.10% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: partial
+  saves energy on 3 of 4 inputs ('wide-groups', 'half-filtered', 'mixed'; best 13.2% +-3.7% on 'wide-groups'), and no saving that can be told from noise on the rest: 'many-distinct-runs' +8.1% +-9.8% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C6S2-rank-gc-sorted  scripts/generate-sponsorship-ledger.py::rank_gc
+equivalence
+  empty          ok  (check only)
+  single         ok  (check only)
+  none-value     ok  (check only)
+  all-ties-30k   ok
+  all-empty-30k  ok
+  big-60k        ok
+  int-keys-50k   ok
+
+sizing
+  all-ties-30k   before    40.2 ms/call  after    37.9 ms/call  ->  27 repeats
+  all-empty-30k  before    38.0 ms/call  after    38.3 ms/call  ->  27 repeats
+  big-60k        before   204.1 ms/call  after    94.8 ms/call  ->  9 repeats  CLAMPED to keep the slow side under 2s
+  int-keys-50k   before    60.9 ms/call  after    59.8 ms/call  ->  17 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-ties-30k     +1.51% +-11.63% energy saved   not significant +1.75% +-10.09% time saved
+  all-empty-30k    +1.06% +-5.36% energy saved   not significant +0.87% +-6.01% time saved
+  big-60k          +2.61% +-7.46% energy saved   not significant +2.29% +-7.37% time saved
+  int-keys-50k     +0.67% +-11.58% energy saved   not significant +0.28% +-10.77% time saved
+
+noise floor  +-1.64% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +2.6% +-7.5% on 'big-60k', against a clean 1.6% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== all 15 lines of submissions.jsonl
+  mixed        C3S5-check-events: a trade-off, not a fix: 20.0% saved on 'big-mixed' but 14.1% lost on 'huge-remaining', both clearing the 1.6% noise floor
+  no_inputs    C5S1-commenters-seen: no inputs could be generated for scripts/move-to-emeritus.py::_get_repo_commenters: the generated inputs could not be used: the source does not load (cases): Va...
+  partial      C10S4-pr-body: saves energy on 2 of 4 inputs ('large', 'same-role'; best 3.0% +-0.6% on 'large'), and no saving that can be told from noise on the rest: 'with-warning' +11.4% ...
+  confirmed    C10S4-issue-body: 12.5% +-11.6% energy saved on 'reverse-sorted', clearing the 1.6% noise floor
+  confirmed    C1S4-add-emeritus-single-pass: 16.4% +-0.8% energy saved on 'existing-mixed-markers', clearing the 1.6% noise floor
+  confirmed    C8S3-add-emeritus-compiled: 38.8% +-0.4% energy saved on 'existing-level2', clearing the 1.6% noise floor
+  partial      C3S1-parse-members-comp: saves energy on 2 of 4 inputs ('large-mixed-25k', 'no-trailing-15k'; best 3.8% +-3.1% on 'large-mixed-25k'), and no saving that can be told from noise on the re...
+  partial      C3S2-validate-hoist-sets: saves energy on 2 of 4 inputs ('typical-tree', 'large-mixed'; best 59.3% +-3.8% on 'large-mixed'), and no saving that can be told from noise on the rest: 'deep-...
+  negligible   C1S1-validate-parent-kind: no case moved more than the noise: the largest reading was -8.1% +-20.4% on 'deep-parent-chain', against a clean 1.6% floor across 4 cases
+  confirmed    C1S5-render-group-light: 88.8% +-0.3% energy saved on 'people-heavy', clearing the 1.6% noise floor
+  negligible   C10S4-render-group-join: no case moved more than the noise: the largest reading was +0.6% +-4.5% on 'mixed-large', against a clean 1.6% floor across 4 cases
+  partial      C10S4-sig-details-join: saves energy on 3 of 4 inputs ('large', 'half-empty', 'huge-mixed'; best 5.9% +-2.1% on 'half-empty'), and no saving that can be told from noise on the rest: 'm...
+  partial      C1S4-sync-mentions-once: saves energy on 1 of 4 inputs ('many-comments-few-stale'; best 12.3% +-5.1% on 'many-comments-few-stale'), and no saving that can be told from noise on the rest...
+  partial      C6S1-render-table-runs: saves energy on 3 of 4 inputs ('wide-groups', 'half-filtered', 'mixed'; best 13.2% +-3.7% on 'wide-groups'), and no saving that can be told from noise on the re...
+  negligible   C6S2-rank-gc-sorted: no case moved more than the noise: the largest reading was +2.6% +-7.5% on 'big-60k', against a clean 1.6% floor across 4 cases
+
+14 of this session's 20 places hold a repair with a verdict.

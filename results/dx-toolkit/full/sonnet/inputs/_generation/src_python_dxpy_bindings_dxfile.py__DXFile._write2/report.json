@@ -1,0 +1,105 @@
+{
+ "unit": "src/python/dxpy/bindings/dxfile.py::DXFile._write2",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 41.8,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 6186,
+   "completion_tokens": 11623,
+   "reasoning_tokens": 10849,
+   "cost": 0.00848285,
+   "retried": []
+  },
+  {
+   "seconds": 106.9,
+   "finish": "length",
+   "provider": "CoreWeave",
+   "prompt_tokens": 7346,
+   "completion_tokens": 32000,
+   "reasoning_tokens": 32000,
+   "cost": 0.0219019,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "big-huge-buffer",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "big-prefilled",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "exact-remaining",
+     "ok": false,
+     "why": "building or running it failed: took over 20s"
+    },
+    {
+     "label": "small-buffer",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "medium",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "multithread-false",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "tiny",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "half-buffer",
+     "ok": false,
+     "why": "building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": false,
+     "kind": null,
+     "why": "took over 20s"
+    },
+    {
+     "label": "one-byte",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    },
+    {
+     "label": "non-bytes",
+     "ok": false,
+     "kind": null,
+     "why": "DXError: This DXFile handler has not been initialized with a file ID and cannot be described"
+    }
+   ],
+   "validate_s": 57.4,
+   "coverage": null,
+   "missed": [],
+   "energy_domains": [],
+   "waited_s": 14.8
+  },
+  {
+   "fatal": "no ```python block in the reply"
+  }
+ ],
+ "seconds": 473.2,
+ "cost": 0.03038,
+ "kept": [],
+ "reason": "only 0 of 8 generated inputs ran and repeated on the original code (most often: building or running it failed: DXError: This DXFile handler has not been initialized with a file ID and cannot be described)"
+}

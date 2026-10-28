@@ -1,0 +1,260 @@
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-1.83%
+
+
+=== C3S5-find-extra-page  src/python/dxpy/bindings/search.py::_find
+equivalence
+  empty-results  ok  (check only)
+  single-result  ok  (check only)
+  zero-limit     ok  (check only)
+  large-pages    ok
+  capped-limit   ok
+  kwarg-project  ok
+  big-pages      ok
+
+sizing
+  large-pages    before     4.7 ms/call  after     4.7 ms/call  ->  215 repeats
+  capped-limit   before     3.4 ms/call  after     3.4 ms/call  ->  292 repeats
+  kwarg-project  before     1.9 ms/call  after     2.4 ms/call  ->  523 repeats
+  big-pages      before     7.1 ms/call  after     7.1 ms/call  ->  142 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-pages      -0.01% +-3.66% energy saved   not significant +1.14% +-4.34% time saved
+  capped-limit     +2.16% +-3.49% energy saved   not significant +2.31% +-2.59% time saved
+  kwarg-project    -0.01% +-12.14% energy saved   not significant +0.29% +-8.11% time saved
+  big-pages       +11.10% +-2.28% energy saved   significant     +17.89% +-22.27% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('big-pages'; best 11.1% +-2.3% on 'big-pages'), and no saving that can be told from noise on the rest: 'large-pages' -0.0% +-3.7% (its pairs disagree too much to tell); 'capped-limit' +2.2% +-3.5% (its pairs disagree too much to tell); 'kwarg-project' -0.0% +-12.1% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== C7S1-truncate-bisect  src/python/dxpy/dxlog.py::DXLogHandler.truncate_message
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           ok  (check only)
+  control-20k    ok
+  two-byte-20k   ok
+  four-byte-20k  ok
+  mixed-30k      ok
+
+sizing
+  control-20k    before   496.0 ms/call  after   654.3 us/call  ->  4 repeats  CLAMPED to keep the slow side under 2s
+  two-byte-20k   before   181.5 ms/call  after   474.8 us/call  ->  11 repeats  CLAMPED to keep the slow side under 2s
+  four-byte-20k  before   214.4 ms/call  after   809.2 us/call  ->  9 repeats  CLAMPED to keep the slow side under 2s
+  mixed-30k      before   409.5 ms/call  after     1.3 ms/call  ->  4 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  control-20k     +99.85% +-0.03% energy saved   significant     +99.85% +-0.01% time saved
+  two-byte-20k    +99.71% +-0.01% energy saved   significant     +99.69% +-0.09% time saved
+  four-byte-20k   +99.64% +-0.05% energy saved   significant     +99.60% +-0.06% time saved
+  mixed-30k       +99.56% +-0.05% energy saved   significant     +99.56% +-0.01% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: confirmed
+  99.9% +-0.0% energy saved on 'control-20k', clearing the 1.8% noise floor. Saved energy on all 4 inputs ('control-20k', 'two-byte-20k', 'four-byte-20k', 'mixed-30k'), with behaviour preserved throughout.
+
+=== C1S4-correct-edits-once  src/python/dxpy/utils/spelling_corrector.py::correct
+equivalence
+  empty-word-empty-vocab ok  (check only)
+  single-char-known ok  (check only)
+  none-word      ok  (check only)
+  edit2-hit-len12 ok
+  edit2-hit-len13 ok
+  no-hit-len11   ok
+  no-hit-len13   ok
+
+sizing
+  edit2-hit-len12 before   168.7 ms/call  after   169.2 ms/call  ->  6 repeats
+  edit2-hit-len13 before   205.6 ms/call  after   209.0 ms/call  ->  5 repeats
+  no-hit-len11   before   155.9 ms/call  after   158.8 ms/call  ->  7 repeats
+  no-hit-len13   before   192.0 ms/call  after   193.2 ms/call  ->  6 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  edit2-hit-len12   -0.08% +-3.04% energy saved   not significant +0.53% +-3.90% time saved
+  edit2-hit-len13   +0.56% +-1.82% energy saved   not significant +0.29% +-1.15% time saved
+  no-hit-len11     -2.57% +-18.66% energy saved   not significant -8.56% +-40.94% time saved
+  no-hit-len13     -7.66% +-14.33% energy saved   not significant -13.64% +-27.58% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -7.7% +-14.3% on 'no-hit-len13', against a clean 1.8% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== C1S1-validate-json-dead-read  src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON
+equivalence
+  empty-filter   ok  (check only)
+  single-key     ok  (check only)
+  none-filter    ok  (check only)
+  case-4-allele  ok
+  case-5-variant ok
+  case-6-allele  ok
+  case-7-variant ok
+
+sizing
+  case-4-allele  before     6.4 ms/call  after     2.6 us/call  ->  310 repeats  CLAMPED to keep the slow side under 2s
+  case-5-variant before     9.8 ms/call  after     1.1 us/call  ->  204 repeats  CLAMPED to keep the slow side under 2s
+  case-6-allele  before    15.7 ms/call  after     2.8 us/call  ->  127 repeats  CLAMPED to keep the slow side under 2s
+  case-7-variant before    26.2 ms/call  after     1.1 us/call  ->  76 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  case-4-allele   +99.97% +-0.00% energy saved   significant     +99.96% +-0.00% time saved
+  case-5-variant  +99.99% +-0.03% energy saved   significant     +99.98% +-0.00% time saved
+  case-6-allele   +99.98% +-0.03% energy saved   significant     +99.97% +-0.00% time saved
+  case-7-variant  +99.98% +-0.04% energy saved   significant     +99.99% +-0.01% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: confirmed
+  100.0% +-0.0% energy saved on 'case-5-variant', clearing the 1.8% noise floor. Saved energy on all 4 inputs ('case-4-allele', 'case-5-variant', 'case-6-allele', 'case-7-variant'), with behaviour preserved throughout.
+
+=== C8S2-harmonize-cached-columns  src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_sql
+equivalence
+  empty          ok  (check only)
+  no-join        ok  (check only)
+  join-no-select ok  (check only)
+  large-select   ok
+  all-return-columns ok
+  no-return-columns ok
+  long-where     ok
+
+sizing
+  large-select   before    49.7 ms/call  after    50.1 ms/call  ->  21 repeats
+  all-return-columns before    20.0 ms/call  after    20.0 ms/call  ->  51 repeats
+  no-return-columns before    13.9 ms/call  after    14.0 ms/call  ->  72 repeats
+  long-where     before    14.7 ms/call  after    14.8 ms/call  ->  69 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-select     -2.77% +-15.79% energy saved   not significant -1.99% +-5.35% time saved
+  all-return-columns   -1.57% +-2.42% energy saved   not significant -1.03% +-0.71% time saved
+  no-return-columns   -5.24% +-4.53% energy saved   significant     -7.56% +-14.51% time saved
+  long-where       -0.82% +-2.64% energy saved   not significant -0.81% +-0.32% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 5.2% lost on 'no-return-columns', above the 1.8% noise floor, and no case improved. Worse on 1 of 4 cases ('no-return-columns').
+
+=== C3S2-list-of-strings-hoist  src/python/dxpy/dx_extract_utils/input_validation.py::is_list_of_strings
+equivalence
+  empty-list     ok  (check only)
+  single-string  ok  (check only)
+  single-nonstring ok  (check only)
+  all-strings-200k ok
+  all-strings-100k-long ok
+  nonstring-at-end ok
+  nonstring-in-middle ok
+
+sizing
+  all-strings-200k before    28.4 ms/call  after    20.3 ms/call  ->  50 repeats
+  all-strings-100k-long before    13.9 ms/call  after    10.2 ms/call  ->  98 repeats
+  nonstring-at-end before    20.9 ms/call  after    15.5 ms/call  ->  65 repeats
+  nonstring-in-middle before    10.6 ms/call  after     8.8 ms/call  ->  114 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-strings-200k  +27.27% +-1.81% energy saved   significant     +26.33% +-2.66% time saved
+  all-strings-100k-long  +27.92% +-1.61% energy saved   significant     +27.04% +-1.30% time saved
+  nonstring-at-end  +26.96% +-1.51% energy saved   significant     +26.51% +-0.34% time saved
+  nonstring-in-middle  +27.36% +-0.90% energy saved   significant     +27.15% +-0.32% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: confirmed
+  27.9% +-1.6% energy saved on 'all-strings-100k-long', clearing the 1.8% noise floor. Saved energy on all 4 inputs ('all-strings-200k', 'all-strings-100k-long', 'nonstring-at-end', 'nonstring-in-middle'), with behaviour preserved throughout.
+
+=== C3S2-list-of-strings-hoist-somatic  src/python/dxpy/dx_extract_utils/input_validation_somatic.py::is_list_of_strings
+equivalence
+  none           ok  (check only)
+  tuple          ok  (check only)
+  empty-list     ok  (check only)
+  all-strings-250k ok
+  unicode-strings-120k ok
+  empty-strings-250k ok
+  nonstr-at-end-150k ok
+
+sizing
+  all-strings-250k before    34.4 ms/call  after    25.2 ms/call  ->  40 repeats
+  unicode-strings-120k before    16.9 ms/call  after    12.1 ms/call  ->  83 repeats
+  empty-strings-250k before    33.9 ms/call  after    24.2 ms/call  ->  42 repeats
+  nonstr-at-end-150k before    20.7 ms/call  after    15.0 ms/call  ->  67 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-strings-250k  +23.28% +-20.29% energy saved   significant     +18.35% +-36.77% time saved
+  unicode-strings-120k  +28.68% +-1.62% energy saved   significant     +27.67% +-1.38% time saved
+  empty-strings-250k  +27.69% +-0.83% energy saved   significant     +27.82% +-0.97% time saved
+  nonstr-at-end-150k  +25.97% +-4.05% energy saved   significant     +26.35% +-2.65% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: confirmed
+  28.7% +-1.6% energy saved on 'unicode-strings-120k', clearing the 1.8% noise floor. Saved energy on all 4 inputs ('all-strings-250k', 'unicode-strings-120k', 'empty-strings-250k', 'nonstr-at-end-150k'), with behaviour preserved throughout.
+
+=== C1S6-infer-flags-lazy-message  src/python/dxpy/dx_extract_utils/input_validation.py::validate_infer_flags
+equivalence
+  infer-ref-without-exclusions ok  (check only)
+  infer-nocall-without-exclusions ok  (check only)
+  infer-with-none-exclude-nocall ok  (check only)
+  no-infer-mixed ok
+  no-infer-mixed-2 ok
+  infer-ref-valid ok
+  infer-nocall-valid ok
+
+sizing
+  no-infer-mixed before     1.2 us/call  after     0.4 us/call  ->  1,720,740 repeats  CLAMPED to keep the slow side under 2s
+  no-infer-mixed-2 before     1.2 us/call  after     0.4 us/call  ->  1,693,599 repeats  CLAMPED to keep the slow side under 2s
+  infer-ref-valid before     1.4 us/call  after     0.5 us/call  ->  1,461,867 repeats  CLAMPED to keep the slow side under 2s
+  infer-nocall-valid before     1.3 us/call  after     0.5 us/call  ->  1,491,308 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  no-infer-mixed  +71.41% +-1.40% energy saved   significant     +72.15% +-1.08% time saved
+  no-infer-mixed-2  +72.79% +-5.41% energy saved   significant     +74.67% +-10.35% time saved
+  infer-ref-valid  +67.48% +-4.07% energy saved   significant     +67.10% +-3.42% time saved
+  infer-nocall-valid  +67.34% +-5.27% energy saved   significant     +66.31% +-0.69% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: confirmed
+  72.8% +-5.4% energy saved on 'no-infer-mixed-2', clearing the 1.8% noise floor. Saved energy on all 4 inputs ('no-infer-mixed', 'no-infer-mixed-2', 'infer-ref-valid', 'infer-nocall-valid'), with behaviour preserved throughout.
+
+=== C3S4-coding-display-index-dict  src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe
+equivalence
+  empty-flat     ok  (check only)
+  empty-hier     ok  (check only)
+  single-flat    ok  (check only)
+  hier-large     ok
+  hier-wide      ok
+  hier-paginated ok
+  hier-no-concepts ok
+
+sizing
+  hier-large     before    30.1 ms/call  after    33.2 ms/call  ->  34 repeats
+  hier-wide      before    30.1 ms/call  after    33.9 ms/call  ->  34 repeats
+  hier-paginated before    23.7 ms/call  after    22.3 ms/call  ->  45 repeats
+  hier-no-concepts before    23.5 ms/call  after    23.7 ms/call  ->  43 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  hier-large       +0.33% +-5.08% energy saved   not significant +0.73% +-3.14% time saved
+  hier-wide        +3.00% +-12.86% energy saved   not significant +5.20% +-23.99% time saved
+  hier-paginated   +0.60% +-5.52% energy saved   not significant +0.49% +-3.33% time saved
+  hier-no-concepts   -3.87% +-9.59% energy saved   not significant -9.11% +-33.00% time saved
+
+noise floor  +-1.83% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was -3.9% +-9.6% on 'hier-no-concepts', against a clean 1.8% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== all 9 lines of submissions.jsonl
+  partial      C3S5-find-extra-page: saves energy on 1 of 4 inputs ('big-pages'; best 11.1% +-2.3% on 'big-pages'), and no saving that can be told from noise on the rest: 'large-pages' -0.0% +-3.7%...
+  confirmed    C7S1-truncate-bisect: 99.9% +-0.0% energy saved on 'control-20k', clearing the 1.8% noise floor
+  negligible   C1S4-correct-edits-once: no case moved more than the noise: the largest reading was -7.7% +-14.3% on 'no-hit-len13', against a clean 1.8% floor across 4 cases
+  confirmed    C1S1-validate-json-dead-read: 100.0% +-0.0% energy saved on 'case-5-variant', clearing the 1.8% noise floor
+  regressed    C8S2-harmonize-cached-columns: the repair costs more than the code it replaces: 5.2% lost on 'no-return-columns', above the 1.8% noise floor, and no case improved
+  confirmed    C3S2-list-of-strings-hoist: 27.9% +-1.6% energy saved on 'all-strings-100k-long', clearing the 1.8% noise floor
+  confirmed    C3S2-list-of-strings-hoist-somatic: 28.7% +-1.6% energy saved on 'unicode-strings-120k', clearing the 1.8% noise floor
+  confirmed    C1S6-infer-flags-lazy-message: 72.8% +-5.4% energy saved on 'no-infer-mixed-2', clearing the 1.8% noise floor
+  negligible   C3S4-coding-display-index-dict: no case moved more than the noise: the largest reading was -3.9% +-9.6% on 'hier-no-concepts', against a clean 1.8% floor across 4 cases
+
+9 of this session's 20 places hold a repair with a verdict.
+exit=1

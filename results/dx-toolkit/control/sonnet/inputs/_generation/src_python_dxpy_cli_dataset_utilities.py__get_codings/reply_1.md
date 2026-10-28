@@ -1,0 +1,1 @@
+CANNOT RUN: `get_codings` begins by calling `viz_meta_codings_page`, which issues a live `dxpy.DXHTTPRequest` to the DNAnexus API (`resp["url"] + "/viz-meta/3.0/..."`); it needs network access and credentials, and the only way to supply pages is to replace `dxpy.DXHTTPRequest`, which is monkeypatching and is not allowed.

@@ -1,0 +1,1 @@
+CANNOT RUN: `validate_cohort_ids` sends a POST request to a Vizserver via `raw_api_call`, which calls `dxpy.DXHTTPRequest` (network access), and no input can avoid that.

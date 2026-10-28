@@ -1,0 +1,19 @@
+C3S2-validate-team-sets partial         not applied: partial
+C1S1-validate-dead-kind negligible      not applied: negligible
+C1S4-emeritus-member-flag confirmed       not applied: changes the same function as C8S2-emeritus-compiled-patte
+C8S2-emeritus-compiled-patterns confirmed       APPLIED
+C3S5-events-early-exit mixed           not applied: mixed
+C6S2-remove-member-line-no-slice partial         not applied: partial
+C3S1-parse-members-comprehension partial         not applied: partial
+C8S2-parse-members-module-pattern negligible      not applied: negligible
+C10S4-pr-body-join     confirmed       APPLIED
+C10S4-issue-body-join  partial         not applied: partial
+C6S1-render-table-runs-set confirmed       APPLIED
+C1S4-sync-mentions-once partial         not applied: partial
+C3S3-sync-single-pass-removal confirmed       APPLIED
+C10S4-render-group-join partial         not applied: partial
+C10S4-render-details-group-join partial         not applied: partial
+C1S4-render-gc-display-name mixed           not applied: mixed
+C1S4-render-tc-display-name mixed           not applied: mixed
+
+wrote /home/javad/energy-exp/archive/community/full/sonnet/review/results.jsonl and /home/javad/energy-exp/archive/community/full/sonnet/review/REPORT.md

@@ -1,0 +1,25 @@
+{
+ "unit": "src/python/dxpy/cli/dataset_utilities.py::extract_assay_expression",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.7,
+   "finish": "stop",
+   "provider": "CoreWeave",
+   "prompt_tokens": 5549,
+   "completion_tokens": 282,
+   "reasoning_tokens": 216,
+   "cost": 0.000675294,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `extract_assay_expression` starts by resolving the `--path` argument through `resolve_existing_path`, then builds `DXRecord`/`Dataset` objects and reads dataset descriptors and assay info from the DNAnexus platform API, all of which require network access and credentials that are unavailable here."
+  }
+ ],
+ "seconds": 11.1,
+ "cost": 0.00068,
+ "kept": [],
+ "reason": "it cannot run here: `extract_assay_expression` starts by resolving the `--path` argument through `resolve_existing_path`, then builds `DXRecord`/`Dataset` objects and reads dataset descriptors and assay info from the DNAnexus platform API, all of which require network access and credentials that are unavailable here."
+}

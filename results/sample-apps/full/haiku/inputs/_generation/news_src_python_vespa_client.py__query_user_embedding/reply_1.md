@@ -1,0 +1,1 @@
+CANNOT RUN: `query_user_embedding` performs a live HTTP request (`requests.get(url, cert=cert)`) to a Vespa search endpoint; its work begins with that server call, which cannot be made here without network access or mocking.

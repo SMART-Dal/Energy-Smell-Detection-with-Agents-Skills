@@ -1,0 +1,25 @@
+{
+ "unit": "examples/agentic-streamlit-chatbot/advanced_app/vespa_shopping_assistant/langgraph_modules/subgraph.py::subgraph_EvaluateFilters",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 2.7,
+   "finish": "stop",
+   "provider": "StreamLake",
+   "prompt_tokens": 2709,
+   "completion_tokens": 106,
+   "reasoning_tokens": 62,
+   "cost": 0.000460551,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: subgraph_EvaluateFilters constructs a ChatOpenAI model and invokes a LangChain chain against the OpenAI API, which requires network access and API credentials that are unavailable here."
+  }
+ ],
+ "seconds": 5.3,
+ "cost": 0.00046,
+ "kept": [],
+ "reason": "it cannot run here: subgraph_EvaluateFilters constructs a ChatOpenAI model and invokes a LangChain chain against the OpenAI API, which requires network access and API credentials that are unavailable here."
+}

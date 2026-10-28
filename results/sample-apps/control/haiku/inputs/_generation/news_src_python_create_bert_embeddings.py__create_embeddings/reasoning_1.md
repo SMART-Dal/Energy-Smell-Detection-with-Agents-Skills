@@ -1,0 +1,3 @@
+The function under test calls `BertTokenizer.from_pretrained('bert-base-uncased')` and `BertModel.from_pretrained('google/bert_uncased_L-8_H-512_A-8')`. These require downloading models from HuggingFace Hub — network access. Unless cached locally. The task says: a function whose work starts with a request to a server cannot run here. This requires network access to download models, or at least loads from cache. We can't fake the environment. So this cannot run.
+
+Reply CANNOT RUN.

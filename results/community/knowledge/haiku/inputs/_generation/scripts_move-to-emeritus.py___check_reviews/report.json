@@ -1,0 +1,25 @@
+{
+ "unit": "scripts/move-to-emeritus.py::_check_reviews",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 3.4,
+   "finish": "stop",
+   "provider": "Novita",
+   "prompt_tokens": 4433,
+   "completion_tokens": 254,
+   "reasoning_tokens": 195,
+   "cost": 0.001062555,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `_check_reviews` performs live HTTP requests to the GitHub GraphQL and REST APIs (`request_with_retry(\"POST\", GRAPHQL_API, ...)` and REST verification) \u2014 it needs network access and GitHub credentials, and no input could avoid that."
+  }
+ ],
+ "seconds": 4.8,
+ "cost": 0.00106,
+ "kept": [],
+ "reason": "it cannot run here: `_check_reviews` performs live HTTP requests to the GitHub GraphQL and REST APIs (`request_with_retry(\"POST\", GRAPHQL_API, ...)` and REST verification) \u2014 it needs network access and GitHub credentials, and no input could avoid that."
+}

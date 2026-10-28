@@ -1,0 +1,25 @@
+{
+ "unit": "news/src/python/vespa_client.py::query_user_embedding",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 1.0,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2321,
+   "completion_tokens": 171,
+   "reasoning_tokens": 125,
+   "cost": 0.00055214,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": "CANNOT RUN: `query_user_embedding` performs `requests.get(url, cert=cert)` against a Vespa search endpoint; it requires network access to a remote service, and no input can avoid that."
+  }
+ ],
+ "seconds": 5.9,
+ "cost": 0.00055,
+ "kept": [],
+ "reason": "it cannot run here: `query_user_embedding` performs `requests.get(url, cert=cert)` against a Vespa search endpoint; it requires network access to a remote service, and no input can avoid that."
+}

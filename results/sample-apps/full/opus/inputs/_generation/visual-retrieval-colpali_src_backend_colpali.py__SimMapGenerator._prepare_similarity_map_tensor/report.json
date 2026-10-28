@@ -1,0 +1,138 @@
+{
+ "unit": "visual-retrieval-colpali/src/backend/colpali.py::SimMapGenerator._prepare_similarity_map_tensor",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 30.0,
+   "finish": "stop",
+   "provider": "Relace",
+   "prompt_tokens": 4114,
+   "completion_tokens": 11990,
+   "reasoning_tokens": 10851,
+   "cost": 0.006029028,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-4maps-16tokens",
+     "ok": true,
+     "joules": 24.626051,
+     "seconds": 0.38973631896078587
+    },
+    {
+     "label": "many-maps-8",
+     "ok": true,
+     "joules": 25.88876699999999,
+     "seconds": 0.4609073903411627
+    },
+    {
+     "label": "dense-two-maps",
+     "ok": true,
+     "joules": 24.707721500000048,
+     "seconds": 0.5201478898525238
+    },
+    {
+     "label": "processor-without-image-seq-length",
+     "ok": false,
+     "joules": 22.827661333333328,
+     "seconds": 0.36942311003804207,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "truncated-patches",
+     "ok": false,
+     "joules": 9.666599000000042,
+     "seconds": 0.2195208901539445,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicate-addresses",
+     "ok": true,
+     "joules": 29.274692999999843,
+     "seconds": 0.6718074521049857
+    },
+    {
+     "label": "large-patch-grid",
+     "ok": false,
+     "joules": 18.240812000000005,
+     "seconds": 0.3542246399447322,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "small-grid-many-tokens",
+     "ok": false,
+     "joules": 12.199298999999973,
+     "seconds": 0.23286222014576197,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-maps",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-cells",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "all-out-of-range",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 86.4,
+   "coverage": 0.8461538461538461,
+   "missed": [
+    150,
+    153
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 8.6
+  }
+ ],
+ "seconds": 117.0,
+ "cost": 0.00603,
+ "kept": [
+  {
+   "label": "duplicate-addresses",
+   "mj_per_call": 29274.693,
+   "ms_per_call": 671.807
+  },
+  {
+   "label": "many-maps-8",
+   "mj_per_call": 25888.767,
+   "ms_per_call": 460.907
+  },
+  {
+   "label": "dense-two-maps",
+   "mj_per_call": 24707.7215,
+   "ms_per_call": 520.148
+  },
+  {
+   "label": "typical-4maps-16tokens",
+   "mj_per_call": 24626.051,
+   "ms_per_call": 389.736
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

@@ -1,0 +1,135 @@
+{
+ "unit": "src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 40.5,
+   "finish": "stop",
+   "provider": "InferenceNet",
+   "prompt_tokens": 6067,
+   "completion_tokens": 7586,
+   "reasoning_tokens": 6052,
+   "cost": 0.005006261,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "wildcard-large-appdoc",
+     "ok": true,
+     "joules": 7.113154222222221,
+     "seconds": 0.12082135025411844
+    },
+    {
+     "label": "named-half-appdoc",
+     "ok": false,
+     "joules": 5.002439099999992,
+     "seconds": 0.10611445922404528,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-named-wildcard",
+     "ok": false,
+     "joules": 4.706781699999965,
+     "seconds": 0.10508391447365284,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "fallback-to-app-wildcard",
+     "ok": true,
+     "joules": 11.582182499999968,
+     "seconds": 0.18026000820100307
+    },
+    {
+     "label": "many-entrypoints-no-clusterspec",
+     "ok": true,
+     "joules": 8.307929999999942,
+     "seconds": 0.17047165799885988
+    },
+    {
+     "label": "field-heavy-clusterspec",
+     "ok": true,
+     "joules": 7.109565428571451,
+     "seconds": 0.14737431798130274
+    },
+    {
+     "label": "requested-names-all-miss",
+     "ok": false,
+     "joules": 2.0525705217391392,
+     "seconds": 0.04354648385196924,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "sparse-clusterspec-mixed",
+     "ok": false,
+     "joules": 5.222735599999941,
+     "seconds": 0.10435915365815163,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-entrypoint",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "app-entry-without-cluster-spec",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 287.4,
+   "coverage": 1.0,
+   "missed": [],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 247.7
+  }
+ ],
+ "seconds": 586.1,
+ "cost": 0.00501,
+ "kept": [
+  {
+   "label": "fallback-to-app-wildcard",
+   "mj_per_call": 11582.1825,
+   "ms_per_call": 180.26
+  },
+  {
+   "label": "many-entrypoints-no-clusterspec",
+   "mj_per_call": 8307.93,
+   "ms_per_call": 170.472
+  },
+  {
+   "label": "wildcard-large-appdoc",
+   "mj_per_call": 7113.1542,
+   "ms_per_call": 120.821
+  },
+  {
+   "label": "field-heavy-clusterspec",
+   "mj_per_call": 7109.5654,
+   "ms_per_call": 147.374
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

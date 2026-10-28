@@ -1,0 +1,18 @@
+add-impressions-bind-content partial         not applied: partial
+write-embedding-single-write confirmed       APPLIED
+write-embeddings-tolist-once partial         not applied: partial
+split-text-join-lines  negligible      not applied: negligible
+format-q-embs-bulk-tolist not_equivalent  not applied: not_equivalent
+extract-documents-track-offset partial         not applied: partial
+convert-main-json-dumps confirmed       APPLIED
+process-users-itertuples confirmed       APPLIED
+sample-valid-data-cache-tensors confirmed       APPLIED
+float-to-binary-stacked-packbits confirmed       APPLIED
+convert-user-embeddings-tolist confirmed       APPLIED
+convert-news-embeddings-tolist confirmed       APPLIED
+category-tensor-once-per-category regressed       not applied: regressed
+process-orders-sample-subset confirmed       APPLIED
+process-orders-itertuples partial         not applied: partial
+encode-query-float-lists negligible      not applied: negligible
+
+wrote /home/javad/energy-exp/archive/sample-apps/control/haiku/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/control/haiku/review/REPORT.md

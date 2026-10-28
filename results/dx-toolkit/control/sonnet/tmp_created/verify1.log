@@ -1,0 +1,600 @@
+waiting for inputs still being generated: 2 unit(s) (src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary, src/python/dxpy/cli/output_handling.py::write_expression_output)
+waiting for inputs still being generated: 1 unit(s) (src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary)
+calibrating (fast profile): two copies of identical code, which must come back insignificant.
+  noise floor +-1.69%
+
+
+=== spell-edits2  src/python/dxpy/utils/spelling_corrector.py::_known_edits2
+equivalence
+  empty-word     ok  (check only)
+  empty-nwords   ok  (check only)
+  one-char       ok  (check only)
+  len7-mid-hit   ok
+  len8-sparse    ok
+  len9-sparse    ok
+  len8-repeats   ok
+
+sizing
+  len7-mid-hit   before    75.2 ms/call  after    9.914 s/call  ->  1 repeats  CLAMPED to keep the slow side under 2s
+  len8-sparse    before    86.0 ms/call  after   13.299 s/call  ->  1 repeats  CLAMPED to keep the slow side under 2s
+  len9-sparse    before   106.3 ms/call  after    5.067 s/call  ->  1 repeats  CLAMPED to keep the slow side under 2s
+  len8-repeats   before   109.6 ms/call  after   12.720 s/call  ->  1 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  len7-mid-hit   -12509.85% +-1025.72% energy saved   significant     -11881.73% +-3001.61% time saved
+  len8-sparse    -15297.56% +-317.33% energy saved   significant     -15181.37% +-393.65% time saved
+  len9-sparse    -4765.69% +-447.70% energy saved   significant     -4697.10% +-343.22% time saved
+  len8-repeats   -10774.64% +-1392.26% energy saved   significant     -10666.08% +-1178.42% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 15297.6% lost on 'len8-sparse', above the 1.7% noise floor, and no case improved. Worse on 4 of 4 cases ('len7-mid-hit', 'len8-sparse', 'len9-sparse', 'len8-repeats').
+
+=== pp-flatten  src/python/dxpy/utils/pretty_print.py::flatten_json_array
+equivalence
+  empty-string   ok  (check only)
+  no-match       ok  (check only)
+  single-element ok  (check only)
+  strings-300    ok
+  strings-400    ok
+  crlf-300       ok
+  deep-inputspec ok
+
+sizing
+  strings-300    before     4.8 ms/call  after   745.6 us/call  ->  417 repeats  CLAMPED to keep the slow side under 2s
+  strings-400    before     7.4 ms/call  after   951.2 us/call  ->  271 repeats  CLAMPED to keep the slow side under 2s
+  crlf-300       before     4.8 ms/call  after   741.5 us/call  ->  413 repeats  CLAMPED to keep the slow side under 2s
+  deep-inputspec before    27.1 ms/call  after   960.3 us/call  ->  73 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  strings-300     +84.98% +-0.26% energy saved   significant     +85.13% +-0.40% time saved
+  strings-400     +87.49% +-0.11% energy saved   significant     +87.58% +-0.13% time saved
+  crlf-300        +85.17% +-0.06% energy saved   significant     +85.32% +-0.04% time saved
+  deep-inputspec  +96.57% +-0.03% energy saved   significant     +96.59% +-0.02% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  96.6% +-0.0% energy saved on 'deep-inputspec', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('strings-300', 'strings-400', 'crlf-300', 'deep-inputspec'), with behaviour preserved throughout.
+
+=== dxlog-bsearch  src/python/dxpy/dxlog.py::DXLogHandler.truncate_message
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           ok  (check only)
+  control-20k    ok
+  two-byte-20k   ok
+  four-byte-20k  ok
+  mixed-30k      ok
+
+sizing
+  control-20k    before   492.0 ms/call  after   653.9 us/call  ->  4 repeats  CLAMPED to keep the slow side under 2s
+  two-byte-20k   before   181.1 ms/call  after   474.7 us/call  ->  11 repeats  CLAMPED to keep the slow side under 2s
+  four-byte-20k  before   154.1 ms/call  after   579.1 us/call  ->  12 repeats  CLAMPED to keep the slow side under 2s
+  mixed-30k      before   309.6 ms/call  after     1.3 ms/call  ->  6 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  control-20k     +99.85% +-0.01% energy saved   significant     +99.85% +-0.00% time saved
+  two-byte-20k    +99.71% +-0.00% energy saved   significant     +99.72% +-0.00% time saved
+  four-byte-20k   +99.59% +-0.02% energy saved   significant     +99.61% +-0.01% time saved
+  mixed-30k       +99.59% +-0.01% energy saved   significant     +99.56% +-0.01% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  99.9% +-0.0% energy saved on 'control-20k', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('control-20k', 'two-byte-20k', 'four-byte-20k', 'mixed-30k'), with behaviour preserved throughout.
+
+=== cohort-pheno-reduce  src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter
+equivalence
+  empty-values-empty-filters ok  (check only)
+  non-and-logic-raises ok  (check only)
+  non-compound-pheno-filter ok  (check only)
+  in-large-values ok
+  not-in-large-values ok
+  exists-plus-in ok
+  multi-compound-match-later ok
+
+sizing
+  in-large-values before    15.2 ms/call  after     6.6 ms/call  ->  131 repeats  CLAMPED to keep the slow side under 2s
+  not-in-large-values before    48.8 ms/call  after    39.9 ms/call  ->  26 repeats
+  exists-plus-in before    25.4 ms/call  after     4.2 ms/call  ->  78 repeats  CLAMPED to keep the slow side under 2s
+  multi-compound-match-later before    18.1 ms/call  after     3.6 ms/call  ->  110 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  in-large-values  +59.31% +-0.99% energy saved   significant     +58.79% +-1.00% time saved
+  not-in-large-values  +18.66% +-0.83% energy saved   significant     +18.33% +-0.23% time saved
+  exists-plus-in  +83.77% +-0.47% energy saved   significant     +83.47% +-1.02% time saved
+  multi-compound-match-later  +79.65% +-0.57% energy saved   significant     +79.61% +-0.10% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  83.8% +-0.5% energy saved on 'exists-plus-in', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('in-large-values', 'not-in-large-values', 'exists-plus-in', 'multi-compound-match-later'), with behaviour preserved throughout.
+
+=== resolver-split  src/python/dxpy/utils/resolver.py::split_unescaped
+equivalence
+  empty          ok  (check only)
+  one-separator  ok  (check only)
+  empty-included ok  (check only)
+  colon-escaped  ok
+  spaces-escaped ok
+  backslash-runs ok
+  mixed-include-empty ok
+
+sizing
+  colon-escaped  before    23.4 ms/call  after     6.3 ms/call  ->  85 repeats  CLAMPED to keep the slow side under 2s
+  spaces-escaped before    27.7 ms/call  after     7.5 ms/call  ->  72 repeats  CLAMPED to keep the slow side under 2s
+  backslash-runs before    24.9 ms/call  after    13.9 ms/call  ->  73 repeats
+  mixed-include-empty before    22.9 ms/call  after     5.3 ms/call  ->  87 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  colon-escaped   +73.70% +-0.51% energy saved   significant     +73.34% +-0.70% time saved
+  spaces-escaped  +73.71% +-0.48% energy saved   significant     +73.31% +-0.57% time saved
+  backslash-runs  +44.99% +-0.39% energy saved   significant     +44.39% +-0.47% time saved
+  mixed-include-empty  +77.34% +-0.88% energy saved   significant     +76.96% +-0.90% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  77.3% +-0.9% energy saved on 'mixed-include-empty', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('colon-escaped', 'spaces-escaped', 'backslash-runs', 'mixed-include-empty'), with behaviour preserved throughout.
+
+=== resolver-first-pos  src/python/dxpy/utils/resolver.py::get_first_pos_of_char
+equivalence
+  empty-string   ok  (check only)
+  escaped-only   ok  (check only)
+  none-char      ok  (check only)
+  colons-dense   ok
+  all-escaped-stars ok
+  mixed-escapes  ok
+  mostly-escaped ok
+
+sizing
+  colons-dense   before     4.6 ms/call  after     1.0 us/call  ->  435 repeats  CLAMPED to keep the slow side under 2s
+  all-escaped-stars before     5.9 ms/call  after     2.7 ms/call  ->  338 repeats  CLAMPED to keep the slow side under 2s
+  mixed-escapes  before     5.6 ms/call  after     1.8 us/call  ->  359 repeats  CLAMPED to keep the slow side under 2s
+  mostly-escaped before     4.8 ms/call  after     0.9 us/call  ->  419 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  colons-dense    +99.98% +-0.04% energy saved   significant     +99.97% +-0.00% time saved
+  all-escaped-stars  +53.71% +-0.18% energy saved   significant     +53.29% +-0.22% time saved
+  mixed-escapes   +99.95% +-0.00% energy saved   significant     +99.96% +-0.00% time saved
+  mostly-escaped  +99.98% +-0.07% energy saved   significant     +99.98% +-0.01% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  100.0% +-0.1% energy saved on 'mostly-escaped', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('colons-dense', 'all-escaped-stars', 'mixed-escapes', 'mostly-escaped'), with behaviour preserved throughout.
+
+=== resolver-last-pos  src/python/dxpy/utils/resolver.py::get_last_pos_of_char
+equivalence
+  empty-string   ok  (check only)
+  single-char    ok  (check only)
+  char-absent    ok  (check only)
+  all-escaped-slashes ok
+  gapped-escaped ok
+  gapped-random-escaped ok
+  escaped-colons ok
+
+sizing
+  all-escaped-slashes before     9.7 ms/call  after     4.9 ms/call  ->  205 repeats
+  gapped-escaped before     7.0 ms/call  after     1.1 ms/call  ->  284 repeats  CLAMPED to keep the slow side under 2s
+  gapped-random-escaped before     6.0 ms/call  after     1.7 ms/call  ->  336 repeats  CLAMPED to keep the slow side under 2s
+  escaped-colons before     4.2 ms/call  after     2.7 ms/call  ->  370 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-escaped-slashes  +49.08% +-2.27% energy saved   significant     +48.75% +-2.45% time saved
+  gapped-escaped  +83.94% +-0.63% energy saved   significant     +83.62% +-0.63% time saved
+  gapped-random-escaped  +72.23% +-0.56% energy saved   significant     +71.92% +-0.87% time saved
+  escaped-colons  +35.39% +-1.17% energy saved   significant     +35.36% +-1.05% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  83.9% +-0.6% energy saved on 'gapped-escaped', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('all-escaped-slashes', 'gapped-escaped', 'gapped-random-escaped', 'escaped-colons'), with behaviour preserved throughout.
+
+=== gu-infer-hoist  src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type
+equivalence
+  all-empty      ok  (check only)
+  single-inferred ok  (check only)
+  single-covered ok  (check only)
+  many-loci-few-samples ok
+  no-results     ok
+  mixed-medium   ok
+  many-loci-tiny-samples ok
+
+sizing
+  many-loci-few-samples before    23.1 ms/call  after    23.7 ms/call  ->  44 repeats
+  no-results     before    24.6 ms/call  after    22.2 ms/call  ->  46 repeats
+  mixed-medium   before    18.8 ms/call  after    16.1 ms/call  ->  63 repeats
+  many-loci-tiny-samples before    29.2 ms/call  after    26.2 ms/call  ->  39 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  many-loci-few-samples  +10.59% +-5.72% energy saved   significant     +10.97% +-7.63% time saved
+  no-results      +13.54% +-5.56% energy saved   significant     +13.20% +-3.92% time saved
+  mixed-medium    +13.30% +-10.85% energy saved   significant     +13.44% +-7.12% time saved
+  many-loci-tiny-samples   +8.53% +-3.10% energy saved   significant     +8.70% +-2.83% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  13.5% +-5.6% energy saved on 'no-results', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('many-loci-few-samples', 'no-results', 'mixed-medium', 'many-loci-tiny-samples'), with behaviour preserved throughout.
+
+=== dd-coding-index  src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe
+equivalence
+  empty-flat     ok  (check only)
+  empty-hier     ok  (check only)
+  single-flat    ok  (check only)
+  hier-large     ok
+  hier-wide      ok
+  hier-paginated ok
+  hier-no-concepts ok
+
+sizing
+  hier-large     before    30.7 ms/call  after    30.2 ms/call  ->  34 repeats
+  hier-wide      before    32.8 ms/call  after    30.0 ms/call  ->  34 repeats
+  hier-paginated before    22.0 ms/call  after    22.3 ms/call  ->  46 repeats
+  hier-no-concepts before    24.0 ms/call  after    23.2 ms/call  ->  44 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  hier-large       +0.20% +-4.05% energy saved   not significant +0.61% +-2.98% time saved
+  hier-wide        -0.49% +-2.36% energy saved   not significant -0.50% +-2.25% time saved
+  hier-paginated   -0.51% +-3.17% energy saved   not significant -0.65% +-2.81% time saved
+  hier-no-concepts   +2.73% +-5.47% energy saved   not significant +2.13% +-3.80% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +2.7% +-5.5% on 'hier-no-concepts', against a clean 1.7% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== nt-concat  src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src
+equivalence
+  none-args      ok  (check only)
+  empty-list     ok  (check only)
+  single-file-input ok  (check only)
+  files-200      ok
+  strings-300-abs-resources ok
+  mixed-150-file-heavy ok
+  mixed-400-profile-resources ok
+
+sizing
+  files-200      before   808.8 us/call  after   664.8 us/call  ->  1,505 repeats
+  strings-300-abs-resources before   630.0 us/call  after   584.1 us/call  ->  1,713 repeats
+  mixed-150-file-heavy before   516.3 us/call  after   479.1 us/call  ->  2,088 repeats
+  mixed-400-profile-resources before   984.9 us/call  after   909.0 us/call  ->  1,101 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  files-200        +9.16% +-1.95% energy saved   significant     +9.29% +-3.19% time saved
+  strings-300-abs-resources   +9.62% +-0.69% energy saved   significant     +9.37% +-0.59% time saved
+  mixed-150-file-heavy   +6.24% +-1.90% energy saved   significant     +6.27% +-1.62% time saved
+  mixed-400-profile-resources   +7.86% +-0.98% energy saved   significant     +7.67% +-0.92% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  9.6% +-0.7% energy saved on 'strings-300-abs-resources', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('files-200', 'strings-300-abs-resources', 'mixed-150-file-heavy', 'mixed-400-profile-resources'), with behaviour preserved throughout.
+
+=== nb-insert  src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs
+equivalence
+  missing-file   ok  (check only)
+  no-definitions-key ok  (check only)
+  unsupported-type ok  (check only)
+  all-required   ok
+  union-types    ok
+  path-formats   ok
+  many-definitions ok
+
+sizing
+  all-required   before    71.1 ms/call  after    45.6 ms/call  ->  22 repeats
+  union-types    before    58.8 ms/call  after    50.6 ms/call  ->  20 repeats
+  path-formats   before    51.2 ms/call  after    43.5 ms/call  ->  23 repeats
+  many-definitions before    51.9 ms/call  after    44.1 ms/call  ->  23 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-required    +35.89% +-0.66% energy saved   significant     +36.13% +-1.38% time saved
+  union-types     +13.18% +-2.33% energy saved   significant     +13.31% +-2.04% time saved
+  path-formats    +15.17% +-3.61% energy saved   significant     +15.13% +-3.31% time saved
+  many-definitions  +14.62% +-2.02% energy saved   significant     +14.49% +-2.06% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  35.9% +-0.7% energy saved on 'all-required', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('all-required', 'union-types', 'path-formats', 'many-definitions'), with behaviour preserved throughout.
+
+=== sr-cluster-copy  src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec
+equivalence
+  empty          ok  (check only)
+  single-entrypoint ok  (check only)
+  app-entry-without-cluster-spec ok  (check only)
+  wildcard-large-appdoc ok
+  fallback-to-app-wildcard ok
+  many-entrypoints-no-clusterspec ok
+  field-heavy-clusterspec ok
+
+sizing
+  wildcard-large-appdoc before   102.8 ms/call  after   102.8 ms/call  ->  10 repeats
+  fallback-to-app-wildcard before   167.6 ms/call  after   166.3 ms/call  ->  7 repeats
+  many-entrypoints-no-clusterspec before   115.6 ms/call  after   184.2 us/call  ->  17 repeats  CLAMPED to keep the slow side under 2s
+  field-heavy-clusterspec before   104.1 ms/call  after   103.1 ms/call  ->  10 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  wildcard-large-appdoc   +1.98% +-10.74% energy saved   not significant +2.77% +-13.91% time saved
+  fallback-to-app-wildcard   -0.23% +-0.88% energy saved   not significant -0.14% +-0.77% time saved
+  many-entrypoints-no-clusterspec  +99.83% +-0.07% energy saved   significant     +99.82% +-0.02% time saved
+  field-heavy-clusterspec   -0.22% +-2.88% energy saved   not significant -0.43% +-1.86% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('many-entrypoints-no-clusterspec'; best 99.8% +-0.1% on 'many-entrypoints-no-clusterspec'), and no saving that can be told from noise on the rest: 'wildcard-large-appdoc' +2.0% +-10.7% (its pairs disagree too much to tell); 'fallback-to-app-wildcard' -0.2% +-0.9% (its pairs disagree too much to tell); 'field-heavy-clusterspec' -0.2% +-2.9% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== search-limit  src/python/dxpy/bindings/search.py::_find
+equivalence
+  empty-results  ok  (check only)
+  single-result  ok  (check only)
+  zero-limit     ok  (check only)
+  large-pages    ok
+  capped-limit   ok
+  kwarg-project  ok
+  big-pages      ok
+
+sizing
+  large-pages    before     4.8 ms/call  after     5.8 ms/call  ->  208 repeats
+  capped-limit   before     3.5 ms/call  after     4.1 ms/call  ->  284 repeats
+  kwarg-project  before     1.9 ms/call  after     2.4 ms/call  ->  527 repeats
+  big-pages      before     7.2 ms/call  after     8.7 ms/call  ->  140 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-pages     -22.77% +-2.22% energy saved   significant     -22.87% +-4.14% time saved
+  capped-limit    -20.52% +-5.27% energy saved   significant     -21.22% +-4.28% time saved
+  kwarg-project   -23.01% +-2.06% energy saved   significant     -23.50% +-2.07% time saved
+  big-pages       -22.84% +-5.01% energy saved   significant     -23.32% +-4.92% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 22.8% lost on 'big-pages', above the 1.7% noise floor, and no case improved. Worse on 4 of 4 cases ('large-pages', 'capped-limit', 'kwarg-project', 'big-pages').
+
+=== pp-escape  src/python/dxpy/utils/pretty_print.py::escape_unicode_string
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  only-specials  ok  (check only)
+  all-controls   ok
+  backslash-heavy ok
+  mixed-random   ok
+  tabs-and-cr    ok
+
+sizing
+  all-controls   before   182.8 ms/call  after   183.8 ms/call  ->  6 repeats
+  backslash-heavy before    83.0 ms/call  after    82.2 ms/call  ->  13 repeats
+  mixed-random   before   101.1 ms/call  after   100.4 ms/call  ->  10 repeats
+  tabs-and-cr    before   106.3 ms/call  after   107.0 ms/call  ->  10 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-controls     +1.40% +-3.48% energy saved   not significant +1.82% +-4.81% time saved
+  backslash-heavy   +0.81% +-0.28% energy saved   significant     +0.79% +-0.06% time saved
+  mixed-random     +0.70% +-0.18% energy saved   significant     +0.71% +-0.20% time saved
+  tabs-and-cr      +1.45% +-5.93% energy saved   not significant +1.02% +-4.05% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: negligible
+  no case moved more than the noise: the largest reading was +1.4% +-5.9% on 'tabs-and-cr', against a clean 1.7% floor across 4 cases. The pattern is here and removing it saves nothing measurable, so it is not worth repairing in this code.
+
+=== resolver-dxlink  src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink
+equivalence
+  none           ok  (check only)
+  empty-string   ok  (check only)
+  int            ok  (check only)
+  big-dict-no-link ok
+  big-array-no-link ok
+  link-dict-pid  ok
+  link-dict-partial ok
+
+sizing
+  big-dict-no-link before    27.4 ms/call  after    27.3 ms/call  ->  37 repeats
+  big-array-no-link before    21.3 ms/call  after     0.7 us/call  ->  93 repeats  CLAMPED to keep the slow side under 2s
+  link-dict-pid  before    19.9 ms/call  after    19.7 ms/call  ->  51 repeats
+  link-dict-partial before    19.7 ms/call  after    19.7 ms/call  ->  51 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  big-dict-no-link   +0.28% +-3.75% energy saved   not significant +0.80% +-4.85% time saved
+  big-array-no-link  +99.99% +-0.05% energy saved   significant     +99.98% +-0.00% time saved
+  link-dict-pid    -1.45% +-4.31% energy saved   not significant -0.96% +-2.81% time saved
+  link-dict-partial   -2.15% +-4.73% energy saved   not significant -1.31% +-3.22% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: partial
+  saves energy on 1 of 4 inputs ('big-array-no-link'; best 100.0% +-0.0% on 'big-array-no-link'), and no saving that can be told from noise on the rest: 'big-dict-no-link' +0.3% +-3.7% (its pairs disagree too much to tell); 'link-dict-pid' -1.5% +-4.3% (its pairs disagree too much to tell); 'link-dict-partial' -2.2% +-4.7% (its pairs disagree too much to tell). A confirmed repair saves on every input; this one pays only on some of the work the unit does.
+
+=== gu-harmonize-results  src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_results
+equivalence
+  empty-results  ok  (check only)
+  empty-fields   ok  (check only)
+  none-values    ok  (check only)
+  wide-fields    ok
+  many-results   ok
+  dense          ok
+  large          ok
+
+sizing
+  wide-fields    before    10.6 ms/call  after    11.9 ms/call  ->  95 repeats
+  many-results   before    10.0 ms/call  after    11.1 ms/call  ->  101 repeats
+  dense          before    10.6 ms/call  after    11.1 ms/call  ->  95 repeats
+  large          before     9.6 ms/call  after    10.9 ms/call  ->  104 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  wide-fields     -11.28% +-14.90% energy saved   not significant -15.84% +-35.32% time saved
+  many-results    -12.34% +-4.39% energy saved   significant     -11.85% +-4.62% time saved
+  dense            -4.94% +-1.96% energy saved   significant     -4.78% +-1.96% time saved
+  large           -15.47% +-5.61% energy saved   significant     -15.36% +-5.72% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 15.5% lost on 'large', above the 1.7% noise floor, and no case improved. Worse on 3 of 4 cases ('many-results', 'dense', 'large').
+
+=== fp-validate  src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON
+equivalence
+  empty-filter   ok  (check only)
+  single-key     ok  (check only)
+  none-filter    ok  (check only)
+  case-4-allele  ok
+  case-5-variant ok
+  case-6-allele  ok
+  case-7-variant ok
+
+sizing
+  case-4-allele  before     6.6 ms/call  after     2.6 us/call  ->  303 repeats  CLAMPED to keep the slow side under 2s
+  case-5-variant before    10.0 ms/call  after     1.1 us/call  ->  199 repeats  CLAMPED to keep the slow side under 2s
+  case-6-allele  before    14.7 ms/call  after     2.7 us/call  ->  135 repeats  CLAMPED to keep the slow side under 2s
+  case-7-variant before    26.5 ms/call  after     1.2 us/call  ->  75 repeats  CLAMPED to keep the slow side under 2s
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  case-4-allele   +99.95% +-0.00% energy saved   significant     +99.96% +-0.01% time saved
+  case-5-variant  +99.98% +-0.04% energy saved   significant     +99.98% +-0.00% time saved
+  case-6-allele   +99.97% +-0.02% energy saved   significant     +99.98% +-0.00% time saved
+  case-7-variant  +99.97% +-0.07% energy saved   significant     +99.98% +-0.01% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: confirmed
+  100.0% +-0.0% energy saved on 'case-5-variant', clearing the 1.7% noise floor. Saved energy on all 4 inputs ('case-4-allele', 'case-5-variant', 'case-6-allele', 'case-7-variant'), with behaviour preserved throughout.
+
+=== oh-sets  src/python/dxpy/cli/output_handling.py::write_expression_output
+
+VERDICT: no_inputs
+  no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe. Next: the generator writes new inputs on every try, so you may ask for it again (`inputs.py request src/python/dxpy/cli/output_handling.py::write_expression_output`) (1 try left); if it fails again, its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== dd-load-assign  src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary
+
+VERDICT: no_inputs
+  no inputs could be generated for src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary: only 0 of 8 generated inputs ran and repeated on the original code (most often: the original raises KeyError: 'coding_name'). Next: the generator writes new inputs on every try, so you may ask for it again (`inputs.py request src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary`) (1 try left); if it fails again, its repairs cannot be measured here: record their suspicions as `blocked`, quoting this reason, and ask for the next unit you would measure instead -- a failed unit does not use up one of the 30
+
+=== nb-required-set  src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs
+equivalence
+  missing-file   ok  (check only)
+  no-definitions-key ok  (check only)
+  unsupported-type ok  (check only)
+  all-required   ok
+  union-types    ok
+  path-formats   ok
+  many-definitions ok
+
+sizing
+  all-required   before    71.8 ms/call  after    67.2 ms/call  ->  15 repeats
+  union-types    before    59.9 ms/call  after    57.9 ms/call  ->  18 repeats
+  path-formats   before    51.8 ms/call  after    50.4 ms/call  ->  20 repeats
+  many-definitions before    52.6 ms/call  after    53.3 ms/call  ->  20 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  all-required     +6.46% +-3.07% energy saved   significant     +6.74% +-3.80% time saved
+  union-types      +3.56% +-2.02% energy saved   significant     +3.36% +-1.66% time saved
+  path-formats     +2.48% +-5.98% energy saved   not significant +0.28% +-15.48% time saved
+  many-definitions   -2.00% +-1.21% energy saved   significant     -1.90% +-2.39% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: mixed
+  a trade-off, not a fix: 6.5% saved on 'all-required' but 2.0% lost on 'many-definitions', both clearing the 1.7% noise floor. Whether it pays depends on which input the code actually sees, so the report must name both.
+
+=== dxlog-encode  src/python/dxpy/dxlog.py::DXLogHandler.truncate_message
+equivalence
+  empty          ok  (check only)
+  single-char    ok  (check only)
+  none           DIFFERS  (check only)
+                 before raised AttributeError, after returned null
+  control-20k    ok
+  two-byte-20k   ok
+  four-byte-20k  ok
+  mixed-30k      ok
+
+VERDICT: not_equivalent
+  the repair behaves differently on 'none': before raised AttributeError, after returned null. The repair is wrong; fix it and re-run. Do not report this candidate either way.
+
+=== pp-table-len  src/python/dxpy/utils/pretty_print.py::format_table
+equivalence
+  empty-with-names ok  (check only)
+  single-cell    ok  (check only)
+  none-and-odd-types ok  (check only)
+  large-12col    ok
+  narrow-truncation ok
+  no-column-names ok
+  many-duplicates ok
+
+sizing
+  large-12col    before   154.4 ms/call  after   159.5 ms/call  ->  7 repeats
+  narrow-truncation before    33.3 ms/call  after    36.8 ms/call  ->  31 repeats
+  no-column-names before    77.0 ms/call  after    83.6 ms/call  ->  13 repeats
+  many-duplicates before    75.4 ms/call  after    80.3 ms/call  ->  14 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  large-12col      -2.83% +-17.80% energy saved   not significant +4.86% +-34.39% time saved
+  narrow-truncation   -2.25% +-1.49% energy saved   significant     -2.35% +-1.44% time saved
+  no-column-names   -1.60% +-0.59% energy saved   significant     -1.78% +-1.16% time saved
+  many-duplicates   -1.64% +-1.59% energy saved   significant     -1.65% +-0.99% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 2.3% lost on 'narrow-truncation', above the 1.7% noise floor, and no case improved. Worse on 1 of 4 cases ('narrow-truncation').
+
+=== describe-locale  src/python/dxpy/utils/describe.py::format_currency
+equivalence
+  zero-en-us     ok  (check only)
+  none-value     ok  (check only)
+  empty-meta     ok  (check only)
+  en-gb-large    ok
+  zero-usage     ok
+  explicit-locale ok
+  huge-value     ok
+
+sizing
+  en-gb-large    before     6.9 us/call  after     8.9 us/call  ->  144,885 repeats
+  zero-usage     before     6.2 us/call  after     8.3 us/call  ->  161,782 repeats
+  explicit-locale before     6.5 us/call  after     8.7 us/call  ->  152,846 repeats
+  huge-value     before     7.5 us/call  after     9.9 us/call  ->  132,889 repeats
+
+measurement  (3 paired reps, ~1s windows; saved is before minus after, so negative means the repair costs more)
+  en-gb-large     -35.18% +-10.49% energy saved   significant     -34.64% +-9.21% time saved
+  zero-usage      -36.02% +-4.78% energy saved   significant     -36.15% +-4.49% time saved
+  explicit-locale  -37.25% +-11.01% energy saved   significant     -37.94% +-9.47% time saved
+  huge-value      -29.78% +-28.04% energy saved   significant     -33.23% +-59.59% time saved
+
+noise floor  +-1.69% (session calibration)
+
+VERDICT: regressed
+  the repair costs more than the code it replaces: 29.8% lost on 'huge-value', above the 1.7% noise floor, and no case improved. Worse on 4 of 4 cases ('en-gb-large', 'zero-usage', 'explicit-locale', 'huge-value').
+
+=== resolver-colon  src/python/dxpy/utils/resolver.py::resolve_path
+  NOT MEASURED: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured. A repair with a verdict keeps its place, deleted or edited. Record this suspicion as `deferred`.
+
+=== all 24 lines of submissions.jsonl
+  regressed    spell-edits2: the repair costs more than the code it replaces: 15297.6% lost on 'len8-sparse', above the 1.7% noise floor, and no case improved
+  confirmed    pp-flatten: 96.6% +-0.0% energy saved on 'deep-inputspec', clearing the 1.7% noise floor
+  confirmed    dxlog-bsearch: 99.9% +-0.0% energy saved on 'control-20k', clearing the 1.7% noise floor
+  confirmed    cohort-pheno-reduce: 83.8% +-0.5% energy saved on 'exists-plus-in', clearing the 1.7% noise floor
+  confirmed    resolver-split: 77.3% +-0.9% energy saved on 'mixed-include-empty', clearing the 1.7% noise floor
+  confirmed    resolver-first-pos: 100.0% +-0.1% energy saved on 'mostly-escaped', clearing the 1.7% noise floor
+  confirmed    resolver-last-pos: 83.9% +-0.6% energy saved on 'gapped-escaped', clearing the 1.7% noise floor
+  confirmed    gu-infer-hoist: 13.5% +-5.6% energy saved on 'no-results', clearing the 1.7% noise floor
+  negligible   dd-coding-index: no case moved more than the noise: the largest reading was +2.7% +-5.5% on 'hier-no-concepts', against a clean 1.7% floor across 4 cases
+  confirmed    nt-concat: 9.6% +-0.7% energy saved on 'strings-300-abs-resources', clearing the 1.7% noise floor
+  confirmed    nb-insert: 35.9% +-0.7% energy saved on 'all-required', clearing the 1.7% noise floor
+  partial      sr-cluster-copy: saves energy on 1 of 4 inputs ('many-entrypoints-no-clusterspec'; best 99.8% +-0.1% on 'many-entrypoints-no-clusterspec'), and no saving that can be told from n...
+  regressed    search-limit: the repair costs more than the code it replaces: 22.8% lost on 'big-pages', above the 1.7% noise floor, and no case improved
+  negligible   pp-escape: no case moved more than the noise: the largest reading was +1.4% +-5.9% on 'tabs-and-cr', against a clean 1.7% floor across 4 cases
+  partial      resolver-dxlink: saves energy on 1 of 4 inputs ('big-array-no-link'; best 100.0% +-0.0% on 'big-array-no-link'), and no saving that can be told from noise on the rest: 'big-dict...
+  regressed    gu-harmonize-results: the repair costs more than the code it replaces: 15.5% lost on 'large', above the 1.7% noise floor, and no case improved
+  confirmed    fp-validate: 100.0% +-0.0% energy saved on 'case-5-variant', clearing the 1.7% noise floor
+  no_inputs    oh-sets: no inputs could be generated for src/python/dxpy/cli/output_handling.py::write_expression_output: the generator failed: BrokenPipeError: [Errno 32] Broken pipe
+  no_inputs    dd-load-assign: no inputs could be generated for src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.load_data_dictionary: only 0 of 8 generated inputs ran and repeat...
+  mixed        nb-required-set: a trade-off, not a fix: 6.5% saved on 'all-required' but 2.0% lost on 'many-definitions', both clearing the 1.7% noise floor
+  not_equivalent dxlog-encode: the repair behaves differently on 'none': before raised AttributeError, after returned null
+  regressed    pp-table-len: the repair costs more than the code it replaces: 2.3% lost on 'narrow-truncation', above the 1.7% noise floor, and no case improved
+  regressed    describe-locale: the repair costs more than the code it replaces: 29.8% lost on 'huge-value', above the 1.7% noise floor, and no case improved
+  over_limit   resolver-colon: 20 repairs in this session already have a verdict, the most it measures, so this one is not measured
+
+20 of this session's 20 places hold a repair with a verdict.
