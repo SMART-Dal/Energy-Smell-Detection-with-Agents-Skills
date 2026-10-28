@@ -1,7 +1,7 @@
 """Loading and validating a case file.
 
-A case file is how our own validation samples are written -- the 230 under
-`validation/taxonomy/` and the samples converted from `data/manual_sampling/`.
+A case file is how our own validation samples are written -- the 230 scenarios
+and the samples converted from hand-written pairs.
 An agent never writes one: it submits a repair against a real repository
 (`submission.py`), and `before` is read from that repository instead. A case
 file supplies all three parts itself:
@@ -214,8 +214,8 @@ def _import(path: Path) -> ModuleType:
     for one specific and otherwise baffling failure: `multiprocessing` pickles a
     worker function *by name*, so a case file that hands one to a
     `ProcessPoolExecutor` gets `Can't pickle <function ...>: import of module
-    failed` unless the name resolves. That blocked exactly the repair some cards
-    recommend for CPU-bound work, and the error names neither the case file nor
+    failed` unless the name resolves. That blocked exactly the usual repair for
+    CPU-bound work, and the error names neither the case file nor
     the pool.
 
     Registering before `exec_module` rather than after is deliberate: a module

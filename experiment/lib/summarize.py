@@ -155,7 +155,49 @@ def audit(calls, run: dict, raw: str = "") -> dict:
     mode = run.get("exp_mode_at_end")
     if mode is not None and str(mode).strip("0"):
         flags["exp_unlocked"].append(f"{run['exp']} had mode {mode} when the agent's session ended")
+    if run.get("arm") == "control":
+        flags["taxonomy_seen"].extend(taxonomy_seen(raw))
+        if not flags["taxonomy_seen"]:
+            del flags["taxonomy_seen"]
     return {key: value[:50] for key, value in flags.items()}
+
+
+TAXONOMY_WORDS = re.compile(
+    r"\bC\d{1,2}\.S\d{1,2}\b|root_cause|taxonom|energy[ -]smells?|Smell-Detection", re.IGNORECASE)
+"""What would tell an Unguided agent about the taxonomy: a root-cause ID, the
+`root_cause` key, the word, the taxonomy skills' name, or the project's folder.
+Plain "smell" and "root cause" are left out: a repository's own comments use them."""
+
+
+def taxonomy_seen(raw: str) -> list[str]:
+    """Where a tool result in the transcript showed the agent a taxonomy word.
+
+    Only what the agent read counts, subagents included -- not what it wrote,
+    since "code smell" is ordinary vocabulary. On Oct 27 an Unguided agent read
+    `lib/submission.py`'s `root_cause` key and saw the project's folder in `ps`;
+    the shipped skill and the process list are fixed, and this says if anything
+    else shows one.
+    """
+    seen = []
+    for number, line in enumerate(raw.splitlines(), 1):
+        if '"tool_result"' not in line or not TAXONOMY_WORDS.search(line):
+            continue
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        content = (event.get("message") or {}).get("content")
+        for part in content if isinstance(content, list) else []:
+            if not isinstance(part, dict) or part.get("type") != "tool_result":
+                continue
+            text = part.get("content")
+            if isinstance(text, list):
+                text = " ".join(str(x.get("text", "")) for x in text if isinstance(x, dict))
+            match = TAXONOMY_WORDS.search(str(text or ""))
+            if match:
+                start = max(0, match.start() - 60)
+                seen.append(f"transcript.jsonl line {number}: ...{str(text)[start:match.end() + 40]}...")
+    return seen
 
 
 # The keys every record must carry, from the skill's output-format.md (Oct 21

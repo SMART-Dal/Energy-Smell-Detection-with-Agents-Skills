@@ -202,6 +202,7 @@ and near-misses are what show exactly whether this code matches, and how.
 line matched; step 2 settles it against the card.
 
 """,
+    "MISSED_FINDING": 'a smell',
     "NOTES_EXAMPLE": 'C10.S4. Sizes taken from the fixtures in tests/; `_row` left as the real helper.',
     "ONE_BASIS": 'one root cause',
     "REPAIR_BASIS": 'its root cause',
@@ -289,6 +290,7 @@ have to be is usually what tells you whether your first reading was right.""",
 > reason why the edit saves energy. That it does is a separate claim, and only
 > a measurement makes it.""",
     "ROOT_CAUSE_FIELD_RULE": '',
+    "MISSED_FINDING": 'waste',
     "NOTES_EXAMPLE": 'Sizes taken from the fixtures in tests/; `_row` left as the real helper.',
     "ONE_BASIS": 'one reason',
     "REPAIR_BASIS": 'what it repairs',

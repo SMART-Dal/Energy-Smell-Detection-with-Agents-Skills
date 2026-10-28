@@ -146,11 +146,65 @@ def _render_arm(arm: Arm, taxonomy: Taxonomy, catalog: Catalog) -> dict[Path, st
         relative = source.relative_to(SOURCE_SCRIPTS)
         if _excluded(relative, arm):
             continue
-        files[root / "scripts" / relative] = source.read_text()
+        files[root / "scripts" / relative] = _withhold_blocks(source.read_text(), arm, relative)
 
     if arm.ships_scanner:
         files[root / "scripts" / "lib" / "signals.json"] = _render_signals(taxonomy, catalog)
+    if not arm.ships_taxonomy:
+        _assert_no_taxonomy(arm, files)
     return files
+
+
+WITHHELD_BEGIN = "# <taxonomy>"
+WITHHELD_END = "# </taxonomy>"
+
+
+def _withhold_blocks(text: str, arm: Arm, relative: Path) -> str:
+    """A shared script as this arm ships it.
+
+    Lines between `# <taxonomy>` and `# </taxonomy>` are code only an arm with
+    the taxonomy runs, such as a submission's `root_cause` key. They are dropped
+    from an arm without it. The marker lines are dropped from every arm, so no
+    shipped file shows that a block was there.
+    """
+    kept, inside = [], False
+    for number, line in enumerate(text.splitlines(keepends=True), 1):
+        mark = line.strip()
+        if mark in (WITHHELD_BEGIN, WITHHELD_END):
+            if (mark == WITHHELD_BEGIN) == inside:
+                raise SystemExit(f"{relative}:{number}: unbalanced `{mark}`")
+            inside = mark == WITHHELD_BEGIN
+            continue
+        if inside and not arm.ships_taxonomy:
+            continue
+        kept.append(line)
+    if inside:
+        raise SystemExit(f"{relative}: `{WITHHELD_BEGIN}` is never closed")
+    return "".join(kept)
+
+
+TAXONOMY_TRACE = re.compile(
+    r"\bC\d{1,2}\.S\d{1,2}\b|root[ _-]?causes?|taxonom|\bsmells?\b|\bcards?\b", re.IGNORECASE)
+"""A word an arm without the taxonomy must not ship: a root-cause ID, the words
+for the taxonomy and its cards, or "smell"."""
+
+
+def _assert_no_taxonomy(arm: Arm, files: dict[Path, str]) -> None:
+    """An arm without the taxonomy ships no trace of it.
+
+    On Oct 27 an Unguided agent read `lib/submission.py` and found the
+    `root_cause` key, an example ID and the word "taxonomy" in a comment. The
+    build checks every file of such an arm, so a comment added later cannot do
+    the same.
+    """
+    found = [
+        f"{path.relative_to(DIST_DIR)}:{number}: {line.strip()[:100]}"
+        for path, text in files.items()
+        for number, line in enumerate(text.splitlines(), 1)
+        if TAXONOMY_TRACE.search(line)
+    ]
+    if found:
+        raise SystemExit(f"{arm.name} would ship taxonomy words:\n  " + "\n  ".join(found))
 
 
 def _assert_filled(arm: Arm, relative: Path, text: str) -> None:

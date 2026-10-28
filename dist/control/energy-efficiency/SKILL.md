@@ -15,7 +15,7 @@ a few that turn up early in one or two files. A run that stops after two or
 three findings has not done it. Keep going until every file has been read, and
 report what you find whether or not it can be measured here.
 
-Why this matters more than speed: a smell in code you never read is never
+Why this matters more than speed: waste in code you never read is never
 found. Nothing later in the procedure goes back to code left out of step 1, and
 the report then reads as if that code were clean, so a missed inefficiency
 costs more than any minutes spent reading. Keep working until all of it is

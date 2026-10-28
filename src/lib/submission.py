@@ -9,7 +9,6 @@ be shaped to flatter the result.
 
     {
       "id": "s1",
-      "root_cause": "C5.S1",                  # absent when the arm has no taxonomy
       "unit": "src/app.py::tag_rows",         # path::qualname
       "changed": {"src/app.py::tag_rows": "def tag_rows(rows, blocked): ..."},
       "sole_caller_evidence": "...",          # null unless a callee changed
@@ -41,9 +40,13 @@ number keeps every measurement the same length and every verdict the same bar
 (Javad, Oct 2026)."""
 
 ALLOWED = {
-    "id", "root_cause", "unit", "changed", "sole_caller_evidence",
+    "id", "unit", "changed", "sole_caller_evidence",
     "notes", "agent_measurement",
 }
+# <taxonomy>
+ALLOWED.add("root_cause")
+_ROOT_CAUSE = re.compile(r"^C\d{1,2}\.S\d{1,2}$")
+# </taxonomy>
 REQUIRED = ("id", "unit", "changed")
 RETIRED = {
     "file": "name the file inside `unit` instead: `src/app.py::Report.render`",
@@ -64,7 +67,6 @@ RETIRED = {
     "equivalent": "a repair can no longer supply its own comparison: drop the field. The "
                   "return values are compared as they are",
 }
-_ROOT_CAUSE = re.compile(r"^C\d{1,2}\.S\d{1,2}$")
 
 
 def validate(record: dict) -> str | None:
@@ -107,10 +109,12 @@ def validate(record: dict) -> str | None:
             "anything else broken by the change would pass every check here."
         )
 
+    # <taxonomy>
     root_cause = record.get("root_cause")
     if root_cause is not None and not (isinstance(root_cause, str)
                                        and _ROOT_CAUSE.match(root_cause)):
         return f"`root_cause` must be an ID such as C5.S1, not {root_cause!r}"
+    # </taxonomy>
     return None
 
 

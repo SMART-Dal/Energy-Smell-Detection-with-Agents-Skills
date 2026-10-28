@@ -996,7 +996,7 @@ def _time_one_call(case_file: CaseFile, case: Case, name: str = "before") -> flo
 
 
 def _calibration_path(profile: Profile) -> Path:
-    return Path(tempfile.gettempdir()) / f"energy-smells-calibration-{profile.name}.json"
+    return Path(tempfile.gettempdir()) / f"energy-verify-calibration-{profile.name}.json"
 
 
 def calibrate(profile: Profile, meter: str = "auto", log=print) -> dict:
