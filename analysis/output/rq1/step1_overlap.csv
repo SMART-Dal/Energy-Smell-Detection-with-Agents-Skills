@@ -1,0 +1,4 @@
+repo,units_listed_by_any_run,units_listed_by_all_6_runs,units_listed_by_only_1_run,jaccard_sonnet_haiku_Taxonomy+Rules,jaccard_sonnet_haiku_Taxonomy,jaccard_sonnet_haiku_Unguided
+sample-apps,208,17,70,41.4,41.2,23.2
+dx-toolkit,416,26,190,34.2,26.2,19.4
+community,39,10,11,50.0,36.7,51.9

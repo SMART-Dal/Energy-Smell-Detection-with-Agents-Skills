@@ -1,0 +1,7 @@
+repo,model,Taxonomy+Rules,Taxonomy,Unguided,highest
+sample-apps,Sonnet,2,0,1,Taxonomy+Rules
+sample-apps,Haiku,2,1,1,Taxonomy+Rules
+dx-toolkit,Sonnet,2,2,5,Unguided
+dx-toolkit,Haiku,0,0,0,Taxonomy+Rules = Taxonomy = Unguided
+community,Sonnet,0,1,0,Taxonomy
+community,Haiku,0,0,2,Unguided

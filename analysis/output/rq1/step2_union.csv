@@ -1,0 +1,4 @@
+repo,repo_units,smelly_in_any_run,pct_of_repo_units,smelly_in_2_or_more_runs,smelly_in_all_6_runs,union_Taxonomy+Rules,union_Taxonomy,union_Unguided
+sample-apps,443,165,37.2,94,8,119,117,64
+dx-toolkit,2543,263,10.3,113,11,210,122,86
+community,95,28,29.5,21,3,24,22,16

@@ -1,0 +1,165 @@
+{
+  "smelly_units": {
+    "model_wins": {
+      "Sonnet": 6,
+      "Haiku": 3,
+      "tie": 0,
+      "n/a": 0
+    },
+    "skill_order": {
+      "cells": 6,
+      "full>=knowledge>=control": 4,
+      "full>=control": 6
+    },
+    "skill_highest": {
+      "Taxonomy+Rules": 4,
+      "Taxonomy": 2,
+      "Unguided": 0
+    }
+  },
+  "pct_of_repo_units": {
+    "model_wins": {
+      "Sonnet": 6,
+      "Haiku": 3,
+      "tie": 0,
+      "n/a": 0
+    },
+    "skill_order": {
+      "cells": 6,
+      "full>=knowledge>=control": 4,
+      "full>=control": 6
+    },
+    "skill_highest": {
+      "Taxonomy+Rules": 4,
+      "Taxonomy": 2,
+      "Unguided": 0
+    }
+  },
+  "acceptance_rate_pct": {
+    "model_wins": {
+      "Sonnet": 7,
+      "Haiku": 2,
+      "tie": 0,
+      "n/a": 0
+    },
+    "skill_order": {
+      "cells": 6,
+      "full>=knowledge>=control": 2,
+      "full>=control": 5
+    },
+    "skill_highest": {
+      "Taxonomy+Rules": 2,
+      "Taxonomy": 3,
+      "Unguided": 1
+    }
+  },
+  "rules_agreement_full_higher_cells": 5,
+  "relabelled": {
+    "decisions_in_taxonomy_runs": 1539,
+    "root_cause_changed": 1
+  },
+  "smells_in_taxonomy_runs": 997,
+  "union": [
+    {
+      "repo": "sample-apps",
+      "repo_units": 443,
+      "smelly_in_any_run": 165,
+      "pct_of_repo_units": 37.2,
+      "smelly_in_2_or_more_runs": 94,
+      "smelly_in_all_6_runs": 8,
+      "union_Taxonomy+Rules": 119,
+      "union_Taxonomy": 117,
+      "union_Unguided": 64
+    },
+    {
+      "repo": "dx-toolkit",
+      "repo_units": 2543,
+      "smelly_in_any_run": 263,
+      "pct_of_repo_units": 10.3,
+      "smelly_in_2_or_more_runs": 113,
+      "smelly_in_all_6_runs": 11,
+      "union_Taxonomy+Rules": 210,
+      "union_Taxonomy": 122,
+      "union_Unguided": 86
+    },
+    {
+      "repo": "community",
+      "repo_units": 95,
+      "smelly_in_any_run": 28,
+      "pct_of_repo_units": 29.5,
+      "smelly_in_2_or_more_runs": 21,
+      "smelly_in_all_6_runs": 3,
+      "union_Taxonomy+Rules": 24,
+      "union_Taxonomy": 22,
+      "union_Unguided": 16
+    }
+  ],
+  "categories": [
+    {
+      "category": "C1",
+      "Taxonomy+Rules": 109,
+      "Taxonomy": 109,
+      "both": 218
+    },
+    {
+      "category": "C2",
+      "Taxonomy+Rules": 3,
+      "Taxonomy": 1,
+      "both": 4
+    },
+    {
+      "category": "C3",
+      "Taxonomy+Rules": 93,
+      "Taxonomy": 64,
+      "both": 157
+    },
+    {
+      "category": "C4",
+      "Taxonomy+Rules": 17,
+      "Taxonomy": 11,
+      "both": 28
+    },
+    {
+      "category": "C5",
+      "Taxonomy+Rules": 30,
+      "Taxonomy": 20,
+      "both": 50
+    },
+    {
+      "category": "C6",
+      "Taxonomy+Rules": 79,
+      "Taxonomy": 50,
+      "both": 129
+    },
+    {
+      "category": "C7",
+      "Taxonomy+Rules": 14,
+      "Taxonomy": 8,
+      "both": 22
+    },
+    {
+      "category": "C8",
+      "Taxonomy+Rules": 112,
+      "Taxonomy": 79,
+      "both": 191
+    },
+    {
+      "category": "C9",
+      "Taxonomy+Rules": 44,
+      "Taxonomy": 31,
+      "both": 75
+    },
+    {
+      "category": "C10",
+      "Taxonomy+Rules": 62,
+      "Taxonomy": 43,
+      "both": 105
+    },
+    {
+      "category": "C11",
+      "Taxonomy+Rules": 11,
+      "Taxonomy": 7,
+      "both": 18
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+repo,skill,Sonnet,Haiku,higher
+sample-apps,Taxonomy+Rules,13,16,Haiku
+sample-apps,Taxonomy,16,17,Haiku
+sample-apps,Unguided,13,12,Sonnet
+dx-toolkit,Taxonomy+Rules,13,10,Sonnet
+dx-toolkit,Taxonomy,15,6,Sonnet
+dx-toolkit,Unguided,13,2,Sonnet
+community,Taxonomy+Rules,12,3,Sonnet
+community,Taxonomy,10,4,Sonnet
+community,Unguided,7,4,Sonnet

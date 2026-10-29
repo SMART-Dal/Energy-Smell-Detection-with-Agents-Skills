@@ -10,9 +10,12 @@ commit repos.tsv names. Every number is computed here, so a table in the paper
 can cite this command instead of a hand count. The definitions:
 
   files   Python files tracked by git at that commit (`git ls-files '*.py'`).
-  units   function and method definitions, `def` and `async def`, nested ones
-          included, counted from Python's own parse of each file. A file that
-          does not parse adds none; it is named on stderr.
+  units   functions and methods (`def` and `async def`) as the methodology
+          defines a unit: a function defined inside another function is not
+          a unit of its own, so it is not counted. Methods of a class are
+          counted, also when the class is nested. Counted from Python's own
+          parse of each file; a file that does not parse adds none and is
+          named on stderr.
   lines   lines that are not blank and are not only a comment (a line whose
           first non-space character is `#`). Docstrings count as lines.
   tests   the same three counts for test files only: a file under a directory
@@ -45,6 +48,27 @@ def is_test(path: str) -> bool:
         name.startswith("test_") or name.endswith("_test.py")
 
 
+def count_units(tree) -> int:
+    """Functions and methods in one parsed file, leaving out functions nested in a function.
+
+    We visit the tree with a to-do list. Each entry is a node and whether it
+    sits inside a function. A `def` that is not inside a function is a unit;
+    everything below a `def` is inside a function, so a `def` there is not.
+    """
+    units = 0
+    to_visit = [(tree, False)]                  # (node, inside a function?)
+    while to_visit:
+        node, inside_function = to_visit.pop()  # take the next node
+        for child in ast.iter_child_nodes(node):    # its direct children
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if not inside_function:         # a function or method on its own
+                    units += 1
+                to_visit.append((child, True))  # what it contains is inside a function
+            else:
+                to_visit.append((child, inside_function))   # same as its parent
+    return units
+
+
 def count(root: Path, files: list[str]) -> dict:
     units = lines = 0
     unparsable = []
@@ -57,8 +81,7 @@ def count(root: Path, files: list[str]) -> dict:
         except SyntaxError:
             unparsable.append(name)
             continue
-        units += sum(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-                     for node in ast.walk(tree))
+        units += count_units(tree)
     return {"files": len(files), "units": units, "lines": lines, "unparsable": unparsable}
 
 

@@ -1,0 +1,7 @@
+repo,model,Taxonomy+Rules,Taxonomy,Unguided,highest
+sample-apps,Sonnet,184,107,75,Taxonomy+Rules
+sample-apps,Haiku,100,133,152,Unguided
+dx-toolkit,Sonnet,329,195,70,Taxonomy+Rules
+dx-toolkit,Haiku,275,89,198,Taxonomy+Rules
+community,Sonnet,39,32,21,Taxonomy+Rules
+community,Haiku,20,29,35,Unguided

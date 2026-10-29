@@ -1,0 +1,7 @@
+skill,model,sample-apps,dx-toolkit,community
+Taxonomy+Rules,Sonnet,65.0,65.0,70.6
+Taxonomy+Rules,Haiku,80.0,83.3,60.0
+Taxonomy,Sonnet,80.0,75.0,71.4
+Taxonomy,Haiku,85.0,66.7,57.1
+Unguided,Sonnet,65.0,65.0,87.5
+Unguided,Haiku,80.0,40.0,66.7

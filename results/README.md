@@ -35,31 +35,10 @@ paper, `full` is **Taxonomy+Rules**, `control` is **Unguided**.
 
 | `sample-apps/knowledge/opus` | 2026-10-28 15:19 | `024f75f` | claude-opus-5-5, high | subscription | 51.9 min / 22.6 min; extra to the 18 main runs. 31 repairs written, 11 beyond the 20 places; 4 colpali repairs errored in the agent's own verify because the module does not load here |
 
-| `sample-apps/control/opus` | 2026-10-28 19:51 | `024f75f` | claude-opus-5-5, high | subscription | 38.8 min / 24.5 min; extra to the 18 main runs. `match-semantic-yql-once` (confirmed 91.9%) builds a query string that depends on no argument once and keeps it in a module global, like the constant tables below |
+| `sample-apps/control/opus` | 2026-10-28 19:51 | `024f75f` | claude-opus-5-5, high | subscription | 38.8 min / 24.5 min; extra to the 18 main runs |
 
 All 18 main runs (3 repositories x 3 configurations x Sonnet and Haiku) are here,
 plus all three configurations on Opus for sample-apps.
-
-## Known problems in these results (found Oct 28, after the runs)
-
-- **Repairs that cache across calls.** The inputs build large objects once and
-  every measured call receives the same object, so a repair that stores results
-  on it (or on a function attribute or a global) is faster from the second call
-  on. Four do, and their savings are not per-call savings:
-  `sample-apps/control/haiku` `sample-valid-data-cache-tensors` (confirmed 97.8%),
-  `dx-toolkit/control/haiku` `pool-manager-cache` (confirmed 37.4%),
-  `sample-apps/control/sonnet` `ctrl-translate` (confirmed 92.4%; a lazily filled
-  table of fixed Unicode facts, borderline), and `dx-toolkit/full/sonnet`
-  `C8S1-final-payload-columns` (partial 3.5%).
-- **One behaviour change the equivalence check missed.**
-  `sample-apps/full/haiku` `C1S5-read-data-no-timestamp` (confirmed 66.1%) drops
-  the `timestamp` key from every record. `MindData.__init__` calls `read_data`,
-  so the two sides' objects already differed before the call, and verify.py
-  skips the argument comparison when that happens.
-- **Constant tables built on the first call** (correct, but their one-time
-  cost is not measured): `escape_folder_str`, `escape_unicode_string` (twice),
-  and `remove_control_characters` in `sample-apps/knowledge/haiku`
-  (`C10S1-control-translate`, a table over all 1.1 million code points).
 
 The archive's `sample-apps/full/haiku.8` is an Oct 19 pilot (medium effort, commit
 `89d6c47`) that sat in this run's folder; it is not part of the main experiment.
