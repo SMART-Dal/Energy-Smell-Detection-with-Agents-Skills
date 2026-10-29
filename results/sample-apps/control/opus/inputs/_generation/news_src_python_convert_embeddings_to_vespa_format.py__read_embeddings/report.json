@@ -1,0 +1,138 @@
+{
+ "unit": "news/src/python/convert_embeddings_to_vespa_format.py::read_embeddings",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 33.1,
+   "finish": "stop",
+   "provider": "Fireworks",
+   "prompt_tokens": 2339,
+   "completion_tokens": 10225,
+   "reasoning_tokens": 8900,
+   "cost": 0.00908019,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "news-128d-500",
+     "ok": false,
+     "joules": 0.9709992272727272,
+     "seconds": 0.015160725452005863,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "short-8d-8000",
+     "ok": true,
+     "joules": 1.9298649166666664,
+     "seconds": 0.04222639836370945
+    },
+    {
+     "label": "long-256d-200",
+     "ok": false,
+     "joules": 0.7702998852459007,
+     "seconds": 0.01643140334635973,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "duplicate-ids-16d-3000",
+     "ok": true,
+     "joules": 1.117391261904763,
+     "seconds": 0.023908074013888836
+    },
+    {
+     "label": "mid-64d-1500",
+     "ok": true,
+     "joules": 1.7291565172413788,
+     "seconds": 0.034908248111605644
+    },
+    {
+     "label": "tiny-2d-20000",
+     "ok": true,
+     "joules": 3.376142733333336,
+     "seconds": 0.07110844925045967
+    },
+    {
+     "label": "wide-512d-100",
+     "ok": false,
+     "joules": 0.7266932380952356,
+     "seconds": 0.015904688276350498,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "mixed-format-64d-1000",
+     "ok": false,
+     "joules": 1.069042955555556,
+     "seconds": 0.022403785958886147,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty-file",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "single-vector",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "empty-id",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    }
+   ],
+   "validate_s": 66.1,
+   "coverage": 0.8,
+   "missed": [
+    21,
+    22
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 45.1
+  }
+ ],
+ "seconds": 101.5,
+ "cost": 0.00908,
+ "kept": [
+  {
+   "label": "tiny-2d-20000",
+   "mj_per_call": 3376.1427,
+   "ms_per_call": 71.108
+  },
+  {
+   "label": "short-8d-8000",
+   "mj_per_call": 1929.8649,
+   "ms_per_call": 42.226
+  },
+  {
+   "label": "mid-64d-1500",
+   "mj_per_call": 1729.1565,
+   "ms_per_call": 34.908
+  },
+  {
+   "label": "duplicate-ids-16d-3000",
+   "mj_per_call": 1117.3913,
+   "ms_per_call": 23.908
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

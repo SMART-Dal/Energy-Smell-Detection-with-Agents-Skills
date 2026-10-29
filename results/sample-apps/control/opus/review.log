@@ -1,0 +1,31 @@
+count-terms-docfreq-one-pass confirmed       APPLIED
+news-predictions-hit-index confirmed       APPLIED
+colbert-control-chars-per-distinct confirmed       APPLIED
+feed-split-split-text-join negligible      not applied: negligible
+cold-start-write-embeddings-tolist-once partial         not applied: partial
+preprocess-users-no-iterrows confirmed       APPLIED
+preprocess-orders-no-iterrows partial         not applied: partial
+count-terms-common-flags-once confirmed       APPLIED
+video-sample-images-select-first confirmed       APPLIED
+bert-write-embedding-one-write confirmed       APPLIED
+news-convert-user-embeddings-tolist confirmed       APPLIED
+vespa-app-packbits-bool confirmed       APPLIED
+count-terms-merge-without-key-lists partial         not applied: partial
+news-read-embeddings-fromstring mixed           not applied: mixed
+suggestions-filter-one-regex mixed           not applied: mixed
+mind-valid-filter-first negligible      not applied: negligible
+news-convert-file-dumps confirmed       APPLIED
+prepare-feed-packbits-bool confirmed       APPLIED
+preprocess-users-usecols negligible      not applied: negligible
+match-semantic-yql-once confirmed       APPLIED
+colpali-simmap-single-scatter over_limit      not applied: over_limit
+colpali-gen-simmaps-size-only over_limit      not applied: over_limit
+colpali-blend-colormap-bytes over_limit      not applied: over_limit
+vespa-app-format-q-embs-tolist-once over_limit      not applied: over_limit
+colpali-filter-token-compiled over_limit      not applied: over_limit
+colpali-gen-simmaps-no-copy over_limit      not applied: over_limit
+colpali-simmap-hoist-seq-length over_limit      not applied: over_limit
+stopwords-tokenizer-only over_limit      not applied: over_limit
+logreg-stats-without-describe over_limit      not applied: over_limit
+
+wrote /home/javad/energy-exp/archive/sample-apps/control/opus/review/results.jsonl and /home/javad/energy-exp/archive/sample-apps/control/opus/review/REPORT.md

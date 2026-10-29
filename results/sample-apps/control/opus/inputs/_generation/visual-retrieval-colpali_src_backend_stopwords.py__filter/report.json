@@ -1,0 +1,137 @@
+{
+ "unit": "visual-retrieval-colpali/src/backend/stopwords.py::filter",
+ "model": "deepseek/deepseek-v4.1-flash",
+ "calls": [
+  {
+   "seconds": 66.1,
+   "finish": "stop",
+   "provider": "Wafer",
+   "prompt_tokens": 2063,
+   "completion_tokens": 19578,
+   "reasoning_tokens": 17596,
+   "cost": 0.01311767,
+   "retried": []
+  }
+ ],
+ "rounds": [
+  {
+   "fatal": null,
+   "cases": [
+    {
+     "label": "typical-article",
+     "ok": false,
+     "joules": 0.10892226401869158,
+     "seconds": 0.0023392699658870697,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "long-article",
+     "ok": true,
+     "joules": 0.7120329841269838,
+     "seconds": 0.01587952021509409
+    },
+    {
+     "label": "very-long",
+     "ok": true,
+     "joules": 0.9626213829787231,
+     "seconds": 0.02168357092887163
+    },
+    {
+     "label": "all-stopwords",
+     "ok": false,
+     "joules": 0.14982889930555565,
+     "seconds": 0.003473144955933094,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "no-stopwords",
+     "ok": true,
+     "joules": 0.4061627387387383,
+     "seconds": 0.009029623121023178
+    },
+    {
+     "label": "punctuation-numbers-urls",
+     "ok": false,
+     "joules": 0.3059635503355705,
+     "seconds": 0.00674577709287405,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "unicode-emoji",
+     "ok": false,
+     "joules": 0.18657138961038977,
+     "seconds": 0.004332740791141987,
+     "spare": true,
+     "why": "not needed: 4 inputs that use more energy passed"
+    },
+    {
+     "label": "many-short-lines",
+     "ok": true,
+     "joules": 0.4626617216494848,
+     "seconds": 0.010317631997168064
+    }
+   ],
+   "checks": [
+    {
+     "label": "empty",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "whitespace",
+     "ok": true,
+     "kind": "return",
+     "why": null
+    },
+    {
+     "label": "none",
+     "ok": true,
+     "kind": "raise",
+     "why": null
+    }
+   ],
+   "validate_s": 37.8,
+   "coverage": 0.8,
+   "missed": [
+    14
+   ],
+   "energy_domains": [
+    "package-0",
+    "package-1"
+   ],
+   "waited_s": 17.1
+  }
+ ],
+ "seconds": 105.2,
+ "cost": 0.01312,
+ "kept": [
+  {
+   "label": "very-long",
+   "mj_per_call": 962.6214,
+   "ms_per_call": 21.684
+  },
+  {
+   "label": "long-article",
+   "mj_per_call": 712.033,
+   "ms_per_call": 15.88
+  },
+  {
+   "label": "many-short-lines",
+   "mj_per_call": 462.6617,
+   "ms_per_call": 10.318
+  },
+  {
+   "label": "no-stopwords",
+   "mj_per_call": 406.1627,
+   "ms_per_call": 9.03
+  }
+ ],
+ "energy_domains": [
+  "package-0",
+  "package-1"
+ ]
+}

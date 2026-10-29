@@ -1,0 +1,2 @@
+ready
+finish: {'ok': True, 'pending_at_end': [], 'steps_done': [1, 2, 3], 'unfinished_files': [], 'submissions_removed': ['colpali-blend-colormap-bytes', 'colpali-filter-token-compiled', 'colpali-gen-simmaps-no-copy', 'colpali-gen-simmaps-size-only', 'colpali-simmap-hoist-seq-length', 'colpali-simmap-single-scatter', 'logreg-stats-without-describe', 'stopwords-tokenizer-only', 'vespa-app-format-q-embs-tolist-once']}

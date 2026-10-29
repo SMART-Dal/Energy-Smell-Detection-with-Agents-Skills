@@ -35,8 +35,10 @@ paper, `full` is **Taxonomy+Rules**, `control` is **Unguided**.
 
 | `sample-apps/knowledge/opus` | 2026-10-28 15:19 | `024f75f` | claude-opus-5-5, high | subscription | 51.9 min / 22.6 min; extra to the 18 main runs. 31 repairs written, 11 beyond the 20 places; 4 colpali repairs errored in the agent's own verify because the module does not load here |
 
+| `sample-apps/control/opus` | 2026-10-28 19:51 | `024f75f` | claude-opus-5-5, high | subscription | 38.8 min / 24.5 min; extra to the 18 main runs. `match-semantic-yql-once` (confirmed 91.9%) builds a query string that depends on no argument once and keeps it in a module global, like the constant tables below |
+
 All 18 main runs (3 repositories x 3 configurations x Sonnet and Haiku) are here,
-plus two extra Opus runs on sample-apps (Taxonomy+Rules and Taxonomy).
+plus all three configurations on Opus for sample-apps.
 
 ## Known problems in these results (found Oct 28, after the runs)
 
