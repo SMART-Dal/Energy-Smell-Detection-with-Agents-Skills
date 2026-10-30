@@ -1,0 +1,259 @@
+repo,skill,model,repair,unit,root_cause,category,verdict,confirmed,saving_pct,functions_changed,lines_changed,size_group,change_group,rule_flagged_unit,loops_before,loops_after,deepest_before,deepest_after,calls_in_loops_before,calls_in_loops_after,calls_before,calls_after
+sample-apps,Taxonomy+Rules,Sonnet,C3S4-process-docs-docfreq,incremental-search/search-suggestions/count_terms.py::process_docs,C3.S4,C3,partial,True,39.6,1,5,3-6,Changes the loops,True,6,4,2,2,5,4,6,4
+sample-apps,Taxonomy+Rules,Sonnet,C10S1-count-terms-isdisjoint,incremental-search/search-suggestions/count_terms.py::count_terms,C10.S1,C10,confirmed,True,39.6,1,2,1-2,Fewer calls inside loops,True,2,2,2,2,8,7,9,8
+sample-apps,Taxonomy+Rules,Sonnet,C3S4-predictions-dict,news/src/python/evaluate.py::predictions,C3.S4,C3,confirmed,True,99.1,1,7,7-15,Changes the loops,False,1,2,1,2,2,3,2,3
+sample-apps,Taxonomy+Rules,Sonnet,C4S2-sample-valid-filter-first,news/src/python/mind_data.py::MindData.sample_valid_data,C4.S2,C4,negligible,False,0.1,1,8,7-15,Same loops and calls,False,4,4,2,2,12,12,12,12
+sample-apps,Taxonomy+Rules,Sonnet,C5S4-float-to-binary-no-where,visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding,C5.S4,C5,confirmed,True,19.1,1,14,7-15,Fewer calls inside loops,False,1,1,1,1,7,6,8,7
+sample-apps,Taxonomy+Rules,Sonnet,C6S2-sample-images-select-first,text-video-search/src/python/embedding.py::sample_images,C6.S2,C6,confirmed,True,72.3,1,4,3-6,Changes the loops,False,0,1,0,1,0,0,7,9
+sample-apps,Taxonomy+Rules,Sonnet,C3S1-parse-page-findall,test/test.py::parse_page,C3.S1,C3,regressed,False,-2.1,1,2,1-2,Fewer calls outside loops,True,1,1,1,1,12,12,15,14
+sample-apps,Taxonomy+Rules,Sonnet,C10S4-split-text-parts,feed-split.py::split_text,C10.S4,C10,negligible,False,0.3,1,13,7-15,Same loops and calls,False,1,1,1,1,6,9,12,16
+sample-apps,Taxonomy+Rules,Sonnet,C1S4-add-impressions-local,news/src/python/mind_data.py::MindData.add_impressions,C1.S4,C1,confirmed,True,7.8,1,14,7-15,Same loops and calls,True,2,2,2,2,15,15,16,16
+sample-apps,Taxonomy+Rules,Sonnet,C6S1-process-doc-chain,incremental-search/search-suggestions/count_terms.py::process_doc,C6.S1,C6,negligible,False,0.9,1,3,3-6,Fewer calls outside loops,False,1,1,1,1,2,2,10,7
+sample-apps,Taxonomy+Rules,Sonnet,C1S4-what-language-text,feed-split.py::what_language,C1.S4,C1,confirmed,True,15.1,1,7,7-15,Same loops and calls,False,0,0,0,0,0,0,4,4
+sample-apps,Taxonomy+Rules,Sonnet,C10S1-filter-any,use-case-shopping/create_suggestions.py::filter,C10.S1,C10,regressed,False,-68.2,1,5,3-6,Same loops and calls,True,1,1,1,1,0,0,4,5
+sample-apps,Taxonomy+Rules,Sonnet,C6S3-get-feed-docids-setcomp,feed_to_vespa.py::get_feed_docids,C6.S3,C6,negligible,False,-0.7,1,6,3-6,Fewer calls outside loops,True,3,3,1,1,6,6,11,8
+sample-apps,Taxonomy+Rules,Sonnet,C10S4-parse-file-parts,test/test.py::parse_file,C10.S4,C10,partial,True,5.6,1,7,7-15,Same loops and calls,True,1,1,1,1,4,6,7,10
+sample-apps,Taxonomy+Rules,Sonnet,C10S2-convert-file-dumps,news/src/python/convert_to_vespa_format.py::convert_file,C10.S2,C10,confirmed,True,27.2,1,2,1-2,Same loops and calls,False,2,2,2,2,5,6,13,14
+sample-apps,Taxonomy+Rules,Sonnet,C10S2-write-json-term-replace,incremental-search/search-suggestions/count_terms.py::write_json_file,C10.S2,C10,partial,True,3.1,1,2,1-2,Same loops and calls,True,1,1,1,1,2,2,5,5
+sample-apps,Taxonomy+Rules,Sonnet,C10S1-accepted-process-docs-update,incremental-search/search-suggestions/accepted_words.py::process_docs,C10.S1,C10,confirmed,True,8.2,1,6,3-6,Changes the loops,True,3,1,2,1,4,4,5,5
+sample-apps,Taxonomy+Rules,Sonnet,C6S3-read-common-words-stream,incremental-search/search-suggestions/count_terms.py::read_common_words,C6.S3,C6,confirmed,True,5.3,1,3,3-6,Fewer calls outside loops,True,1,1,1,1,2,2,5,4
+sample-apps,Taxonomy+Rules,Sonnet,C1S1-process-docs-dead-total,incremental-search/search-suggestions/count_terms.py::process_docs,C1.S1,C1,negligible,False,0.3,1,1,1-2,Changes the loops,True,6,5,2,2,5,3,6,4
+sample-apps,Taxonomy+Rules,Sonnet,C1S4-count-terms-window,incremental-search/search-suggestions/count_terms.py::count_terms,C1.S4,C1,confirmed,True,6.9,1,5,3-6,Same loops and calls,True,2,2,2,2,8,8,9,9
+sample-apps,Taxonomy+Rules,Haiku,C3S4-process-docs-docs-in-loop,incremental-search/search-suggestions/count_terms.py::process_docs,C3.S4,C3,partial,True,37.9,1,5,3-6,Changes the loops,True,6,4,2,2,5,4,6,4
+sample-apps,Taxonomy+Rules,Haiku,C1S1-process-docs-dead-total,incremental-search/search-suggestions/count_terms.py::process_docs,C1.S1,C1,negligible,False,0.3,1,1,1-2,Changes the loops,True,6,5,2,2,5,3,6,4
+sample-apps,Taxonomy+Rules,Haiku,C10S1-count-terms-isdisjoint,incremental-search/search-suggestions/count_terms.py::count_terms,C10.S1,C10,confirmed,True,39.9,1,2,1-2,Fewer calls inside loops,True,2,2,2,2,8,7,9,8
+sample-apps,Taxonomy+Rules,Haiku,C1S4-count-terms-window-once,incremental-search/search-suggestions/count_terms.py::count_terms,C1.S4,C1,confirmed,True,8.8,1,5,3-6,Same loops and calls,True,2,2,2,2,8,8,9,9
+sample-apps,Taxonomy+Rules,Haiku,C10S2-write-json-replace,incremental-search/search-suggestions/count_terms.py::write_json_file,C10.S2,C10,confirmed,True,3.4,1,2,1-2,Same loops and calls,True,1,1,1,1,2,2,5,5
+sample-apps,Taxonomy+Rules,Haiku,C10S3-accepted-process-update,incremental-search/search-suggestions/accepted_words.py::process_docs,C10.S3,C10,confirmed,True,6.8,1,6,3-6,Changes the loops,True,3,1,2,1,4,4,5,5
+sample-apps,Taxonomy+Rules,Haiku,C10S3-accepted-write-join,incremental-search/search-suggestions/accepted_words.py::write_to_file,C10.S3,C10,partial,True,20.3,1,3,3-6,Fewer calls inside loops,False,1,1,1,1,1,0,4,5
+sample-apps,Taxonomy+Rules,Haiku,C5S3-bert-float32-buffer,news/src/python/train_cold_start.py::read_bert_embeddings,C5.S3,C5,confirmed,True,3.8,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,6,6
+sample-apps,Taxonomy+Rules,Haiku,C1S5-read-data-no-timestamp,news/src/python/mind_data.py::MindData.read_data,C1.S5,C1,confirmed,True,66.1,1,3,3-6,Fewer calls inside loops,False,1,1,1,1,8,7,14,13
+sample-apps,Taxonomy+Rules,Haiku,C6S2-sample-images-copy-kept,text-video-search/src/python/embedding.py::sample_images,C6.S2,C6,confirmed,True,73.2,1,2,1-2,Changes the loops,False,0,1,0,1,0,0,7,7
+sample-apps,Taxonomy+Rules,Haiku,C10S1-remove-control-fast-path,colbert-long/scripts/convert.py::remove_control_characters,C10.S1,C10,partial,True,24.5,1,2,1-2,Same loops and calls,False,1,1,1,1,1,1,2,4
+sample-apps,Taxonomy+Rules,Haiku,C10S4-split-text-parts-list,feed-split.py::split_text,C10.S4,C10,negligible,False,0.3,1,11,7-15,Same loops and calls,False,1,1,1,1,6,8,12,15
+sample-apps,Taxonomy+Rules,Haiku,C9S1-extract-docs-running-offset,text-search/python/extract-msmarco.py::extract_documents,C9.S1,C9,partial,True,2.4,1,7,7-15,Same loops and calls,True,1,1,1,1,5,6,14,15
+sample-apps,Taxonomy+Rules,Haiku,C10S2-convert-main-one-write,text-search/python/convert-to-vespa-format.py::main,C10.S2,C10,confirmed,True,27.4,1,2,1-2,Same loops and calls,True,2,2,2,2,9,10,14,15
+sample-apps,Taxonomy+Rules,Haiku,C3S2-select-documents-min-hoist,text-search/python/sample-queries-and-documents.py::select_documents,C3.S2,C3,regressed,False,7.0,1,3,3-6,Fewer calls inside loops,True,4,4,2,2,6,4,8,8
+sample-apps,Taxonomy+Rules,Haiku,C3S1-products-records,examples/workshop-ecommerce/preprocess.py::process_products,C3.S1,C3,confirmed,True,84.1,1,2,1-2,Same loops and calls,False,1,1,1,1,3,3,16,16
+sample-apps,Taxonomy+Rules,Haiku,C3S1-users-purchases-records,examples/workshop-ecommerce/preprocess.py::process_users,C3.S1,C3,confirmed,True,42.3,1,2,1-2,Same loops and calls,False,3,3,2,2,14,14,25,25
+sample-apps,Taxonomy+Rules,Haiku,C3S1-orders-records-new,examples/workshop-ecommerce/preprocess.py::process_orders,C3.S1,C3,regressed,False,-3.4,1,2,1-2,Same loops and calls,True,2,2,2,2,27,27,30,30
+sample-apps,Taxonomy+Rules,Haiku,C10S3-prepare-binary-packbits-bool,visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding,C10.S3,C10,confirmed,True,28.2,1,2,1-2,Fewer calls inside loops,False,1,1,1,1,5,4,6,5
+sample-apps,Taxonomy+Rules,Haiku,C10S3-vespa-binary-packbits-bool,visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding,C10.S3,C10,confirmed,True,18.5,1,14,7-15,Fewer calls inside loops,False,1,1,1,1,7,6,8,7
+sample-apps,Taxonomy,Sonnet,C3S4-predictions-index,news/src/python/evaluate.py::predictions,C3.S4,C3,confirmed,True,99.1,1,7,7-15,Changes the loops,False,1,2,1,2,2,3,2,3
+sample-apps,Taxonomy,Sonnet,C3S4-process_docs-docs-count,incremental-search/search-suggestions/count_terms.py::process_docs,C3.S4,C3,partial,True,39.1,1,5,3-6,Changes the loops,True,6,4,2,2,5,4,6,4
+sample-apps,Taxonomy,Sonnet,C3S2-count_terms-common-once,incremental-search/search-suggestions/count_terms.py::count_terms,C3.S2,C3,confirmed,True,41.4,1,3,3-6,Changes the loops,True,2,3,2,2,8,7,9,8
+sample-apps,Taxonomy,Sonnet,C1S5-sample_valid_data-filter-first,news/src/python/mind_data.py::MindData.sample_valid_data,C1.S5,C1,negligible,False,0.5,1,11,7-15,Fewer calls inside loops,False,4,4,2,2,12,11,12,11
+sample-apps,Taxonomy,Sonnet,C10S1-remove_control_characters-translate,colbert-long/scripts/convert.py::remove_control_characters,C10.S1,C10,confirmed,True,80.7,1,3,3-6,Same loops and calls,False,1,1,1,1,1,2,2,4
+sample-apps,Taxonomy,Sonnet,C1S8-extract_documents-tell,text-search/python/extract-msmarco.py::extract_documents,C1.S8,C1,partial,True,2.9,1,7,7-15,Same loops and calls,True,1,1,1,1,5,6,14,15
+sample-apps,Taxonomy,Sonnet,C10S4-split_text-join,feed-split.py::split_text,C10.S4,C10,negligible,False,0.2,1,12,7-15,Same loops and calls,False,1,1,1,1,6,8,12,15
+sample-apps,Taxonomy,Sonnet,C1S4-what_language-text-once,feed-split.py::what_language,C1.S4,C1,confirmed,True,15.3,1,7,7-15,Same loops and calls,False,0,0,0,0,0,0,4,4
+sample-apps,Taxonomy,Sonnet,C1S4-ndcg_score-discounts-once,news/src/python/metrics.py::ndcg_score,C1.S4,C1,mixed,False,2.1,1,10,7-15,Same loops and calls,False,0,0,0,0,0,0,2,11
+sample-apps,Taxonomy,Sonnet,C8S3-add_impressions-content-once,news/src/python/mind_data.py::MindData.add_impressions,C8.S3,C8,confirmed,True,6.6,1,14,7-15,Same loops and calls,True,2,2,2,2,15,15,16,16
+sample-apps,Taxonomy,Sonnet,C10S2-float_to_binary-bool,visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding,C10.S2,C10,confirmed,True,18.1,1,14,7-15,Fewer calls inside loops,False,1,1,1,1,7,6,8,7
+sample-apps,Taxonomy,Sonnet,C6S2-sample_images-index-first,text-video-search/src/python/embedding.py::sample_images,C6.S2,C6,confirmed,True,73.2,1,4,3-6,Changes the loops,False,0,1,0,1,0,0,7,9
+sample-apps,Taxonomy,Sonnet,C3S6-process_users-limit-first,examples/workshop-ecommerce/preprocess.py::process_users,C3.S6,C3,partial,True,8.5,1,3,3-6,Same loops and calls,False,3,3,2,2,14,14,25,30
+sample-apps,Taxonomy,Sonnet,C10S2-category_ctrs-read_impressions-reader,news/src/python/create_category_ctrs.py::read_impressions_file,C10.S2,C10,confirmed,True,32.6,1,7,7-15,Same loops and calls,False,2,2,2,2,2,2,9,9
+sample-apps,Taxonomy,Sonnet,C2S1-lookup_news_index-inline,news/src/python/mind_data.py::MindData.lookup_news_index,C2.S1,C2,confirmed,True,25.1,1,5,3-6,Same loops and calls,True,0,0,0,0,0,0,1,1
+sample-apps,Taxonomy,Sonnet,C10S3-train_cold_start-write_embeddings-tolist-once,news/src/python/train_cold_start.py::write_embeddings,C10.S3,C10,partial,True,5.5,1,3,3-6,Fewer calls inside loops,False,2,2,2,2,4,3,7,7
+sample-apps,Taxonomy,Sonnet,C3S5-read_news-lazy-abstract,news/src/python/mind_data.py::MindData.read_news,C3.S5,C3,confirmed,True,21.6,1,5,3-6,Same loops and calls,False,2,2,2,2,12,13,18,19
+sample-apps,Taxonomy,Sonnet,C1S1-process_docs-total_count,incremental-search/search-suggestions/count_terms.py::process_docs,C1.S1,C1,negligible,False,0.7,1,1,1-2,Changes the loops,True,6,5,2,2,5,3,6,4
+sample-apps,Taxonomy,Sonnet,C10S3-accepted_words-process_docs-update,incremental-search/search-suggestions/accepted_words.py::process_docs,C10.S3,C10,confirmed,True,8.5,1,6,3-6,Changes the loops,True,3,1,2,1,4,4,5,5
+sample-apps,Taxonomy,Sonnet,C3S2-select_documents-bound,text-search/python/sample-queries-and-documents.py::select_documents,C3.S2,C3,partial,True,7.7,1,3,3-6,Fewer calls inside loops,True,4,4,2,2,6,4,8,8
+sample-apps,Taxonomy,Haiku,C10S4-split-text,feed-split.py::split_text,C10.S4,C10,negligible,False,-0.0,1,12,7-15,Same loops and calls,False,1,1,1,1,6,8,12,15
+sample-apps,Taxonomy,Haiku,C10S1-control-translate,colbert-long/scripts/convert.py::remove_control_characters,C10.S1,C10,confirmed,True,92.8,1,7,7-15,Same loops and calls,False,1,1,1,1,1,2,2,5
+sample-apps,Taxonomy,Haiku,C3S4-process-docs-docs,incremental-search/search-suggestions/count_terms.py::process_docs,C3.S4,C3,confirmed,True,38.5,1,5,3-6,Changes the loops,True,6,4,2,2,5,4,6,4
+sample-apps,Taxonomy,Haiku,C10S1-count-isdisjoint,incremental-search/search-suggestions/count_terms.py::count_terms,C10.S1,C10,confirmed,True,40.3,1,2,1-2,Fewer calls inside loops,True,2,2,2,2,8,7,9,8
+sample-apps,Taxonomy,Haiku,C10S2-write-replace,incremental-search/search-suggestions/count_terms.py::write_json_file,C10.S2,C10,partial,True,3.5,1,2,1-2,Same loops and calls,True,1,1,1,1,2,2,5,5
+sample-apps,Taxonomy,Haiku,C9S1-write-once,incremental-search/search-suggestions/count_terms.py::write_json_file,C9.S1,C9,confirmed,True,11.4,1,2,1-2,Same loops and calls,True,1,1,1,1,2,2,5,6
+sample-apps,Taxonomy,Haiku,C10S3-accepted-update,incremental-search/search-suggestions/accepted_words.py::process_docs,C10.S3,C10,confirmed,True,7.8,1,6,3-6,Changes the loops,True,3,1,2,1,4,4,5,5
+sample-apps,Taxonomy,Haiku,C6S2-sample-index,text-video-search/src/python/embedding.py::sample_images,C6.S2,C6,confirmed,True,71.6,1,4,3-6,Changes the loops,False,0,1,0,1,0,0,7,9
+sample-apps,Taxonomy,Haiku,C5S2-predictions-index,news/src/python/evaluate.py::predictions,C5.S2,C5,confirmed,True,99.1,1,5,3-6,Changes the loops,False,1,2,1,1,2,3,2,3
+sample-apps,Taxonomy,Haiku,C9S1-embedding-join,news/src/python/create_bert_embeddings.py::write_embedding,C9.S1,C9,confirmed,True,35.2,1,6,3-6,Fewer calls inside loops,False,1,1,1,1,2,0,4,2
+sample-apps,Taxonomy,Haiku,C10S1-binary-vectorise,visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding,C10.S1,C10,confirmed,True,61.1,1,9,7-15,Changes the loops,False,1,0,1,0,5,0,6,9
+sample-apps,Taxonomy,Haiku,C10S3-select-update,text-search/python/sample-queries-and-documents.py::select_documents,C10.S3,C10,partial,True,17.4,1,3,3-6,Changes the loops,True,4,3,2,1,6,6,8,8
+sample-apps,Taxonomy,Haiku,C10S3-filter-tuple,use-case-shopping/create_suggestions.py::filter_content,C10.S3,C10,confirmed,True,56.9,1,5,3-6,Changes the loops,True,1,0,1,0,1,0,1,2
+sample-apps,Taxonomy,Haiku,C1S4-what-language,feed-split.py::what_language,C1.S4,C1,confirmed,True,15.1,1,7,7-15,Same loops and calls,False,0,0,0,0,0,0,4,4
+sample-apps,Taxonomy,Haiku,C9S1-extract-offset,text-search/python/extract-msmarco.py::extract_documents,C9.S1,C9,partial,True,2.5,1,7,7-15,Same loops and calls,True,1,1,1,1,5,6,14,15
+sample-apps,Taxonomy,Haiku,C6S3-init-iterate,examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__init__,C6.S3,C6,regressed,False,-5.9,1,4,3-6,Fewer calls outside loops,True,2,2,1,1,2,2,8,6
+sample-apps,Taxonomy,Haiku,C5S3-bert-float32,news/src/python/train_cold_start.py::read_bert_embeddings,C5.S3,C5,partial,True,2.5,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,6,6
+sample-apps,Taxonomy,Haiku,C1S4-impression-lookup,news/src/python/mind_data.py::MindData.add_impressions,C1.S4,C1,confirmed,True,6.7,1,14,7-15,Same loops and calls,True,2,2,2,2,15,15,16,16
+sample-apps,Taxonomy,Haiku,C3S1-users-records,examples/workshop-ecommerce/preprocess.py::process_users,C3.S1,C3,confirmed,True,43.5,1,2,1-2,Same loops and calls,False,3,3,2,2,14,14,25,25
+sample-apps,Taxonomy,Haiku,C1S1-dead-total,incremental-search/search-suggestions/count_terms.py::process_docs,C1.S1,C1,negligible,False,0.9,1,1,1-2,Changes the loops,True,6,5,2,2,5,3,6,4
+sample-apps,Unguided,Sonnet,terms-docs-count,incremental-search/search-suggestions/count_terms.py::process_docs,,,partial,True,38.6,1,5,3-6,Changes the loops,True,6,4,2,2,5,4,6,4
+sample-apps,Unguided,Sonnet,predictions-dict,news/src/python/evaluate.py::predictions,,,confirmed,True,99.1,1,7,7-15,Changes the loops,False,1,2,1,1,2,3,2,3
+sample-apps,Unguided,Sonnet,ctrl-translate,colbert-long/scripts/convert.py::remove_control_characters,,,confirmed,True,92.4,1,14,7-15,Same loops and calls,False,1,1,1,1,1,1,2,8
+sample-apps,Unguided,Sonnet,terms-window-flags,incremental-search/search-suggestions/count_terms.py::count_terms,,,confirmed,True,52.3,1,5,3-6,Changes the loops,True,2,3,2,2,8,7,9,8
+sample-apps,Unguided,Sonnet,msmarco-tell,text-search/python/extract-msmarco.py::extract_documents,,,partial,True,2.6,1,7,7-15,Same loops and calls,True,1,1,1,1,5,6,14,15
+sample-apps,Unguided,Sonnet,valid-filter-first,news/src/python/mind_data.py::MindData.sample_valid_data,,,negligible,False,0.1,1,8,7-15,Same loops and calls,False,4,4,2,2,12,12,12,12
+sample-apps,Unguided,Sonnet,bert-write-join,news/src/python/create_bert_embeddings.py::write_embedding,,,confirmed,True,40.7,1,6,3-6,Fewer calls inside loops,False,1,1,1,1,2,0,4,2
+sample-apps,Unguided,Sonnet,convert-file-dumps,news/src/python/convert_to_vespa_format.py::convert_file,,,confirmed,True,26.6,1,2,1-2,Same loops and calls,False,2,2,2,2,5,6,13,14
+sample-apps,Unguided,Sonnet,write-emb-tolist,news/src/python/train_cold_start.py::write_embeddings,,,partial,True,4.2,1,3,3-6,Fewer calls inside loops,False,2,2,2,2,4,3,7,7
+sample-apps,Unguided,Sonnet,user-emb-tolist,news/src/python/convert_embeddings_to_vespa_format.py::convert_user_embeddings,,,confirmed,True,13.4,1,2,1-2,Same loops and calls,False,2,2,2,2,3,4,9,10
+sample-apps,Unguided,Sonnet,split-text-join,feed-split.py::split_text,,,negligible,False,0.3,1,12,7-15,Same loops and calls,False,1,1,1,1,6,8,12,15
+sample-apps,Unguided,Sonnet,sample-images-select,text-video-search/src/python/embedding.py::sample_images,,,confirmed,True,72.9,1,2,1-2,Changes the loops,False,0,1,0,1,0,0,7,7
+sample-apps,Unguided,Sonnet,terms-merge-counts,incremental-search/search-suggestions/count_terms.py::process_doc,,,negligible,False,1.2,1,5,3-6,Fewer calls inside loops,False,1,1,1,1,2,1,10,7
+sample-apps,Unguided,Sonnet,suggest-filter-any,use-case-shopping/create_suggestions.py::filter,,,regressed,False,-33.7,1,5,3-6,Changes the loops,True,1,0,1,0,0,0,4,6
+sample-apps,Unguided,Sonnet,liquid-early-return,test/test.py::process_liquid,,,negligible,False,0.2,1,2,1-2,Same loops and calls,False,1,1,1,1,1,1,2,2
+sample-apps,Unguided,Sonnet,parse-page-find-all,test/test.py::parse_page,,,negligible,False,-2.0,1,2,1-2,Fewer calls outside loops,True,1,1,1,1,12,12,15,14
+sample-apps,Unguided,Sonnet,recall-vectorised,billion-scale-vector-search/app/src/main/python/recall.py::compute_recall_with_distance_ties,,,confirmed,True,70.9,1,8,7-15,Changes the loops,False,1,0,1,0,1,0,9,10
+sample-apps,Unguided,Sonnet,vespa-packbits-bool,visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding,,,confirmed,True,18.8,1,14,7-15,Fewer calls inside loops,False,1,1,1,1,7,6,8,7
+sample-apps,Unguided,Sonnet,feed-packbits-bool,visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding,,,confirmed,True,27.7,1,2,1-2,Fewer calls inside loops,False,1,1,1,1,5,4,6,5
+sample-apps,Unguided,Sonnet,orders-agg-list,examples/workshop-ecommerce/preprocess.py::process_orders,,,negligible,False,0.9,1,2,1-2,Fewer calls inside loops,True,2,2,2,2,27,26,30,29
+sample-apps,Unguided,Haiku,add-impressions-bind-content,news/src/python/mind_data.py::MindData.add_impressions,,,partial,True,4.1,1,14,7-15,Same loops and calls,True,2,2,2,2,15,15,16,16
+sample-apps,Unguided,Haiku,write-embedding-single-write,news/src/python/create_bert_embeddings.py::write_embedding,,,confirmed,True,34.9,1,5,3-6,Fewer calls inside loops,False,1,1,1,1,2,0,4,3
+sample-apps,Unguided,Haiku,write-embeddings-tolist-once,news/src/python/train_cold_start.py::write_embeddings,,,partial,True,4.6,1,3,3-6,Fewer calls inside loops,False,2,2,2,2,4,3,7,7
+sample-apps,Unguided,Haiku,split-text-join-lines,feed-split.py::split_text,,,negligible,False,0.2,1,12,7-15,Changes the loops,False,1,3,1,2,6,8,12,15
+sample-apps,Unguided,Haiku,extract-documents-track-offset,text-search/python/extract-msmarco.py::extract_documents,,,partial,True,2.2,1,7,7-15,Same loops and calls,True,1,1,1,1,5,6,14,15
+sample-apps,Unguided,Haiku,convert-main-json-dumps,text-search/python/convert-to-vespa-format.py::main,,,confirmed,True,28.2,1,2,1-2,Same loops and calls,True,2,2,2,2,9,10,14,15
+sample-apps,Unguided,Haiku,process-users-itertuples,examples/workshop-ecommerce/preprocess.py::process_users,,,confirmed,True,48.1,1,4,3-6,Same loops and calls,False,3,3,2,2,14,14,25,25
+sample-apps,Unguided,Haiku,sample-valid-data-cache-tensors,news/src/python/mind_data.py::MindData.sample_valid_data,,,confirmed,True,97.8,1,27,16+,Same loops and calls,False,4,4,2,2,12,12,12,14
+sample-apps,Unguided,Haiku,float-to-binary-stacked-packbits,visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding,,,confirmed,True,61.8,1,7,7-15,Same loops and calls,False,1,1,1,1,5,5,6,15
+sample-apps,Unguided,Haiku,convert-user-embeddings-tolist,news/src/python/convert_embeddings_to_vespa_format.py::convert_user_embeddings,,,confirmed,True,18.7,1,2,1-2,Same loops and calls,False,2,2,2,2,3,4,9,10
+sample-apps,Unguided,Haiku,convert-news-embeddings-tolist,news/src/python/convert_embeddings_to_vespa_format.py::convert_news_embeddings,,,confirmed,True,23.3,1,2,1-2,Same loops and calls,False,2,2,2,2,3,4,9,10
+sample-apps,Unguided,Haiku,category-tensor-once-per-category,news/src/python/create_category_ctrs.py::write_news_category_ctr_update,,,regressed,False,-13.8,1,5,3-6,Same loops and calls,False,1,1,1,1,2,2,7,7
+sample-apps,Unguided,Haiku,process-orders-sample-subset,examples/workshop-ecommerce/preprocess.py::process_orders,,,confirmed,True,83.2,1,4,3-6,Same loops and calls,True,2,2,2,2,27,31,30,34
+sample-apps,Unguided,Haiku,process-orders-itertuples,examples/workshop-ecommerce/preprocess.py::process_orders,,,partial,True,2.0,1,4,3-6,Same loops and calls,True,2,2,2,2,27,27,30,30
+sample-apps,Unguided,Haiku,encode-query-float-lists,hypencoder/encode_query.py::main,,,negligible,False,0.5,1,4,3-6,Changes the loops,False,0,2,0,1,0,2,20,18
+dx-toolkit,Taxonomy+Rules,Sonnet,C3S5-first-pos,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,C3.S5,C3,confirmed,True,88.8,1,13,7-15,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Taxonomy+Rules,Sonnet,C6S2-last-pos,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,C6.S2,C6,confirmed,True,65.6,1,2,1-2,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Taxonomy+Rules,Sonnet,C7S1-split-unescaped,src/python/dxpy/utils/resolver.py::split_unescaped,C7.S1,C7,confirmed,True,69.0,1,26,16+,Changes the loops,False,1,2,1,2,2,2,5,5
+dx-toolkit,Taxonomy+Rules,Sonnet,C4S7-is-glob,src/python/dxpy/utils/resolver.py::is_glob_pattern,C4.S7,C4,mixed,False,1.3,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,2,2
+dx-toolkit,Taxonomy+Rules,Sonnet,C10S1-escape-folder,src/python/dxpy/utils/resolver.py::escape_folder_str,C10.S1,C10,confirmed,True,57.2,1,8,7-15,Changes the loops,False,0,1,0,1,0,1,2,2
+dx-toolkit,Taxonomy+Rules,Sonnet,C1S4-flatten-subn,src/python/dxpy/utils/pretty_print.py::flatten_json_array,C1.S4,C1,confirmed,True,22.7,1,6,3-6,Fewer calls inside loops,True,1,1,1,1,3,2,11,10
+dx-toolkit,Taxonomy+Rules,Sonnet,C10S1-escape-unicode,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,C10.S1,C10,confirmed,True,68.6,1,16,16+,Changes the loops,False,0,1,0,1,0,0,7,2
+dx-toolkit,Taxonomy+Rules,Sonnet,C6S3-table-first-row,src/python/dxpy/utils/pretty_print.py::format_table,C6.S3,C6,regressed,False,-2.1,1,2,1-2,Fewer calls outside loops,True,11,11,2,2,27,27,73,72
+dx-toolkit,Taxonomy+Rules,Sonnet,C3S2-table-border,src/python/dxpy/utils/pretty_print.py::format_table,C3.S2,C3,partial,True,1.0,1,3,3-6,Fewer calls inside loops,True,11,11,2,2,27,24,73,71
+dx-toolkit,Taxonomy+Rules,Sonnet,C6S2-edits1-set,src/python/dxpy/utils/spelling_corrector.py::_edits1,C6.S2,C6,negligible,False,-0.5,1,10,7-15,Same loops and calls,False,7,7,2,2,1,1,4,7
+dx-toolkit,Taxonomy+Rules,Sonnet,C4S7-truncate-guard,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,C4.S7,C4,negligible,False,-0.1,1,2,1-2,Same loops and calls,True,1,1,1,1,3,3,7,9
+dx-toolkit,Taxonomy+Rules,Sonnet,C3S4-coding-display-index,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,C3.S4,C3,negligible,False,0.2,1,21,16+,Changes the loops,True,7,8,2,2,9,9,21,22
+dx-toolkit,Taxonomy+Rules,Sonnet,C8S1-final-payload-columns,src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload,C8.S1,C8,partial,True,3.5,1,18,16+,Fewer calls outside loops,True,3,3,1,1,3,3,19,13
+dx-toolkit,Taxonomy+Rules,Sonnet,C4S6-timedelta-suffix,src/python/dxpy/utils/__init__.py::normalize_timedelta,C4.S6,C4,confirmed,True,53.0,1,4,3-6,Same loops and calls,False,0,0,0,0,0,0,3,5
+dx-toolkit,Taxonomy+Rules,Sonnet,C10S4-nextflow-src-join,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,C10.S4,C10,confirmed,True,6.8,1,10,7-15,Same loops and calls,True,1,1,1,1,3,5,16,20
+dx-toolkit,Taxonomy+Rules,Sonnet,C8S1-versions-manifest,src/python/dxpy/nextflow/nextflow_utils.py::_load_versions_manifest,C8.S1,C8,regressed,False,-232.3,1,5,3-6,Same loops and calls,False,1,1,1,1,7,7,14,18
+dx-toolkit,Taxonomy+Rules,Sonnet,C1S4-range-int-once,src/python/dxpy/bindings/apollo/json_validation_by_schema.py::JSONValidator.are_list_items_within_range,C1.S4,C1,mixed,False,15.8,1,14,7-15,Changes the loops,True,3,1,1,1,8,8,12,12
+dx-toolkit,Taxonomy+Rules,Sonnet,C1S4-localrefs-bind,src/python/dxpy/utils/local_exec_utils.py::has_local_job_refs,C1.S4,C1,confirmed,True,7.5,1,27,16+,Same loops and calls,True,4,4,2,2,23,23,23,23
+dx-toolkit,Taxonomy+Rules,Sonnet,C10S1-dupkeys-dict,src/python/dxpy/utils/__init__.py::_dict_raise_on_duplicates,C10.S1,C10,confirmed,True,36.6,1,15,7-15,Same loops and calls,False,1,1,1,1,1,1,1,6
+dx-toolkit,Taxonomy+Rules,Sonnet,C10S4-glob-translate-join,src/python/dxpy/utils/pathmatch.py::translate,C10.S4,C10,confirmed,True,17.5,1,14,7-15,Same loops and calls,True,2,2,2,2,2,7,3,9
+dx-toolkit,Taxonomy+Rules,Haiku,C1S1-validate-json-dead-read,src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON,C1.S1,C1,confirmed,True,100.0,1,3,3-6,Fewer calls outside loops,False,0,0,0,0,0,0,6,2
+dx-toolkit,Taxonomy+Rules,Haiku,C1S4-correct-edits-once,src/python/dxpy/utils/spelling_corrector.py::correct,C1.S4,C1,partial,True,2.5,1,5,3-6,Changes the loops,False,0,2,0,2,0,1,6,7
+dx-toolkit,Taxonomy+Rules,Haiku,C3S1-pathmatch-comprehension,src/python/dxpy/utils/pathmatch.py::filter,C3.S1,C3,partial,True,4.5,1,4,3-6,Fewer calls inside loops,True,2,2,1,1,5,4,10,9
+dx-toolkit,Taxonomy+Rules,Haiku,C4S6-dlink-precheck,src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink,C4.S6,C4,partial,True,25.4,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,8,10
+dx-toolkit,Taxonomy+Rules,Haiku,C6S2-cluster-copy-kept,src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec,C6.S2,C6,partial,True,24.9,1,76,16+,Changes the loops,True,4,5,1,1,6,8,14,16
+dx-toolkit,Taxonomy+Rules,Haiku,C6S2-get-first-rfind,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,C6.S2,C6,confirmed,True,53.6,1,2,1-2,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Taxonomy+Rules,Haiku,C6S2-get-last-rfind,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,C6.S2,C6,confirmed,True,58.6,1,2,1-2,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Taxonomy+Rules,Haiku,C6S2-pheno-comprehension,src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter,C6.S2,C6,confirmed,True,60.3,1,4,3-6,Changes the loops,True,5,7,2,3,14,14,17,17
+dx-toolkit,Taxonomy+Rules,Haiku,C8S3-infer-hoist,src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type,C8.S3,C8,partial,True,5.7,1,5,3-6,Same loops and calls,True,2,2,2,2,1,1,2,2
+dx-toolkit,Taxonomy+Rules,Haiku,C5S2-display-index,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,C5.S2,C5,negligible,False,0.4,1,21,16+,Changes the loops,True,7,8,2,2,9,9,21,22
+dx-toolkit,Taxonomy+Rules,Haiku,C1S6-sessions-guard,src/python/dxpy/utils/config.py::DXConfig.get_session_conf_dir,C1.S6,C1,negligible,False,3.0,1,14,7-15,Same loops and calls,True,2,2,1,1,8,8,25,27
+dx-toolkit,Taxonomy+Rules,Haiku,C7S1-truncate-bsearch,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,C7.S1,C7,confirmed,True,99.7,1,10,7-15,Same loops and calls,True,1,1,1,1,3,3,7,8
+dx-toolkit,Taxonomy,Sonnet,C3S2-format-table-bar,src/python/dxpy/utils/pretty_print.py::format_table,C3.S2,C3,negligible,False,-1.7,1,3,3-6,Fewer calls inside loops,True,11,11,2,2,27,24,73,71
+dx-toolkit,Taxonomy,Sonnet,C6S2-format-table-len,src/python/dxpy/utils/pretty_print.py::format_table,C6.S2,C6,regressed,False,-3.7,1,2,1-2,Same loops and calls,True,11,11,2,2,27,27,73,74
+dx-toolkit,Taxonomy,Sonnet,C1S4-flatten-subn,src/python/dxpy/utils/pretty_print.py::flatten_json_array,C1.S4,C1,confirmed,True,23.7,1,5,3-6,Fewer calls inside loops,True,1,1,1,1,3,2,11,12
+dx-toolkit,Taxonomy,Sonnet,C8S2-escape-translate,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,C8.S2,C8,confirmed,True,69.4,1,15,7-15,Changes the loops,False,0,1,0,1,0,0,7,3
+dx-toolkit,Taxonomy,Sonnet,C6S2-last-pos-rfind,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,C6.S2,C6,confirmed,True,58.9,1,2,1-2,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Taxonomy,Sonnet,C6S2-split-unescaped-noslice,src/python/dxpy/utils/resolver.py::split_unescaped,C6.S2,C6,confirmed,True,60.6,2,8,7-15,Same loops and calls,False,1,1,1,1,2,2,5,5
+dx-toolkit,Taxonomy,Sonnet,C3S5-first-pos-leftscan,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,C3.S5,C3,confirmed,True,88.0,1,13,7-15,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Taxonomy,Sonnet,C1S4-keyval-name,src/python/dxpy/utils/resolver.py::parse_input_keyval,C1.S4,C1,confirmed,True,56.2,1,5,3-6,Same loops and calls,False,0,0,0,0,0,0,3,3
+dx-toolkit,Taxonomy,Sonnet,C4S7-dxlink-guard,src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink,C4.S7,C4,partial,True,24.9,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,8,10
+dx-toolkit,Taxonomy,Sonnet,C1S4-correct-edits1,src/python/dxpy/utils/spelling_corrector.py::correct,C1.S4,C1,negligible,False,1.3,1,5,3-6,Changes the loops,False,0,2,0,2,0,1,6,7
+dx-toolkit,Taxonomy,Sonnet,C10S2-harmonize-results-get,src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_results,C10.S2,C10,regressed,False,-8.3,1,11,7-15,Same loops and calls,False,2,2,2,2,1,1,1,1
+dx-toolkit,Taxonomy,Sonnet,C8S3-infer-genotype-locals,src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type,C8.S3,C8,confirmed,True,10.1,1,8,7-15,Same loops and calls,True,2,2,2,2,1,1,2,3
+dx-toolkit,Taxonomy,Sonnet,C8S3-expression-matrix-locals,src/python/dxpy/bindings/apollo/data_transformations.py::transform_to_expression_matrix,C8.S3,C8,confirmed,True,14.6,1,10,7-15,Same loops and calls,True,3,3,2,2,1,1,7,7
+dx-toolkit,Taxonomy,Sonnet,C7S1-pheno-filter-noreduce,src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter,C7.S1,C7,confirmed,True,59.1,1,4,3-6,Changes the loops,True,5,9,2,4,14,14,17,17
+dx-toolkit,Taxonomy,Sonnet,C5S2-coding-display-index,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,C5.S2,C5,negligible,False,-1.0,1,21,16+,Changes the loops,True,7,8,2,2,9,9,21,22
+dx-toolkit,Taxonomy,Sonnet,C6S2-cluster-spec-filter-first,src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec,C6.S2,C6,partial,True,25.4,1,78,16+,Changes the loops,True,4,3,1,1,6,7,14,12
+dx-toolkit,Taxonomy,Sonnet,C5S1-custom-inputs-required-set,src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs,C5.S1,C5,partial,True,2.2,1,2,1-2,Same loops and calls,True,3,3,2,2,18,19,26,27
+dx-toolkit,Taxonomy,Sonnet,C10S4-nextflow-src-join,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,C10.S4,C10,confirmed,True,10.6,1,12,7-15,Same loops and calls,True,1,1,1,1,3,5,16,20
+dx-toolkit,Taxonomy,Sonnet,C1S1-validate-json-schema,src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON,C1.S1,C1,confirmed,True,100.0,1,3,3-6,Fewer calls outside loops,False,0,0,0,0,0,0,6,2
+dx-toolkit,Taxonomy,Sonnet,C5S1-filter-results-set,src/python/dxpy/dx_extract_utils/germline_utils.py::filter_results,C5.S1,C5,confirmed,True,57.6,1,3,3-6,Same loops and calls,True,1,1,1,1,0,0,0,1
+dx-toolkit,Taxonomy,Haiku,C3S5-find-extra-page,src/python/dxpy/bindings/search.py::_find,C3.S5,C3,partial,True,1.7,1,2,1-2,Same loops and calls,True,2,2,2,2,7,7,7,7
+dx-toolkit,Taxonomy,Haiku,C7S1-truncate-bisect,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,C7.S1,C7,confirmed,True,99.7,1,11,7-15,Same loops and calls,True,1,1,1,1,3,3,7,7
+dx-toolkit,Taxonomy,Haiku,C1S4-correct-edits-once,src/python/dxpy/utils/spelling_corrector.py::correct,C1.S4,C1,negligible,False,-0.4,1,5,3-6,Changes the loops,False,0,2,0,2,0,1,6,7
+dx-toolkit,Taxonomy,Haiku,C1S1-validate-json-dead-read,src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON,C1.S1,C1,confirmed,True,100.0,1,3,3-6,Fewer calls outside loops,False,0,0,0,0,0,0,6,2
+dx-toolkit,Taxonomy,Haiku,C8S2-harmonize-cached-columns,src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_sql,C8.S2,C8,negligible,False,0.8,1,6,3-6,Same loops and calls,False,0,0,0,0,0,0,7,8
+dx-toolkit,Taxonomy,Haiku,C3S2-list-of-strings-hoist,src/python/dxpy/dx_extract_utils/input_validation.py::is_list_of_strings,C3.S2,C3,confirmed,True,26.8,1,10,7-15,Changes the loops,False,1,2,1,1,3,3,4,4
+dx-toolkit,Taxonomy,Haiku,C3S2-list-of-strings-hoist-somatic,src/python/dxpy/dx_extract_utils/input_validation_somatic.py::is_list_of_strings,C3.S2,C3,confirmed,True,26.3,1,10,7-15,Changes the loops,False,1,2,1,1,3,3,4,4
+dx-toolkit,Taxonomy,Haiku,C1S6-infer-flags-lazy-message,src/python/dxpy/dx_extract_utils/input_validation.py::validate_infer_flags,C1.S6,C1,confirmed,True,69.8,1,3,3-6,Same loops and calls,False,0,0,0,0,0,0,9,15
+dx-toolkit,Taxonomy,Haiku,C3S4-coding-display-index-dict,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,C3.S4,C3,negligible,False,-0.1,1,21,16+,Changes the loops,True,7,8,2,2,9,9,21,22
+dx-toolkit,Unguided,Sonnet,spell-edits2,src/python/dxpy/utils/spelling_corrector.py::_known_edits2,,,regressed,False,-11191.7,1,40,16+,Changes the loops,True,2,9,2,3,1,7,3,17
+dx-toolkit,Unguided,Sonnet,pp-flatten,src/python/dxpy/utils/pretty_print.py::flatten_json_array,,,confirmed,True,89.5,1,6,3-6,Changes the loops,True,1,0,1,0,3,0,11,12
+dx-toolkit,Unguided,Sonnet,dxlog-bsearch,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,,,confirmed,True,99.7,1,10,7-15,Same loops and calls,True,1,1,1,1,3,3,7,8
+dx-toolkit,Unguided,Sonnet,cohort-pheno-reduce,src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter,,,confirmed,True,60.3,1,4,3-6,Changes the loops,True,5,7,2,3,14,14,17,17
+dx-toolkit,Unguided,Sonnet,resolver-split,src/python/dxpy/utils/resolver.py::split_unescaped,,,confirmed,True,67.9,1,13,7-15,Changes the loops,False,1,3,1,3,2,2,5,5
+dx-toolkit,Unguided,Sonnet,resolver-first-pos,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,,,confirmed,True,87.7,1,13,7-15,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Unguided,Sonnet,resolver-last-pos,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,,,confirmed,True,56.7,1,2,1-2,Same loops and calls,False,2,2,2,2,1,1,2,2
+dx-toolkit,Unguided,Sonnet,gu-infer-hoist,src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type,,,confirmed,True,10.0,1,7,7-15,Same loops and calls,True,2,2,2,2,1,1,2,2
+dx-toolkit,Unguided,Sonnet,dd-coding-index,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,,,negligible,False,0.0,1,21,16+,Changes the loops,True,7,8,2,2,9,9,21,22
+dx-toolkit,Unguided,Sonnet,nt-concat,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,,,confirmed,True,7.3,1,10,7-15,Same loops and calls,True,1,1,1,1,3,5,16,20
+dx-toolkit,Unguided,Sonnet,nb-insert,src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs,,,confirmed,True,19.8,1,6,3-6,Same loops and calls,True,3,3,2,2,18,18,26,27
+dx-toolkit,Unguided,Sonnet,sr-cluster-copy,src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec,,,partial,True,25.2,1,78,16+,Same loops and calls,True,4,4,1,1,6,6,14,14
+dx-toolkit,Unguided,Sonnet,search-limit,src/python/dxpy/bindings/search.py::_find,,,regressed,False,-21.7,1,2,1-2,Same loops and calls,True,2,2,2,2,7,7,7,7
+dx-toolkit,Unguided,Sonnet,pp-escape,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,,,negligible,False,-0.2,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,7,8
+dx-toolkit,Unguided,Sonnet,resolver-dxlink,src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink,,,partial,True,25.2,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,8,11
+dx-toolkit,Unguided,Sonnet,gu-harmonize-results,src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_results,,,regressed,False,-10.6,1,11,7-15,Same loops and calls,False,2,2,2,2,1,1,1,1
+dx-toolkit,Unguided,Sonnet,fp-validate,src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON,,,confirmed,True,100.0,1,3,3-6,Fewer calls outside loops,False,0,0,0,0,0,0,6,2
+dx-toolkit,Unguided,Sonnet,nb-required-set,src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs,,,partial,True,3.2,1,2,1-2,Same loops and calls,True,3,3,2,2,18,19,26,27
+dx-toolkit,Unguided,Sonnet,pp-table-len,src/python/dxpy/utils/pretty_print.py::format_table,,,regressed,False,-1.7,1,2,1-2,Same loops and calls,True,11,11,2,2,27,27,73,74
+dx-toolkit,Unguided,Sonnet,describe-locale,src/python/dxpy/utils/describe.py::format_currency,,,regressed,False,-39.5,1,3,3-6,Same loops and calls,False,0,0,0,0,0,0,5,6
+dx-toolkit,Unguided,Haiku,dxlog-truncate-bisect,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,,,confirmed,True,99.7,1,11,7-15,Same loops and calls,True,1,1,1,1,3,3,7,8
+dx-toolkit,Unguided,Haiku,coding-display-position-dict,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,,,negligible,False,0.3,1,21,16+,Changes the loops,True,7,8,2,2,9,9,21,22
+dx-toolkit,Unguided,Haiku,find-stop-at-limit,src/python/dxpy/bindings/search.py::_find,,,negligible,False,-0.5,1,2,1-2,Same loops and calls,True,2,2,2,2,7,7,7,7
+dx-toolkit,Unguided,Haiku,pool-manager-cache,src/python/dxpy/__init__.py::_get_pool_manager,,,confirmed,True,37.4,1,17,16+,Same loops and calls,True,0,0,0,0,0,0,20,26
+dx-toolkit,Unguided,Haiku,depends-on-no-discarded-describe,src/python/dxpy/utils/local_exec_utils.py::wait_for_depends_on,,,negligible,False,-0.2,1,1,1-2,Fewer calls inside loops,True,1,1,1,1,12,11,15,14
+community,Taxonomy+Rules,Sonnet,C3S2-validate-team-sets,scripts/validate-workstreams.py::validate_workstreams_semantics,C3.S2,C3,partial,True,28.3,1,8,7-15,Fewer calls inside loops,True,13,13,2,2,39,35,40,40
+community,Taxonomy+Rules,Sonnet,C1S1-validate-dead-kind,scripts/validate-workstreams.py::validate_workstreams_semantics,C1.S1,C1,negligible,False,1.3,1,2,1-2,Fewer calls inside loops,True,13,13,2,2,39,37,40,38
+community,Taxonomy+Rules,Sonnet,C1S4-emeritus-member-flag,scripts/move-to-emeritus.py::_add_to_emeritus,C1.S4,C1,confirmed,True,13.5,1,5,3-6,Changes the loops,True,4,5,1,1,5,5,20,21
+community,Taxonomy+Rules,Sonnet,C8S2-emeritus-compiled-patterns,scripts/move-to-emeritus.py::_add_to_emeritus,C8.S2,C8,confirmed,True,35.4,1,8,7-15,Same loops and calls,True,4,4,1,1,5,5,20,22
+community,Taxonomy+Rules,Sonnet,C3S5-events-early-exit,scripts/move-to-emeritus.py::_check_events,C3.S5,C3,mixed,False,-0.3,1,2,1-2,Same loops and calls,False,1,1,1,1,3,5,5,7
+community,Taxonomy+Rules,Sonnet,C6S2-remove-member-line-no-slice,scripts/move-to-emeritus.py::_remove_member_line,C6.S2,C6,partial,True,1.9,1,6,3-6,Same loops and calls,False,0,0,0,0,0,0,6,6
+community,Taxonomy+Rules,Sonnet,C3S1-parse-members-comprehension,scripts/move-to-emeritus.py::_parse_members,C3.S1,C3,partial,True,4.5,1,5,3-6,Fewer calls inside loops,True,1,1,1,1,4,3,6,5
+community,Taxonomy+Rules,Sonnet,C8S2-parse-members-module-pattern,scripts/move-to-emeritus.py::_parse_members,C8.S2,C8,negligible,False,0.5,1,3,3-6,Fewer calls outside loops,True,1,1,1,1,4,4,6,5
+community,Taxonomy+Rules,Sonnet,C10S4-pr-body-join,scripts/move-to-emeritus.py::_build_pr_body,C10.S4,C10,confirmed,True,5.0,1,4,3-6,Same loops and calls,True,1,1,1,1,1,1,2,3
+community,Taxonomy+Rules,Sonnet,C10S4-issue-body-join,scripts/move-to-emeritus.py::_build_issue_body,C10.S4,C10,partial,True,5.3,1,4,3-6,Same loops and calls,True,1,1,1,1,1,1,2,3
+community,Taxonomy+Rules,Sonnet,C6S1-render-table-runs-set,scripts/baremetal-runner-report.py::render_table,C6.S1,C6,confirmed,True,12.2,1,5,3-6,Fewer calls inside loops,True,2,2,1,1,10,9,18,16
+community,Taxonomy+Rules,Sonnet,C1S4-sync-mentions-once,scripts/gc-elections/create-github-comments.py::sync,C1.S4,C1,partial,True,4.6,1,9,7-15,Same loops and calls,False,7,7,2,2,24,24,30,31
+community,Taxonomy+Rules,Sonnet,C3S3-sync-single-pass-removal,scripts/gc-elections/create-github-comments.py::sync,C3.S3,C3,confirmed,True,73.7,1,2,1-2,Changes the loops,False,7,8,2,2,24,27,30,33
+community,Taxonomy+Rules,Sonnet,C10S4-render-group-join,scripts/update-sig-tables.py::render_group,C10.S4,C10,partial,True,1.2,1,10,7-15,Same loops and calls,True,1,1,1,1,3,4,3,6
+community,Taxonomy+Rules,Sonnet,C10S4-render-details-group-join,scripts/update-sig-tables.py::render_sig_details_group,C10.S4,C10,partial,True,5.0,1,5,3-6,Same loops and calls,False,1,1,1,1,1,1,1,2
+community,Taxonomy+Rules,Sonnet,C1S4-render-gc-display-name,scripts/update-community-members.py::render_gc,C1.S4,C1,mixed,False,-3.0,1,5,3-6,Changes the loops,False,1,2,1,1,3,3,6,7
+community,Taxonomy+Rules,Sonnet,C1S4-render-tc-display-name,scripts/update-community-members.py::render_tc,C1.S4,C1,mixed,False,-0.4,1,5,3-6,Changes the loops,False,1,2,1,1,2,2,5,6
+community,Taxonomy+Rules,Haiku,C3S2-validate-hoist-sets,scripts/validate-workstreams.py::validate_workstreams_semantics,C3.S2,C3,confirmed,True,29.4,1,8,7-15,Fewer calls inside loops,True,13,13,2,2,39,35,40,40
+community,Taxonomy+Rules,Haiku,C1S1-validate-dead-parent-kind,scripts/validate-workstreams.py::validate_workstreams_semantics,C1.S1,C1,negligible,False,0.2,1,1,1-2,Fewer calls inside loops,True,13,13,2,2,39,38,40,39
+community,Taxonomy+Rules,Haiku,C3S5-check-events-break,scripts/move-to-emeritus.py::_check_events,C3.S5,C3,mixed,False,-0.5,1,2,1-2,Same loops and calls,False,1,1,1,1,3,5,5,7
+community,Taxonomy+Rules,Haiku,C1S4-add-emeritus-single-match,scripts/move-to-emeritus.py::_add_to_emeritus,C1.S4,C1,confirmed,True,18.3,1,12,7-15,Fewer calls inside loops,True,4,4,1,1,5,4,20,19
+community,Taxonomy+Rules,Haiku,C10S3-parse-members-comprehension,scripts/move-to-emeritus.py::_parse_members,C10.S3,C10,confirmed,True,4.9,1,5,3-6,Fewer calls inside loops,True,1,1,1,1,4,3,6,5
+community,Taxonomy,Sonnet,C3S5-check-events,scripts/move-to-emeritus.py::_check_events,C3.S5,C3,mixed,False,-1.9,1,2,1-2,Same loops and calls,False,1,1,1,1,3,5,5,7
+community,Taxonomy,Sonnet,C10S4-pr-body,scripts/move-to-emeritus.py::_build_pr_body,C10.S4,C10,partial,True,4.6,1,4,3-6,Same loops and calls,True,1,1,1,1,1,1,2,3
+community,Taxonomy,Sonnet,C10S4-issue-body,scripts/move-to-emeritus.py::_build_issue_body,C10.S4,C10,confirmed,True,9.7,1,4,3-6,Same loops and calls,True,1,1,1,1,1,1,2,3
+community,Taxonomy,Sonnet,C1S4-add-emeritus-single-pass,scripts/move-to-emeritus.py::_add_to_emeritus,C1.S4,C1,confirmed,True,13.7,1,17,16+,Changes the loops,True,4,3,1,1,5,5,20,20
+community,Taxonomy,Sonnet,C8S3-add-emeritus-compiled,scripts/move-to-emeritus.py::_add_to_emeritus,C8.S3,C8,confirmed,True,40.8,1,8,7-15,Same loops and calls,True,4,4,1,1,5,5,20,22
+community,Taxonomy,Sonnet,C3S1-parse-members-comp,scripts/move-to-emeritus.py::_parse_members,C3.S1,C3,partial,True,3.2,1,5,3-6,Fewer calls inside loops,True,1,1,1,1,4,3,6,5
+community,Taxonomy,Sonnet,C3S2-validate-hoist-sets,scripts/validate-workstreams.py::validate_workstreams_semantics,C3.S2,C3,partial,True,28.8,1,9,7-15,Fewer calls inside loops,True,13,13,2,2,39,35,40,40
+community,Taxonomy,Sonnet,C1S1-validate-parent-kind,scripts/validate-workstreams.py::validate_workstreams_semantics,C1.S1,C1,regressed,False,-0.4,1,1,1-2,Fewer calls inside loops,True,13,13,2,2,39,38,40,39
+community,Taxonomy,Sonnet,C1S5-render-group-light,scripts/update-sig-tables.py::render_group,C1.S5,C1,confirmed,True,79.4,1,15,7-15,Changes the loops,True,1,2,1,2,3,6,3,6
+community,Taxonomy,Sonnet,C10S4-render-group-join,scripts/update-sig-tables.py::render_group,C10.S4,C10,partial,True,1.8,1,4,3-6,Same loops and calls,True,1,1,1,1,3,4,3,5
+community,Taxonomy,Sonnet,C10S4-sig-details-join,scripts/update-sig-tables.py::render_sig_details_group,C10.S4,C10,negligible,False,0.4,1,5,3-6,Same loops and calls,False,1,1,1,1,1,1,1,2
+community,Taxonomy,Sonnet,C1S4-sync-mentions-once,scripts/gc-elections/create-github-comments.py::sync,C1.S4,C1,partial,True,4.1,1,9,7-15,Changes the loops,False,7,8,2,2,24,23,30,30
+community,Taxonomy,Sonnet,C6S1-render-table-runs,scripts/baremetal-runner-report.py::render_table,C6.S1,C6,confirmed,True,12.0,1,5,3-6,Fewer calls inside loops,True,2,2,1,1,10,9,18,16
+community,Taxonomy,Sonnet,C6S2-rank-gc-sorted,scripts/generate-sponsorship-ledger.py::rank_gc,C6.S2,C6,negligible,False,0.9,1,4,3-6,Fewer calls outside loops,False,0,0,0,0,0,0,4,3
+community,Taxonomy,Haiku,C3S2-validate-hoist-sets,scripts/validate-workstreams.py::validate_workstreams_semantics,C3.S2,C3,mixed,False,26.9,1,8,7-15,Fewer calls inside loops,True,13,13,2,2,39,35,40,40
+community,Taxonomy,Haiku,C1S1-validate-dead-parent-kind,scripts/validate-workstreams.py::validate_workstreams_semantics,C1.S1,C1,partial,True,0.1,1,1,1-2,Fewer calls inside loops,True,13,13,2,2,39,38,40,39
+community,Taxonomy,Haiku,C10S4-render-group-join,scripts/update-sig-tables.py::render_group,C10.S4,C10,negligible,False,1.1,1,4,3-6,Same loops and calls,True,1,1,1,1,3,4,3,5
+community,Taxonomy,Haiku,C1S4-sync-mentions-once,scripts/gc-elections/create-github-comments.py::sync,C1.S4,C1,partial,True,4.7,1,9,7-15,Changes the loops,False,7,8,2,2,24,23,30,30
+community,Taxonomy,Haiku,C10S2-add-emeritus-startswith,scripts/move-to-emeritus.py::_add_to_emeritus,C10.S2,C10,confirmed,True,26.9,1,4,3-6,Same loops and calls,True,4,4,1,1,5,5,20,20
+community,Taxonomy,Haiku,C1S4-add-emeritus-one-pass,scripts/move-to-emeritus.py::_add_to_emeritus,C1.S4,C1,confirmed,True,15.9,1,14,7-15,Fewer calls inside loops,True,4,4,1,1,5,4,20,19
+community,Taxonomy,Haiku,C3S5-check-events-early-exit,scripts/move-to-emeritus.py::_check_events,C3.S5,C3,mixed,False,-1.6,1,2,1-2,Same loops and calls,False,1,1,1,1,3,5,5,7
+community,Unguided,Sonnet,validate-team-sets,scripts/validate-workstreams.py::validate_workstreams_semantics,,,partial,True,28.9,1,10,7-15,Same loops and calls,True,13,13,2,2,39,39,40,40
+community,Unguided,Sonnet,validate-dead-parent-kind,scripts/validate-workstreams.py::validate_workstreams_semantics,,,negligible,False,-0.5,1,1,1-2,Fewer calls inside loops,True,13,13,2,2,39,38,40,39
+community,Unguided,Sonnet,render-table-runs-set,scripts/baremetal-runner-report.py::render_table,,,confirmed,True,10.7,1,5,3-6,Fewer calls inside loops,True,2,2,1,1,10,9,18,16
+community,Unguided,Sonnet,sync-single-pass-removal,scripts/gc-elections/create-github-comments.py::sync,,,partial,True,73.0,1,3,3-6,Changes the loops,False,7,8,2,2,24,27,30,33
+community,Unguided,Sonnet,sync-mentions-once,scripts/gc-elections/create-github-comments.py::sync,,,partial,True,4.0,1,9,7-15,Same loops and calls,False,7,7,2,2,24,24,30,31
+community,Unguided,Sonnet,voter-comment-header-prefilter,scripts/gc-elections/create-github-comments.py::is_voter_comment,,,partial,True,23.1,1,2,1-2,Same loops and calls,False,0,0,0,0,0,0,3,3
+community,Unguided,Sonnet,emeritus-single-match-pass,scripts/move-to-emeritus.py::_add_to_emeritus,,,confirmed,True,15.7,1,12,7-15,Fewer calls inside loops,True,4,4,1,1,5,4,20,19
+community,Unguided,Sonnet,render-group-skip-people,scripts/update-sig-tables.py::render_group,,,confirmed,True,48.5,2,8,7-15,Same loops and calls,True,1,1,1,1,3,3,3,3
+community,Unguided,Haiku,validate-drop-parent-kind,scripts/validate-workstreams.py::validate_workstreams_semantics,,,regressed,False,-2.3,1,1,1-2,Fewer calls inside loops,True,13,13,2,2,39,38,40,39
+community,Unguided,Haiku,validate-hoist-team-sets,scripts/validate-workstreams.py::validate_workstreams_semantics,,,partial,True,28.5,1,8,7-15,Fewer calls inside loops,True,13,13,2,2,39,35,40,40
+community,Unguided,Haiku,sync-single-pass-removal,scripts/gc-elections/create-github-comments.py::sync,,,confirmed,True,74.0,1,8,7-15,Changes the loops,False,7,8,2,2,24,25,30,31
+community,Unguided,Haiku,sync-reuse-mentions,scripts/gc-elections/create-github-comments.py::sync,,,partial,True,4.0,1,9,7-15,Same loops and calls,False,7,7,2,2,24,24,30,31
+community,Unguided,Haiku,events-stop-when-all-found,scripts/move-to-emeritus.py::_check_events,,,regressed,False,-75.0,1,2,1-2,Same loops and calls,False,1,1,1,1,3,5,5,7
+community,Unguided,Haiku,add-emeritus-single-scan,scripts/move-to-emeritus.py::_add_to_emeritus,,,confirmed,True,14.7,1,17,16+,Changes the loops,True,4,3,1,1,5,5,20,20

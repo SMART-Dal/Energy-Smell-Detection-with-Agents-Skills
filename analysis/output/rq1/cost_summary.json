@@ -1,0 +1,20 @@
+{
+  "runs": 18,
+  "cost_usd": 85.31,
+  "agent_minutes": 772.0,
+  "api_minutes": 587.2,
+  "input_tokens": 56214,
+  "output_tokens": 6835377,
+  "thinking_tokens": 4744872,
+  "cache_read_tokens": 682990429,
+  "cache_write_tokens": 22357539,
+  "main_tool_calls": 2038,
+  "subagent_tool_calls": 3119,
+  "main_wait_calls": 631,
+  "subagents": 154,
+  "confirmed_repairs": 186,
+  "pct_output_thinking": 69.4,
+  "output_tokens_thousands": 6835,
+  "cache_read_tokens_millions": 683.0,
+  "usd_per_confirmed_repair": 0.46
+}

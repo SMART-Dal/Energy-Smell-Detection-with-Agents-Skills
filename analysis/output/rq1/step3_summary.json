@@ -102,6 +102,29 @@
     "units_inputs_failed": 157,
     "units_inputs_cannot_run_here": 126
   },
+  "inputs_per_repo": {
+    "sample-apps": {
+      "units_inputs_requested": 197,
+      "units_inputs_ready": 136,
+      "units_inputs_failed": 61,
+      "units_inputs_cannot_run_here": 46,
+      "units_inputs_failed_naming_github": 0
+    },
+    "dx-toolkit": {
+      "units_inputs_requested": 156,
+      "units_inputs_ready": 102,
+      "units_inputs_failed": 54,
+      "units_inputs_cannot_run_here": 38,
+      "units_inputs_failed_naming_github": 0
+    },
+    "community": {
+      "units_inputs_requested": 85,
+      "units_inputs_ready": 43,
+      "units_inputs_failed": 42,
+      "units_inputs_cannot_run_here": 42,
+      "units_inputs_failed_naming_github": 42
+    }
+  },
   "union": [
     {
       "repo": "sample-apps",

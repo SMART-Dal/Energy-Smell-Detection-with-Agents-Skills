@@ -89,9 +89,12 @@ def step3_of(repo, skill, model, sizes):
     # reason then starts with "it cannot run here", e.g. a call to a web API)
     failed = inputs.get("failed") or {}                 # {unit: reason}
     cannot_run = 0
+    github = 0                                          # reasons that name GitHub
     for reason in failed.values():
         if reason.startswith("it cannot run here"):
             cannot_run = cannot_run + 1
+        if "github" in reason.lower():                  # e.g. "performs live GitHub API requests"
+            github = github + 1
 
     row = {}
     row["repo"] = repo
@@ -102,6 +105,7 @@ def step3_of(repo, skill, model, sizes):
     row["pct_inputs_ready"] = percent(inputs["ready"], inputs["requested"])
     row["units_inputs_failed"] = len(failed)
     row["units_inputs_cannot_run_here"] = cannot_run
+    row["units_inputs_failed_naming_github"] = github
     row["repairs_submitted"] = len(repairs)
     row["repairs_measured"] = measured
     row["repairs_saving"] = len(savings)
@@ -322,6 +326,17 @@ def main():
         "units_inputs_failed": inputs_failed,
         "units_inputs_cannot_run_here": cannot_run,
     }
+
+    # Inputs per repository, the six runs added up
+    inputs = {}
+    for repo in REPOS:
+        inputs[repo] = {"units_inputs_requested": 0, "units_inputs_ready": 0,
+                        "units_inputs_failed": 0, "units_inputs_cannot_run_here": 0,
+                        "units_inputs_failed_naming_github": 0}
+    for (repo, skill, model), row in per_run.items():
+        for name in inputs[repo]:
+            inputs[repo][name] = inputs[repo][name] + row[name]
+    summary["inputs_per_repo"] = inputs
 
     union = union_rows(saving, sizes)
     write_csv(union, OUT / "step3_union.csv")

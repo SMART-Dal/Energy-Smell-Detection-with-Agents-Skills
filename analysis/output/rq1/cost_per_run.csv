@@ -1,0 +1,19 @@
+repo,skill,model,cost_usd,agent_minutes,api_minutes,input_tokens,output_tokens,thinking_tokens,pct_output_thinking,cache_read_tokens,cache_write_tokens,main_tool_calls,subagent_tool_calls,main_wait_calls,subagents,subagent_types,confirmed_repairs
+sample-apps,Taxonomy+Rules,Sonnet,4.89,55.7,23.1,198,167447,72870,43.5,11729091,625831,64,49,2,6,Explore:6,13
+sample-apps,Taxonomy+Rules,Haiku,1.98,40.3,33.4,296,450929,345517,76.6,23483878,878923,86,153,7,7,Explore:7,16
+sample-apps,Taxonomy,Sonnet,4.51,40.6,23.5,212,191215,95788,50.1,7861970,588074,57,129,11,7,Explore:7,16
+sample-apps,Taxonomy,Haiku,2.35,49.8,36.5,284,475828,357340,75.1,25447407,1309418,122,146,5,7,Explore:7,17
+sample-apps,Unguided,Sonnet,6.41,39.2,22.5,528,168832,84558,50.1,30082274,544398,102,74,49,6,Explore:6,13
+sample-apps,Unguided,Haiku,2.87,57.8,68.9,490,869776,628393,72.2,27976155,2166547,90,260,7,18,Explore:18,12
+dx-toolkit,Taxonomy+Rules,Sonnet,9.21,87.3,31.3,356,252864,129768,51.3,29373536,1279659,119,136,18,5,Explore:5,13
+dx-toolkit,Taxonomy+Rules,Haiku,5.46,52.7,82.8,662,1138615,865251,76.0,37736722,4280723,120,636,10,22,general-purpose:22,10
+dx-toolkit,Taxonomy,Sonnet,8.15,95.3,28.6,386,229582,115792,50.4,22460492,1274505,81,160,19,7,Explore:7,15
+dx-toolkit,Taxonomy,Haiku,20.23,25.4,70.1,50262,904589,646290,71.4,332671072,3521662,732,366,465,14,general-purpose:14,6
+dx-toolkit,Unguided,Sonnet,7.53,43.6,23.9,462,185945,90192,48.5,25215968,1141840,88,163,5,6,Explore:6,13
+dx-toolkit,Unguided,Haiku,6.02,50.1,106.1,1588,1375810,1027474,74.7,75170300,3627477,132,847,10,49,Explore:40 general-purpose:9,2
+community,Taxonomy+Rules,Sonnet,1.33,27.6,4.3,62,35288,12298,34.9,3410582,160019,36,0,1,0,,12
+community,Taxonomy+Rules,Haiku,0.68,12.6,7.2,84,97036,71559,73.7,6363191,227838,46,0,3,0,,3
+community,Taxonomy,Sonnet,1.09,34.6,3.6,62,27763,11213,40.4,2887812,131842,29,0,1,0,,10
+community,Taxonomy,Haiku,0.86,20.2,9.4,94,125059,96598,77.2,8171290,276414,53,0,3,0,,4
+community,Unguided,Sonnet,0.77,10.3,3.1,34,24587,11153,45.4,1191260,101076,17,0,0,0,,7
+community,Unguided,Haiku,0.97,28.9,8.9,154,114212,82818,72.5,11757429,221293,64,0,15,0,,4

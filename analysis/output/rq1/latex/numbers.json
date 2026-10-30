@@ -1,0 +1,394 @@
+{
+  "rqOneComparisonLevel": {
+    "value": "98.3",
+    "file": "repairs_summary.json",
+    "line": "line 33",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "width of the Bonferroni-adjusted intervals of the three comparisons (%)"
+  },
+  "rqOneScanAddedMin": {
+    "value": "1",
+    "file": "step1_per_run.csv",
+    "line": "line 9",
+    "made_by": "analysis/rq1_step1.py, step1_of()",
+    "meaning": "fewest units the comparison with the rules added in a Taxonomy+Rules run"
+  },
+  "rqOneScanAddedMax": {
+    "value": "17",
+    "file": "step1_per_run.csv",
+    "line": "line 8",
+    "made_by": "analysis/rq1_step1.py, step1_of()",
+    "meaning": "most units the comparison with the rules added in a Taxonomy+Rules run"
+  },
+  "rqOneAcceptUngHaikuMin": {
+    "value": "30.9",
+    "file": "step2_per_run.csv",
+    "line": "line 7",
+    "made_by": "analysis/rq1_step2.py, step2_of()",
+    "meaning": "lowest share of suspicions Unguided Haiku accepted (%)"
+  },
+  "rqOneAcceptUngHaikuMax": {
+    "value": "37.1",
+    "file": "step2_per_run.csv",
+    "line": "line 19",
+    "made_by": "analysis/rq1_step2.py, step2_of()",
+    "meaning": "highest share of suspicions Unguided Haiku accepted (%)"
+  },
+  "rqOneAcceptTaxMin": {
+    "value": "41.3",
+    "file": "step2_per_run.csv",
+    "line": "line 9",
+    "made_by": "analysis/rq1_step2.py, step2_of()",
+    "meaning": "lowest acceptance rate of any run of the two taxonomy skills (%)"
+  },
+  "rqOneRelabelled": {
+    "value": "1",
+    "file": "step2_summary.json",
+    "line": "line 59",
+    "made_by": "analysis/rq1_step2.py, main()",
+    "meaning": "step-2 decisions whose root cause differs from step 1"
+  },
+  "rqOneTaxDecisions": {
+    "value": "1,539",
+    "file": "step2_summary.json",
+    "line": "line 58",
+    "made_by": "analysis/rq1_step2.py, main()",
+    "meaning": "step-2 decisions in the 12 taxonomy runs"
+  },
+  "rqOneUnitsDx": {
+    "value": "2,543",
+    "file": "repo_stats.tsv",
+    "line": "line 3",
+    "made_by": "experiment/lib/repo_stats.py, count_units()",
+    "meaning": "units (functions and methods) of dx-toolkit"
+  },
+  "rqOneTestUnitsDx": {
+    "value": "1,147",
+    "file": "repo_stats.tsv",
+    "line": "line 3",
+    "made_by": "experiment/lib/repo_stats.py, count_units()",
+    "meaning": "units of dx-toolkit in test files"
+  },
+  "rqOneTestListedDxHaikuMin": {
+    "value": "24",
+    "file": "step1_per_run.csv",
+    "line": "line 11",
+    "made_by": "analysis/rq1_step1.py, step1_of()",
+    "meaning": "fewest test units a Haiku run listed on dx-toolkit"
+  },
+  "rqOneTestListedDxHaikuMax": {
+    "value": "62",
+    "file": "step1_per_run.csv",
+    "line": "line 13",
+    "made_by": "analysis/rq1_step1.py, step1_of()",
+    "meaning": "most test units a Haiku run listed on dx-toolkit"
+  },
+  "rqOneRulesAgreeCells": {
+    "value": "5",
+    "file": "step2_summary.json",
+    "line": "line 56",
+    "made_by": "analysis/rq1_step2.py, main()",
+    "meaning": "(repo, model) pairs, of 6, where more smells share a rule's root cause with Taxonomy+Rules than with Taxonomy"
+  },
+  "rqOneTaxSmells": {
+    "value": "997",
+    "file": "categories_summary.json",
+    "line": "line 2",
+    "made_by": "analysis/rq1_categories.py, main()",
+    "meaning": "smells in the 12 taxonomy runs"
+  },
+  "rqOneCEightSFourSmells": {
+    "value": "80",
+    "file": "root_causes_funnel.csv",
+    "line": "line 41",
+    "made_by": "analysis/rq1_categories.py, funnel_row()",
+    "meaning": "smells of root cause C8.S4 (Redundant Data Fetching)"
+  },
+  "rqOneCEightSFourDx": {
+    "value": "64",
+    "file": "root_causes_funnel.csv",
+    "line": "line 41",
+    "made_by": "analysis/rq1_categories.py, funnel_row()",
+    "meaning": "of those, smells in dx-toolkit"
+  },
+  "rqOneCEightSFourSubmitted": {
+    "value": "1",
+    "file": "root_causes_funnel.csv",
+    "line": "line 41",
+    "made_by": "analysis/rq1_categories.py, funnel_row()",
+    "meaning": "repairs submitted for C8.S4"
+  },
+  "rqOneSubmitted": {
+    "value": "317",
+    "file": "step3_summary.json",
+    "line": "line 93",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "repairs submitted, all 18 runs"
+  },
+  "rqOneMeasured": {
+    "value": "258",
+    "file": "step3_summary.json",
+    "line": "line 94",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "repairs we measured"
+  },
+  "rqOneSavingRepairs": {
+    "value": "186",
+    "file": "step3_summary.json",
+    "line": "line 95",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "repairs confirmed (confirmed or partial)"
+  },
+  "rqOneSavingPct": {
+    "value": "72.1",
+    "file": "step3_summary.json",
+    "line": "line 96",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "share of measured repairs that are confirmed (%)"
+  },
+  "rqOneSavingPctLow": {
+    "value": "67.9",
+    "file": "repairs_summary.json",
+    "line": "line 18",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "lower end of its 95% interval (%)"
+  },
+  "rqOneSavingPctHigh": {
+    "value": "76.1",
+    "file": "repairs_summary.json",
+    "line": "line 19",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "upper end of its 95% interval (%)"
+  },
+  "rqOneMedianSaving": {
+    "value": "25.2",
+    "file": "step3_summary.json",
+    "line": "line 98",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "median saving of the confirmed repairs (%)"
+  },
+  "rqOneMedianSavingLow": {
+    "value": "18.6",
+    "file": "repairs_summary.json",
+    "line": "line 24",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "lower end of its 95% interval (%)"
+  },
+  "rqOneMedianSavingHigh": {
+    "value": "27.7",
+    "file": "repairs_summary.json",
+    "line": "line 25",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "upper end of its 95% interval (%)"
+  },
+  "rqOneRegressed": {
+    "value": "19",
+    "file": "step3_summary.json",
+    "line": "line 97",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "repairs that regressed"
+  },
+  "rqOneSavedFnSonnetWins": {
+    "value": "7",
+    "file": "step3_summary.json",
+    "line": "line 22",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "(repo, skill) pairs, of 9, where Sonnet has more functions with a confirmed repair"
+  },
+  "rqOneInputsReadyDxUngHaiku": {
+    "value": "6",
+    "file": "step3_per_run.csv",
+    "line": "line 13",
+    "made_by": "analysis/rq1_step3.py, step3_of()",
+    "meaning": "units with usable inputs, dx-toolkit, Unguided, Haiku"
+  },
+  "rqOneInputsAskedDxUngHaiku": {
+    "value": "31",
+    "file": "step3_per_run.csv",
+    "line": "line 13",
+    "made_by": "analysis/rq1_step3.py, step3_of()",
+    "meaning": "units it asked inputs for"
+  },
+  "rqOneInputsFailedCo": {
+    "value": "42",
+    "file": "step3_summary.json",
+    "line": "line 123",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "community units whose inputs failed, six runs added up"
+  },
+  "rqOneInputsAskedCo": {
+    "value": "85",
+    "file": "step3_summary.json",
+    "line": "line 121",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "community units the six runs asked inputs for"
+  },
+  "rqOneInputsGithubCo": {
+    "value": "42",
+    "file": "step3_summary.json",
+    "line": "line 125",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "of the failed ones, those whose reason names GitHub"
+  },
+  "rqOneIdentical": {
+    "value": "40",
+    "file": "step3_summary.json",
+    "line": "line 216",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "repairs written identically in two or more runs"
+  },
+  "rqOneIdenticalSpread": {
+    "value": "1.0",
+    "file": "step3_summary.json",
+    "line": "line 219",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "median difference of their savings (percentage points)"
+  },
+  "rqOneIdenticalSameOutcome": {
+    "value": "35",
+    "file": "step3_summary.json",
+    "line": "line 218",
+    "made_by": "analysis/rq1_step3.py, main()",
+    "meaning": "of those, same outcome (confirmed or not) in every run"
+  },
+  "rqOneFlaggedRepairs": {
+    "value": "137",
+    "file": "repairs_by_rule_flag.csv",
+    "line": "line 2",
+    "made_by": "analysis/rq1_repairs.py, rule_flag_table() and outcome()",
+    "meaning": "measured repairs in units a static rule flags"
+  },
+  "rqOneFlagDiff": {
+    "value": "30.0",
+    "file": "repairs_summary.json",
+    "line": "line 30",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "median saving of unflagged minus flagged units (points)"
+  },
+  "rqOneFlagDiffLow": {
+    "value": "12.2",
+    "file": "repairs_summary.json",
+    "line": "line 31",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "lower end of its interval"
+  },
+  "rqOneFlagDiffHigh": {
+    "value": "46.6",
+    "file": "repairs_summary.json",
+    "line": "line 32",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "upper end of its interval"
+  },
+  "rqOneMedianLines": {
+    "value": "5",
+    "file": "repairs_summary.json",
+    "line": "line 14",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "median lines changed by a measured repair"
+  },
+  "rqOneMultiFunction": {
+    "value": "2",
+    "file": "repairs_summary.json",
+    "line": "line 13",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "measured repairs that change more than one function"
+  },
+  "rqOneSmallDiff": {
+    "value": "19.5",
+    "file": "repairs_summary.json",
+    "line": "line 36",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "confirmed share of larger repairs minus 1-2-line repairs (points)"
+  },
+  "rqOneSmallDiffLow": {
+    "value": "4.3",
+    "file": "repairs_summary.json",
+    "line": "line 37",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "lower end of its interval"
+  },
+  "rqOneSmallDiffHigh": {
+    "value": "41.6",
+    "file": "repairs_summary.json",
+    "line": "line 38",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "upper end of its interval"
+  },
+  "rqOneLoopsMedian": {
+    "value": "57.2",
+    "file": "repairs_by_change.csv",
+    "line": "line 2",
+    "made_by": "analysis/rq1_repairs.py, grouped_table() and outcome()",
+    "meaning": "median saving of confirmed repairs that change the loops (%)"
+  },
+  "rqOneLoopsDiff": {
+    "value": "38.1",
+    "file": "repairs_summary.json",
+    "line": "line 42",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "their median saving minus that of the other repairs (points)"
+  },
+  "rqOneLoopsDiffLow": {
+    "value": "9.9",
+    "file": "repairs_summary.json",
+    "line": "line 43",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "lower end of its interval"
+  },
+  "rqOneLoopsDiffHigh": {
+    "value": "49.6",
+    "file": "repairs_summary.json",
+    "line": "line 44",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "upper end of its interval"
+  },
+  "rqOneCostTotal": {
+    "value": "85.31",
+    "file": "cost_summary.json",
+    "line": "line 3",
+    "made_by": "analysis/rq1_cost.py, added_up()",
+    "meaning": "cost of the 18 runs, as Claude Code reported it (USD)"
+  },
+  "rqOneCostPerConfirmed": {
+    "value": "0.46",
+    "file": "cost_summary.json",
+    "line": "line 19",
+    "made_by": "analysis/rq1_cost.py, added_up()",
+    "meaning": "that cost per confirmed repair (USD)"
+  },
+  "rqOneSubagentsMax": {
+    "value": "49",
+    "file": "cost_per_run.csv",
+    "line": "line 13",
+    "made_by": "analysis/rq1_cost.py, cost_of()",
+    "meaning": "most subagents started in one run"
+  },
+  "rqOneCostOutlier": {
+    "value": "20.23",
+    "file": "cost_per_run.csv",
+    "line": "line 11",
+    "made_by": "analysis/rq1_cost.py, cost_of()",
+    "meaning": "cost of the Taxonomy Haiku run on dx-toolkit (USD)"
+  },
+  "rqOneMinutesOutlier": {
+    "value": "25.4",
+    "file": "cost_per_run.csv",
+    "line": "line 11",
+    "made_by": "analysis/rq1_cost.py, cost_of()",
+    "meaning": "its session length (minutes)"
+  },
+  "rqOneCallsOutlier": {
+    "value": "732",
+    "file": "cost_per_run.csv",
+    "line": "line 11",
+    "made_by": "analysis/rq1_cost.py, cost_of()",
+    "meaning": "its main agent's tool calls"
+  },
+  "rqOneWaitOutlier": {
+    "value": "465",
+    "file": "cost_per_run.csv",
+    "line": "line 11",
+    "made_by": "analysis/rq1_cost.py, cost_of()",
+    "meaning": "of those, calls that only wait (Monitor, or Bash starting with sleep)"
+  }
+}

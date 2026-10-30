@@ -1,0 +1,50 @@
+id,name,smells,smells_sample-apps,smells_dx-toolkit,smells_community,deferred,blocked,submitted,measured,confirmed,confirmed_per_100_smells,median_saving_pct
+C1.S1,Dead Code,41,15,19,7,22,8,12,11,4,9.8,100.0
+C1.S2,Redundant Assignment,10,4,6,0,10,0,0,0,0,0.0,
+C1.S3,Redundant Control Flow,11,5,4,2,9,2,1,0,0,0.0,
+C1.S4,Repeated Computation,81,21,42,18,46,9,26,25,19,23.5,13.5
+C1.S5,Resultless Computation,57,17,36,4,48,6,4,3,2,3.5,72.8
+C1.S6,Unnecessary Initialization,15,3,12,0,13,0,2,2,1,6.7,69.8
+C1.S7,Unnecessary Variable,1,0,1,0,1,0,0,0,0,0.0,
+C1.S8,Excessive Runtime-Management Calls,2,1,1,0,1,0,1,1,1,50.0,2.9
+C2.S1,Unnecessary Method Delegation,4,3,1,0,3,0,1,1,1,25.0,25.1
+C3.S1,Inefficient Iteration Construct,21,12,6,3,11,2,8,8,6,28.6,23.4
+C3.S2,Recomputing Loop-Invariant Values,66,20,35,11,35,20,18,11,8,12.1,27.6
+C3.S3,Inefficient Per-Iteration Setup,15,5,8,2,13,1,2,1,1,6.7,73.7
+C3.S4,Inefficient Nested Iteration,14,9,5,0,6,0,8,8,6,42.9,39.3
+C3.S5,Missing Loop Early Exit,27,5,17,5,17,2,9,8,4,14.8,54.8
+C3.S6,Unfiltered Bulk Iteration,13,11,2,0,12,0,1,1,1,7.7,8.5
+C3.S7,Inefficient Array Mutation in Loop,1,1,0,0,1,0,0,0,0,0.0,
+C4.S1,Poor Short-Circuit Ordering,5,1,4,0,5,0,0,0,0,0.0,
+C4.S2,Redundant Conditional Evaluation,7,4,1,2,4,2,1,1,0,0.0,
+C4.S4,Missing Else-If,3,1,2,0,3,0,1,0,0,0.0,
+C4.S6,Expensive Exception Control Flow,4,0,4,0,2,0,4,2,2,50.0,39.2
+C4.S7,Missing Edge-Case Guards,7,3,4,0,4,0,3,3,1,14.3,24.9
+C4.S8,Non-Idiomatic Condition,2,2,0,0,2,0,0,0,0,0.0,
+C5.S1,Inefficient Data Structure Choice,30,6,21,3,20,8,3,2,2,6.7,29.9
+C5.S2,Missing Helper Type,5,1,2,2,0,2,4,3,1,20.0,99.1
+C5.S3,Over-Provisioned Data Type,4,4,0,0,2,0,2,2,2,50.0,3.1
+C5.S4,Unnecessary Representation Change,11,10,1,0,9,2,1,1,1,9.1,19.1
+C6.S1,Unnecessary Object,14,6,6,2,11,0,3,3,2,14.3,12.1
+C6.S2,Unnecessary Copying,63,12,49,2,38,9,17,16,13,20.6,60.3
+C6.S3,Unnecessary Data Materialization,32,17,15,0,27,1,4,4,1,3.1,5.3
+C6.S4,Oversized Data Retaining,5,4,1,0,5,0,0,0,0,0.0,
+C6.S6,Leaked Resource Handles,12,6,6,0,12,0,0,0,0,0.0,
+C6.S7,Leaking Mutable Default Arguments,3,0,3,0,3,0,0,0,0,0.0,
+C7.S1,Suboptimal Algorithm Choice,11,0,11,0,5,2,5,4,4,36.4,84.3
+C7.S3,Avoidable Recursive Implementation,5,2,3,0,3,1,1,0,0,0.0,
+C7.S4,Inefficient Operation Ordering,3,1,2,0,3,0,1,0,0,0.0,
+C7.S5,Unsimplified Operation,3,3,0,0,3,0,0,0,0,0.0,
+C8.S1,Missing Memoization Cache,29,11,17,1,24,3,3,2,1,3.4,3.5
+C8.S2,Missing Derived-Value Reuse,62,33,24,5,44,14,8,4,2,3.2,52.4
+C8.S3,Missing Local Lookup Caching,20,9,10,1,15,0,7,5,5,25.0,10.1
+C8.S4,Redundant Data Fetching,80,14,64,2,77,3,1,0,0,0.0,
+C9.S1,Fragmented I/O Calls,38,23,13,2,27,7,5,4,4,10.5,7.0
+C9.S2,Oversized Data Retrieval,31,5,25,1,30,1,1,0,0,0.0,
+C9.S3,Inefficient Retrieval Paths,6,1,5,0,6,0,0,0,0,0.0,
+C10.S1,Skipping Optimized Built-ins,25,17,8,0,13,0,12,12,11,44.0,40.3
+C10.S2,Inefficient Built-in Choice,29,22,6,1,20,0,12,9,8,27.6,22.5
+C10.S3,Missing Bulk Primitive Usage,26,23,2,1,10,5,10,10,10,38.5,13.0
+C10.S4,Inefficient String Concatenation,25,8,8,9,6,2,18,17,11,44.0,5.3
+C11.S4,Blocking The Main Thread,1,1,0,0,1,0,0,0,0,0.0,
+C11.S5,Missed Parallelism Opportunities,17,9,5,3,14,3,0,0,0,0.0,

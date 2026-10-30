@@ -1,0 +1,12 @@
+{
+  "smells": 997,
+  "submitted": 220,
+  "measured": 184,
+  "confirmed": 135,
+  "confirmed_per_100_smells": 13.5,
+  "median_saving_pct": 23.7,
+  "categories_with_a_smell": 11,
+  "categories_with_a_confirmed_repair": 10,
+  "root_causes_with_a_smell": 49,
+  "root_causes_with_a_confirmed_repair": 30
+}
