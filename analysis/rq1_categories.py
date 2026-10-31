@@ -35,7 +35,7 @@ Run:  python3 analysis/rq1_categories.py
 import re
 
 from common import (MEASURED, OUTPUT_DIR, REPOS, ROOT, SAVES, all_runs, category_of, median,
-                    percent, read_jsonl, run_folder, write_csv, write_json)
+                    percent, read_jsonl, review_results, run_folder, write_csv, write_json)
 from rq1_step2 import smells_of
 
 OUT = OUTPUT_DIR / "rq1"   # where this script writes
@@ -105,8 +105,7 @@ def funnel_counts():
                 reasons[key] = reasons.get(key, 0) + 1
 
         # Step 3: the repairs, and our verdict on each
-        results = read_jsonl(folder / "review" / "results.jsonl")
-        for repair in results:
+        for repair in review_results(repo, skill, model):
             cause = repair.get("root_cause")
             if not cause:
                 continue

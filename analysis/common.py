@@ -59,8 +59,10 @@ MODEL_NAMES = {
 # its confidence interval on some inputs and costs more on none.
 SAVES = {"confirmed", "partial"}
 
-# Every verdict that comes from an actual measurement
-MEASURED = {"confirmed", "partial", "mixed", "regressed", "negligible"}
+# Every repair we measured: the five verdicts, plus "excluded" for the repairs in
+# analysis/excluded_repairs.csv. An excluded repair is measured but never confirmed,
+# has no saving, and is none of the five verdicts (see review_results()).
+MEASURED = {"confirmed", "partial", "mixed", "regressed", "negligible", "excluded"}
 
 
 # ---------------------------------------------------------------------------
@@ -139,6 +141,31 @@ def repo_sizes():
                 "files": int(row["files"]),             # Python files
             }
     return sizes
+
+
+def excluded_repairs():
+    """The repairs listed in analysis/excluded_repairs.csv, as a set of
+    (repo, skill, model, repair id) (see that file for why each is listed)."""
+    listed = set()
+    with open(ROOT / "analysis" / "excluded_repairs.csv") as handle:
+        lines = [line for line in handle if not line.startswith("#")]   # skip the comments
+    for row in csv.DictReader(lines):
+        listed.add((row["repo"], row["skill"], row["model"], row["repair"]))
+    return listed
+
+
+def review_results(repo, skill, model):
+    """Our verdict on every repair of one run (review/results.jsonl). Every script
+    reads our review here. A repair in analysis/excluded_repairs.csv stays
+    measured, but gets the status "excluded" and no saving (None)."""
+    excluded = excluded_repairs()
+    rows = []
+    for repair in read_jsonl(run_folder(repo, skill, model) / "review" / "results.jsonl"):
+        if (repo, skill, model, repair["id"]) in excluded:
+            repair["status"] = "excluded"               # measured, never confirmed
+            repair["mean_saving_pct"] = None            # its saving is never used
+        rows.append(repair)
+    return rows
 
 
 # ---------------------------------------------------------------------------

@@ -1,25 +1,26 @@
-"""Writes the RQ1 text twice from one template: plain, and annotated with sources.
+"""Writes each RQ text twice from its template: plain, and annotated with sources.
 
-Reads temp_main_paper/results/rq1_template.tex, where
-  - every number is a command such as \\rqOneSavingPct (values in generated/numbers.json,
-    written by rq1_latex.py), and
+For RQ1 and RQ2, reads temp_main_paper/results/rq<N>_template.tex, where
+  - every number is a command such as \\rqOneSavingPct or \\rqTwoInstances (values
+    in generated/numbers.json and generated/rq2_numbers.json, written by
+    rq1_latex.py and rq2_latex.py), and
   - \\src{...} marks the end of one or two sentences, with a note on how the
     numbers before it were computed.
 
-Writes, next to the template:
-  rq1.tex             the paper's text: numbers typed in, tables pasted in,
-                      every \\src{...} removed
-  rq1_annotated.tex   the same text, where each \\src{...} becomes a note in blue
-                      parentheses. For every number since the previous marker,
-                      the note gives the value, what it is, the file and line it
-                      was read from, and the script that wrote that file; then the
-                      text inside the braces. Needs \\usepackage{xcolor}.
+Writes, next to each template:
+  rq<N>.tex             the paper's text: numbers typed in, tables pasted in,
+                        every \\src{...} removed
+  rq<N>_annotated.tex   the same text, where each \\src{...} becomes a note in blue
+                        parentheses. For every number since the previous marker,
+                        the note gives the value, what it is, the file and line it
+                        was read from, and the script that wrote that file; then the
+                        text inside the braces. Needs \\usepackage{xcolor}.
 
-rq1.tex is written by this script, so edit the template, not rq1.tex. To keep
-hand edits from being lost, the script stops when rq1.tex differs from the copy
-it wrote last time (generated/rq1_last_render.tex).
+rq<N>.tex is written by this script, so edit the template, not rq<N>.tex. To keep
+hand edits from being lost, the script stops when rq<N>.tex differs from the copy
+it wrote last time (generated/rq<N>_last_render.tex).
 
-Run after rq1_latex.py:  python3 analysis/rq1_render.py
+Run after rq1_latex.py and rq2_latex.py:  python3 analysis/render_text.py
 """
 
 import json
@@ -29,12 +30,10 @@ from common import ROOT
 
 RESULTS = ROOT / "temp_main_paper" / "results"
 GENERATED = RESULTS / "generated"
-TEMPLATE = RESULTS / "rq1_template.tex"
-PLAIN = RESULTS / "rq1.tex"
-ANNOTATED = RESULTS / "rq1_annotated.tex"
-LAST = GENERATED / "rq1_last_render.tex"          # what this script wrote last time
+TEXTS = ["rq1", "rq2"]                                  # one template each: rq1_template.tex, ...
+NUMBER_FILES = ["numbers.json", "rq2_numbers.json"]     # written by rq1_latex.py and rq2_latex.py
 
-COMMAND = re.compile(r"\\(rqOne[A-Za-z]+)(\{\})?")  # \rqOneName or \rqOneName{}
+COMMAND = re.compile(r"\\(rq(?:One|Two)[A-Za-z]+)(\{\})?")   # \rqOneName, \rqTwoName{}, ...
 TABLE = re.compile(r"\\input\{results/generated/(table_\w+)\}")
 
 
@@ -76,11 +75,11 @@ def split_on_markers(template):
 
 
 def with_numbers(text, numbers):
-    """The text with every \\rqOne command replaced by its value."""
+    """The text with every number command replaced by its value."""
     def value_of(match):
         name = match.group(1)
         if name not in numbers:
-            raise SystemExit(f"\\{name} is not in numbers.json (add it to rq1_latex.py)")
+            raise SystemExit(f"\\{name} is not in the numbers files (add it to rq1_latex.py or rq2_latex.py)")
         return numbers[name]["value"]
     return COMMAND.sub(value_of, text)
 
@@ -103,9 +102,12 @@ def note(names, numbers, free_text):
     return r" {\color{blue}\footnotesize (" + escaped("; ".join(parts)) + ")}"
 
 
-def main():
-    numbers = json.loads((GENERATED / "numbers.json").read_text())
-    template = TEMPLATE.read_text()
+def render(name, numbers):
+    """Write rq<N>.tex and rq<N>_annotated.tex from rq<N>_template.tex."""
+    template = (RESULTS / f"{name}_template.tex").read_text()
+    plain_file = RESULTS / f"{name}.tex"
+    annotated_file = RESULTS / f"{name}_annotated.tex"
+    last_file = GENERATED / f"{name}_last_render.tex"   # what this script wrote last time
 
     # Drop the template's own header (the comment lines at the very top)
     lines = template.splitlines(keepends=True)
@@ -113,8 +115,8 @@ def main():
         lines.pop(0)
     body = "".join(lines)
 
-    plain = []                                          # pieces of rq1.tex
-    annotated = []                                      # pieces of rq1_annotated.tex
+    plain = []                                          # pieces of rq<N>.tex
+    annotated = []                                      # pieces of rq<N>_annotated.tex
     since_marker = []                                   # commands used since the last marker
     for kind, content in split_on_markers(body):
         if kind == "text":
@@ -134,22 +136,31 @@ def main():
     plain_text = re.sub(r" +\n", "\n", plain_text)
     plain_text = re.sub(r"(\S)  +(\S)", r"\1 \2", plain_text)
 
-    header_plain = ("% Results, RQ1. Written by analysis/rq1_render.py from rq1_template.tex;\n"
-                    "% edit the template and run it again. Every number's source is in\n"
-                    "% generated/numbers.md, and rq1_annotated.tex shows it after each sentence.\n")
-    header_annotated = ("% Results, RQ1, ANNOTATED: the text of rq1.tex with the source of every\n"
-                        "% number in blue after each sentence or two. Written by analysis/rq1_render.py.\n"
+    number = name[2:]
+    header_plain = (f"% Results, RQ{number}. Written by analysis/render_text.py from {name}_template.tex;\n"
+                    "% edit the template and run it again. Every number's source is in the\n"
+                    f"% generated/*numbers.md files, and {name}_annotated.tex shows it after each sentence.\n")
+    header_annotated = (f"% Results, RQ{number}, ANNOTATED: the text of {name}.tex with the source of every\n"
+                        "% number in blue after each sentence or two. Written by analysis/render_text.py.\n"
                         "% Needs \\usepackage{xcolor}.\n")
 
-    # Do not overwrite rq1.tex if someone edited it since the last render
-    if PLAIN.exists() and LAST.exists() and PLAIN.read_text() != LAST.read_text():
-        raise SystemExit(f"{PLAIN} was edited by hand since the last render. Move your edits "
-                         f"into {TEMPLATE.name}, or delete {LAST} to overwrite.")
+    # Do not overwrite rq<N>.tex if someone edited it since the last render
+    if plain_file.exists() and last_file.exists() and plain_file.read_text() != last_file.read_text():
+        raise SystemExit(f"{plain_file} was edited by hand since the last render. Move your edits "
+                         f"into {name}_template.tex, or delete {last_file} to overwrite.")
 
-    PLAIN.write_text(header_plain + plain_text)
-    ANNOTATED.write_text(header_annotated + annotated_text)
-    LAST.write_text(header_plain + plain_text)
-    print("wrote", PLAIN, "and", ANNOTATED)
+    plain_file.write_text(header_plain + plain_text)
+    annotated_file.write_text(header_annotated + annotated_text)
+    last_file.write_text(header_plain + plain_text)
+    print("wrote", plain_file, "and", annotated_file)
+
+
+def main():
+    numbers = {}
+    for file_name in NUMBER_FILES:                      # the numbers of every RQ
+        numbers.update(json.loads((GENERATED / file_name).read_text()))
+    for name in TEXTS:
+        render(name, numbers)
 
 
 if __name__ == "__main__":

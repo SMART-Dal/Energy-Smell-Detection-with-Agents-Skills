@@ -10,7 +10,6 @@ Sonnet,sample-apps,Taxonomy+Rules,test/test.py::parse_page,-2.0,-2.1,0.1,C3.S1
 Sonnet,sample-apps,Taxonomy+Rules,text-video-search/src/python/embedding.py::sample_images,72.9,72.3,0.6,C6.S2
 Sonnet,sample-apps,Taxonomy+Rules,use-case-shopping/create_suggestions.py::filter,-33.7,-68.2,34.5,C10.S1
 Sonnet,sample-apps,Taxonomy+Rules,visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding,18.8,19.1,-0.3,C5.S4
-Sonnet,sample-apps,Taxonomy,colbert-long/scripts/convert.py::remove_control_characters,92.4,80.7,11.7,C10.S1
 Sonnet,sample-apps,Taxonomy,feed-split.py::split_text,0.3,0.2,0.1,C10.S4
 Sonnet,sample-apps,Taxonomy,incremental-search/search-suggestions/count_terms.py::count_terms,52.3,41.4,10.9,C3.S2
 Sonnet,sample-apps,Taxonomy,incremental-search/search-suggestions/count_terms.py::process_docs,38.6,39.1,-0.5,C1.S1 C3.S4
@@ -23,7 +22,6 @@ Sonnet,sample-apps,Taxonomy,visual-retrieval-colpali/src/backend/vespa_app.py::V
 Sonnet,dx-toolkit,Taxonomy+Rules,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,0.0,0.2,-0.2,C3.S4
 Sonnet,dx-toolkit,Taxonomy+Rules,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,99.7,-0.1,99.8,C4.S7
 Sonnet,dx-toolkit,Taxonomy+Rules,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,7.3,6.8,0.5,C10.S4
-Sonnet,dx-toolkit,Taxonomy+Rules,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,-0.2,68.6,-68.8,C10.S1
 Sonnet,dx-toolkit,Taxonomy+Rules,src/python/dxpy/utils/pretty_print.py::flatten_json_array,89.5,22.7,66.8,C1.S4
 Sonnet,dx-toolkit,Taxonomy+Rules,src/python/dxpy/utils/pretty_print.py::format_table,-1.7,1.0,-2.7,C3.S2 C6.S3
 Sonnet,dx-toolkit,Taxonomy+Rules,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,87.7,88.8,-1.1,C3.S5
@@ -37,7 +35,6 @@ Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/dx_extract_utils/germline_utils.py::i
 Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs,19.8,2.2,17.6,C5.S1
 Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,7.3,10.6,-3.3,C10.S4
 Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec,25.2,25.4,-0.2,C6.S2
-Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,-0.2,69.4,-69.6,C8.S2
 Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/utils/pretty_print.py::flatten_json_array,89.5,23.7,65.8,C1.S4
 Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/utils/pretty_print.py::format_table,-1.7,-1.7,0.0,C3.S2 C6.S2
 Sonnet,dx-toolkit,Taxonomy,src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink,25.2,24.9,0.3,C4.S7

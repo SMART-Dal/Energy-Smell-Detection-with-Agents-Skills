@@ -1,15 +1,15 @@
 {
   "repairs_saving": {
     "model_wins": {
-      "Sonnet": 7,
-      "Haiku": 2,
-      "tie": 0,
+      "Sonnet": 6,
+      "Haiku": 1,
+      "tie": 2,
       "n/a": 0
     },
     "skill_order": {
       "cells": 6,
       "full>=knowledge>=control": 2,
-      "full>=control": 5
+      "full>=control": 4
     },
     "skill_highest": {
       "Taxonomy+Rules": 2,
@@ -38,14 +38,14 @@
   "pct_measured_saving": {
     "model_wins": {
       "Sonnet": 5,
-      "Haiku": 4,
-      "tie": 0,
+      "Haiku": 3,
+      "tie": 1,
       "n/a": 0
     },
     "skill_order": {
       "cells": 6,
       "full>=knowledge>=control": 1,
-      "full>=control": 4
+      "full>=control": 3
     },
     "skill_highest": {
       "Taxonomy+Rules": 1,
@@ -55,8 +55,8 @@
   },
   "median_saving_pct": {
     "model_wins": {
-      "Sonnet": 4,
-      "Haiku": 5,
+      "Sonnet": 3,
+      "Haiku": 6,
       "tie": 0,
       "n/a": 0
     },
@@ -92,13 +92,13 @@
   "all_runs": {
     "repairs_submitted": 317,
     "repairs_measured": 258,
-    "repairs_saving": 186,
-    "pct_measured_saving": 72.1,
+    "repairs_saving": 177,
+    "pct_measured_saving": 68.6,
     "repairs_regressed": 19,
-    "median_saving_pct": 25.2,
-    "q1_saving_pct": 7.3,
-    "q3_saving_pct": 58.6,
-    "savings_at_least_50pct": 55,
+    "median_saving_pct": 24.9,
+    "q1_saving_pct": 6.8,
+    "q3_saving_pct": 56.5,
+    "savings_at_least_50pct": 48,
     "units_inputs_failed": 157,
     "units_inputs_cannot_run_here": 126
   },
@@ -128,23 +128,23 @@
   "union": [
     {
       "repo": "sample-apps",
-      "functions_with_saving_any_run": 33,
-      "pct_of_repo_units": 7.4,
-      "median_best_saving_pct": 27.2,
-      "functions_best_saving_at_least_50pct": 11,
-      "union_Taxonomy+Rules": 21,
+      "functions_with_saving_any_run": 31,
+      "pct_of_repo_units": 7.0,
+      "median_best_saving_pct": 25.1,
+      "functions_best_saving_at_least_50pct": 9,
+      "union_Taxonomy+Rules": 20,
       "union_Taxonomy": 21,
-      "union_Unguided": 19
+      "union_Unguided": 17
     },
     {
       "repo": "dx-toolkit",
-      "functions_with_saving_any_run": 30,
-      "pct_of_repo_units": 1.2,
-      "median_best_saving_pct": 31.7,
-      "functions_best_saving_at_least_50pct": 13,
-      "union_Taxonomy+Rules": 21,
-      "union_Taxonomy": 20,
-      "union_Unguided": 13
+      "functions_with_saving_any_run": 26,
+      "pct_of_repo_units": 1.0,
+      "median_best_saving_pct": 26.6,
+      "functions_best_saving_at_least_50pct": 11,
+      "union_Taxonomy+Rules": 18,
+      "union_Taxonomy": 19,
+      "union_Unguided": 12
     },
     {
       "repo": "community",
@@ -160,8 +160,8 @@
   "categories": [
     {
       "category": "C1",
-      "saving_repairs": 27,
-      "median_saving_pct": 15.1
+      "saving_repairs": 26,
+      "median_saving_pct": 14.4
     },
     {
       "category": "C2",
@@ -195,7 +195,7 @@
     },
     {
       "category": "C8",
-      "saving_repairs": 8,
+      "saving_repairs": 6,
       "median_saving_pct": 12.3
     },
     {
@@ -205,12 +205,12 @@
     },
     {
       "category": "C10",
-      "saving_repairs": 40,
-      "median_saving_pct": 17.4
+      "saving_repairs": 37,
+      "median_saving_pct": 10.6
     }
   ],
   "same_function": {
-    "functions_saved_in_2_or_more_runs": 41
+    "functions_saved_in_2_or_more_runs": 40
   },
   "identical_repairs": {
     "repairs": 40,

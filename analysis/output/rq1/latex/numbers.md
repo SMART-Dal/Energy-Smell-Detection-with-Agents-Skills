@@ -7,7 +7,7 @@ the file, and what it means. The table cells follow at the end.
 
 | Command | Value | File | Line | Written by | What it is |
 |---|---|---|---|---|---|
-| `\rqOneComparisonLevel` | 98.3 | `repairs_summary.json` | line 33 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | width of the Bonferroni-adjusted intervals of the three comparisons (%) |
+| `\rqOneComparisonLevel` | 98.3 | `repairs_summary.json` | line 47 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | width of the Bonferroni-adjusted intervals of the three comparisons (%) |
 | `\rqOneScanAddedMin` | 1 | `step1_per_run.csv` | line 9 | analysis/rq1_step1.py, step1_of() | fewest units the comparison with the rules added in a Taxonomy+Rules run |
 | `\rqOneScanAddedMax` | 17 | `step1_per_run.csv` | line 8 | analysis/rq1_step1.py, step1_of() | most units the comparison with the rules added in a Taxonomy+Rules run |
 | `\rqOneAcceptUngHaikuMin` | 30.9 | `step2_per_run.csv` | line 7 | analysis/rq1_step2.py, step2_of() | lowest share of suspicions Unguided Haiku accepted (%) |
@@ -20,19 +20,15 @@ the file, and what it means. The table cells follow at the end.
 | `\rqOneTestListedDxHaikuMin` | 24 | `step1_per_run.csv` | line 11 | analysis/rq1_step1.py, step1_of() | fewest test units a Haiku run listed on dx-toolkit |
 | `\rqOneTestListedDxHaikuMax` | 62 | `step1_per_run.csv` | line 13 | analysis/rq1_step1.py, step1_of() | most test units a Haiku run listed on dx-toolkit |
 | `\rqOneRulesAgreeCells` | 5 | `step2_summary.json` | line 56 | analysis/rq1_step2.py, main() | (repo, model) pairs, of 6, where more smells share a rule's root cause with Taxonomy+Rules than with Taxonomy |
-| `\rqOneTaxSmells` | 997 | `categories_summary.json` | line 2 | analysis/rq1_categories.py, main() | smells in the 12 taxonomy runs |
-| `\rqOneCEightSFourSmells` | 80 | `root_causes_funnel.csv` | line 41 | analysis/rq1_categories.py, funnel_row() | smells of root cause C8.S4 (Redundant Data Fetching) |
-| `\rqOneCEightSFourDx` | 64 | `root_causes_funnel.csv` | line 41 | analysis/rq1_categories.py, funnel_row() | of those, smells in dx-toolkit |
-| `\rqOneCEightSFourSubmitted` | 1 | `root_causes_funnel.csv` | line 41 | analysis/rq1_categories.py, funnel_row() | repairs submitted for C8.S4 |
 | `\rqOneSubmitted` | 317 | `step3_summary.json` | line 93 | analysis/rq1_step3.py, main() | repairs submitted, all 18 runs |
 | `\rqOneMeasured` | 258 | `step3_summary.json` | line 94 | analysis/rq1_step3.py, main() | repairs we measured |
-| `\rqOneSavingRepairs` | 186 | `step3_summary.json` | line 95 | analysis/rq1_step3.py, main() | repairs confirmed (confirmed or partial) |
-| `\rqOneSavingPct` | 72.1 | `step3_summary.json` | line 96 | analysis/rq1_step3.py, main() | share of measured repairs that are confirmed (%) |
-| `\rqOneSavingPctLow` | 67.9 | `repairs_summary.json` | line 18 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its 95% interval (%) |
-| `\rqOneSavingPctHigh` | 76.1 | `repairs_summary.json` | line 19 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its 95% interval (%) |
-| `\rqOneMedianSaving` | 25.2 | `step3_summary.json` | line 98 | analysis/rq1_step3.py, main() | median saving of the confirmed repairs (%) |
-| `\rqOneMedianSavingLow` | 18.6 | `repairs_summary.json` | line 24 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its 95% interval (%) |
-| `\rqOneMedianSavingHigh` | 27.7 | `repairs_summary.json` | line 25 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its 95% interval (%) |
+| `\rqOneSavingRepairs` | 177 | `step3_summary.json` | line 95 | analysis/rq1_step3.py, main() | repairs confirmed (confirmed or partial) |
+| `\rqOneSavingPct` | 68.6 | `step3_summary.json` | line 96 | analysis/rq1_step3.py, main() | share of measured repairs that are confirmed (%) |
+| `\rqOneSavingPctLow` | 63.3 | `repairs_summary.json` | line 20 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its 95% interval (%) |
+| `\rqOneSavingPctHigh` | 73.2 | `repairs_summary.json` | line 21 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its 95% interval (%) |
+| `\rqOneMedianSaving` | 24.9 | `step3_summary.json` | line 98 | analysis/rq1_step3.py, main() | median saving of the confirmed repairs (%) |
+| `\rqOneMedianSavingLow` | 17.8 | `repairs_summary.json` | line 26 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its 95% interval (%) |
+| `\rqOneMedianSavingHigh` | 26.7 | `repairs_summary.json` | line 27 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its 95% interval (%) |
 | `\rqOneRegressed` | 19 | `step3_summary.json` | line 97 | analysis/rq1_step3.py, main() | repairs that regressed |
 | `\rqOneSavedFnSonnetWins` | 7 | `step3_summary.json` | line 22 | analysis/rq1_step3.py, main() | (repo, skill) pairs, of 9, where Sonnet has more functions with a confirmed repair |
 | `\rqOneInputsReadyDxUngHaiku` | 6 | `step3_per_run.csv` | line 13 | analysis/rq1_step3.py, step3_of() | units with usable inputs, dx-toolkit, Unguided, Haiku |
@@ -43,21 +39,31 @@ the file, and what it means. The table cells follow at the end.
 | `\rqOneIdentical` | 40 | `step3_summary.json` | line 216 | analysis/rq1_step3.py, main() | repairs written identically in two or more runs |
 | `\rqOneIdenticalSpread` | 1.0 | `step3_summary.json` | line 219 | analysis/rq1_step3.py, main() | median difference of their savings (percentage points) |
 | `\rqOneIdenticalSameOutcome` | 35 | `step3_summary.json` | line 218 | analysis/rq1_step3.py, main() | of those, same outcome (confirmed or not) in every run |
-| `\rqOneFlaggedRepairs` | 137 | `repairs_by_rule_flag.csv` | line 2 | analysis/rq1_repairs.py, rule_flag_table() and outcome() | measured repairs in units a static rule flags |
-| `\rqOneFlagDiff` | 30.0 | `repairs_summary.json` | line 30 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | median saving of unflagged minus flagged units (points) |
-| `\rqOneFlagDiffLow` | 12.2 | `repairs_summary.json` | line 31 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its interval |
-| `\rqOneFlagDiffHigh` | 46.6 | `repairs_summary.json` | line 32 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its interval |
-| `\rqOneMedianLines` | 5 | `repairs_summary.json` | line 14 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | median lines changed by a measured repair |
-| `\rqOneMultiFunction` | 2 | `repairs_summary.json` | line 13 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | measured repairs that change more than one function |
-| `\rqOneSmallDiff` | 19.5 | `repairs_summary.json` | line 36 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | confirmed share of larger repairs minus 1-2-line repairs (points) |
-| `\rqOneSmallDiffLow` | 4.3 | `repairs_summary.json` | line 37 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its interval |
-| `\rqOneSmallDiffHigh` | 41.6 | `repairs_summary.json` | line 38 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its interval |
-| `\rqOneLoopsMedian` | 57.2 | `repairs_by_change.csv` | line 2 | analysis/rq1_repairs.py, grouped_table() and outcome() | median saving of confirmed repairs that change the loops (%) |
-| `\rqOneLoopsDiff` | 38.1 | `repairs_summary.json` | line 42 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | their median saving minus that of the other repairs (points) |
-| `\rqOneLoopsDiffLow` | 9.9 | `repairs_summary.json` | line 43 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its interval |
-| `\rqOneLoopsDiffHigh` | 49.6 | `repairs_summary.json` | line 44 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its interval |
+| `\rqOneDistinctEdits` | 192 | `repairs_summary.json` | line 13 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | distinct edits among the measured repairs (identical edits counted once) |
+| `\rqOneFlaggedRepairs` | 100 | `repairs_by_rule_flag.csv` | line 2 | analysis/rq1_repairs.py, rule_flag_table() and outcome() | distinct edits of units a static rule flags |
+| `\rqOneFlagDiff` | 17.5 | `repairs_summary.json` | line 44 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | median saving of unflagged minus flagged units (points) |
+| `\rqOneFlagDiffLow` | 0.8 | `repairs_summary.json` | line 45 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its interval |
+| `\rqOneFlagDiffHigh` | 41.6 | `repairs_summary.json` | line 46 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its interval |
+| `\rqOneMedianLines` | 5 | `repairs_summary.json` | line 16 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | median lines changed by a distinct edit |
+| `\rqOneMultiFunction` | 2 | `repairs_summary.json` | line 15 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | distinct edits that change more than one function |
+| `\rqOneSmallDiff` | 10.9 | `repairs_summary.json` | line 50 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | confirmed share of larger repairs minus 1-2-line repairs (points) |
+| `\rqOneSmallDiffLow` | -6.1 | `repairs_summary.json` | line 51 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its interval |
+| `\rqOneSmallDiffHigh` | 38.8 | `repairs_summary.json` | line 52 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its interval |
+| `\rqOneLoopsMedian` | 59.1 | `repairs_by_change.csv` | line 2 | analysis/rq1_repairs.py, grouped_table() and outcome() | median saving of confirmed edits that change the loops (%) |
+| `\rqOneUngUnits` | 33 | `unguided_summary.json` | line 36 | analysis/rq1_unguided_savings.py, main() | distinct units measured by Unguided Sonnet and by a taxonomy Sonnet run on the same repository |
+| `\rqOneUngPairs` | 52 | `unguided_summary.json` | line 34 | analysis/rq1_unguided_savings.py, main() | pairs of such a unit and one taxonomy run (a unit both taxonomy runs measured gives two) |
+| `\rqOneUngPairsWithinFive` | 38 | `unguided_summary.json` | line 38 | analysis/rq1_unguided_savings.py, main() | of those pairs, best savings within 5 points of each other |
+| `\rqOneUngPairsMedianDiff` | 0.0 | `unguided_summary.json` | line 40 | analysis/rq1_unguided_savings.py, main() | median difference of the best savings (points, Unguided minus taxonomy) |
+| `\rqOneUngOwnRepairs` | 45 | `unguided_summary.json` | line 43 | analysis/rq1_unguided_savings.py, main() | Sonnet taxonomy repairs on units Unguided did not measure |
+| `\rqOneUngTaxMeasured` | 111 | `unguided_summary.json` | line 33 | analysis/rq1_unguided_savings.py, main() | all measured repairs of the Sonnet taxonomy runs |
+| `\rqOneUngOwnUnits` | 36 | `unguided_summary.json` | line 42 | analysis/rq1_unguided_savings.py, main() | distinct units behind those repairs |
+| `\rqOneUngNeverListed` | 27 | `unguided_summary.json` | line 46 | analysis/rq1_unguided_savings.py, main() | of those distinct units, ones Unguided Sonnet never listed in Step 1 |
+| `\rqOneUngOwnSmall` | 18 | `unguided_summary.json` | line 44 | analysis/rq1_unguided_savings.py, main() | confirmed repairs on those units that save less than 10% |
+| `\rqOneLoopsDiff` | 37.5 | `repairs_summary.json` | line 56 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | their median saving minus that of the other repairs (points) |
+| `\rqOneLoopsDiffLow` | 1.8 | `repairs_summary.json` | line 57 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | lower end of its interval |
+| `\rqOneLoopsDiffHigh` | 55.2 | `repairs_summary.json` | line 58 | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py | upper end of its interval |
 | `\rqOneCostTotal` | 85.31 | `cost_summary.json` | line 3 | analysis/rq1_cost.py, added_up() | cost of the 18 runs, as Claude Code reported it (USD) |
-| `\rqOneCostPerConfirmed` | 0.46 | `cost_summary.json` | line 19 | analysis/rq1_cost.py, added_up() | that cost per confirmed repair (USD) |
+| `\rqOneCostPerConfirmed` | 0.48 | `cost_summary.json` | line 19 | analysis/rq1_cost.py, added_up() | that cost per confirmed repair (USD) |
 | `\rqOneSubagentsMax` | 49 | `cost_per_run.csv` | line 13 | analysis/rq1_cost.py, cost_of() | most subagents started in one run |
 | `\rqOneCostOutlier` | 20.23 | `cost_per_run.csv` | line 11 | analysis/rq1_cost.py, cost_of() | cost of the Taxonomy Haiku run on dx-toolkit (USD) |
 | `\rqOneMinutesOutlier` | 25.4 | `cost_per_run.csv` | line 11 | analysis/rq1_cost.py, cost_of() | its session length (minutes) |
@@ -77,9 +83,9 @@ the file, and what it means. The table cells follow at the end.
 | sample-apps / Taxonomy+Rules / Haiku | Listed | 81 | `step1_per_run.csv` | line 3 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | sample-apps / Taxonomy+Rules / Haiku | Smelly | 56 | `step2_per_run.csv` | line 3 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | sample-apps / Taxonomy+Rules / Haiku | Smelly % | 12.6 | `step2_per_run.csv` | line 3 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
-| sample-apps / Taxonomy+Rules / Haiku | Confirmed | 16 | `step3_per_run.csv` | line 3 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Taxonomy+Rules / Haiku | Confirmed | 15 | `step3_per_run.csv` | line 3 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
 | sample-apps / Taxonomy+Rules / Haiku | Measured | 20 | `step3_per_run.csv` | line 3 | `repairs_measured` | analysis/rq1_step3.py, step3_of() |
-| sample-apps / Taxonomy+Rules / Haiku | Median % | 25.9 | `step3_per_run.csv` | line 3 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Taxonomy+Rules / Haiku | Median % | 24.5 | `step3_per_run.csv` | line 3 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
 | sample-apps / Taxonomy / Sonnet | Listed | 94 | `step1_per_run.csv` | line 4 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | sample-apps / Taxonomy / Sonnet | Smelly | 83 | `step2_per_run.csv` | line 4 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | sample-apps / Taxonomy / Sonnet | Smelly % | 18.7 | `step2_per_run.csv` | line 4 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
@@ -89,27 +95,27 @@ the file, and what it means. The table cells follow at the end.
 | sample-apps / Taxonomy / Haiku | Listed | 98 | `step1_per_run.csv` | line 5 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | sample-apps / Taxonomy / Haiku | Smelly | 81 | `step2_per_run.csv` | line 5 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | sample-apps / Taxonomy / Haiku | Smelly % | 18.3 | `step2_per_run.csv` | line 5 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
-| sample-apps / Taxonomy / Haiku | Confirmed | 17 | `step3_per_run.csv` | line 5 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Taxonomy / Haiku | Confirmed | 16 | `step3_per_run.csv` | line 5 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
 | sample-apps / Taxonomy / Haiku | Measured | 20 | `step3_per_run.csv` | line 5 | `repairs_measured` | analysis/rq1_step3.py, step3_of() |
-| sample-apps / Taxonomy / Haiku | Median % | 35.2 | `step3_per_run.csv` | line 5 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Taxonomy / Haiku | Median % | 26.3 | `step3_per_run.csv` | line 5 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
 | sample-apps / Unguided / Sonnet | Listed | 54 | `step1_per_run.csv` | line 6 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | sample-apps / Unguided / Sonnet | Smelly | 39 | `step2_per_run.csv` | line 6 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | sample-apps / Unguided / Sonnet | Smelly % | 8.8 | `step2_per_run.csv` | line 6 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
-| sample-apps / Unguided / Sonnet | Confirmed | 13 | `step3_per_run.csv` | line 6 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Unguided / Sonnet | Confirmed | 12 | `step3_per_run.csv` | line 6 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
 | sample-apps / Unguided / Sonnet | Measured | 20 | `step3_per_run.csv` | line 6 | `repairs_measured` | analysis/rq1_step3.py, step3_of() |
-| sample-apps / Unguided / Sonnet | Median % | 38.6 | `step3_per_run.csv` | line 6 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Unguided / Sonnet | Median % | 33.2 | `step3_per_run.csv` | line 6 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
 | sample-apps / Unguided / Haiku | Listed | 116 | `step1_per_run.csv` | line 7 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | sample-apps / Unguided / Haiku | Smelly | 41 | `step2_per_run.csv` | line 7 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | sample-apps / Unguided / Haiku | Smelly % | 9.3 | `step2_per_run.csv` | line 7 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
-| sample-apps / Unguided / Haiku | Confirmed | 12 | `step3_per_run.csv` | line 7 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Unguided / Haiku | Confirmed | 11 | `step3_per_run.csv` | line 7 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
 | sample-apps / Unguided / Haiku | Measured | 15 | `step3_per_run.csv` | line 7 | `repairs_measured` | analysis/rq1_step3.py, step3_of() |
-| sample-apps / Unguided / Haiku | Median % | 25.7 | `step3_per_run.csv` | line 7 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
+| sample-apps / Unguided / Haiku | Median % | 23.3 | `step3_per_run.csv` | line 7 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
 | dx-toolkit / Taxonomy+Rules / Sonnet | Listed | 244 | `step1_per_run.csv` | line 8 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | dx-toolkit / Taxonomy+Rules / Sonnet | Smelly | 178 | `step2_per_run.csv` | line 8 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | dx-toolkit / Taxonomy+Rules / Sonnet | Smelly % | 7.0 | `step2_per_run.csv` | line 8 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
-| dx-toolkit / Taxonomy+Rules / Sonnet | Confirmed | 13 | `step3_per_run.csv` | line 8 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
+| dx-toolkit / Taxonomy+Rules / Sonnet | Confirmed | 10 | `step3_per_run.csv` | line 8 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
 | dx-toolkit / Taxonomy+Rules / Sonnet | Measured | 20 | `step3_per_run.csv` | line 8 | `repairs_measured` | analysis/rq1_step3.py, step3_of() |
-| dx-toolkit / Taxonomy+Rules / Sonnet | Median % | 36.6 | `step3_per_run.csv` | line 8 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
+| dx-toolkit / Taxonomy+Rules / Sonnet | Median % | 29.6 | `step3_per_run.csv` | line 8 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
 | dx-toolkit / Taxonomy+Rules / Haiku | Listed | 211 | `step1_per_run.csv` | line 9 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | dx-toolkit / Taxonomy+Rules / Haiku | Smelly | 94 | `step2_per_run.csv` | line 9 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | dx-toolkit / Taxonomy+Rules / Haiku | Smelly % | 3.7 | `step2_per_run.csv` | line 9 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
@@ -119,9 +125,9 @@ the file, and what it means. The table cells follow at the end.
 | dx-toolkit / Taxonomy / Sonnet | Listed | 154 | `step1_per_run.csv` | line 10 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | dx-toolkit / Taxonomy / Sonnet | Smelly | 83 | `step2_per_run.csv` | line 10 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | dx-toolkit / Taxonomy / Sonnet | Smelly % | 3.3 | `step2_per_run.csv` | line 10 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
-| dx-toolkit / Taxonomy / Sonnet | Confirmed | 15 | `step3_per_run.csv` | line 10 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
+| dx-toolkit / Taxonomy / Sonnet | Confirmed | 14 | `step3_per_run.csv` | line 10 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
 | dx-toolkit / Taxonomy / Sonnet | Measured | 20 | `step3_per_run.csv` | line 10 | `repairs_measured` | analysis/rq1_step3.py, step3_of() |
-| dx-toolkit / Taxonomy / Sonnet | Median % | 56.2 | `step3_per_run.csv` | line 10 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
+| dx-toolkit / Taxonomy / Sonnet | Median % | 40.8 | `step3_per_run.csv` | line 10 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
 | dx-toolkit / Taxonomy / Haiku | Listed | 77 | `step1_per_run.csv` | line 11 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | dx-toolkit / Taxonomy / Haiku | Smelly | 70 | `step2_per_run.csv` | line 11 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | dx-toolkit / Taxonomy / Haiku | Smelly % | 2.8 | `step2_per_run.csv` | line 11 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
@@ -137,9 +143,9 @@ the file, and what it means. The table cells follow at the end.
 | dx-toolkit / Unguided / Haiku | Listed | 177 | `step1_per_run.csv` | line 13 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | dx-toolkit / Unguided / Haiku | Smelly | 57 | `step2_per_run.csv` | line 13 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | dx-toolkit / Unguided / Haiku | Smelly % | 2.2 | `step2_per_run.csv` | line 13 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
-| dx-toolkit / Unguided / Haiku | Confirmed | 2 | `step3_per_run.csv` | line 13 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
+| dx-toolkit / Unguided / Haiku | Confirmed | 1 | `step3_per_run.csv` | line 13 | `repairs_saving` | analysis/rq1_step3.py, step3_of() |
 | dx-toolkit / Unguided / Haiku | Measured | 5 | `step3_per_run.csv` | line 13 | `repairs_measured` | analysis/rq1_step3.py, step3_of() |
-| dx-toolkit / Unguided / Haiku | Median % | 68.5 | `step3_per_run.csv` | line 13 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
+| dx-toolkit / Unguided / Haiku | Median % | 99.7 | `step3_per_run.csv` | line 13 | `median_saving_pct` | analysis/rq1_step3.py, step3_of() |
 | community / Taxonomy+Rules / Sonnet | Listed | 24 | `step1_per_run.csv` | line 14 | `units_listed` | analysis/rq1_step1.py, step1_of() |
 | community / Taxonomy+Rules / Sonnet | Smelly | 21 | `step2_per_run.csv` | line 14 | `smelly_units` | analysis/rq1_step2.py, step2_of() |
 | community / Taxonomy+Rules / Sonnet | Smelly % | 22.1 | `step2_per_run.csv` | line 14 | `pct_of_repo_units` | analysis/rq1_step2.py, step2_of() |
@@ -193,208 +199,141 @@ the file, and what it means. The table cells follow at the end.
 | Smelly in all six runs | sample-apps | 8 | `together_per_repo.csv` | line 2 | `smelly_all_6` | analysis/rq1_together.py, together_row() |
 | Smelly in all six runs | dx-toolkit | 11 | `together_per_repo.csv` | line 3 | `smelly_all_6` | analysis/rq1_together.py, together_row() |
 | Smelly in all six runs | community | 3 | `together_per_repo.csv` | line 4 | `smelly_all_6` | analysis/rq1_together.py, together_row() |
-| Functions with a confirmed repair | sample-apps | 33 | `together_per_repo.csv` | line 2 | `confirmed_any` | analysis/rq1_together.py, together_row() |
-| Functions with a confirmed repair | dx-toolkit | 30 | `together_per_repo.csv` | line 3 | `confirmed_any` | analysis/rq1_together.py, together_row() |
+| Functions with a confirmed repair | sample-apps | 31 | `together_per_repo.csv` | line 2 | `confirmed_any` | analysis/rq1_together.py, together_row() |
+| Functions with a confirmed repair | dx-toolkit | 26 | `together_per_repo.csv` | line 3 | `confirmed_any` | analysis/rq1_together.py, together_row() |
 | Functions with a confirmed repair | community | 11 | `together_per_repo.csv` | line 4 | `confirmed_any` | analysis/rq1_together.py, together_row() |
-| \quad by one configuration only | sample-apps | 15 | `together_per_repo.csv` | line 2 | `by_1_skill` | analysis/rq1_together.py, together_row() |
-| \quad by one configuration only | dx-toolkit | 17 | `together_per_repo.csv` | line 3 | `by_1_skill` | analysis/rq1_together.py, together_row() |
+| \quad by one configuration only | sample-apps | 13 | `together_per_repo.csv` | line 2 | `by_1_skill` | analysis/rq1_together.py, together_row() |
+| \quad by one configuration only | dx-toolkit | 14 | `together_per_repo.csv` | line 3 | `by_1_skill` | analysis/rq1_together.py, together_row() |
 | \quad by one configuration only | community | 3 | `together_per_repo.csv` | line 4 | `by_1_skill` | analysis/rq1_together.py, together_row() |
-| \quad by two configurations | sample-apps | 8 | `together_per_repo.csv` | line 2 | `by_2_skills` | analysis/rq1_together.py, together_row() |
-| \quad by two configurations | dx-toolkit | 2 | `together_per_repo.csv` | line 3 | `by_2_skills` | analysis/rq1_together.py, together_row() |
+| \quad by two configurations | sample-apps | 9 | `together_per_repo.csv` | line 2 | `by_2_skills` | analysis/rq1_together.py, together_row() |
+| \quad by two configurations | dx-toolkit | 1 | `together_per_repo.csv` | line 3 | `by_2_skills` | analysis/rq1_together.py, together_row() |
 | \quad by two configurations | community | 3 | `together_per_repo.csv` | line 4 | `by_2_skills` | analysis/rq1_together.py, together_row() |
-| \quad by all three configurations | sample-apps | 10 | `together_per_repo.csv` | line 2 | `by_3_skills` | analysis/rq1_together.py, together_row() |
+| \quad by all three configurations | sample-apps | 9 | `together_per_repo.csv` | line 2 | `by_3_skills` | analysis/rq1_together.py, together_row() |
 | \quad by all three configurations | dx-toolkit | 11 | `together_per_repo.csv` | line 3 | `by_3_skills` | analysis/rq1_together.py, together_row() |
 | \quad by all three configurations | community | 5 | `together_per_repo.csv` | line 4 | `by_3_skills` | analysis/rq1_together.py, together_row() |
-| \quad only by \taxorules | sample-apps | 5 | `together_per_repo.csv` | line 2 | `only_Taxonomy+Rules` | analysis/rq1_together.py, together_row() |
-| \quad only by \taxorules | dx-toolkit | 9 | `together_per_repo.csv` | line 3 | `only_Taxonomy+Rules` | analysis/rq1_together.py, together_row() |
+| \quad only by \taxorules | sample-apps | 4 | `together_per_repo.csv` | line 2 | `only_Taxonomy+Rules` | analysis/rq1_together.py, together_row() |
+| \quad only by \taxorules | dx-toolkit | 7 | `together_per_repo.csv` | line 3 | `only_Taxonomy+Rules` | analysis/rq1_together.py, together_row() |
 | \quad only by \taxorules | community | 2 | `together_per_repo.csv` | line 4 | `only_Taxonomy+Rules` | analysis/rq1_together.py, together_row() |
 | \quad only by \taxo | sample-apps | 5 | `together_per_repo.csv` | line 2 | `only_Taxonomy` | analysis/rq1_together.py, together_row() |
 | \quad only by \taxo | dx-toolkit | 7 | `together_per_repo.csv` | line 3 | `only_Taxonomy` | analysis/rq1_together.py, together_row() |
 | \quad only by \taxo | community | 0 | `together_per_repo.csv` | line 4 | `only_Taxonomy` | analysis/rq1_together.py, together_row() |
-| \quad only by \unguided | sample-apps | 5 | `together_per_repo.csv` | line 2 | `only_Unguided` | analysis/rq1_together.py, together_row() |
-| \quad only by \unguided | dx-toolkit | 1 | `together_per_repo.csv` | line 3 | `only_Unguided` | analysis/rq1_together.py, together_row() |
+| \quad only by \unguided | sample-apps | 4 | `together_per_repo.csv` | line 2 | `only_Unguided` | analysis/rq1_together.py, together_row() |
+| \quad only by \unguided | dx-toolkit | 0 | `together_per_repo.csv` | line 3 | `only_Unguided` | analysis/rq1_together.py, together_row() |
 | \quad only by \unguided | community | 1 | `together_per_repo.csv` | line 4 | `only_Unguided` | analysis/rq1_together.py, together_row() |
-| \quad with one model only | sample-apps | 16 | `together_per_repo.csv` | line 2 | `by_1_model` | analysis/rq1_together.py, together_row() |
-| \quad with one model only | dx-toolkit | 22 | `together_per_repo.csv` | line 3 | `by_1_model` | analysis/rq1_together.py, together_row() |
+| \quad with one model only | sample-apps | 14 | `together_per_repo.csv` | line 2 | `by_1_model` | analysis/rq1_together.py, together_row() |
+| \quad with one model only | dx-toolkit | 18 | `together_per_repo.csv` | line 3 | `by_1_model` | analysis/rq1_together.py, together_row() |
 | \quad with one model only | community | 7 | `together_per_repo.csv` | line 4 | `by_1_model` | analysis/rq1_together.py, together_row() |
-| Median best saving (\%) | sample-apps | 27.2 | `together_per_repo.csv` | line 2 | `median_best_saving_pct` | analysis/rq1_together.py, together_row() |
-| Median best saving (\%) | dx-toolkit | 31.7 | `together_per_repo.csv` | line 3 | `median_best_saving_pct` | analysis/rq1_together.py, together_row() |
+| Median best saving (\%) | sample-apps | 25.1 | `together_per_repo.csv` | line 2 | `median_best_saving_pct` | analysis/rq1_together.py, together_row() |
+| Median best saving (\%) | dx-toolkit | 26.6 | `together_per_repo.csv` | line 3 | `median_best_saving_pct` | analysis/rq1_together.py, together_row() |
 | Median best saving (\%) | community | 12.2 | `together_per_repo.csv` | line 4 | `median_best_saving_pct` | analysis/rq1_together.py, together_row() |
-
-## Table tab:rq1-categories (`table_categories.tex`)
-
-| Row | Column | Value | File | Line | Field | Written by |
-|---|---|---|---|---|---|---|
-| C1 | Smells | 218 | `categories_funnel.csv` | line 2 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C1 | Repairs | 46 | `categories_funnel.csv` | line 2 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C1 | Confirmed | 27 | `categories_funnel.csv` | line 2 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C1 | Per 100 | 12.4 | `categories_funnel.csv` | line 2 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C1 | Median % | 15.1 | `categories_funnel.csv` | line 2 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C2 | Smells | 4 | `categories_funnel.csv` | line 3 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C2 | Repairs | 1 | `categories_funnel.csv` | line 3 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C2 | Confirmed | 1 | `categories_funnel.csv` | line 3 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C2 | Per 100 | 25.0 | `categories_funnel.csv` | line 3 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C2 | Median % | 25.1 | `categories_funnel.csv` | line 3 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C3 | Smells | 157 | `categories_funnel.csv` | line 4 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C3 | Repairs | 46 | `categories_funnel.csv` | line 4 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C3 | Confirmed | 26 | `categories_funnel.csv` | line 4 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C3 | Per 100 | 16.6 | `categories_funnel.csv` | line 4 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C3 | Median % | 33.6 | `categories_funnel.csv` | line 4 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C4 | Smells | 28 | `categories_funnel.csv` | line 5 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C4 | Repairs | 9 | `categories_funnel.csv` | line 5 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C4 | Confirmed | 3 | `categories_funnel.csv` | line 5 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C4 | Per 100 | 10.7 | `categories_funnel.csv` | line 5 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C4 | Median % | 25.4 | `categories_funnel.csv` | line 5 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C5 | Smells | 50 | `categories_funnel.csv` | line 6 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C5 | Repairs | 10 | `categories_funnel.csv` | line 6 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C5 | Confirmed | 6 | `categories_funnel.csv` | line 6 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C5 | Per 100 | 12.0 | `categories_funnel.csv` | line 6 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C5 | Median % | 11.4 | `categories_funnel.csv` | line 6 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C6 | Smells | 129 | `categories_funnel.csv` | line 7 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C6 | Repairs | 24 | `categories_funnel.csv` | line 7 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C6 | Confirmed | 16 | `categories_funnel.csv` | line 7 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C6 | Per 100 | 12.4 | `categories_funnel.csv` | line 7 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C6 | Median % | 58.8 | `categories_funnel.csv` | line 7 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C7 | Smells | 22 | `categories_funnel.csv` | line 8 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C7 | Repairs | 7 | `categories_funnel.csv` | line 8 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C7 | Confirmed | 4 | `categories_funnel.csv` | line 8 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C7 | Per 100 | 18.2 | `categories_funnel.csv` | line 8 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C7 | Median % | 84.3 | `categories_funnel.csv` | line 8 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C8 | Smells | 191 | `categories_funnel.csv` | line 9 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C8 | Repairs | 19 | `categories_funnel.csv` | line 9 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C8 | Confirmed | 8 | `categories_funnel.csv` | line 9 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C8 | Per 100 | 4.2 | `categories_funnel.csv` | line 9 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C8 | Median % | 12.4 | `categories_funnel.csv` | line 9 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C9 | Smells | 75 | `categories_funnel.csv` | line 10 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C9 | Repairs | 6 | `categories_funnel.csv` | line 10 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C9 | Confirmed | 4 | `categories_funnel.csv` | line 10 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C9 | Per 100 | 5.3 | `categories_funnel.csv` | line 10 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C9 | Median % | 7.0 | `categories_funnel.csv` | line 10 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C10 | Smells | 105 | `categories_funnel.csv` | line 11 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C10 | Repairs | 52 | `categories_funnel.csv` | line 11 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C10 | Confirmed | 40 | `categories_funnel.csv` | line 11 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C10 | Per 100 | 38.1 | `categories_funnel.csv` | line 11 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C10 | Median % | 17.5 | `categories_funnel.csv` | line 11 | `median_saving_pct` | analysis/rq1_categories.py, funnel_row() |
-| C11 | Smells | 18 | `categories_funnel.csv` | line 12 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C11 | Repairs | 0 | `categories_funnel.csv` | line 12 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C11 | Confirmed | 0 | `categories_funnel.csv` | line 12 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| C11 | Per 100 | 0.0 | `categories_funnel.csv` | line 12 | `confirmed_per_100_smells` | analysis/rq1_categories.py, funnel_row() |
-| C12 | Smells | 0 | `categories_funnel.csv` | line 13 | `smells` | analysis/rq1_categories.py, funnel_row() |
-| C12 | Repairs | 0 | `categories_funnel.csv` | line 13 | `submitted` | analysis/rq1_categories.py, funnel_row() |
-| C12 | Confirmed | 0 | `categories_funnel.csv` | line 13 | `confirmed` | analysis/rq1_categories.py, funnel_row() |
-| All | Smells | 997 | `categories_summary.json` | line 2 | `smells` | analysis/rq1_categories.py, main() |
-| All | Repairs | 220 | `categories_summary.json` | line 3 | `submitted` | analysis/rq1_categories.py, main() |
-| All | Confirmed | 135 | `categories_summary.json` | line 5 | `confirmed` | analysis/rq1_categories.py, main() |
-| All | Per 100 | 13.5 | `categories_summary.json` | line 6 | `confirmed_per_100_smells` | analysis/rq1_categories.py, main() |
-| All | Median % | 23.7 | `categories_summary.json` | line 7 | `median_saving_pct` | analysis/rq1_categories.py, main() |
 
 ## Table tab:rq1-repairs (`table_repairs.tex`)
 
 | Row | Column | Value | File | Line | Field | Written by |
 |---|---|---|---|---|---|---|
-| All | Measured | 258 | `repairs_summary.json` | line 3 | `measured` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
-| All | Confirmed | 186 | `repairs_summary.json` | line 4 | `confirmed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
-| All | Confirmed % | 72.1 | `repairs_summary.json` | line 5 | `pct_confirmed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
-| All | Regressed | 19 | `repairs_summary.json` | line 6 | `regressed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
-| All | Regressed % | 7.4 | `repairs_summary.json` | line 7 | `pct_regressed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
+| All | Measured | 192 | `repairs_summary.json` | line 3 | `measured` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
+| All | Confirmed | 126 | `repairs_summary.json` | line 4 | `confirmed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
+| All | Confirmed % | 65.6 | `repairs_summary.json` | line 5 | `pct_confirmed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
+| All | Regressed | 16 | `repairs_summary.json` | line 6 | `regressed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
+| All | Regressed % | 8.3 | `repairs_summary.json` | line 7 | `pct_regressed` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
 | All | Median % | 25.2 | `repairs_summary.json` | line 9 | `median_saving_pct` | analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py |
 | \quad \taxorules | Measured | 94 | `repairs_by_skill.csv` | line 2 | `measured` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \taxorules | Confirmed | 67 | `repairs_by_skill.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \taxorules | Confirmed % | 71.3 | `repairs_by_skill.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \taxorules | Confirmed | 63 | `repairs_by_skill.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \taxorules | Confirmed % | 67.0 | `repairs_by_skill.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \taxorules | Regressed | 6 | `repairs_by_skill.csv` | line 2 | `regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \taxorules | Regressed % | 6.4 | `repairs_by_skill.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \taxorules | Median % | 20.3 | `repairs_by_skill.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \taxorules | Median % | 19.1 | `repairs_by_skill.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \taxo | Measured | 90 | `repairs_by_skill.csv` | line 3 | `measured` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \taxo | Confirmed | 68 | `repairs_by_skill.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \taxo | Confirmed % | 75.6 | `repairs_by_skill.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \taxo | Confirmed | 66 | `repairs_by_skill.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \taxo | Confirmed % | 73.3 | `repairs_by_skill.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \taxo | Regressed | 4 | `repairs_by_skill.csv` | line 3 | `regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \taxo | Regressed % | 4.4 | `repairs_by_skill.csv` | line 3 | `pct_regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \taxo | Median % | 25.0 | `repairs_by_skill.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \taxo | Median % | 24.3 | `repairs_by_skill.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \unguided | Measured | 74 | `repairs_by_skill.csv` | line 4 | `measured` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \unguided | Confirmed | 51 | `repairs_by_skill.csv` | line 4 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \unguided | Confirmed % | 68.9 | `repairs_by_skill.csv` | line 4 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \unguided | Confirmed | 48 | `repairs_by_skill.csv` | line 4 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \unguided | Confirmed % | 64.9 | `repairs_by_skill.csv` | line 4 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \unguided | Regressed | 9 | `repairs_by_skill.csv` | line 4 | `regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad \unguided | Regressed % | 12.2 | `repairs_by_skill.csv` | line 4 | `pct_regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad \unguided | Median % | 28.5 | `repairs_by_skill.csv` | line 4 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad \unguided | Median % | 27.9 | `repairs_by_skill.csv` | line 4 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad Sonnet | Measured | 159 | `repairs_by_model.csv` | line 2 | `measured` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad Sonnet | Confirmed | 112 | `repairs_by_model.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad Sonnet | Confirmed % | 70.4 | `repairs_by_model.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad Sonnet | Confirmed | 107 | `repairs_by_model.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad Sonnet | Confirmed % | 67.3 | `repairs_by_model.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad Sonnet | Regressed | 13 | `repairs_by_model.csv` | line 2 | `regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad Sonnet | Regressed % | 8.2 | `repairs_by_model.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad Sonnet | Median % | 24.3 | `repairs_by_model.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad Sonnet | Median % | 23.1 | `repairs_by_model.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad Haiku | Measured | 99 | `repairs_by_model.csv` | line 3 | `measured` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad Haiku | Confirmed | 74 | `repairs_by_model.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad Haiku | Confirmed % | 74.7 | `repairs_by_model.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad Haiku | Confirmed | 70 | `repairs_by_model.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad Haiku | Confirmed % | 70.7 | `repairs_by_model.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad Haiku | Regressed | 6 | `repairs_by_model.csv` | line 3 | `regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
 | \quad Haiku | Regressed % | 6.1 | `repairs_by_model.csv` | line 3 | `pct_regressed` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad Haiku | Median % | 26.9 | `repairs_by_model.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
-| \quad 1--2 | Measured | 66 | `repairs_by_size.csv` | line 2 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 1--2 | Confirmed | 38 | `repairs_by_size.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 1--2 | Confirmed % | 57.6 | `repairs_by_size.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 1--2 | Regressed | 9 | `repairs_by_size.csv` | line 2 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 1--2 | Regressed % | 13.6 | `repairs_by_size.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 1--2 | Median % | 26.9 | `repairs_by_size.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 3--6 | Measured | 92 | `repairs_by_size.csv` | line 3 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 3--6 | Confirmed | 71 | `repairs_by_size.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 3--6 | Confirmed % | 77.2 | `repairs_by_size.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Haiku | Median % | 25.9 | `repairs_by_model.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, profile_table() and outcome() |
+| \quad 1--2 | Measured | 42 | `repairs_by_size.csv` | line 2 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 1--2 | Confirmed | 24 | `repairs_by_size.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 1--2 | Confirmed % | 57.1 | `repairs_by_size.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 1--2 | Regressed | 7 | `repairs_by_size.csv` | line 2 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 1--2 | Regressed % | 16.7 | `repairs_by_size.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 1--2 | Median % | 25.3 | `repairs_by_size.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 3--6 | Measured | 81 | `repairs_by_size.csv` | line 3 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 3--6 | Confirmed | 53 | `repairs_by_size.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 3--6 | Confirmed % | 65.4 | `repairs_by_size.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
 | \quad 3--6 | Regressed | 7 | `repairs_by_size.csv` | line 3 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 3--6 | Regressed % | 7.6 | `repairs_by_size.csv` | line 3 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 3--6 | Median % | 22.7 | `repairs_by_size.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 7--15 | Measured | 82 | `repairs_by_size.csv` | line 4 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 7--15 | Confirmed | 66 | `repairs_by_size.csv` | line 4 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 7--15 | Confirmed % | 80.5 | `repairs_by_size.csv` | line 4 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 7--15 | Regressed | 2 | `repairs_by_size.csv` | line 4 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 7--15 | Regressed % | 2.4 | `repairs_by_size.csv` | line 4 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 7--15 | Median % | 22.7 | `repairs_by_size.csv` | line 4 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 16 or more | Measured | 18 | `repairs_by_size.csv` | line 5 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 16 or more | Confirmed | 11 | `repairs_by_size.csv` | line 5 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 16 or more | Confirmed % | 61.1 | `repairs_by_size.csv` | line 5 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 3--6 | Regressed % | 8.6 | `repairs_by_size.csv` | line 3 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 3--6 | Median % | 25.1 | `repairs_by_size.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 7--15 | Measured | 61 | `repairs_by_size.csv` | line 4 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 7--15 | Confirmed | 46 | `repairs_by_size.csv` | line 4 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 7--15 | Confirmed % | 75.4 | `repairs_by_size.csv` | line 4 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 7--15 | Regressed | 1 | `repairs_by_size.csv` | line 4 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 7--15 | Regressed % | 1.6 | `repairs_by_size.csv` | line 4 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 7--15 | Median % | 26.6 | `repairs_by_size.csv` | line 4 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 16 or more | Measured | 8 | `repairs_by_size.csv` | line 5 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 16 or more | Confirmed | 3 | `repairs_by_size.csv` | line 5 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 16 or more | Confirmed % | 37.5 | `repairs_by_size.csv` | line 5 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
 | \quad 16 or more | Regressed | 1 | `repairs_by_size.csv` | line 5 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 16 or more | Regressed % | 5.6 | `repairs_by_size.csv` | line 5 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad 16 or more | Median % | 25.2 | `repairs_by_size.csv` | line 5 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Changes the loops | Measured | 66 | `repairs_by_change.csv` | line 2 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Changes the loops | Confirmed | 47 | `repairs_by_change.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Changes the loops | Confirmed % | 71.2 | `repairs_by_change.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 16 or more | Regressed % | 12.5 | `repairs_by_size.csv` | line 5 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad 16 or more | Median % | 13.7 | `repairs_by_size.csv` | line 5 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Changes the loops | Measured | 52 | `repairs_by_change.csv` | line 2 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Changes the loops | Confirmed | 33 | `repairs_by_change.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Changes the loops | Confirmed % | 63.5 | `repairs_by_change.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
 | \quad Changes the loops | Regressed | 2 | `repairs_by_change.csv` | line 2 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Changes the loops | Regressed % | 3.0 | `repairs_by_change.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Changes the loops | Median % | 57.2 | `repairs_by_change.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls inside loops | Measured | 48 | `repairs_by_change.csv` | line 3 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls inside loops | Confirmed | 36 | `repairs_by_change.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls inside loops | Confirmed % | 75.0 | `repairs_by_change.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls inside loops | Regressed | 3 | `repairs_by_change.csv` | line 3 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Changes the loops | Regressed % | 3.8 | `repairs_by_change.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Changes the loops | Median % | 59.1 | `repairs_by_change.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls inside loops | Measured | 32 | `repairs_by_change.csv` | line 3 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls inside loops | Confirmed | 23 | `repairs_by_change.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls inside loops | Confirmed % | 71.9 | `repairs_by_change.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls inside loops | Regressed | 2 | `repairs_by_change.csv` | line 3 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
 | \quad Fewer calls inside loops | Regressed % | 6.2 | `repairs_by_change.csv` | line 3 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls inside loops | Median % | 18.6 | `repairs_by_change.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls outside loops | Measured | 14 | `repairs_by_change.csv` | line 4 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls outside loops | Confirmed | 6 | `repairs_by_change.csv` | line 4 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls outside loops | Confirmed % | 42.9 | `repairs_by_change.csv` | line 4 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls inside loops | Median % | 18.5 | `repairs_by_change.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls outside loops | Measured | 10 | `repairs_by_change.csv` | line 4 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls outside loops | Confirmed | 2 | `repairs_by_change.csv` | line 4 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls outside loops | Confirmed % | 20.0 | `repairs_by_change.csv` | line 4 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
 | \quad Fewer calls outside loops | Regressed | 3 | `repairs_by_change.csv` | line 4 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls outside loops | Regressed % | 21.4 | `repairs_by_change.csv` | line 4 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Fewer calls outside loops | Median % | 100.0 | `repairs_by_change.csv` | line 4 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Same loops and calls | Measured | 130 | `repairs_by_change.csv` | line 5 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Same loops and calls | Confirmed | 97 | `repairs_by_change.csv` | line 5 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Same loops and calls | Confirmed % | 74.6 | `repairs_by_change.csv` | line 5 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Same loops and calls | Regressed | 11 | `repairs_by_change.csv` | line 5 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Same loops and calls | Regressed % | 8.5 | `repairs_by_change.csv` | line 5 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Same loops and calls | Median % | 19.8 | `repairs_by_change.csv` | line 5 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
-| \quad Yes | Measured | 137 | `repairs_by_rule_flag.csv` | line 2 | `measured` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad Yes | Confirmed | 99 | `repairs_by_rule_flag.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad Yes | Confirmed % | 72.3 | `repairs_by_rule_flag.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad Yes | Regressed | 13 | `repairs_by_rule_flag.csv` | line 2 | `regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad Yes | Regressed % | 9.5 | `repairs_by_rule_flag.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad Yes | Median % | 13.5 | `repairs_by_rule_flag.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad No | Measured | 121 | `repairs_by_rule_flag.csv` | line 3 | `measured` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad No | Confirmed | 87 | `repairs_by_rule_flag.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad No | Confirmed % | 71.9 | `repairs_by_rule_flag.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad No | Regressed | 6 | `repairs_by_rule_flag.csv` | line 3 | `regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad No | Regressed % | 5.0 | `repairs_by_rule_flag.csv` | line 3 | `pct_regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
-| \quad No | Median % | 43.5 | `repairs_by_rule_flag.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad Fewer calls outside loops | Regressed % | 30.0 | `repairs_by_change.csv` | line 4 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Fewer calls outside loops | Median % | 52.6 | `repairs_by_change.csv` | line 4 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Same loops and calls | Measured | 98 | `repairs_by_change.csv` | line 5 | `measured` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Same loops and calls | Confirmed | 68 | `repairs_by_change.csv` | line 5 | `confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Same loops and calls | Confirmed % | 69.4 | `repairs_by_change.csv` | line 5 | `pct_confirmed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Same loops and calls | Regressed | 9 | `repairs_by_change.csv` | line 5 | `regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Same loops and calls | Regressed % | 9.2 | `repairs_by_change.csv` | line 5 | `pct_regressed` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Same loops and calls | Median % | 23.2 | `repairs_by_change.csv` | line 5 | `median_saving_pct` | analysis/rq1_repairs.py, grouped_table() and outcome() |
+| \quad Yes | Measured | 100 | `repairs_by_rule_flag.csv` | line 2 | `measured` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad Yes | Confirmed | 69 | `repairs_by_rule_flag.csv` | line 2 | `confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad Yes | Confirmed % | 69.0 | `repairs_by_rule_flag.csv` | line 2 | `pct_confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad Yes | Regressed | 11 | `repairs_by_rule_flag.csv` | line 2 | `regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad Yes | Regressed % | 11.0 | `repairs_by_rule_flag.csv` | line 2 | `pct_regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad Yes | Median % | 17.4 | `repairs_by_rule_flag.csv` | line 2 | `median_saving_pct` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad No | Measured | 92 | `repairs_by_rule_flag.csv` | line 3 | `measured` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad No | Confirmed | 57 | `repairs_by_rule_flag.csv` | line 3 | `confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad No | Confirmed % | 62.0 | `repairs_by_rule_flag.csv` | line 3 | `pct_confirmed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad No | Regressed | 5 | `repairs_by_rule_flag.csv` | line 3 | `regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad No | Regressed % | 5.4 | `repairs_by_rule_flag.csv` | line 3 | `pct_regressed` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
+| \quad No | Median % | 34.9 | `repairs_by_rule_flag.csv` | line 3 | `median_saving_pct` | analysis/rq1_repairs.py, rule_flag_table() and outcome() |
 
 ## Table tab:rq1-cost (`table_cost.tex`)
 
 | Row | Column | Value | File | Line | Field | Written by |
 |---|---|---|---|---|---|---|
 | Sonnet / Taxonomy+Rules | Cost (\$) | 15.43 | `cost_per_skill_model.csv` | line 2 | `cost_usd` | analysis/rq1_cost.py, added_up() |
-| Sonnet / Taxonomy+Rules | \$ per conf. | 0.41 | `cost_per_skill_model.csv` | line 2 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
+| Sonnet / Taxonomy+Rules | \$ per conf. | 0.44 | `cost_per_skill_model.csv` | line 2 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Taxonomy+Rules | Session (min) | 170.6 | `cost_per_skill_model.csv` | line 2 | `agent_minutes` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Taxonomy+Rules | Model (min) | 58.7 | `cost_per_skill_model.csv` | line 2 | `api_minutes` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Taxonomy+Rules | Output (k tok.) | 456 | `cost_per_skill_model.csv` | line 2 | `output_tokens_thousands` | analysis/rq1_cost.py, added_up() |
@@ -414,7 +353,7 @@ the file, and what it means. The table cells follow at the end.
 | Sonnet / Taxonomy | Calls, subagents | 289 | `cost_per_skill_model.csv` | line 3 | `subagent_tool_calls` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Taxonomy | Subagents | 14 | `cost_per_skill_model.csv` | line 3 | `subagents` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Unguided | Cost (\$) | 14.71 | `cost_per_skill_model.csv` | line 4 | `cost_usd` | analysis/rq1_cost.py, added_up() |
-| Sonnet / Unguided | \$ per conf. | 0.45 | `cost_per_skill_model.csv` | line 4 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
+| Sonnet / Unguided | \$ per conf. | 0.46 | `cost_per_skill_model.csv` | line 4 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Unguided | Session (min) | 93.1 | `cost_per_skill_model.csv` | line 4 | `agent_minutes` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Unguided | Model (min) | 49.5 | `cost_per_skill_model.csv` | line 4 | `api_minutes` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Unguided | Output (k tok.) | 379 | `cost_per_skill_model.csv` | line 4 | `output_tokens_thousands` | analysis/rq1_cost.py, added_up() |
@@ -424,7 +363,7 @@ the file, and what it means. The table cells follow at the end.
 | Sonnet / Unguided | Calls, subagents | 237 | `cost_per_skill_model.csv` | line 4 | `subagent_tool_calls` | analysis/rq1_cost.py, added_up() |
 | Sonnet / Unguided | Subagents | 12 | `cost_per_skill_model.csv` | line 4 | `subagents` | analysis/rq1_cost.py, added_up() |
 | Sonnet / All | Cost (\$) | 43.89 | `cost_per_model.csv` | line 2 | `cost_usd` | analysis/rq1_cost.py, added_up() |
-| Sonnet / All | \$ per conf. | 0.39 | `cost_per_model.csv` | line 2 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
+| Sonnet / All | \$ per conf. | 0.41 | `cost_per_model.csv` | line 2 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
 | Sonnet / All | Session (min) | 434.2 | `cost_per_model.csv` | line 2 | `agent_minutes` | analysis/rq1_cost.py, added_up() |
 | Sonnet / All | Model (min) | 163.9 | `cost_per_model.csv` | line 2 | `api_minutes` | analysis/rq1_cost.py, added_up() |
 | Sonnet / All | Output (k tok.) | 1,284 | `cost_per_model.csv` | line 2 | `output_tokens_thousands` | analysis/rq1_cost.py, added_up() |
@@ -434,7 +373,7 @@ the file, and what it means. The table cells follow at the end.
 | Sonnet / All | Calls, subagents | 711 | `cost_per_model.csv` | line 2 | `subagent_tool_calls` | analysis/rq1_cost.py, added_up() |
 | Sonnet / All | Subagents | 37 | `cost_per_model.csv` | line 2 | `subagents` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy+Rules | Cost (\$) | 8.12 | `cost_per_skill_model.csv` | line 5 | `cost_usd` | analysis/rq1_cost.py, added_up() |
-| Haiku / Taxonomy+Rules | \$ per conf. | 0.28 | `cost_per_skill_model.csv` | line 5 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
+| Haiku / Taxonomy+Rules | \$ per conf. | 0.29 | `cost_per_skill_model.csv` | line 5 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy+Rules | Session (min) | 105.6 | `cost_per_skill_model.csv` | line 5 | `agent_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy+Rules | Model (min) | 123.4 | `cost_per_skill_model.csv` | line 5 | `api_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy+Rules | Output (k tok.) | 1,687 | `cost_per_skill_model.csv` | line 5 | `output_tokens_thousands` | analysis/rq1_cost.py, added_up() |
@@ -444,7 +383,7 @@ the file, and what it means. The table cells follow at the end.
 | Haiku / Taxonomy+Rules | Calls, subagents | 789 | `cost_per_skill_model.csv` | line 5 | `subagent_tool_calls` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy+Rules | Subagents | 29 | `cost_per_skill_model.csv` | line 5 | `subagents` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy | Cost (\$) | 23.44 | `cost_per_skill_model.csv` | line 6 | `cost_usd` | analysis/rq1_cost.py, added_up() |
-| Haiku / Taxonomy | \$ per conf. | 0.87 | `cost_per_skill_model.csv` | line 6 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
+| Haiku / Taxonomy | \$ per conf. | 0.90 | `cost_per_skill_model.csv` | line 6 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy | Session (min) | 95.4 | `cost_per_skill_model.csv` | line 6 | `agent_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy | Model (min) | 116.0 | `cost_per_skill_model.csv` | line 6 | `api_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy | Output (k tok.) | 1,505 | `cost_per_skill_model.csv` | line 6 | `output_tokens_thousands` | analysis/rq1_cost.py, added_up() |
@@ -454,7 +393,7 @@ the file, and what it means. The table cells follow at the end.
 | Haiku / Taxonomy | Calls, subagents | 512 | `cost_per_skill_model.csv` | line 6 | `subagent_tool_calls` | analysis/rq1_cost.py, added_up() |
 | Haiku / Taxonomy | Subagents | 21 | `cost_per_skill_model.csv` | line 6 | `subagents` | analysis/rq1_cost.py, added_up() |
 | Haiku / Unguided | Cost (\$) | 9.86 | `cost_per_skill_model.csv` | line 7 | `cost_usd` | analysis/rq1_cost.py, added_up() |
-| Haiku / Unguided | \$ per conf. | 0.55 | `cost_per_skill_model.csv` | line 7 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
+| Haiku / Unguided | \$ per conf. | 0.62 | `cost_per_skill_model.csv` | line 7 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
 | Haiku / Unguided | Session (min) | 136.8 | `cost_per_skill_model.csv` | line 7 | `agent_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / Unguided | Model (min) | 183.9 | `cost_per_skill_model.csv` | line 7 | `api_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / Unguided | Output (k tok.) | 2,360 | `cost_per_skill_model.csv` | line 7 | `output_tokens_thousands` | analysis/rq1_cost.py, added_up() |
@@ -464,7 +403,7 @@ the file, and what it means. The table cells follow at the end.
 | Haiku / Unguided | Calls, subagents | 1,107 | `cost_per_skill_model.csv` | line 7 | `subagent_tool_calls` | analysis/rq1_cost.py, added_up() |
 | Haiku / Unguided | Subagents | 67 | `cost_per_skill_model.csv` | line 7 | `subagents` | analysis/rq1_cost.py, added_up() |
 | Haiku / All | Cost (\$) | 41.42 | `cost_per_model.csv` | line 3 | `cost_usd` | analysis/rq1_cost.py, added_up() |
-| Haiku / All | \$ per conf. | 0.56 | `cost_per_model.csv` | line 3 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
+| Haiku / All | \$ per conf. | 0.59 | `cost_per_model.csv` | line 3 | `usd_per_confirmed_repair` | analysis/rq1_cost.py, added_up() |
 | Haiku / All | Session (min) | 337.8 | `cost_per_model.csv` | line 3 | `agent_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / All | Model (min) | 423.3 | `cost_per_model.csv` | line 3 | `api_minutes` | analysis/rq1_cost.py, added_up() |
 | Haiku / All | Output (k tok.) | 5,552 | `cost_per_model.csv` | line 3 | `output_tokens_thousands` | analysis/rq1_cost.py, added_up() |

@@ -9,7 +9,6 @@ other rq1_*.py scripts wrote, and writes, to output/rq1/latex/:
                          the script that wrote the file (read by rq1_render.py)
   table_runs.tex         Table: one row per repository and skill, a column block per model
   table_together.tex     Table: the six runs on a repository together
-  table_categories.tex   Table: from smells to confirmed repairs, per category
   table_repairs.tex      Table: verdicts by skill, model, size, change and rule flag
   table_cost.tex         Table: cost, tokens, time, tool calls and subagents
   numbers.md             the ledger: for every command and every table cell, its
@@ -50,6 +49,7 @@ MADE_BY = {
     "repairs_by_change.csv": "analysis/rq1_repairs.py, grouped_table() and outcome()",
     "repairs_by_rule_flag.csv": "analysis/rq1_repairs.py, rule_flag_table() and outcome()",
     "repairs_summary.json": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "unguided_summary.json": "analysis/rq1_unguided_savings.py, main()",
     "cost_per_run.csv": "analysis/rq1_cost.py, cost_of()",
     "cost_per_skill_model.csv": "analysis/rq1_cost.py, added_up()",
     "cost_per_model.csv": "analysis/rq1_cost.py, added_up()",
@@ -61,9 +61,19 @@ MADE_BY = {
 # ---------------------------------------------------------------------------
 
 
+def output_path(file_name):
+    """Where a file named in NUMBERS is: repo_stats.tsv, a path under output/ when the
+    name has a folder (e.g. "rq2/root_causes.csv"), or else a file of output/rq1/."""
+    if file_name.endswith(".tsv"):
+        return REPO_STATS_FILE
+    if "/" in file_name:
+        return OUTPUT_DIR / file_name
+    return RQ1 / file_name
+
+
 def read_rows(file_name):
     """The rows of a .csv (or .tsv) file, each with the line it is on in the file."""
-    path = RQ1 / file_name if not file_name.endswith(".tsv") else REPO_STATS_FILE
+    path = output_path(file_name)
     delimiter = "\t" if file_name.endswith(".tsv") else ","
     rows = []
     with open(path) as handle:
@@ -120,7 +130,7 @@ def smallest_or_largest(file_name, column, where, largest):
 
 def from_json(file_name, keys):
     """The value at keys[0] -> keys[1] -> ... in a .json file, and the line of the last key."""
-    path = RQ1 / file_name
+    path = output_path(file_name)
     data = json.load(open(path))
     for key in keys:                                 # walk down the keys
         data = data[key]
@@ -174,22 +184,16 @@ NUMBERS = [
     ("rqOneTestListedDxHaikuMax", "step1_per_run.csv", csv_max("step1_per_run.csv", "test_units_listed", {"repo": DX, "model": "Haiku"}), "most test units a Haiku run listed on dx-toolkit"),
     ("rqOneRulesAgreeCells", "step2_summary.json", json_value("step2_summary.json", "rules_agreement_full_higher_cells"), "(repo, model) pairs, of 6, where more smells share a rule's root cause with Taxonomy+Rules than with Taxonomy"),
 
-    # --- categories ---
-    ("rqOneTaxSmells", "categories_summary.json", json_value("categories_summary.json", "smells"), "smells in the 12 taxonomy runs"),
-    ("rqOneCEightSFourSmells", "root_causes_funnel.csv", csv_value("root_causes_funnel.csv", {"id": "C8.S4"}, "smells"), "smells of root cause C8.S4 (Redundant Data Fetching)"),
-    ("rqOneCEightSFourDx", "root_causes_funnel.csv", csv_value("root_causes_funnel.csv", {"id": "C8.S4"}, "smells_dx-toolkit"), "of those, smells in dx-toolkit"),
-    ("rqOneCEightSFourSubmitted", "root_causes_funnel.csv", csv_value("root_causes_funnel.csv", {"id": "C8.S4"}, "submitted"), "repairs submitted for C8.S4"),
-
     # --- Step 3 ---
     ("rqOneSubmitted", "step3_summary.json", json_value("step3_summary.json", "all_runs", "repairs_submitted"), "repairs submitted, all 18 runs"),
     ("rqOneMeasured", "step3_summary.json", json_value("step3_summary.json", "all_runs", "repairs_measured"), "repairs we measured"),
     ("rqOneSavingRepairs", "step3_summary.json", json_value("step3_summary.json", "all_runs", "repairs_saving"), "repairs confirmed (confirmed or partial)"),
     ("rqOneSavingPct", "step3_summary.json", json_value("step3_summary.json", "all_runs", "pct_measured_saving"), "share of measured repairs that are confirmed (%)"),
-    ("rqOneSavingPctLow", "repairs_summary.json", json_value("repairs_summary.json", "pct_confirmed_all", "low"), "lower end of its 95% interval (%)"),
-    ("rqOneSavingPctHigh", "repairs_summary.json", json_value("repairs_summary.json", "pct_confirmed_all", "high"), "upper end of its 95% interval (%)"),
+    ("rqOneSavingPctLow", "repairs_summary.json", json_value("repairs_summary.json", "pct_confirmed_all_runs", "low"), "lower end of its 95% interval (%)"),
+    ("rqOneSavingPctHigh", "repairs_summary.json", json_value("repairs_summary.json", "pct_confirmed_all_runs", "high"), "upper end of its 95% interval (%)"),
     ("rqOneMedianSaving", "step3_summary.json", json_value("step3_summary.json", "all_runs", "median_saving_pct"), "median saving of the confirmed repairs (%)"),
-    ("rqOneMedianSavingLow", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_all", "low"), "lower end of its 95% interval (%)"),
-    ("rqOneMedianSavingHigh", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_all", "high"), "upper end of its 95% interval (%)"),
+    ("rqOneMedianSavingLow", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_all_runs", "low"), "lower end of its 95% interval (%)"),
+    ("rqOneMedianSavingHigh", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_all_runs", "high"), "upper end of its 95% interval (%)"),
     ("rqOneRegressed", "step3_summary.json", json_value("step3_summary.json", "all_runs", "repairs_regressed"), "repairs that regressed"),
     ("rqOneSavedFnSonnetWins", "step3_summary.json", json_value("step3_summary.json", "functions_with_saving", "model_wins", "Sonnet"), "(repo, skill) pairs, of 9, where Sonnet has more functions with a confirmed repair"),
     ("rqOneInputsReadyDxUngHaiku", "step3_per_run.csv", csv_value("step3_per_run.csv", {"repo": DX, "skill": CTRL, "model": "Haiku"}, "units_inputs_ready"), "units with usable inputs, dx-toolkit, Unguided, Haiku"),
@@ -202,16 +206,28 @@ NUMBERS = [
     ("rqOneIdenticalSameOutcome", "step3_summary.json", json_value("step3_summary.json", "identical_repairs", "same_saves_or_not_in_every_run"), "of those, same outcome (confirmed or not) in every run"),
 
     # --- the repairs themselves ---
-    ("rqOneFlaggedRepairs", "repairs_by_rule_flag.csv", csv_value("repairs_by_rule_flag.csv", {"within": "all", "rule_flagged_unit": "True"}, "measured"), "measured repairs in units a static rule flags"),
+    ("rqOneDistinctEdits", "repairs_summary.json", json_value("repairs_summary.json", "distinct_edits"), "distinct edits among the measured repairs (identical edits counted once)"),
+    ("rqOneFlaggedRepairs", "repairs_by_rule_flag.csv", csv_value("repairs_by_rule_flag.csv", {"within": "all", "rule_flagged_unit": "True"}, "measured"), "distinct edits of units a static rule flags"),
     ("rqOneFlagDiff", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_unflagged_minus_flagged", "value"), "median saving of unflagged minus flagged units (points)"),
     ("rqOneFlagDiffLow", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_unflagged_minus_flagged", "low"), "lower end of its interval"),
     ("rqOneFlagDiffHigh", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_unflagged_minus_flagged", "high"), "upper end of its interval"),
-    ("rqOneMedianLines", "repairs_summary.json", json_value("repairs_summary.json", "median_lines_changed"), "median lines changed by a measured repair"),
-    ("rqOneMultiFunction", "repairs_summary.json", json_value("repairs_summary.json", "repairs_changing_more_than_one_function"), "measured repairs that change more than one function"),
+    ("rqOneMedianLines", "repairs_summary.json", json_value("repairs_summary.json", "median_lines_changed"), "median lines changed by a distinct edit"),
+    ("rqOneMultiFunction", "repairs_summary.json", json_value("repairs_summary.json", "repairs_changing_more_than_one_function"), "distinct edits that change more than one function"),
     ("rqOneSmallDiff", "repairs_summary.json", json_value("repairs_summary.json", "pct_confirmed_larger_minus_small", "value"), "confirmed share of larger repairs minus 1-2-line repairs (points)"),
     ("rqOneSmallDiffLow", "repairs_summary.json", json_value("repairs_summary.json", "pct_confirmed_larger_minus_small", "low"), "lower end of its interval"),
     ("rqOneSmallDiffHigh", "repairs_summary.json", json_value("repairs_summary.json", "pct_confirmed_larger_minus_small", "high"), "upper end of its interval"),
-    ("rqOneLoopsMedian", "repairs_by_change.csv", csv_value("repairs_by_change.csv", {"change_group": "Changes the loops"}, "median_saving_pct"), "median saving of confirmed repairs that change the loops (%)"),
+    ("rqOneLoopsMedian", "repairs_by_change.csv", csv_value("repairs_by_change.csv", {"change_group": "Changes the loops"}, "median_saving_pct"), "median saving of confirmed edits that change the loops (%)"),
+
+    # --- why Unguided has the highest median saving (Sonnet, rq1_unguided_savings.py) ---
+    ("rqOneUngUnits", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "pairs", "distinct_units"), "distinct units measured by Unguided Sonnet and by a taxonomy Sonnet run on the same repository"),
+    ("rqOneUngPairs", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "pairs", "pairs"), "pairs of such a unit and one taxonomy run (a unit both taxonomy runs measured gives two)"),
+    ("rqOneUngPairsWithinFive", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "pairs", "within_5_points"), "of those pairs, best savings within 5 points of each other"),
+    ("rqOneUngPairsMedianDiff", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "pairs", "median_difference_points"), "median difference of the best savings (points, Unguided minus taxonomy)"),
+    ("rqOneUngOwnRepairs", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "own_units", "own_repairs"), "Sonnet taxonomy repairs on units Unguided did not measure"),
+    ("rqOneUngTaxMeasured", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "taxonomy_measured_repairs"), "all measured repairs of the Sonnet taxonomy runs"),
+    ("rqOneUngOwnUnits", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "own_units", "own_units"), "distinct units behind those repairs"),
+    ("rqOneUngNeverListed", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "own_units", "units_unguided_never_listed"), "of those distinct units, ones Unguided Sonnet never listed in Step 1"),
+    ("rqOneUngOwnSmall", "unguided_summary.json", json_value("unguided_summary.json", "Sonnet", "own_units", "own_confirmed_below_10pct"), "confirmed repairs on those units that save less than 10%"),
     ("rqOneLoopsDiff", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_loops_changed_minus_others", "value"), "their median saving minus that of the other repairs (points)"),
     ("rqOneLoopsDiffLow", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_loops_changed_minus_others", "low"), "lower end of its interval"),
     ("rqOneLoopsDiffHigh", "repairs_summary.json", json_value("repairs_summary.json", "median_saving_loops_changed_minus_others", "high"), "upper end of its interval"),
@@ -341,63 +357,6 @@ def table_together():
     return "\n".join(lines), cells
 
 
-# The category names of the taxonomy, shortened to fit one column
-SHORT_NAMES = {
-    "C1": "Redundant Computation", "C2": "Call Overhead", "C3": "Iteration Patterns",
-    "C4": "Control Flow", "C5": "Data Structures", "C6": "Memory Usage",
-    "C7": "Algorithmic", "C8": "Missing Reuse", "C9": "External Data Access",
-    "C10": "Language Primitives", "C11": "Concurrency Management", "C12": "Hardware Locality",
-}
-
-
-def table_categories():
-    """From smells to confirmed repairs, per category, in the 12 taxonomy runs."""
-    cells = []
-    lines = [
-        r"\begin{table}[t]",
-        r"\centering",
-        r"\caption{RQ1, from smells to confirmed repairs, per category, over the twelve runs of \taxorules and \taxo"
-        r" (category names shortened). \textit{Repairs}: repairs submitted. \textit{Per 100}: confirmed repairs per"
-        r" 100 smells. \textit{Median}: median saving of the confirmed repairs.}",
-        r"\label{tab:rq1-categories}",
-        r"\footnotesize",
-        r"\setlength{\tabcolsep}{4pt}",
-        r"\begin{tabular}{@{}llrrrrr@{}}",
-        r"\toprule",
-        r"& \textbf{Category} & Smells & Repairs & Confirmed & Per 100 & Median (\%) \\",
-        r"\midrule",
-    ]
-    for number_ in range(1, 13):
-        key = "C" + str(number_)
-        where = {"id": key}
-        parts = [key, SHORT_NAMES[key]]
-        for column, field in (("Smells", "smells"), ("Repairs", "submitted"),
-                              ("Confirmed", "confirmed"), ("Per 100", "confirmed_per_100_smells"),
-                              ("Median %", "median_saving_pct")):
-            if read_rows_value("categories_funnel.csv", where, field) == "":
-                parts.append("--")                   # empty: no smell, or no confirmed repair
-                continue
-            parts.append(cell(cells, "categories", key, column, "categories_funnel.csv", where, field))
-        lines.append(" & ".join(parts) + r" \\")
-    lines.append(r"\midrule")
-    parts = ["", "All"]
-    for column, keys in (("Smells", ["smells"]), ("Repairs", ["submitted"]),
-                         ("Confirmed", ["confirmed"]), ("Per 100", ["confirmed_per_100_smells"]),
-                         ("Median %", ["median_saving_pct"])):
-        parts.append(cell(cells, "categories", "All", column, "categories_summary.json", keys, keys[-1]))
-    lines.append(" & ".join(parts) + r" \\")
-    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
-    return "\n".join(lines), cells
-
-
-def read_rows_value(file_name, where, field):
-    """The raw text of one cell (empty when the cell is empty)."""
-    for row in read_rows(file_name):
-        if matches(row, where):
-            return row[field]
-    raise SystemExit(f"{file_name}: no row matches {where}")
-
-
 def table_repairs():
     """Verdicts of the measured repairs, by configuration, model, size, change and rule flag."""
     cells = []
@@ -419,8 +378,9 @@ def table_repairs():
         r"\begin{table}[t]",
         r"\centering",
         r"\caption{RQ1, verdicts of the measured repairs by group. \textit{Confirmed} includes partial repairs."
-        r" \textit{Median}: median saving of the confirmed repairs. Lines are counted after Python's parser has"
-        r" removed comments and formatting; loops include comprehensions.}",
+        r" \textit{Median}: median saving of the confirmed repairs. The rows by configuration and model count every"
+        r" run's repairs; the other rows count an edit that several runs wrote identically once. Lines are counted"
+        r" after Python's parser has removed comments, docstrings and formatting; loops include comprehensions.}",
         r"\label{tab:rq1-repairs}",
         r"\footnotesize",
         r"\begin{tabular}{@{}lrrrr@{}}",
@@ -439,7 +399,7 @@ def table_repairs():
         return f"{label} & {measured} & {confirmed} ({pct}) & {regressed} ({pct_regressed}) & {middle} \\\\"
 
     # The first row: all measured repairs, from repairs_summary.json
-    parts = ["All repairs"]
+    parts = ["All distinct edits"]
     parts.append(cell(cells, "repairs", "All", "Measured", "repairs_summary.json", ["all", "measured"], "measured"))
     parts.append(cell(cells, "repairs", "All", "Confirmed", "repairs_summary.json", ["all", "confirmed"], "confirmed")
                  + " (" + cell(cells, "repairs", "All", "Confirmed %", "repairs_summary.json",
@@ -516,7 +476,6 @@ def table_cost():
 TABLES = [  # (file name, builder, label)
     ("table_runs.tex", table_runs, "tab:rq1-runs"),
     ("table_together.tex", table_together, "tab:rq1-together"),
-    ("table_categories.tex", table_categories, "tab:rq1-categories"),
     ("table_repairs.tex", table_repairs, "tab:rq1-repairs"),
     ("table_cost.tex", table_cost, "tab:rq1-cost"),
 ]

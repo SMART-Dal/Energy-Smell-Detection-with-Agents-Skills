@@ -1,3 +1,3 @@
 model,cost_usd,agent_minutes,api_minutes,input_tokens,output_tokens,thinking_tokens,cache_read_tokens,cache_write_tokens,main_tool_calls,subagent_tool_calls,main_wait_calls,subagents,confirmed_repairs,pct_output_thinking,output_tokens_thousands,cache_read_tokens_millions,usd_per_confirmed_repair
-Sonnet,43.89,434.2,163.9,2300,1283523,623632,134212985,5847244,593,711,106,37,112,48.6,1284,134.2,0.39
-Haiku,41.42,337.8,423.3,53914,5551854,4121240,548777444,16510295,1445,2408,525,117,74,74.2,5552,548.8,0.56
+Sonnet,43.89,434.2,163.9,2300,1283523,623632,134212985,5847244,593,711,106,37,107,48.6,1284,134.2,0.41
+Haiku,41.42,337.8,423.3,53914,5551854,4121240,548777444,16510295,1445,2408,525,117,70,74.2,5552,548.8,0.59

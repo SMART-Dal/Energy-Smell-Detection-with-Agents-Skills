@@ -19,7 +19,6 @@ sample-apps,Taxonomy+Rules,Haiku,C10S2-write-json-replace,incremental-search/sea
 sample-apps,Taxonomy+Rules,Haiku,C10S3-accepted-process-update,incremental-search/search-suggestions/accepted_words.py::process_docs,C10.S3,confirmed,6.8
 sample-apps,Taxonomy+Rules,Haiku,C10S3-accepted-write-join,incremental-search/search-suggestions/accepted_words.py::write_to_file,C10.S3,partial,20.3
 sample-apps,Taxonomy+Rules,Haiku,C5S3-bert-float32-buffer,news/src/python/train_cold_start.py::read_bert_embeddings,C5.S3,confirmed,3.8
-sample-apps,Taxonomy+Rules,Haiku,C1S5-read-data-no-timestamp,news/src/python/mind_data.py::MindData.read_data,C1.S5,confirmed,66.1
 sample-apps,Taxonomy+Rules,Haiku,C6S2-sample-images-copy-kept,text-video-search/src/python/embedding.py::sample_images,C6.S2,confirmed,73.2
 sample-apps,Taxonomy+Rules,Haiku,C10S1-remove-control-fast-path,colbert-long/scripts/convert.py::remove_control_characters,C10.S1,partial,24.5
 sample-apps,Taxonomy+Rules,Haiku,C9S1-extract-docs-running-offset,text-search/python/extract-msmarco.py::extract_documents,C9.S1,partial,2.4
@@ -44,7 +43,6 @@ sample-apps,Taxonomy,Sonnet,C10S3-train_cold_start-write_embeddings-tolist-once,
 sample-apps,Taxonomy,Sonnet,C3S5-read_news-lazy-abstract,news/src/python/mind_data.py::MindData.read_news,C3.S5,confirmed,21.6
 sample-apps,Taxonomy,Sonnet,C10S3-accepted_words-process_docs-update,incremental-search/search-suggestions/accepted_words.py::process_docs,C10.S3,confirmed,8.5
 sample-apps,Taxonomy,Sonnet,C3S2-select_documents-bound,text-search/python/sample-queries-and-documents.py::select_documents,C3.S2,partial,7.7
-sample-apps,Taxonomy,Haiku,C10S1-control-translate,colbert-long/scripts/convert.py::remove_control_characters,C10.S1,confirmed,92.8
 sample-apps,Taxonomy,Haiku,C3S4-process-docs-docs,incremental-search/search-suggestions/count_terms.py::process_docs,C3.S4,confirmed,38.5
 sample-apps,Taxonomy,Haiku,C10S1-count-isdisjoint,incremental-search/search-suggestions/count_terms.py::count_terms,C10.S1,confirmed,40.3
 sample-apps,Taxonomy,Haiku,C10S2-write-replace,incremental-search/search-suggestions/count_terms.py::write_json_file,C10.S2,partial,3.5
@@ -63,7 +61,6 @@ sample-apps,Taxonomy,Haiku,C1S4-impression-lookup,news/src/python/mind_data.py::
 sample-apps,Taxonomy,Haiku,C3S1-users-records,examples/workshop-ecommerce/preprocess.py::process_users,C3.S1,confirmed,43.5
 sample-apps,Unguided,Sonnet,terms-docs-count,incremental-search/search-suggestions/count_terms.py::process_docs,,partial,38.6
 sample-apps,Unguided,Sonnet,predictions-dict,news/src/python/evaluate.py::predictions,,confirmed,99.1
-sample-apps,Unguided,Sonnet,ctrl-translate,colbert-long/scripts/convert.py::remove_control_characters,,confirmed,92.4
 sample-apps,Unguided,Sonnet,terms-window-flags,incremental-search/search-suggestions/count_terms.py::count_terms,,confirmed,52.3
 sample-apps,Unguided,Sonnet,msmarco-tell,text-search/python/extract-msmarco.py::extract_documents,,partial,2.6
 sample-apps,Unguided,Sonnet,bert-write-join,news/src/python/create_bert_embeddings.py::write_embedding,,confirmed,40.7
@@ -80,7 +77,6 @@ sample-apps,Unguided,Haiku,write-embeddings-tolist-once,news/src/python/train_co
 sample-apps,Unguided,Haiku,extract-documents-track-offset,text-search/python/extract-msmarco.py::extract_documents,,partial,2.2
 sample-apps,Unguided,Haiku,convert-main-json-dumps,text-search/python/convert-to-vespa-format.py::main,,confirmed,28.2
 sample-apps,Unguided,Haiku,process-users-itertuples,examples/workshop-ecommerce/preprocess.py::process_users,,confirmed,48.1
-sample-apps,Unguided,Haiku,sample-valid-data-cache-tensors,news/src/python/mind_data.py::MindData.sample_valid_data,,confirmed,97.8
 sample-apps,Unguided,Haiku,float-to-binary-stacked-packbits,visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding,,confirmed,61.8
 sample-apps,Unguided,Haiku,convert-user-embeddings-tolist,news/src/python/convert_embeddings_to_vespa_format.py::convert_user_embeddings,,confirmed,18.7
 sample-apps,Unguided,Haiku,convert-news-embeddings-tolist,news/src/python/convert_embeddings_to_vespa_format.py::convert_news_embeddings,,confirmed,23.3
@@ -89,11 +85,8 @@ sample-apps,Unguided,Haiku,process-orders-itertuples,examples/workshop-ecommerce
 dx-toolkit,Taxonomy+Rules,Sonnet,C3S5-first-pos,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,C3.S5,confirmed,88.8
 dx-toolkit,Taxonomy+Rules,Sonnet,C6S2-last-pos,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,C6.S2,confirmed,65.6
 dx-toolkit,Taxonomy+Rules,Sonnet,C7S1-split-unescaped,src/python/dxpy/utils/resolver.py::split_unescaped,C7.S1,confirmed,69.0
-dx-toolkit,Taxonomy+Rules,Sonnet,C10S1-escape-folder,src/python/dxpy/utils/resolver.py::escape_folder_str,C10.S1,confirmed,57.2
 dx-toolkit,Taxonomy+Rules,Sonnet,C1S4-flatten-subn,src/python/dxpy/utils/pretty_print.py::flatten_json_array,C1.S4,confirmed,22.7
-dx-toolkit,Taxonomy+Rules,Sonnet,C10S1-escape-unicode,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,C10.S1,confirmed,68.6
 dx-toolkit,Taxonomy+Rules,Sonnet,C3S2-table-border,src/python/dxpy/utils/pretty_print.py::format_table,C3.S2,partial,1.0
-dx-toolkit,Taxonomy+Rules,Sonnet,C8S1-final-payload-columns,src/python/dxpy/dx_extract_utils/filter_to_payload.py::final_payload,C8.S1,partial,3.5
 dx-toolkit,Taxonomy+Rules,Sonnet,C4S6-timedelta-suffix,src/python/dxpy/utils/__init__.py::normalize_timedelta,C4.S6,confirmed,53.0
 dx-toolkit,Taxonomy+Rules,Sonnet,C10S4-nextflow-src-join,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,C10.S4,confirmed,6.8
 dx-toolkit,Taxonomy+Rules,Sonnet,C1S4-localrefs-bind,src/python/dxpy/utils/local_exec_utils.py::has_local_job_refs,C1.S4,confirmed,7.5
@@ -110,7 +103,6 @@ dx-toolkit,Taxonomy+Rules,Haiku,C6S2-pheno-comprehension,src/python/dxpy/dx_extr
 dx-toolkit,Taxonomy+Rules,Haiku,C8S3-infer-hoist,src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type,C8.S3,partial,5.7
 dx-toolkit,Taxonomy+Rules,Haiku,C7S1-truncate-bsearch,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,C7.S1,confirmed,99.7
 dx-toolkit,Taxonomy,Sonnet,C1S4-flatten-subn,src/python/dxpy/utils/pretty_print.py::flatten_json_array,C1.S4,confirmed,23.7
-dx-toolkit,Taxonomy,Sonnet,C8S2-escape-translate,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,C8.S2,confirmed,69.4
 dx-toolkit,Taxonomy,Sonnet,C6S2-last-pos-rfind,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,C6.S2,confirmed,58.9
 dx-toolkit,Taxonomy,Sonnet,C6S2-split-unescaped-noslice,src/python/dxpy/utils/resolver.py::split_unescaped,C6.S2,confirmed,60.6
 dx-toolkit,Taxonomy,Sonnet,C3S5-first-pos-leftscan,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,C3.S5,confirmed,88.0
@@ -144,7 +136,6 @@ dx-toolkit,Unguided,Sonnet,resolver-dxlink,src/python/dxpy/utils/resolver.py::_m
 dx-toolkit,Unguided,Sonnet,fp-validate,src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON,,confirmed,100.0
 dx-toolkit,Unguided,Sonnet,nb-required-set,src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs,,partial,3.2
 dx-toolkit,Unguided,Haiku,dxlog-truncate-bisect,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,,confirmed,99.7
-dx-toolkit,Unguided,Haiku,pool-manager-cache,src/python/dxpy/__init__.py::_get_pool_manager,,confirmed,37.4
 community,Taxonomy+Rules,Sonnet,C3S2-validate-team-sets,scripts/validate-workstreams.py::validate_workstreams_semantics,C3.S2,partial,28.3
 community,Taxonomy+Rules,Sonnet,C1S4-emeritus-member-flag,scripts/move-to-emeritus.py::_add_to_emeritus,C1.S4,confirmed,13.5
 community,Taxonomy+Rules,Sonnet,C8S2-emeritus-compiled-patterns,scripts/move-to-emeritus.py::_add_to_emeritus,C8.S2,confirmed,35.4

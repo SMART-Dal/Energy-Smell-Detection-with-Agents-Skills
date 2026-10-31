@@ -22,10 +22,12 @@ Compares, with the repository and the model fixed:
 
 Writes to analysis/output/rq1/:
   unguided_per_run.csv       spread of the savings, per run
-  unguided_pairs.csv         one row per unit measured by Unguided and by a taxonomy run
+  unguided_pairs.csv         one row per pair: a unit measured by Unguided and by one
+                             taxonomy run (a unit both taxonomy runs measured gives two)
   unguided_own_units.csv     per taxonomy run: repairs on shared units and on its own units
   unguided_repair_shape.csv  per model and skill: lines changed and change to the loops
-  unguided_summary.json      the totals the answer uses
+  unguided_summary.json      the totals the answer uses. Repairs are added up over the
+                             runs; units count once, as distinct (repository, unit)
 
 Run after rq1_repairs.py:  python3 analysis/rq1_unguided_savings.py
 """
@@ -46,7 +48,7 @@ def read_repairs():
     repairs = []
     with open(OUT / "repairs_per_repair.csv") as handle:
         for row in csv.DictReader(handle):
-            row["saving"] = float(row["saving_pct"])
+            row["saving"] = float(row["saving_pct"]) if row["saving_pct"] else None   # None: not used
             row["confirmed"] = row["confirmed"] == "True"   # confirmed or partial
             repairs.append(row)
     return repairs
@@ -81,10 +83,13 @@ def spread(rows):
 
 
 def best_saving(rows, unit):
-    """The largest saving any repair of `unit` reached among `rows` (any verdict)."""
+    """The largest saving any repair of `unit` reached among `rows` (any verdict);
+    None when none of them has a saving (see excluded_repairs.csv)."""
     best = None
     for row in rows:
-        if row["unit"] == unit and (best is None or row["saving"] > best):
+        if row["unit"] != unit or row["saving"] is None:
+            continue
+        if best is None or row["saving"] > best:
             best = row["saving"]
     return best
 
@@ -104,6 +109,7 @@ def main():
 
     pairs = []                                          # 2. the same unit on both sides
     own = []                                            # 3. units only the taxonomy run measured
+    fate_of_unit = {}                                   # {(model, repo, unit): what Unguided did with it}
     for model in MODELS:
         for repo in REPOS:
             unguided = of_run(repairs, repo, "control", model)
@@ -133,6 +139,8 @@ def main():
                     causes = sorted({row["root_cause"] for row in shared_rows if row["unit"] == unit})
                     u = best_saving(unguided, unit)
                     t = best_saving(shared_rows, unit)
+                    if u is None or t is None:          # one side has no saving to compare
+                        continue
                     pairs.append({"model": MODEL_NAMES[model], "repo": repo, "skill": SKILL_NAMES[skill],
                                   "unit": unit, "unguided_saving_pct": u, "taxonomy_saving_pct": t,
                                   "difference_points": round(u - t, 1),
@@ -143,11 +151,13 @@ def main():
                 small_causes = {}                       # root causes of own confirmed repairs below 10%
                 for unit in {row["unit"] for row in own_rows}:
                     if unit in smelly:
-                        fate["smelly, not measured"] += 1
+                        where = "smelly, not measured"
                     elif unit in listed:
-                        fate["listed, rejected"] += 1
+                        where = "listed, rejected"
                     else:
-                        fate["never listed"] += 1
+                        where = "never listed"
+                    fate[where] += 1
+                    fate_of_unit[(MODEL_NAMES[model], repo, unit)] = where   # the same for both taxonomy runs
                 for row in own_rows:
                     if row["confirmed"] and row["saving"] < 10:
                         small_causes[row["root_cause"]] = small_causes.get(row["root_cause"], 0) + 1
@@ -194,20 +204,27 @@ def main():
             rows = [r for r in repairs if r["model"] == name and r["skill"] == SKILL_NAMES[skill]]
             part[SKILL_NAMES[skill]] = spread(rows)
         differences = [p["difference_points"] for p in pairs if p["model"] == name]
+        part["taxonomy_measured_repairs"] = (part[SKILL_NAMES["full"]]["measured"]
+                                             + part[SKILL_NAMES["knowledge"]]["measured"])
+        # A unit both taxonomy runs measured gives two pairs, but counts once as a unit
         part["pairs"] = {
-            "units_measured_by_both": len(differences),
+            "pairs": len(differences),
+            "distinct_units": len({(p["repo"], p["unit"]) for p in pairs if p["model"] == name}),
             "unguided_higher_by_more_than_5_points": len([d for d in differences if d > 5]),
             "within_5_points": len([d for d in differences if -5 <= d <= 5]),
             "taxonomy_higher_by_more_than_5_points": len([d for d in differences if d < -5]),
             "median_difference_points": median(differences),
         }
+        # Repairs are added up over the runs; units count once, even when both taxonomy runs measured them
         own_rows = [o for o in own if o["model"] == name]
+        fates = [where for (m, repo, unit), where in fate_of_unit.items() if m == name]
         part["own_units"] = {
             "own_repairs": sum(o["own_repairs"] for o in own_rows),
             "own_confirmed_below_10pct": sum(o["own_confirmed_below_10pct"] for o in own_rows),
-            "units_unguided_never_listed": sum(o["own_units_unguided_never_listed"] for o in own_rows),
-            "units_unguided_listed_rejected": sum(o["own_units_unguided_listed_rejected"] for o in own_rows),
-            "units_unguided_smelly_not_measured": sum(o["own_units_unguided_smelly_not_measured"] for o in own_rows),
+            "own_units": len(fates),
+            "units_unguided_never_listed": fates.count("never listed"),
+            "units_unguided_listed_rejected": fates.count("listed, rejected"),
+            "units_unguided_smelly_not_measured": fates.count("smelly, not measured"),
         }
         summary[name] = part
     write_json(summary, OUT / "unguided_summary.json")

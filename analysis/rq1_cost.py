@@ -24,7 +24,8 @@ From the rest of the run:
   subagent_tool_calls tool calls made inside subagents (with a parent_tool_use_id)
   main_wait_calls     main-agent calls that only wait: the Monitor tool, or a Bash
                       command that starts with "sleep"
-  confirmed_repairs   repairs with our verdict confirmed or partial (review/results.jsonl)
+  confirmed_repairs   repairs with our verdict confirmed or partial (review/results.jsonl,
+                      through common.review_results())
 
 Writes to analysis/output/rq1/:
   cost_per_run.csv            one row per run
@@ -37,7 +38,7 @@ Run:  python3 analysis/rq1_cost.py
 """
 
 from common import (MODEL_NAMES, MODELS, OUTPUT_DIR, SAVES, SKILL_NAMES, SKILLS, all_runs,
-                    percent, read_json, read_jsonl, run_folder, write_csv, write_json)
+                    percent, read_json, read_jsonl, review_results, run_folder, write_csv, write_json)
 
 OUT = OUTPUT_DIR / "rq1"   # where this script writes
 
@@ -81,7 +82,7 @@ def cost_of(repo, skill, model):
                     wait_calls.add(block["id"])
 
     confirmed = 0
-    for repair in read_jsonl(folder / "review" / "results.jsonl"):
+    for repair in review_results(repo, skill, model):
         if repair["status"] in SAVES:
             confirmed = confirmed + 1
 

@@ -1,0 +1,7 @@
+root_cause,edit,repo,function,strategy,verdicts,runs,lowest_saving_pct,highest_saving_pct,before,after
+C3.S4,3a,sample-apps,predictions,Build an index once and look up,confirmed,2,99.1,99.1,"for news_id in news_ids: |     hit = find_hit(hits, news_id)","for child in hits['root']['children']: |     by_id.setdefault(child['fields']['news_id'], child) | hit = by_id.get(news_id)"
+C7.S1,2a,dx-toolkit,DXLogHandler.truncate_message,Use bisection,confirmed,1,99.7,99.7,while len(json.dumps(_bytes2utf8(msg_bytes))) > 8000: |     msg_bytes = msg_bytes[:-1],while low < high: |     mid = (low + high + 1) // 2 |     if len(json.dumps(_bytes2utf8(msg_bytes[:mid]))) <= 8000:
+C10.S1,4b,sample-apps,remove_control_characters,Use str.translate instead of per-character work,confirmed,1,80.7,80.7,return ''.join((ch for ch in s if unicodedata.category(ch)[0] != 'C')),drop = {ord(ch): None for ch in set(s) if unicodedata.category(ch)[0] == 'C'} | return s.translate(drop) if drop else s
+C6.S2,7a,dx-toolkit,get_last_pos_of_char,Pass bounds instead of slicing,confirmed,3,58.6,65.6,pos = string[:pos].rfind(char),"pos = string.rfind(char, 0, pos)"
+C10.S4,7a,sample-apps,split_text,Collect parts in a list and join once,negligible,1,0.3,0.3,text = text + '\n' + line,"parts.append('\n') | parts.append(line) | data.append((id, header, ''.join(parts)))"
+C10.S1,7a,sample-apps,filter,Replace a loop with a built-in,regressed,1,-68.2,-68.2,for f in filters: |     if f in text: |         return True | return False,return any((f in text for f in filters))

@@ -1,0 +1,127 @@
+root_cause,instance,edit,repo,unit,runs,verdicts,savings,confirmed,best_saving_pct,lines_changed,calls_removed,calls_added,repairs
+C1.S4,1,1a,community,scripts/gc-elections/create-github-comments.py::sync,1,partial,4.6,True,4.6,9,extract_mentions,"append, zip",C1S4-sync-mentions-once
+C1.S4,1,1b,community,scripts/gc-elections/create-github-comments.py::sync,1,partial,4.1,True,4.1,9,extract_mentions,zip,C1S4-sync-mentions-once
+C1.S4,1,1c,community,scripts/gc-elections/create-github-comments.py::sync,1,partial,4.7,True,4.7,9,extract_mentions,zip,C1S4-sync-mentions-once
+C1.S4,2,2a,community,scripts/move-to-emeritus.py::_add_to_emeritus,1,confirmed,13.5,True,13.5,5,match,"bool, zip",C1S4-emeritus-member-flag
+C1.S4,2,2b,community,scripts/move-to-emeritus.py::_add_to_emeritus,1,confirmed,18.3,True,18.3,12,match,,C1S4-add-emeritus-single-match
+C1.S4,2,2c,community,scripts/move-to-emeritus.py::_add_to_emeritus,1,confirmed,13.7,True,13.7,17,match,append,C1S4-add-emeritus-single-pass
+C1.S4,2,2d,community,scripts/move-to-emeritus.py::_add_to_emeritus,1,confirmed,15.9,True,15.9,14,match,,C1S4-add-emeritus-one-pass
+C1.S4,3,3a,community,scripts/update-community-members.py::render_gc,1,mixed,-3.0,False,,5,,get,C1S4-render-gc-display-name
+C1.S4,4,4a,community,scripts/update-community-members.py::render_tc,1,mixed,-0.4,False,,5,,get,C1S4-render-tc-display-name
+C1.S4,5,5a,dx-toolkit,src/python/dxpy/bindings/apollo/json_validation_by_schema.py::JSONValidator.are_list_items_within_range,1,mixed,15.8,False,,10,int x2,append x2,C1S4-range-int-once
+C1.S4,6,6a,dx-toolkit,src/python/dxpy/utils/local_exec_utils.py::has_local_job_refs,1,confirmed,7.5,True,7.5,27,,,C1S4-localrefs-bind
+C1.S4,7,7a,dx-toolkit,src/python/dxpy/utils/pretty_print.py::flatten_json_array,1,confirmed,22.7,True,22.7,6,"search, sub",subn,C1S4-flatten-subn
+C1.S4,7,7b,dx-toolkit,src/python/dxpy/utils/pretty_print.py::flatten_json_array,1,confirmed,23.7,True,23.7,5,"search, sub","format, subn x2",C1S4-flatten-subn
+C1.S4,8,8a,dx-toolkit,src/python/dxpy/utils/resolver.py::parse_input_keyval,1,confirmed,56.2,True,56.2,5,,,C1S4-keyval-name
+C1.S4,9,9a,dx-toolkit,src/python/dxpy/utils/spelling_corrector.py::correct,1,partial,2.5,True,2.5,5,_known_edits2,"_edits1, set",C1S4-correct-edits-once
+C1.S4,9,9b,dx-toolkit,src/python/dxpy/utils/spelling_corrector.py::correct,1,negligible,1.3,False,,5,_known_edits2,"_edits1, set",C1S4-correct-edits1
+C1.S4,9,9c,dx-toolkit,src/python/dxpy/utils/spelling_corrector.py::correct,1,negligible,-0.4,False,,5,_known_edits2,"_edits1, set",C1S4-correct-edits-once
+C1.S4,10,10a,sample-apps,feed-split.py::what_language,3,confirmed confirmed confirmed,15.1 15.3 15.1,True,15.3,7,,,C1S4-what-language-text C1S4-what_language-text-once C1S4-what-language
+C1.S4,11,11a,sample-apps,incremental-search/search-suggestions/count_terms.py::count_terms,2,confirmed confirmed,6.9 8.8,True,8.8,5,,,C1S4-count-terms-window C1S4-count-terms-window-once
+C1.S4,12,12a,sample-apps,news/src/python/metrics.py::ndcg_score,1,mixed,2.1,False,,10,dcg_score x2,"arange, argsort x2, len, log2, min, shape, sum x2, take x2",C1S4-ndcg_score-discounts-once
+C1.S4,13,13a,sample-apps,news/src/python/mind_data.py::MindData.add_impressions,2,confirmed confirmed,7.8 6.7,True,7.8,14,,,C1S4-add-impressions-local C1S4-impression-lookup
+C3.S2,1,1a,community,scripts/validate-workstreams.py::validate_workstreams_semantics,3,partial confirmed mixed,28.3 29.4 26.9,True,29.4,8,,,C3S2-validate-team-sets C3S2-validate-hoist-sets C3S2-validate-hoist-sets
+C3.S2,1,1b,community,scripts/validate-workstreams.py::validate_workstreams_semantics,1,partial,28.8,True,28.8,9,,,C3S2-validate-hoist-sets
+C3.S2,2,2a,dx-toolkit,src/python/dxpy/dx_extract_utils/input_validation.py::is_list_of_strings,1,confirmed,26.8,True,26.8,10,,,C3S2-list-of-strings-hoist
+C3.S2,3,3a,dx-toolkit,src/python/dxpy/dx_extract_utils/input_validation_somatic.py::is_list_of_strings,1,confirmed,26.3,True,26.3,10,,,C3S2-list-of-strings-hoist-somatic
+C3.S2,4,4a,dx-toolkit,src/python/dxpy/utils/pretty_print.py::format_table,1,partial,1.0,True,1.0,3,border x2,,C3S2-table-border
+C3.S2,4,4b,dx-toolkit,src/python/dxpy/utils/pretty_print.py::format_table,1,negligible,-1.7,False,,3,border x2,,C3S2-format-table-bar
+C3.S2,5,5a,sample-apps,incremental-search/search-suggestions/count_terms.py::count_terms,1,confirmed,41.4,True,41.4,3,map,,C3S2-count_terms-common-once
+C3.S2,6,6a,sample-apps,text-search/python/sample-queries-and-documents.py::select_documents,2,regressed partial,7.0 7.7,True,7.7,3,,,C3S2-select-documents-min-hoist C3S2-select_documents-bound
+C8.S2,1,1a,community,scripts/move-to-emeritus.py::_add_to_emeritus,1,confirmed,35.4,True,35.4,8,,compile x2,C8S2-emeritus-compiled-patterns
+C8.S2,2,2a,community,scripts/move-to-emeritus.py::_parse_members,1,negligible,0.5,False,,3,,,C8S2-parse-members-module-pattern
+C8.S2,3,3a,dx-toolkit,src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_sql,1,negligible,0.8,False,,6,,hasattr,C8S2-harmonize-cached-columns
+C8.S2,4,4a,dx-toolkit,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,1,excluded,-,False,,15,"group x3, ord x3, sub","get, range, translate",C8S2-escape-translate
+C1.S5,1,1a,community,scripts/update-sig-tables.py::render_group,1,confirmed,79.4,True,79.4,15,extract_row_data,"append, get x3",C1S5-render-group-light
+C1.S5,2,2a,sample-apps,news/src/python/mind_data.py::MindData.read_data,1,excluded,-,False,,3,strptime,,C1S5-read-data-no-timestamp
+C1.S5,3,3a,sample-apps,news/src/python/mind_data.py::MindData.sample_valid_data,1,negligible,0.5,False,,11,sum,,C1S5-sample_valid_data-filter-first
+C6.S2,1,1a,community,scripts/generate-sponsorship-ledger.py::rank_gc,1,negligible,0.9,False,,4,"list, sort",sorted,C6S2-rank-gc-sorted
+C6.S2,2,2a,community,scripts/move-to-emeritus.py::_remove_member_line,1,partial,1.9,True,1.9,6,,,C6S2-remove-member-line-no-slice
+C6.S2,3,3a,dx-toolkit,src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter,1,confirmed,60.3,True,60.3,4,reduce x2,lambda_for_list_conv x2,C6S2-pheno-comprehension
+C6.S2,4,4a,dx-toolkit,src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec,1,partial,24.9,True,24.9,2,,"get, items",C6S2-cluster-copy-kept
+C6.S2,4,4b,dx-toolkit,src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec,1,partial,25.4,True,25.4,4,"dict, items",,C6S2-cluster-spec-filter-first
+C6.S2,5,5a,dx-toolkit,src/python/dxpy/utils/pretty_print.py::format_table,1,regressed,-3.7,False,,2,list,"iter, next",C6S2-format-table-len
+C6.S2,6,6a,dx-toolkit,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,1,confirmed,53.6,True,53.6,2,,,C6S2-get-first-rfind
+C6.S2,7,7a,dx-toolkit,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,3,confirmed confirmed confirmed,65.6 58.6 58.9,True,65.6,2,,,C6S2-last-pos C6S2-get-last-rfind C6S2-last-pos-rfind
+C6.S2,8,8a,dx-toolkit,src/python/dxpy/utils/resolver.py::split_unescaped,1,confirmed,60.6,True,60.6,8,,,C6S2-split-unescaped-noslice
+C6.S2,9,9a,dx-toolkit,src/python/dxpy/utils/spelling_corrector.py::_edits1,1,negligible,-0.5,False,,10,,update x3,C6S2-edits1-set
+C6.S2,10,10a,sample-apps,text-video-search/src/python/embedding.py::sample_images,3,confirmed confirmed confirmed,72.3 73.2 71.6,True,73.2,4,,"array, len",C6S2-sample-images-select-first C6S2-sample_images-index-first C6S2-sample-index
+C6.S2,10,10b,sample-apps,text-video-search/src/python/embedding.py::sample_images,1,confirmed,73.2,True,73.2,2,,,C6S2-sample-images-copy-kept
+C9.S1,1,1a,sample-apps,incremental-search/search-suggestions/count_terms.py::write_json_file,1,confirmed,11.4,True,11.4,2,dump,"dumps, write",C9S1-write-once
+C9.S1,2,2a,sample-apps,news/src/python/create_bert_embeddings.py::write_embedding,1,confirmed,35.2,True,35.2,6,"enumerate, write x2",join,C9S1-embedding-join
+C9.S1,3,3a,sample-apps,text-search/python/extract-msmarco.py::extract_documents,2,partial partial,2.4 2.5,True,2.5,7,tell,"encode, len",C9S1-extract-docs-running-offset C9S1-extract-offset
+C6.S3,1,1a,dx-toolkit,src/python/dxpy/utils/pretty_print.py::format_table,1,regressed,-2.1,False,,2,list,,C6S3-table-first-row
+C6.S3,2,2a,sample-apps,examples/embedder-auto-training-evaluation/training-evaluation/train.py::TrainDataset.__init__,1,regressed,-5.9,False,,4,readlines x2,,C6S3-init-iterate
+C6.S3,3,3a,sample-apps,feed_to_vespa.py::get_feed_docids,1,negligible,-0.7,False,,6,set x3,,C6S3-get-feed-docids-setcomp
+C6.S3,4,4a,sample-apps,incremental-search/search-suggestions/count_terms.py::read_common_words,1,confirmed,5.3,True,5.3,3,readlines,,C6S3-read-common-words-stream
+C10.S2,1,1a,community,scripts/move-to-emeritus.py::_add_to_emeritus,1,confirmed,26.9,True,26.9,4,match x2,startswith x2,C10S2-add-emeritus-startswith
+C10.S2,2,2a,dx-toolkit,src/python/dxpy/dx_extract_utils/germline_utils.py::harmonize_germline_results,1,regressed,-8.3,False,,11,append,get,C10S2-harmonize-results-get
+C10.S2,3,3a,sample-apps,incremental-search/search-suggestions/count_terms.py::write_json_file,3,partial confirmed partial,3.1 3.4 3.5,True,3.5,2,sub,replace,C10S2-write-json-term-replace C10S2-write-json-replace C10S2-write-replace
+C10.S2,4,4a,sample-apps,news/src/python/convert_to_vespa_format.py::convert_file,1,confirmed,27.2,True,27.2,2,dump,"dumps, write",C10S2-convert-file-dumps
+C10.S2,5,5a,sample-apps,news/src/python/create_category_ctrs.py::read_impressions_file,1,confirmed,32.6,True,32.6,7,DictReader,reader,C10S2-category_ctrs-read_impressions-reader
+C10.S2,6,6a,sample-apps,text-search/python/convert-to-vespa-format.py::main,1,confirmed,27.4,True,27.4,2,dump,"dumps, write",C10S2-convert-main-one-write
+C10.S2,7,7a,sample-apps,visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding,1,confirmed,18.1,True,18.1,2,where,,C10S2-float_to_binary-bool
+C1.S1,1,1a,community,scripts/validate-workstreams.py::validate_workstreams_semantics,1,negligible,1.3,False,,2,get x2,,C1S1-validate-dead-kind
+C1.S1,1,1b,community,scripts/validate-workstreams.py::validate_workstreams_semantics,3,negligible regressed partial,0.2 -0.4 0.1,True,0.1,1,get,,C1S1-validate-dead-parent-kind C1S1-validate-parent-kind C1S1-validate-dead-parent-kind
+C1.S1,2,2a,dx-toolkit,src/python/dxpy/dx_extract_utils/filter_to_payload.py::validate_JSON,3,confirmed confirmed confirmed,100.0 100.0 100.0,True,100.0,3,"format, join, load, open",,C1S1-validate-json-dead-read C1S1-validate-json-schema C1S1-validate-json-dead-read
+C1.S1,3,3a,sample-apps,incremental-search/search-suggestions/count_terms.py::process_docs,4,negligible negligible negligible negligible,0.3 0.3 0.7 0.9,False,,1,"sum, values",,C1S1-process-docs-dead-total C1S1-process-docs-dead-total C1S1-process_docs-total_count C1S1-dead-total
+C10.S1,1,1a,dx-toolkit,src/python/dxpy/utils/__init__.py::_dict_raise_on_duplicates,1,confirmed,36.6,True,36.6,15,,"dict, isinstance, len x2, list",C10S1-dupkeys-dict
+C10.S1,2,2a,dx-toolkit,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,1,excluded,-,False,,16,"group x3, ord x3, sub","range, translate",C10S1-escape-unicode
+C10.S1,3,3a,dx-toolkit,src/python/dxpy/utils/resolver.py::escape_folder_str,1,excluded,-,False,,8,"replace, sub","ord, translate",C10S1-escape-folder
+C10.S1,4,4a,sample-apps,colbert-long/scripts/convert.py::remove_control_characters,1,partial,24.5,True,24.5,2,,"isinstance, isprintable",C10S1-remove-control-fast-path
+C10.S1,4,4b,sample-apps,colbert-long/scripts/convert.py::remove_control_characters,1,confirmed,80.7,True,80.7,3,join,"ord, set, translate",C10S1-remove_control_characters-translate
+C10.S1,4,4c,sample-apps,colbert-long/scripts/convert.py::remove_control_characters,1,excluded,-,False,,7,join,"chr, getattr, range, translate",C10S1-control-translate
+C10.S1,5,5a,sample-apps,incremental-search/search-suggestions/accepted_words.py::process_docs,1,confirmed,8.2,True,8.2,6,add x2,update x2,C10S1-accepted-process-docs-update
+C10.S1,6,6a,sample-apps,incremental-search/search-suggestions/count_terms.py::count_terms,3,confirmed confirmed confirmed,39.6 39.9 40.3,True,40.3,2,"any, map",isdisjoint,C10S1-count-terms-isdisjoint C10S1-count-terms-isdisjoint C10S1-count-isdisjoint
+C10.S1,7,7a,sample-apps,use-case-shopping/create_suggestions.py::filter,1,regressed,-68.2,False,,5,,any,C10S1-filter-any
+C10.S1,8,8a,sample-apps,visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding,1,confirmed,61.1,True,61.1,9,"items, where","dict, keys, list, values, zip",C10S1-binary-vectorise
+C3.S5,1,1a,community,scripts/move-to-emeritus.py::_check_events,4,mixed mixed mixed mixed,-0.3 -0.5 -1.9 -1.6,False,,2,,len x2,C3S5-events-early-exit C3S5-check-events-break C3S5-check-events C3S5-check-events-early-exit
+C3.S5,2,2a,dx-toolkit,src/python/dxpy/bindings/search.py::_find,1,partial,1.7,True,1.7,2,,,C3S5-find-extra-page
+C3.S5,3,3a,dx-toolkit,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,2,confirmed confirmed,88.8 88.0,True,88.8,13,"len, rfind",find x2,C3S5-first-pos C3S5-first-pos-leftscan
+C3.S5,4,4a,sample-apps,news/src/python/mind_data.py::MindData.read_news,1,confirmed,21.6,True,21.6,5,,len,C3S5-read_news-lazy-abstract
+C8.S3,1,1a,community,scripts/move-to-emeritus.py::_add_to_emeritus,1,confirmed,40.8,True,40.8,8,,compile x2,C8S3-add-emeritus-compiled
+C8.S3,2,2a,dx-toolkit,src/python/dxpy/bindings/apollo/data_transformations.py::transform_to_expression_matrix,1,confirmed,14.6,True,14.6,10,,,C8S3-expression-matrix-locals
+C8.S3,3,3a,dx-toolkit,src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type,1,partial,5.7,True,5.7,5,,,C8S3-infer-hoist
+C8.S3,3,3b,dx-toolkit,src/python/dxpy/dx_extract_utils/germline_utils.py::infer_genotype_type,1,confirmed,10.1,True,10.1,8,,values,C8S3-infer-genotype-locals
+C8.S3,4,4a,sample-apps,news/src/python/mind_data.py::MindData.add_impressions,1,confirmed,6.6,True,6.6,14,,,C8S3-add_impressions-content-once
+C10.S3,1,1a,community,scripts/move-to-emeritus.py::_parse_members,1,confirmed,4.9,True,4.9,5,append,,C10S3-parse-members-comprehension
+C10.S3,2,2a,sample-apps,incremental-search/search-suggestions/accepted_words.py::process_docs,3,confirmed confirmed confirmed,6.8 8.5 7.8,True,8.5,6,add x2,update x2,C10S3-accepted-process-update C10S3-accepted_words-process_docs-update C10S3-accepted-update
+C10.S3,3,3a,sample-apps,incremental-search/search-suggestions/accepted_words.py::write_to_file,1,partial,20.3,True,20.3,3,,join,C10S3-accepted-write-join
+C10.S3,4,4a,sample-apps,news/src/python/train_cold_start.py::write_embeddings,1,partial,5.5,True,5.5,3,,,C10S3-train_cold_start-write_embeddings-tolist-once
+C10.S3,5,5a,sample-apps,text-search/python/sample-queries-and-documents.py::select_documents,1,partial,17.4,True,17.4,3,add,update,C10S3-select-update
+C10.S3,6,6a,sample-apps,use-case-shopping/create_suggestions.py::filter_content,1,confirmed,56.9,True,56.9,5,,tuple,C10S3-filter-tuple
+C10.S3,7,7a,sample-apps,visual-retrieval-colpali/prepare_feed_deploy.py::float_to_binary_embedding,1,confirmed,28.2,True,28.2,2,where,,C10S3-prepare-binary-packbits-bool
+C10.S3,8,8a,sample-apps,visual-retrieval-colpali/src/backend/vespa_app.py::VespaQueryClient.float_to_binary_embedding,1,confirmed,18.5,True,18.5,2,where,,C10S3-vespa-binary-packbits-bool
+C10.S4,1,1a,community,scripts/move-to-emeritus.py::_build_issue_body,2,partial confirmed,5.3 9.7,True,9.7,4,,join,C10S4-issue-body-join C10S4-issue-body
+C10.S4,2,2a,community,scripts/move-to-emeritus.py::_build_pr_body,2,confirmed partial,5.0 4.6,True,5.0,4,,join,C10S4-pr-body-join C10S4-pr-body
+C10.S4,3,3a,community,scripts/update-sig-tables.py::render_group,1,partial,1.2,True,1.2,10,,"append x2, join",C10S4-render-group-join
+C10.S4,3,3b,community,scripts/update-sig-tables.py::render_group,1,partial,1.8,True,1.8,4,,"append, join",C10S4-render-group-join
+C10.S4,3,3c,community,scripts/update-sig-tables.py::render_group,1,negligible,1.1,False,,4,,"append, join",C10S4-render-group-join
+C10.S4,4,4a,community,scripts/update-sig-tables.py::render_sig_details_group,2,partial negligible,5.0 0.4,True,5.0,5,,join,C10S4-render-details-group-join C10S4-sig-details-join
+C10.S4,5,5a,dx-toolkit,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,1,confirmed,6.8,True,6.8,10,,"append x2, join x2",C10S4-nextflow-src-join
+C10.S4,5,5b,dx-toolkit,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,1,confirmed,10.6,True,10.6,12,,"append x2, join x2",C10S4-nextflow-src-join
+C10.S4,6,6a,dx-toolkit,src/python/dxpy/utils/pathmatch.py::translate,1,confirmed,17.5,True,17.5,14,,"append x5, join",C10S4-glob-translate-join
+C10.S4,7,7a,sample-apps,feed-split.py::split_text,1,negligible,0.3,False,,13,,"append x2, join x2",C10S4-split-text-parts
+C10.S4,7,7b,sample-apps,feed-split.py::split_text,1,negligible,0.3,False,,11,,"append, join x2",C10S4-split-text-parts-list
+C10.S4,7,7c,sample-apps,feed-split.py::split_text,1,negligible,0.2,False,,12,,"append, join x2",C10S4-split_text-join
+C10.S4,7,7d,sample-apps,feed-split.py::split_text,1,negligible,-0.0,False,,12,,"append, join x2",C10S4-split-text
+C10.S4,8,8a,sample-apps,test/test.py::parse_file,1,partial,5.6,True,5.6,7,,"append x2, join",C10S4-parse-file-parts
+C3.S1,1,1a,community,scripts/move-to-emeritus.py::_parse_members,1,partial,4.5,True,4.5,5,append,,C3S1-parse-members-comprehension
+C3.S1,1,1b,community,scripts/move-to-emeritus.py::_parse_members,1,partial,3.2,True,3.2,5,append,,C3S1-parse-members-comp
+C3.S1,2,2a,dx-toolkit,src/python/dxpy/utils/pathmatch.py::filter,1,partial,4.5,True,4.5,4,append,,C3S1-pathmatch-comprehension
+C3.S1,3,3a,sample-apps,examples/workshop-ecommerce/preprocess.py::process_orders,1,regressed,-3.4,False,,2,iterrows,to_dict,C3S1-orders-records-new
+C3.S1,4,4a,sample-apps,examples/workshop-ecommerce/preprocess.py::process_products,1,confirmed,84.1,True,84.1,2,iterrows,to_dict,C3S1-products-records
+C3.S1,5,5a,sample-apps,examples/workshop-ecommerce/preprocess.py::process_users,2,confirmed confirmed,42.3 43.5,True,43.5,2,iterrows,to_dict,C3S1-users-purchases-records C3S1-users-records
+C3.S1,6,6a,sample-apps,test/test.py::parse_page,1,regressed,-2.1,False,,2,has_attr,,C3S1-parse-page-findall
+C3.S4,1,1a,dx-toolkit,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,1,negligible,0.2,False,,5,"index, int","enumerate, get, setdefault",C3S4-coding-display-index
+C3.S4,1,1b,dx-toolkit,src/python/dxpy/cli/dataset_utilities.py::DXDatasetDictionary.create_coding_name_dframe,1,negligible,-0.1,False,,5,index,"enumerate, setdefault",C3S4-coding-display-index-dict
+C3.S4,2,2a,sample-apps,incremental-search/search-suggestions/count_terms.py::process_docs,1,partial,39.6,True,39.6,5,"keys, sum",,C3S4-process-docs-docfreq
+C3.S4,2,2b,sample-apps,incremental-search/search-suggestions/count_terms.py::process_docs,3,partial partial confirmed,37.9 39.1 38.5,True,39.1,5,"keys, sum",,C3S4-process-docs-docs-in-loop C3S4-process_docs-docs-count C3S4-process-docs-docs
+C3.S4,3,3a,sample-apps,news/src/python/evaluate.py::predictions,2,confirmed confirmed,99.1 99.1,True,99.1,7,find_hit,"get, setdefault",C3S4-predictions-dict C3S4-predictions-index
+C4.S7,1,1a,dx-toolkit,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,1,negligible,-0.1,False,,2,,"isinstance, len",C4S7-truncate-guard
+C4.S7,2,2a,dx-toolkit,src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink,1,partial,24.9,True,24.9,2,,"isinstance, lstrip",C4S7-dxlink-guard
+C4.S7,3,3a,dx-toolkit,src/python/dxpy/utils/resolver.py::is_glob_pattern,1,mixed,1.3,False,,2,,,C4S7-is-glob
+C7.S1,1,1a,dx-toolkit,src/python/dxpy/dx_extract_utils/cohort_filter_payload.py::generate_pheno_filter,1,confirmed,59.1,True,59.1,4,reduce x2,lambda_for_list_conv x2,C7S1-pheno-filter-noreduce
+C7.S1,2,2a,dx-toolkit,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,1,confirmed,99.7,True,99.7,10,,len,C7S1-truncate-bsearch
+C7.S1,2,2b,dx-toolkit,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,1,confirmed,99.7,True,99.7,11,,,C7S1-truncate-bisect
+C7.S1,3,3a,dx-toolkit,src/python/dxpy/utils/resolver.py::split_unescaped,1,confirmed,69.0,True,69.0,26,"get_last_pos_of_char, reverse",find x2,C7S1-split-unescaped

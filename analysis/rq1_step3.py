@@ -2,7 +2,8 @@
 
 Uses OUR measurement only: review/results.jsonl, written by tools/review.py when
 it re-measured every repair after the agent's session. The agent's own
-measurements are never read.
+measurements are never read. The repairs in analysis/excluded_repairs.csv count as
+measured with the status "excluded" and no saving (common.review_results()).
 
 One line of review/results.jsonl is one repair, with:
   id                the repair's name
@@ -33,7 +34,7 @@ Run:  python3 analysis/rq1_step3.py
 
 from common import (MEASURED, MODEL_NAMES, OUTPUT_DIR, REPOS, SAVES, SKILL_NAMES,
                     all_runs, category_of, median, percent, quartiles, read_json,
-                    read_jsonl, repo_sizes, run_folder, write_csv, write_json)
+                    read_jsonl, repo_sizes, review_results, run_folder, write_csv, write_json)
 from compare import (compare_models, compare_repos, compare_skills,
                      count_highest, count_model_wins, count_skill_orders)
 
@@ -41,8 +42,9 @@ OUT = OUTPUT_DIR / "rq1"   # where this script writes
 
 
 def review_of(repo, skill, model):
-    """Our verdict on every repair of one run (review/results.jsonl)."""
-    return read_jsonl(run_folder(repo, skill, model) / "review" / "results.jsonl")
+    """Our verdict on every repair of one run (review/results.jsonl), through
+    common.review_results()."""
+    return review_results(repo, skill, model)
 
 
 def rounded(value):

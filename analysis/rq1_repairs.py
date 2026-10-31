@@ -31,8 +31,17 @@ in the untouched repository, and asks three questions:
      ran on the untouched repository in every skill, but only Taxonomy+Rules
      showed them to the agent.
 
+Identical edits are counted once. When two or more runs wrote exactly the same
+edit of the same unit (all whitespace removed), each run measured it, but it is
+one edit. The tables by size, change and rule flag, the "all" totals and the
+intervals use each distinct edit once, represented by its middle measurement
+(the measurement with the median saving; with an even number, the lower of the
+two middle ones). The tables by skill and by model compare runs, so there every
+run's repairs count, as measured in that run.
+
 Reads:
-  review/results.jsonl       our verdict and saving of each repair (never the agent's)
+  review/results.jsonl       our verdict and saving of each repair (never the agent's),
+                             through common.review_results() (see excluded_repairs.csv)
   review/submissions.jsonl   the code of each repair ("changed": {unit: code})
   rules.json                 the units a static rule flags
   ~/energy-exp/pristine/<repo>/   the untouched repositories, at the commit every
@@ -40,6 +49,7 @@ Reads:
 
 Writes to analysis/output/rq1/:
   repairs_per_repair.csv     one row per measured repair, with everything above
+  repairs_distinct_edits.csv one row per distinct edit, with how many runs measured it
   repairs_by_size.csv        verdicts by lines changed (1-2, 3-6, 7-15, 16 or more)
   repairs_by_change.csv      verdicts by change group
   repairs_by_rule_flag.csv   verdicts for units a rule flags and units it does not,
@@ -61,7 +71,7 @@ from pathlib import Path
 from bootstrap import run_bootstrap
 from common import (MEASURED, MODEL_NAMES, OUTPUT_DIR, REPOS, SAVES, SKILL_NAMES,
                     all_runs, category_of, median, percent, read_json, read_jsonl,
-                    run_folder, write_csv, write_json)
+                    review_results, run_folder, write_csv, write_json)
 
 OUT = OUTPUT_DIR / "rq1"   # where this script writes
 
@@ -128,9 +138,17 @@ def normalized_lines(function):
     """The function as Python rewrites it: no comments, no blank lines, one style.
 
     Decorators are left out, because some submissions include them and others
-    do not; they are never what a repair changes.
+    do not; they are never what a repair changes. Docstrings are left out too:
+    a submitted method is dedented, which moves the lines inside its docstring,
+    and that would count as changed lines although no code changed.
     """
     function.decorator_list = []
+    for node in ast.walk(function):                     # the function and any def inside it
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            first = node.body[0]
+            if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) \
+                    and isinstance(first.value.value, str):           # a docstring
+                node.body = node.body[1:] or [ast.Pass()]
     return ast.unparse(function).splitlines()
 
 
@@ -245,7 +263,7 @@ def repair_rows():
         for submission in read_jsonl(folder / "review" / "submissions.jsonl"):
             code_of[submission["id"]] = submission["changed"]
 
-        for repair in read_jsonl(folder / "review" / "results.jsonl"):
+        for repair in review_results(repo, skill, model):
             if repair["status"] not in MEASURED:
                 continue                                # only repairs we measured
             changed_units = code_of[repair["id"]]
@@ -274,17 +292,38 @@ def repair_rows():
             row["category"] = category_of(row["root_cause"]) if row["root_cause"] else ""
             row["verdict"] = repair["status"]
             row["confirmed"] = repair["status"] in SAVES      # confirmed or partial
-            row["saving_pct"] = round(repair["mean_saving_pct"], 1)
+            saving = repair["mean_saving_pct"]           # None for a repair in excluded_repairs.csv
+            row["saving_pct"] = round(saving, 1) if saving is not None else None
             row["functions_changed"] = len(changed_units)
             row["lines_changed"] = lines
             row["size_group"] = size_group(lines)
             row["change_group"] = change_group(before, after)
             row["rule_flagged_unit"] = repair["unit"] in flagged[repo]
+            # The edit itself, with all whitespace removed, to find identical edits
+            row["code_key"] = " | ".join(unit + ":" + "".join(code.split())
+                                         for unit, code in sorted(changed_units.items()))
             for name in ("loops", "deepest", "calls_in_loops", "calls"):
                 row[name + "_before"] = before[name]
                 row[name + "_after"] = after[name]
             rows.append(row)
     return rows
+
+
+def distinct_edits(rows):
+    """One row per distinct edit: identical edits of the same unit, written in
+    several runs, become one row, represented by their middle measurement."""
+    groups = {}                                         # {(repo, unit, code): [rows]}
+    for row in rows:
+        key = (row["repo"], row["unit"], row["code_key"])
+        groups.setdefault(key, []).append(row)
+    edits = []
+    for key, measurements in groups.items():
+        ordered = sorted(measurements, key=lambda row: row["saving_pct"])   # lowest saving first
+        middle = ordered[(len(ordered) - 1) // 2]       # the median, or the lower middle one
+        edit = dict(middle)                             # a copy of that measurement
+        edit["runs_measured"] = len(measurements)
+        edits.append(edit)
+    return edits
 
 
 # ---------------------------------------------------------------------------
@@ -422,13 +461,15 @@ def interval(rows_by_run, statistic, level):
 
 
 def main():
-    rows = repair_rows()
+    rows = repair_rows()                                # every measured repair of every run
     write_csv(rows, OUT / "repairs_per_repair.csv")
+    edits = distinct_edits(rows)                        # identical edits counted once
+    write_csv(edits, OUT / "repairs_distinct_edits.csv")
 
-    by_size = grouped_table(rows, "size_group", [name for name, _, _ in SIZES])
-    by_change = grouped_table(rows, "change_group", CHANGES)
-    by_flag = rule_flag_table(rows)
-    by_skill = profile_table(rows, "skill", list(SKILL_NAMES.values()))
+    by_size = grouped_table(edits, "size_group", [name for name, _, _ in SIZES])
+    by_change = grouped_table(edits, "change_group", CHANGES)
+    by_flag = rule_flag_table(edits)
+    by_skill = profile_table(rows, "skill", list(SKILL_NAMES.values()))    # runs compared: per run
     by_model = profile_table(rows, "model", list(MODEL_NAMES.values()))
     write_csv(by_size, OUT / "repairs_by_size.csv")
     write_csv(by_change, OUT / "repairs_by_change.csv")
@@ -436,30 +477,38 @@ def main():
     write_csv(by_skill, OUT / "repairs_by_skill.csv")
     write_csv(by_model, OUT / "repairs_by_model.csv")
 
-    # Group the repairs by run, for the bootstrap. Two helper columns mark the
-    # two halves of the comparisons that are not already a column.
+    # Group the distinct edits by the run of their measurement, for the bootstrap.
+    # Two helper columns mark the halves of the comparisons that are not a column.
     rows_by_run = {}
-    for row in rows:
+    for row in edits:
         row["small"] = row["size_group"] == "1-2"
         row["loops_changed"] = row["change_group"] == "Changes the loops"
         run = (row["repo"], row["skill"], row["model"])
         rows_by_run.setdefault(run, []).append(row)
 
-    multi = 0                                           # repairs that change several functions
-    for row in rows:
+    multi = 0                                           # edits that change several functions
+    for row in edits:
         if row["functions_changed"] > 1:
             multi = multi + 1
 
     summary = {}
-    summary["all"] = outcome(rows)                      # verdicts of every measured repair
-    summary["measured"] = len(rows)
+    summary["all"] = outcome(edits)                     # verdicts of every distinct edit
+    summary["measured_repairs"] = len(rows)
+    summary["distinct_edits"] = len(edits)
+    summary["edits_measured_in_several_runs"] = len([e for e in edits if e["runs_measured"] > 1])
     summary["repairs_changing_more_than_one_function"] = multi
-    middle = median([row["lines_changed"] for row in rows])
+    middle = median([row["lines_changed"] for row in edits])
     summary["median_lines_changed"] = int(middle) if middle == int(middle) else middle
     summary["bootstrap"] = "resampling the 18 runs, 10,000 times, seed 7 (bootstrap.py)"
-    # Estimates on all repairs: 95% intervals
-    summary["pct_confirmed_all"] = interval(rows_by_run, pct_confirmed, 95.0)
-    summary["median_saving_all"] = interval(rows_by_run, median_confirmed_saving, 95.0)
+    # Estimates over every run's measured repairs (the RQ1 totals): 95% intervals
+    repairs_by_run = {}
+    for row in rows:
+        repairs_by_run.setdefault((row["repo"], row["skill"], row["model"]), []).append(row)
+    summary["pct_confirmed_all_runs"] = interval(repairs_by_run, pct_confirmed, 95.0)
+    summary["median_saving_all_runs"] = interval(repairs_by_run, median_confirmed_saving, 95.0)
+    # The same over distinct edits: 95% intervals
+    summary["pct_confirmed_distinct_edits"] = interval(rows_by_run, pct_confirmed, 95.0)
+    summary["median_saving_distinct_edits"] = interval(rows_by_run, median_confirmed_saving, 95.0)
     # The three comparisons: Bonferroni-adjusted intervals
     summary["comparisons"] = COMPARISONS
     summary["median_saving_unflagged_minus_flagged"] = interval(

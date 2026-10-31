@@ -1,0 +1,19 @@
+root_cause,measured_instances,strategies,main_strategy,main_strategy_instances,pct_instances_main_strategy,instances_with_2_strategies,median_lines_changed
+C1.S4,13,5,Reuse a call's result,7,53.8,1,8.0
+C3.S2,6,3,Move invariant work out of the loop,3,50.0,0,5.5
+C8.S2,4,2,Cache a value across calls,2,50.0,0,7.0
+C1.S5,3,2,Delete unused computation,2,66.7,0,11.0
+C6.S2,10,3,Drop an intermediate list or conversion,4,40.0,0,4.0
+C9.S1,3,2,Write once instead of many small writes,2,66.7,0,6.0
+C6.S3,4,2,Drop an intermediate list or conversion,2,50.0,0,3.5
+C10.S2,7,2,Use a cheaper equivalent call,6,85.7,0,2.0
+C1.S1,3,1,Delete unused computation,3,100.0,0,1.0
+C10.S1,8,4,Replace a loop with a built-in,4,50.0,1,6.0
+C3.S5,4,1,Add an early exit,4,100.0,0,3.5
+C8.S3,4,2,Bind a repeated subscript or attribute to a local,3,75.0,0,9.0
+C10.S3,8,4,Replace a loop with a built-in,4,50.0,0,3.0
+C10.S4,8,2,Collect parts in a list and join once,5,62.5,0,6.0
+C3.S1,6,3,Iterate records instead of DataFrame.iterrows,3,50.0,0,2.0
+C3.S4,3,2,Build an index once and look up,2,66.7,0,5.0
+C4.S7,3,1,Add a fast path that skips the work,3,100.0,0,2.0
+C7.S1,3,2,Make a quadratic computation linear,2,66.7,0,10.0

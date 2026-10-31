@@ -2,82 +2,87 @@
   "Sonnet": {
     "Taxonomy+Rules": {
       "measured": 57,
-      "confirmed": 38,
-      "below_10pct": 17,
+      "confirmed": 35,
+      "below_10pct": 16,
       "10_to_50pct": 12,
-      "50pct_or_more": 9,
-      "median_saving_pct": 14.3,
+      "50pct_or_more": 7,
+      "median_saving_pct": 13.5,
       "regressed": 4,
       "worst_regression_pct": -232.3
     },
     "Taxonomy": {
       "measured": 54,
-      "confirmed": 41,
+      "confirmed": 40,
       "below_10pct": 12,
       "10_to_50pct": 17,
-      "50pct_or_more": 12,
-      "median_saving_pct": 23.7,
+      "50pct_or_more": 11,
+      "median_saving_pct": 22.6,
       "regressed": 3,
       "worst_regression_pct": -8.3
     },
     "Unguided": {
       "measured": 48,
-      "confirmed": 33,
+      "confirmed": 32,
       "below_10pct": 5,
       "10_to_50pct": 15,
-      "50pct_or_more": 13,
-      "median_saving_pct": 28.9,
+      "50pct_or_more": 12,
+      "median_saving_pct": 28.3,
       "regressed": 6,
       "worst_regression_pct": -11191.7
     },
+    "taxonomy_measured_repairs": 111,
     "pairs": {
-      "units_measured_by_both": 55,
-      "unguided_higher_by_more_than_5_points": 11,
+      "pairs": 52,
+      "distinct_units": 33,
+      "unguided_higher_by_more_than_5_points": 10,
       "within_5_points": 38,
-      "taxonomy_higher_by_more_than_5_points": 6,
+      "taxonomy_higher_by_more_than_5_points": 4,
       "median_difference_points": 0.0
     },
     "own_units": {
       "own_repairs": 45,
-      "own_confirmed_below_10pct": 19,
-      "units_unguided_never_listed": 32,
-      "units_unguided_listed_rejected": 4,
-      "units_unguided_smelly_not_measured": 8
+      "own_confirmed_below_10pct": 18,
+      "own_units": 36,
+      "units_unguided_never_listed": 27,
+      "units_unguided_listed_rejected": 3,
+      "units_unguided_smelly_not_measured": 6
     }
   },
   "Haiku": {
     "Taxonomy+Rules": {
       "measured": 37,
-      "confirmed": 29,
+      "confirmed": 28,
       "below_10pct": 9,
       "10_to_50pct": 12,
-      "50pct_or_more": 8,
-      "median_saving_pct": 25.4,
+      "50pct_or_more": 7,
+      "median_saving_pct": 25.1,
       "regressed": 2,
       "worst_regression_pct": -3.4
     },
     "Taxonomy": {
       "measured": 36,
-      "confirmed": 27,
+      "confirmed": 26,
       "below_10pct": 8,
       "10_to_50pct": 11,
-      "50pct_or_more": 8,
-      "median_saving_pct": 26.8,
+      "50pct_or_more": 7,
+      "median_saving_pct": 26.6,
       "regressed": 1,
       "worst_regression_pct": -5.9
     },
     "Unguided": {
       "measured": 26,
-      "confirmed": 18,
+      "confirmed": 16,
       "below_10pct": 5,
-      "10_to_50pct": 8,
-      "50pct_or_more": 5,
-      "median_saving_pct": 28.4,
+      "10_to_50pct": 7,
+      "50pct_or_more": 4,
+      "median_saving_pct": 25.8,
       "regressed": 3,
       "worst_regression_pct": -75.0
     },
+    "taxonomy_measured_repairs": 73,
     "pairs": {
-      "units_measured_by_both": 24,
+      "pairs": 24,
+      "distinct_units": 15,
       "unguided_higher_by_more_than_5_points": 4,
       "within_5_points": 17,
       "taxonomy_higher_by_more_than_5_points": 3,
@@ -86,8 +91,9 @@
     "own_units": {
       "own_repairs": 46,
       "own_confirmed_below_10pct": 11,
-      "units_unguided_never_listed": 28,
-      "units_unguided_listed_rejected": 14,
+      "own_units": 32,
+      "units_unguided_never_listed": 20,
+      "units_unguided_listed_rejected": 12,
       "units_unguided_smelly_not_measured": 0
     }
   }

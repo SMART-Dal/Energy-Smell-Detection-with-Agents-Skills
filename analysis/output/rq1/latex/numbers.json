@@ -2,7 +2,7 @@
   "rqOneComparisonLevel": {
     "value": "98.3",
     "file": "repairs_summary.json",
-    "line": "line 33",
+    "line": "line 47",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "width of the Bonferroni-adjusted intervals of the three comparisons (%)"
   },
@@ -90,34 +90,6 @@
     "made_by": "analysis/rq1_step2.py, main()",
     "meaning": "(repo, model) pairs, of 6, where more smells share a rule's root cause with Taxonomy+Rules than with Taxonomy"
   },
-  "rqOneTaxSmells": {
-    "value": "997",
-    "file": "categories_summary.json",
-    "line": "line 2",
-    "made_by": "analysis/rq1_categories.py, main()",
-    "meaning": "smells in the 12 taxonomy runs"
-  },
-  "rqOneCEightSFourSmells": {
-    "value": "80",
-    "file": "root_causes_funnel.csv",
-    "line": "line 41",
-    "made_by": "analysis/rq1_categories.py, funnel_row()",
-    "meaning": "smells of root cause C8.S4 (Redundant Data Fetching)"
-  },
-  "rqOneCEightSFourDx": {
-    "value": "64",
-    "file": "root_causes_funnel.csv",
-    "line": "line 41",
-    "made_by": "analysis/rq1_categories.py, funnel_row()",
-    "meaning": "of those, smells in dx-toolkit"
-  },
-  "rqOneCEightSFourSubmitted": {
-    "value": "1",
-    "file": "root_causes_funnel.csv",
-    "line": "line 41",
-    "made_by": "analysis/rq1_categories.py, funnel_row()",
-    "meaning": "repairs submitted for C8.S4"
-  },
   "rqOneSubmitted": {
     "value": "317",
     "file": "step3_summary.json",
@@ -133,51 +105,51 @@
     "meaning": "repairs we measured"
   },
   "rqOneSavingRepairs": {
-    "value": "186",
+    "value": "177",
     "file": "step3_summary.json",
     "line": "line 95",
     "made_by": "analysis/rq1_step3.py, main()",
     "meaning": "repairs confirmed (confirmed or partial)"
   },
   "rqOneSavingPct": {
-    "value": "72.1",
+    "value": "68.6",
     "file": "step3_summary.json",
     "line": "line 96",
     "made_by": "analysis/rq1_step3.py, main()",
     "meaning": "share of measured repairs that are confirmed (%)"
   },
   "rqOneSavingPctLow": {
-    "value": "67.9",
+    "value": "63.3",
     "file": "repairs_summary.json",
-    "line": "line 18",
+    "line": "line 20",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "lower end of its 95% interval (%)"
   },
   "rqOneSavingPctHigh": {
-    "value": "76.1",
+    "value": "73.2",
     "file": "repairs_summary.json",
-    "line": "line 19",
+    "line": "line 21",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "upper end of its 95% interval (%)"
   },
   "rqOneMedianSaving": {
-    "value": "25.2",
+    "value": "24.9",
     "file": "step3_summary.json",
     "line": "line 98",
     "made_by": "analysis/rq1_step3.py, main()",
     "meaning": "median saving of the confirmed repairs (%)"
   },
   "rqOneMedianSavingLow": {
-    "value": "18.6",
+    "value": "17.8",
     "file": "repairs_summary.json",
-    "line": "line 24",
+    "line": "line 26",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "lower end of its 95% interval (%)"
   },
   "rqOneMedianSavingHigh": {
-    "value": "27.7",
+    "value": "26.7",
     "file": "repairs_summary.json",
-    "line": "line 25",
+    "line": "line 27",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "upper end of its 95% interval (%)"
   },
@@ -251,94 +223,164 @@
     "made_by": "analysis/rq1_step3.py, main()",
     "meaning": "of those, same outcome (confirmed or not) in every run"
   },
+  "rqOneDistinctEdits": {
+    "value": "192",
+    "file": "repairs_summary.json",
+    "line": "line 13",
+    "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
+    "meaning": "distinct edits among the measured repairs (identical edits counted once)"
+  },
   "rqOneFlaggedRepairs": {
-    "value": "137",
+    "value": "100",
     "file": "repairs_by_rule_flag.csv",
     "line": "line 2",
     "made_by": "analysis/rq1_repairs.py, rule_flag_table() and outcome()",
-    "meaning": "measured repairs in units a static rule flags"
+    "meaning": "distinct edits of units a static rule flags"
   },
   "rqOneFlagDiff": {
-    "value": "30.0",
+    "value": "17.5",
     "file": "repairs_summary.json",
-    "line": "line 30",
+    "line": "line 44",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "median saving of unflagged minus flagged units (points)"
   },
   "rqOneFlagDiffLow": {
-    "value": "12.2",
+    "value": "0.8",
     "file": "repairs_summary.json",
-    "line": "line 31",
+    "line": "line 45",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "lower end of its interval"
   },
   "rqOneFlagDiffHigh": {
-    "value": "46.6",
+    "value": "41.6",
     "file": "repairs_summary.json",
-    "line": "line 32",
+    "line": "line 46",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "upper end of its interval"
   },
   "rqOneMedianLines": {
     "value": "5",
     "file": "repairs_summary.json",
-    "line": "line 14",
+    "line": "line 16",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
-    "meaning": "median lines changed by a measured repair"
+    "meaning": "median lines changed by a distinct edit"
   },
   "rqOneMultiFunction": {
     "value": "2",
     "file": "repairs_summary.json",
-    "line": "line 13",
+    "line": "line 15",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
-    "meaning": "measured repairs that change more than one function"
+    "meaning": "distinct edits that change more than one function"
   },
   "rqOneSmallDiff": {
-    "value": "19.5",
+    "value": "10.9",
     "file": "repairs_summary.json",
-    "line": "line 36",
+    "line": "line 50",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "confirmed share of larger repairs minus 1-2-line repairs (points)"
   },
   "rqOneSmallDiffLow": {
-    "value": "4.3",
+    "value": "-6.1",
     "file": "repairs_summary.json",
-    "line": "line 37",
+    "line": "line 51",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "lower end of its interval"
   },
   "rqOneSmallDiffHigh": {
-    "value": "41.6",
+    "value": "38.8",
     "file": "repairs_summary.json",
-    "line": "line 38",
+    "line": "line 52",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "upper end of its interval"
   },
   "rqOneLoopsMedian": {
-    "value": "57.2",
+    "value": "59.1",
     "file": "repairs_by_change.csv",
     "line": "line 2",
     "made_by": "analysis/rq1_repairs.py, grouped_table() and outcome()",
-    "meaning": "median saving of confirmed repairs that change the loops (%)"
+    "meaning": "median saving of confirmed edits that change the loops (%)"
+  },
+  "rqOneUngUnits": {
+    "value": "33",
+    "file": "unguided_summary.json",
+    "line": "line 36",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "distinct units measured by Unguided Sonnet and by a taxonomy Sonnet run on the same repository"
+  },
+  "rqOneUngPairs": {
+    "value": "52",
+    "file": "unguided_summary.json",
+    "line": "line 34",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "pairs of such a unit and one taxonomy run (a unit both taxonomy runs measured gives two)"
+  },
+  "rqOneUngPairsWithinFive": {
+    "value": "38",
+    "file": "unguided_summary.json",
+    "line": "line 38",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "of those pairs, best savings within 5 points of each other"
+  },
+  "rqOneUngPairsMedianDiff": {
+    "value": "0.0",
+    "file": "unguided_summary.json",
+    "line": "line 40",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "median difference of the best savings (points, Unguided minus taxonomy)"
+  },
+  "rqOneUngOwnRepairs": {
+    "value": "45",
+    "file": "unguided_summary.json",
+    "line": "line 43",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "Sonnet taxonomy repairs on units Unguided did not measure"
+  },
+  "rqOneUngTaxMeasured": {
+    "value": "111",
+    "file": "unguided_summary.json",
+    "line": "line 33",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "all measured repairs of the Sonnet taxonomy runs"
+  },
+  "rqOneUngOwnUnits": {
+    "value": "36",
+    "file": "unguided_summary.json",
+    "line": "line 42",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "distinct units behind those repairs"
+  },
+  "rqOneUngNeverListed": {
+    "value": "27",
+    "file": "unguided_summary.json",
+    "line": "line 46",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "of those distinct units, ones Unguided Sonnet never listed in Step 1"
+  },
+  "rqOneUngOwnSmall": {
+    "value": "18",
+    "file": "unguided_summary.json",
+    "line": "line 44",
+    "made_by": "analysis/rq1_unguided_savings.py, main()",
+    "meaning": "confirmed repairs on those units that save less than 10%"
   },
   "rqOneLoopsDiff": {
-    "value": "38.1",
+    "value": "37.5",
     "file": "repairs_summary.json",
-    "line": "line 42",
+    "line": "line 56",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "their median saving minus that of the other repairs (points)"
   },
   "rqOneLoopsDiffLow": {
-    "value": "9.9",
+    "value": "1.8",
     "file": "repairs_summary.json",
-    "line": "line 43",
+    "line": "line 57",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "lower end of its interval"
   },
   "rqOneLoopsDiffHigh": {
-    "value": "49.6",
+    "value": "55.2",
     "file": "repairs_summary.json",
-    "line": "line 44",
+    "line": "line 58",
     "made_by": "analysis/rq1_repairs.py, main(); intervals by interval() and bootstrap.py",
     "meaning": "upper end of its interval"
   },
@@ -350,7 +392,7 @@
     "meaning": "cost of the 18 runs, as Claude Code reported it (USD)"
   },
   "rqOneCostPerConfirmed": {
-    "value": "0.46",
+    "value": "0.48",
     "file": "cost_summary.json",
     "line": "line 19",
     "made_by": "analysis/rq1_cost.py, added_up()",

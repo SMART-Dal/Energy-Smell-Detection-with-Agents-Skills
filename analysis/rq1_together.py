@@ -24,8 +24,8 @@ Writes to analysis/output/rq1/:
 Run:  python3 analysis/rq1_together.py
 """
 
-from common import (MODELS, OUTPUT_DIR, REPOS, SAVES, SKILL_NAMES, SKILLS, median,
-                    percent, repo_sizes, write_csv)
+from common import (MODELS, OUTPUT_DIR, REPOS, SAVES, SKILL_NAMES, SKILLS, median, percent,
+                    repo_sizes, write_csv)
 from rq1_step1 import listed_units
 from rq1_step2 import smells_of
 from rq1_step3 import review_of
@@ -39,6 +39,7 @@ def together_row(repo, sizes):
     times_smelly = {}                                   # {unit: runs that found it smelly}
     confirmed_by_skill = {}                             # {skill: functions it confirmed}
     confirmed_by_model = {}                             # {model: functions it confirmed}
+    confirmed = set()                                   # functions with a confirmed repair
     best_saving = {}                                    # {function: its largest saving}
     for skill in SKILLS:
         confirmed_by_skill[skill] = set()
@@ -59,6 +60,7 @@ def together_row(repo, sizes):
                 if repair["status"] not in SAVES:
                     continue                            # only confirmed (or partial) repairs
                 unit = repair["unit"]
+                confirmed.add(unit)
                 confirmed_by_skill[skill].add(unit)
                 confirmed_by_model[model].add(unit)
                 saving = repair["mean_saving_pct"]
@@ -79,7 +81,7 @@ def together_row(repo, sizes):
     for skill in SKILLS:
         only[skill] = 0
     by_1_model = 0
-    for unit in best_saving:                            # every confirmed function
+    for unit in confirmed:                              # every confirmed function
         skills_with_it = []
         for skill in SKILLS:
             if unit in confirmed_by_skill[skill]:
@@ -102,7 +104,7 @@ def together_row(repo, sizes):
     row["pct_smelly_any"] = percent(len(times_smelly), sizes[repo]["units"])
     row["smelly_2_or_more"] = smelly_2_or_more
     row["smelly_all_6"] = smelly_all_6
-    row["confirmed_any"] = len(best_saving)
+    row["confirmed_any"] = len(confirmed)
     row["by_1_skill"] = by_skills[1]
     row["by_2_skills"] = by_skills[2]
     row["by_3_skills"] = by_skills[3]

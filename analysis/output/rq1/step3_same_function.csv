@@ -14,13 +14,12 @@ dx-toolkit,src/python/dxpy/dxlog.py::DXLogHandler.truncate_message,4
 dx-toolkit,src/python/dxpy/nextflow/nextflow_builder.py::prepare_custom_inputs,2
 dx-toolkit,src/python/dxpy/nextflow/nextflow_templates.py::get_nextflow_src,3
 dx-toolkit,src/python/dxpy/system_requirements.py::SystemRequirementsDict.override_cluster_spec,3
-dx-toolkit,src/python/dxpy/utils/pretty_print.py::escape_unicode_string,2
 dx-toolkit,src/python/dxpy/utils/pretty_print.py::flatten_json_array,3
 dx-toolkit,src/python/dxpy/utils/resolver.py::_maybe_convert_stringified_dxlink,3
 dx-toolkit,src/python/dxpy/utils/resolver.py::get_first_pos_of_char,4
 dx-toolkit,src/python/dxpy/utils/resolver.py::get_last_pos_of_char,4
 dx-toolkit,src/python/dxpy/utils/resolver.py::split_unescaped,3
-sample-apps,colbert-long/scripts/convert.py::remove_control_characters,4
+sample-apps,colbert-long/scripts/convert.py::remove_control_characters,2
 sample-apps,examples/workshop-ecommerce/preprocess.py::process_users,4
 sample-apps,feed-split.py::what_language,3
 sample-apps,incremental-search/search-suggestions/accepted_words.py::process_docs,4

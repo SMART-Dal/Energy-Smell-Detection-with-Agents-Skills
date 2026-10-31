@@ -1,7 +1,7 @@
 repo,model,Taxonomy+Rules,Taxonomy,Unguided,highest
-sample-apps,Sonnet,15.1,19.8,38.6,Unguided
-sample-apps,Haiku,25.9,35.2,25.7,Taxonomy
-dx-toolkit,Sonnet,36.6,56.2,56.7,Unguided
-dx-toolkit,Haiku,39.5,48.3,68.5,Unguided
+sample-apps,Sonnet,15.1,19.8,33.2,Unguided
+sample-apps,Haiku,24.5,26.3,23.3,Taxonomy
+dx-toolkit,Sonnet,29.6,40.8,56.7,Unguided
+dx-toolkit,Haiku,39.5,48.3,99.7,Unguided
 community,Sonnet,5.1,10.8,23.1,Unguided
 community,Haiku,18.3,10.3,21.6,Unguided
