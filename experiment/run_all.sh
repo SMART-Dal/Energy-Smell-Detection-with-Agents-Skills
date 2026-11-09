@@ -43,7 +43,7 @@ while [ $# -gt 0 ]; do
     *) echo "unknown option: $1"; exit 2 ;;
   esac
 done
-[ ${#REPOS[@]} -eq 0 ] && mapfile -t REPOS < <(cut -f1 "$HARNESS/repos.tsv")
+[ ${#REPOS[@]} -eq 0 ] && mapfile -t REPOS < <(cut -f1 "$REPOS_FILE")
 case "$AUTH" in
   api) ;;
   subscription) [ -s "$EXP/oauth-token" ] || { echo "AUTH=subscription needs $EXP/oauth-token: run \`claude setup-token\` and save the token there"; exit 2; } ;;
@@ -419,7 +419,7 @@ run_one() {  # repo, arm, model
   fi
 
   printf '{"run_id":"%s","repo":"%s","repo_commit":"%s","arm":"%s","model":"%s","effort":"%s",' \
-    "$id" "$repo" "$(awk -v r="$repo" '$1 == r {print $3}' "$HARNESS/repos.tsv")" "$arm" "$model" "${EFFORT_OF[$model]:-$EFFORT}" > "$out/run.json"
+    "$id" "$repo" "$(awk -v r="$repo" '$1 == r {print $3}' "$REPOS_FILE")" "$arm" "$model" "${EFFORT_OF[$model]:-$EFFORT}" > "$out/run.json"
   printf '"auth":"%s",' "$AUTH" >> "$out/run.json"
   printf '"status":"%s","agent_exit":%d,"agent_seconds":%d,"review_seconds":%d,"started":"%s","exp_mode_at_end":"%s",' \
     "$status" "$rc" "$agent_s" "$((SECONDS - review_start))" "$started" "$exp_mode" >> "$out/run.json"

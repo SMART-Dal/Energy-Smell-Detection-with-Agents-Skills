@@ -103,7 +103,7 @@ def main() -> int:
     parser.add_argument("--stars", action="store_true", help="also fetch GitHub's star count")
     args = parser.parse_args()
 
-    listed = {row[0]: row for row in csv.reader(open(HARNESS / "repos.tsv"), delimiter="\t") if row}
+    listed = {row[0]: row for row in csv.reader(open(os.environ.get("ENERGY_REPOS") or HARNESS / "repos.tsv"), delimiter="\t") if row}
     fetched = datetime.date.today().isoformat()
     rows = []
     for name in args.repos:

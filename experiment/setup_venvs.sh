@@ -9,7 +9,7 @@ source "$(dirname "$0")/config.sh"
 mkdir -p "$EXP/venvs" "$EXP/logs" "$RUN"
 
 repos=("$@")
-[ ${#repos[@]} -eq 0 ] && mapfile -t repos < <(cut -f1 "$HARNESS/repos.tsv")
+[ ${#repos[@]} -eq 0 ] && mapfile -t repos < <(cut -f1 "$REPOS_FILE")
 
 for repo in "${repos[@]}"; do
   log=$EXP/logs/venv-$repo.log

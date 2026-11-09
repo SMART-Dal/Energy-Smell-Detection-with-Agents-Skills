@@ -22,7 +22,7 @@ if [ $# -eq 0 ]; then
     git init -q "$dir" && git -C "$dir" remote add origin "https://github.com/$full.git" \
       && git -C "$dir" fetch -q --depth 1 origin "$sha" && git -C "$dir" checkout -q FETCH_HEAD \
       && echo "$name: $sha" || echo "$name: FAILED to fetch $full at $sha"
-  done < "$HARNESS/repos.tsv"
+  done < "$REPOS_FILE"
   exit 0
 fi
 
@@ -40,5 +40,5 @@ while read -r full; do
   sha=$(git -C "$EXP/pristine/$name" rev-parse HEAD)
   py=$(find "$EXP/pristine/$name" -name '*.py' -not -path '*/.git/*' | wc -l)
   printf '%s\t%s\t%s\t%s\n' "$name" "$full" "$sha" "$py"
-done > "$HARNESS/repos.tsv"
-cat "$HARNESS/repos.tsv"
+done > "$REPOS_FILE"
+cat "$REPOS_FILE"

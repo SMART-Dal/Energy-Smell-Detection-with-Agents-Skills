@@ -4,6 +4,7 @@ HARNESS=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)   # this folder: scripts, 
 PROJECT=$(dirname "$HARNESS")                            # the repository: skills, tools, measurement
 EXP=${ENERGY_EXP:-$HOME/energy-exp}   # ours: keys, clones, venvs, inputs cache, results. Locked during agent runs.
 RUN=${ENERGY_RUN:-$HOME/energy-run}   # the current run only: repo copy, venv, Claude config. Wiped per run.
+REPOS_FILE=${ENERGY_REPOS:-$HARNESS/repos.tsv}   # the repositories and their commits; ENERGY_REPOS selects another list
 
 MODELS=(claude-opus-5-5 claude-sonnet-5-5 claude-haiku-5-5)
 ARMS=(core core+tax full)
