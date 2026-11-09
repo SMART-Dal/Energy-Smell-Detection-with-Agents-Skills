@@ -422,24 +422,6 @@ FULL = Arm(
     step_evidence=_SCANNER_EVIDENCE,
 )
 
-AST_ONLY = Arm(
-    name="ast",
-    directory="ast/energy-smells",
-    question="What do the taxonomy-specific analyzers contribute on their own?",
-    words=_TAXONOMY_WORDS,
-    step_evidence=_SCANNER_EVIDENCE,
-    excluded=("lib/analysis/linters.py",),
-)
-
-RUFF_ONLY = Arm(
-    name="ruff",
-    directory="ruff/energy-smells",
-    question="How far does an off-the-shelf linter get, with the same cards and protocol?",
-    words=_TAXONOMY_WORDS,
-    step_evidence=_SCANNER_EVIDENCE,
-    excluded=("lib/analysis/rules",),
-)
-
 KNOWLEDGE_ONLY = Arm(
     name="knowledge",
     directory="knowledge/energy-smells",
@@ -460,4 +442,4 @@ CONTROL = Arm(
     ships_taxonomy=False,
 )
 
-ARMS = (FULL, AST_ONLY, RUFF_ONLY, KNOWLEDGE_ONLY, CONTROL)
+ARMS = (FULL, KNOWLEDGE_ONLY, CONTROL)

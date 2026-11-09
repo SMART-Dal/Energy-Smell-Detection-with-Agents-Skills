@@ -407,7 +407,7 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
     # What an arm is for: the full arm differs from knowledge only by its rules,
     # every taxonomy arm finds with the index (step 1) and decides against the
     # cards (step 2).
-    if run["arm"] in ("full", "ast", "ruff") and not rule_scans:
+    if run["arm"] == "full" and not rule_scans:
         flags.append("no_rule_scan")
     index_read = any("README.md" in text and "reference" in text for _, text in calls)
     if run["arm"] != "control" and step1 and not index_read:
