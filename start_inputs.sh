@@ -9,6 +9,7 @@
 set -euo pipefail
 
 tool=$(cd "$(dirname "$0")" && pwd)
+[ -f "$tool/tools/inputs/service.py" ] || { echo "Run start_inputs.sh from the folder you downloaded (it needs tools/ beside it); do not copy it."; exit 1; }
 repo=$(cd "$1" && pwd)
 key=$2
 name=$(basename "$repo")

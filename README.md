@@ -123,7 +123,8 @@ nano ~/openrouter-key          # paste the key, save with Ctrl-O, exit with Ctrl
 chmod 600 ~/openrouter-key     # readable only by you
 ```
 
-Then start the generator, giving it your repository and the key file:
+Then start the generator, giving it your repository and the key file. Run the
+script where you downloaded it; it needs the `tools/` folder beside it:
 
 ```bash
 dr-greens/start_inputs.sh ~/my-project ~/openrouter-key
