@@ -15,7 +15,6 @@ Saurabhsingh Rajput, Tushar Sharma; Dalhousie University).
 
 - [How it works](#how-it-works)
 - [Requirements](#requirements)
-- [Installation](#installation)
 - [Usage](#usage)
 - [The three skills](#the-three-skills)
 - [Reproducing the evaluation](#reproducing-the-evaluation)
@@ -51,120 +50,71 @@ If the RAPL counters are readable only by root:
 `sudo chmod a+r /sys/class/powercap/intel-rapl:[0-9]*/energy_uj`.
 Energy is read for the whole CPU package, so measure on an otherwise idle machine.
 
-## Installation
-
-Download the release and unzip it into any folder outside your project:
-
-```bash
-curl -L -o dr-greens.zip https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills/releases/latest/download/dr-greens.zip
-unzip dr-greens.zip -d /path/of/your/choice      # creates /path/of/your/choice/dr-greens
-```
-
-```
-dr-greens/
-├── skills/                   the three skills: core, core+tax, full
-├── start_inputs.sh           starts the input generator
-├── apply.sh                  writes the chosen repairs into your code
-├── requirements-skill.txt    packages the skill needs in your venv
-├── tools/, src/              code used by the two scripts
-└── README.md
-```
-
-Keep this folder outside your project: only the skill folder goes into the
-project (step 1), and the agent would otherwise read our scripts as part of
-your code.
-
 ## Usage
 
-The commands below use three paths. Set them once in each terminal you use,
-with your own locations:
+**Set up one folder** that holds your project, the release and your key:
 
-```bash
-DRGREENS=/path/of/your/choice/dr-greens    # the unzipped release
-PROJECT=/path/to/your/project              # the code to analyse
-KEY=/path/to/openrouter-key                # a file holding your OpenRouter key
+```
+work/
+├── my-project/         your project
+├── dr-greens.zip       download it from this repository (the file dr-greens.zip, then "Download raw file")
+└── openrouter-key      a text file holding only your OpenRouter key, on one line
 ```
 
-### 1. Add a skill to your project
+Run every command below from `work/`, and replace `my-project` with your
+project's folder name.
 
-Claude Code loads skills from `.claude/skills/` in your project:
-
-```bash
-mkdir -p "$PROJECT/.claude/skills"
-cp -r "$DRGREENS/skills/full/energy-smells" "$PROJECT/.claude/skills/"
-```
-
-Install one skill at a time. The other two are `skills/core+tax/energy-smells`
-and `skills/core/energy-efficiency` ([which to choose](#the-three-skills)).
-
-### 2. Prepare your project's environment
-
-The skill runs and measures your code in your project's venv. Activate it,
-wherever it is, and add the skill's packages (CodeGreen, Ruff, NumPy, pandas,
-SciPy, Requests, PyYAML):
+**1. Unzip the release.**
 
 ```bash
-source /path/to/your/venv/bin/activate
-pip install -r "$DRGREENS/requirements-skill.txt"
+unzip dr-greens.zip
 ```
 
-If your project has no venv yet, create one and install its dependencies first:
+**2. Copy a skill into your project.** Claude Code loads skills from `.claude/skills/`:
 
 ```bash
-python3 -m venv /path/to/your/venv
-source /path/to/your/venv/bin/activate
-pip install -r "$PROJECT/requirements.txt"         # or: pip install -e "$PROJECT"
+mkdir -p my-project/.claude/skills
+cp -r dr-greens/skills/full/energy-smells my-project/.claude/skills/
 ```
 
-If your project does not declare its dependencies, install the packages its
-code imports.
+The other skills are `dr-greens/skills/core+tax/energy-smells` and
+`dr-greens/skills/core/energy-efficiency` ([which to choose](#the-three-skills)).
+Install one skill at a time.
 
-### 3. Start the input generator
-
-Save your OpenRouter key in the file `$KEY`, holding only the key on one line
-(for example with `nano "$KEY"`), and make it readable only by you:
-`chmod 600 "$KEY"`.
-
-Then, in a terminal with your venv activated, start the generator and leave it
-running while you use the skill:
+**3. Add the skill's packages to your project's venv.** The skill runs and
+measures your code in that venv:
 
 ```bash
-"$DRGREENS/start_inputs.sh" "$PROJECT" "$KEY"
+source my-project/.venv/bin/activate          # your project's venv
+pip install -r dr-greens/requirements-skill.txt
 ```
 
-It prints the `export ENERGY_INPUTS_SOCKET=...` line for the next step. It
-keeps its files outside your project, in `~/.energy-skill/` by default; set
-`ENERGY_SKILL_HOME` to use another folder.
+No venv yet? Create one first with `python3 -m venv my-project/.venv`, activate
+it, and install your project's dependencies (for example
+`pip install -r my-project/requirements.txt`).
 
-### 4. Ask Claude Code
-
-In a second terminal, activate the same venv, run the `export` line that
-`start_inputs.sh` printed, and start Claude Code in your project:
+**4. Start Claude Code** (with the venv still active):
 
 ```bash
-source /path/to/your/venv/bin/activate
-export ENERGY_INPUTS_SOCKET=...        # the line printed by start_inputs.sh
-cd "$PROJECT"
-claude
+dr-greens/start.sh my-project openrouter-key
 ```
 
-Then ask, for example:
+This starts the input generator and opens Claude Code in your project. Ask,
+for example:
 
 ```
 Find the energy smells in this repository using the energy-smells skill.
 Find the energy smells in src/parser.py using the energy-smells skill.
-Find the energy smells in src/parser.py::Parser.tokenize using the energy-smells skill.
 ```
 
 With the `core` skill, ask: `Find where this repository wastes energy, using the
-energy-efficiency skill.` Any Claude model works; choose it with `/model`.
+energy-efficiency skill.` Choose any Claude model with `/model`. When you leave
+Claude Code, the generator stops.
 
-### 5. Read the results
-
-The agent writes four files in your project's root: `step1.jsonl` (what it
-suspected), `step2.jsonl` (what it accepted or rejected, and why),
-`step3.jsonl` (what became of each accepted suspicion), and `submissions.jsonl`
-(one repair per line: the new source of the function, and its verdict in
+**5. Read the results.** The agent does not change your code. It writes four
+files in your project: `step1.jsonl` (what it suspected), `step2.jsonl` (what
+it accepted or rejected, and why), `step3.jsonl` (what became of each accepted
+suspicion) and `submissions.jsonl` (one repair per line, with its verdict in
 `agent_measurement.status`).
 
 | Verdict | Meaning |
@@ -179,39 +129,24 @@ suspected), `step2.jsonl` (what it accepted or rejected, and why),
 Repairs that could not be measured are `not_equivalent` (behaviour differs),
 `no_inputs` (no inputs could be generated, for example because the code needs
 the network), `invalid`, `error` or `over_limit`. A session measures at most 20
-repairs; other accepted suspicions are recorded as `deferred` in `step3.jsonl`.
+repairs; other accepted suspicions are recorded as `deferred`.
 
-### 6. Apply the repairs
-
-`apply.sh` writes, for each function, the `confirmed` repair with the largest
-energy saving into your code, replacing only that function. Run it with your
-venv activated:
+**6. Apply the repairs.** For each function, `apply.sh` writes the `confirmed`
+repair with the largest saving into your code:
 
 ```bash
-"$DRGREENS/apply.sh" "$PROJECT"                                   # every confirmed repair
-"$DRGREENS/apply.sh" "$PROJECT" --only C3S2-sort-once src/io.py::load    # only these repairs or functions
-"$DRGREENS/apply.sh" "$PROJECT" --remeasure                       # measure every repair again first
-"$DRGREENS/apply.sh" "$PROJECT" --dry-run                         # report only, change no code
+dr-greens/apply.sh my-project
 ```
 
 | Option | Effect |
 |---|---|
-| (none) | uses the measurements the agent recorded |
-| `--only ID ...` | considers only these repairs (their `id` in `submissions.jsonl`) or functions (`path::qualname`) |
-| `--remeasure` | measures every considered repair again on a fresh copy of your project first (about a minute each) |
-| `--dry-run` | writes the report without changing any code |
+| `--only ID ...` | only these repairs (their `id` in `submissions.jsonl`), or functions (`path/to/file.py::function`) |
+| `--remeasure` | measure every repair again before choosing (about a minute each) |
+| `--dry-run` | only write the report, change no code |
 
-The options can be combined. Each run writes `REPORT.md` and `results.jsonl`
-to your project's root, listing every repair, its verdict, and whether it was
-applied or why not. Only `confirmed` repairs are applied, at most one per
-function. Review the change with `git diff` and run your tests.
-
-To start a new session in the same project, remove the previous session's files:
-
-```bash
-cd "$PROJECT"
-chmod -R u+w .energy-inputs; rm -rf step?.jsonl submissions.jsonl results.jsonl REPORT.md .energy-inputs .energy-scan
-```
+It writes `REPORT.md` in your project, listing every repair and whether it was
+applied. Only `confirmed` repairs are applied, at most one per function. Check
+the change with `git diff` and run your tests.
 
 ## The three skills
 
@@ -257,19 +192,16 @@ git clone https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills
 cd Energy-Smell-Detection-with-Agents-Skills
 ```
 
-**2. Save the keys.** The harness keeps its data, and reads two key files, in
-one folder: `~/energy-exp` by default, or the folder you set in `ENERGY_EXP`
-(`export ENERGY_EXP=/path/to/folder` before every command below). Each key file
-holds only the key, on one line: `api-key` for an Anthropic API key
-([console.anthropic.com](https://console.anthropic.com), `sk-ant-...`) and
-`openrouter-key` for an OpenRouter key (`sk-or-...`).
+**2. Save the keys.** The harness reads two key files from `~/energy-exp`
+(set `ENERGY_EXP` to use another folder), each holding only the key:
+`api-key` (an Anthropic API key, from [console.anthropic.com](https://console.anthropic.com))
+and `openrouter-key` (an OpenRouter key).
 
 ```bash
-EXP=${ENERGY_EXP:-$HOME/energy-exp}
-mkdir -p "$EXP" && chmod 700 "$EXP"
-nano "$EXP/api-key"              # paste the Anthropic key, save, exit
-nano "$EXP/openrouter-key"       # paste the OpenRouter key, save, exit
-chmod 600 "$EXP/api-key" "$EXP/openrouter-key"
+mkdir -p ~/energy-exp && chmod 700 ~/energy-exp
+nano ~/energy-exp/api-key            # paste the Anthropic key, save, exit
+nano ~/energy-exp/openrouter-key     # paste the OpenRouter key, save, exit
+chmod 600 ~/energy-exp/*-key
 ```
 
 The agent never sees the keys: this folder is locked while a session runs.
@@ -302,8 +234,8 @@ sessions are skipped, so running the same command again resumes. To keep a run
 alive after you log out: `tmux new -d -s exp ./run.sh`.
 
 **5. Results.** Each session is saved in
-`$EXP/archive/<repo>/<skill>/<model>/`, with one row per session in
-`$EXP/archive/summary.csv`, in the same layout as
+`~/energy-exp/archive/<repo>/<skill>/<model>/`, with one row per session in
+`~/energy-exp/archive/summary.csv`, in the same layout as
 [`results/`](results/README.md). Agents are not deterministic, so a new session
 finds and repairs different code than the recorded one, and energy readings
 depend on the hardware. The harness is described in
@@ -313,6 +245,7 @@ depend on the hardware. The harness is described in
 
 ```
 .
+├── dr-greens.zip          the release: the skills, start.sh and apply.sh
 ├── dist/                  the three skills (skills/ in the release), generated by build/
 ├── src/                   the skills' scripts: verifier, static analyzer, energy meter
 ├── taxonomy/              the energy smell taxonomy (12 smells, 65 root causes)
@@ -321,13 +254,13 @@ depend on the hardware. The harness is described in
 ├── tools/
 │   ├── inputs/            the input generator and its service
 │   ├── review.py          chooses, re-measures and applies repairs (used by apply.sh)
-│   └── make_bundle.sh     builds the release archive dr-greens.zip
+│   └── make_bundle.sh     builds dr-greens.zip
 ├── experiment/            the evaluation harness (run_all.sh, config.sh, repos.tsv)
 ├── results/               every recorded session of the evaluation
 ├── validation/            measured repair cases behind the cards, near-miss specimens
 ├── tests/rules/           tests of every static rule
 ├── data/manual_sampling/  hand-written before/after sample pairs
-├── start_inputs.sh        starts the input generator
+├── start.sh               starts the input generator and Claude Code in a project
 ├── apply.sh               applies repairs to a project
 ├── setup.sh, run.sh       reproduce the evaluation
 ├── requirements.txt       packages of the harness and the build
