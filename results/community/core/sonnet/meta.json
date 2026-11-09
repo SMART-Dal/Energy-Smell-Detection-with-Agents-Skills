@@ -1,0 +1,147 @@
+{
+ "run_id": "community.core.sonnet",
+ "repo": "community",
+ "repo_commit": "910f85d6cf0a6a0417f3c4d1e4d03addf04a4ceb",
+ "arm": "core",
+ "model": "claude-sonnet-5-5",
+ "effort": "high",
+ "auth": "subscription",
+ "status": "done",
+ "agent_exit": 0,
+ "agent_seconds": 621,
+ "review_seconds": 400,
+ "started": "2026-10-28T14:56:30-03:00",
+ "exp_mode_at_end": "0",
+ "project_commit": "024f75f6c0fd40fc7554fd66c487094b055534b9",
+ "project_uncommitted_files": 0,
+ "claude_version": "2.1.312 (Claude Code)",
+ "exp": "/home/javad/energy-exp",
+ "run": "/home/javad/energy-run",
+ "project": "/home/javad/Energy-Smell-Detection-with-Agents-Skills",
+ "usage": {
+  "result": "success",
+  "is_error": [
+   false
+  ],
+  "api_error_status": [
+   null
+  ],
+  "terminal_reason": [
+   "completed"
+  ],
+  "num_turns": [
+   19
+  ],
+  "duration_ms": [
+   619149
+  ],
+  "duration_api_ms": 188319,
+  "cost_usd_estimate": 0.7693680000000002,
+  "model_usage": {
+   "claude-sonnet-5-5": {
+    "inputTokens": 34,
+    "outputTokens": 24587,
+    "cacheReadInputTokens": 1191260,
+    "cacheCreationInputTokens": 101076,
+    "webSearchRequests": 0,
+    "costUSD": 0.7693680000000002,
+    "contextWindow": 1000000,
+    "maxOutputTokens": 128000,
+    "thinkingTokens": 11153,
+    "cacheCreationEphemeral5mInputTokens": 0,
+    "cacheCreationEphemeral1hInputTokens": 101076,
+    "canonicalModel": "claude-sonnet-5-5",
+    "provider": "firstParty",
+    "costBasis": "list"
+   }
+  }
+ },
+ "tool_calls": 17,
+ "tools_used": {
+  "Skill": 1,
+  "Bash": 16
+ },
+ "subagent_tool_calls": 0,
+ "subagent_tools_used": {},
+ "energy_api_calls": 0,
+ "findings_lines": 37,
+ "submissions": 8,
+ "agent_verdicts": {
+  "confirmed": 4,
+  "negligible": 1,
+  "partial": 3
+ },
+ "our_verdicts": {
+  "partial": 4,
+  "negligible": 1,
+  "confirmed": 3
+ },
+ "repo_changes": [],
+ "leak_audit": {},
+ "protocol": {
+  "units_examined": 14,
+  "suspicions": 21,
+  "decisions": 21,
+  "accepted": 11,
+  "decided_without_card": [],
+  "root_cause_cards_cut_short": [],
+  "units_not_found": [],
+  "category_cards_opened": [],
+  "root_cause_cards_opened": [],
+  "index_read": false,
+  "unit_rankings": 0,
+  "rule_scans": 0,
+  "invalid_root_cause_ids": [],
+  "keys_off_schema": [],
+  "flags": [],
+  "blocked_unrequested": []
+ },
+ "rules_overlap": {
+  "units_rules_flag": 17,
+  "units_listed": 14,
+  "units_listed_and_flagged": 8,
+  "accepted": 11,
+  "accepted_unit_flagged": 7,
+  "accepted_lines_flagged": 1,
+  "accepted_root_cause_named": 0
+ },
+ "environment": {
+  "tmp_created": [
+   "/tmp/mk1.py",
+   "/tmp/mk2.py",
+   "/tmp/mk3.py",
+   "/tmp/mk4.py"
+  ]
+ },
+ "inputs": {
+  "requested": 9,
+  "ready": 6,
+  "failed": {
+   "scripts/baremetal-runner-report.py::collect_jobs": "it cannot run here: `collect_jobs` fetches GitHub Actions workflow runs and jobs via `gh_paginated`, which shells out to the `gh api` CLI to query github.com \u2014 it needs network access and subprocesses, both unavailable here, and no input can avoid that first request.",
+   "scripts/move-to-emeritus.py::_get_repo_commenters": "it cannot run here: `_get_repo_commenters` calls `request_with_retry(\"GET\", url)` which performs a live HTTP request to `https://api.github.com`; its work begins with a network call to a remote server and no input can avoid it (mocking `request_with_retry`/`urllib.request.urlopen` is forbidden).",
+   "scripts/gc-elections/generate-voters-roll.py::build_devstats_rows": "it cannot run here: `build_devstats_rows` calls `get_github_login` for every name, which issues `requests.get` to `https://api.github.com/users/{username}` (plus a 100 ms sleep); it needs live network access to GitHub and cannot run here."
+  },
+  "cached": 5,
+  "cost_usd": 0.0031,
+  "seconds_max": 35.3,
+  "agent_copy_differs": []
+ },
+ "record": {
+  "steps_done": [
+   1,
+   2,
+   3
+  ],
+  "step_done_at_s": {
+   "1": 0,
+   "2": 25,
+   "3": 496
+  },
+  "written_early": [],
+  "changed_after_done": [],
+  "submissions_removed": [],
+  "repairs_measured": 8,
+  "card_reads_refused": 0
+ },
+ "scan": null
+}

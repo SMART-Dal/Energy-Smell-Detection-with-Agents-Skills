@@ -155,7 +155,7 @@ def audit(calls, run: dict, raw: str = "") -> dict:
     mode = run.get("exp_mode_at_end")
     if mode is not None and str(mode).strip("0"):
         flags["exp_unlocked"].append(f"{run['exp']} had mode {mode} when the agent's session ended")
-    if run.get("arm") == "control":
+    if run.get("arm") == "core":
         flags["taxonomy_seen"].extend(taxonomy_seen(raw))
         if not flags["taxonomy_seen"]:
             del flags["taxonomy_seen"]
@@ -218,7 +218,7 @@ SUBMISSION_KEYS = {"id", "root_cause", "unit", "changed", "sole_caller_evidence"
 
 def schema(findings: list[dict], submissions: list[dict], arm: str) -> list[str]:
     """Every way the agent's records differ from the fixed keys, counted."""
-    untaxed = {"root_cause"} if arm == "control" else set()
+    untaxed = {"root_cause"} if arm == "core" else set()
     problems = collections.Counter()
 
     def compare(where: str, record: dict, expected: set) -> None:
@@ -396,7 +396,7 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
     used = [x.get("root_cause") for x in suspicions]
     used += [d.get("root_cause") for d in decided]
     used += [s.get("root_cause") for s in submissions]
-    invalid = sorted({str(u) for u in used if u and u not in valid}) if run["arm"] != "control" else []
+    invalid = sorted({str(u) for u in used if u and u not in valid}) if run["arm"] != "core" else []
 
     off_schema = schema(findings, submissions, run["arm"])
     flags = []
@@ -410,18 +410,18 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
     if run["arm"] == "full" and not rule_scans:
         flags.append("no_rule_scan")
     index_read = any("README.md" in text and "reference" in text for _, text in calls)
-    if run["arm"] != "control" and step1 and not index_read:
+    if run["arm"] != "core" and step1 and not index_read:
         flags.append("no_index_read")
-    if run["arm"] != "control" and decided and not root_causes:
+    if run["arm"] != "core" and decided and not root_causes:
         flags.append("decided_without_cards")
     # One card read is not every card read: on Oct 22 Sonnet read C3.S4 and
     # decided C1.S1, C10.S1 and C10.S2 without theirs, and nothing said so.
     unread = (sorted({str(d.get("root_cause")) for d in decided if d.get("root_cause")} - root_causes)
-              if run["arm"] != "control" else [])
+              if run["arm"] != "core" else [])
     if unread and root_causes:
         flags.append("decided_without_their_card")
     cut_short = sorted(cut - full)
-    if run["arm"] != "control" and set(cut_short) & {str(d.get("root_cause")) for d in decided}:
+    if run["arm"] != "core" and set(cut_short) & {str(d.get("root_cause")) for d in decided}:
         flags.append("cards_cut_short")
     missing = missing_units(step1, Path(run["exp"]) / "pristine" / run["repo"])
     if missing:

@@ -6,7 +6,7 @@ EXP=${ENERGY_EXP:-$HOME/energy-exp}   # ours: keys, clones, venvs, inputs cache,
 RUN=${ENERGY_RUN:-$HOME/energy-run}   # the current run only: repo copy, venv, Claude config. Wiped per run.
 
 MODELS=(claude-opus-5-5 claude-sonnet-5-5 claude-haiku-5-5)
-ARMS=(full knowledge control)
+ARMS=(core core+tax full)
 EFFORT=medium                   # the default of Opus 5.5 and Haiku 5.5 (Sonnet 5.5's is high), and the
                                 # level Anthropic suggests starting agentic tool use at
 # A model listed here runs at its own level instead. Sonnet at medium stopped
@@ -40,12 +40,12 @@ MIN_TMP_GB=2
 COMMON_PACKAGES="numpy pandas scipy requests pyyaml"
 
 # Where each arm's skill comes from.
-declare -A SKILL=([full]=dist/full/energy-smells [knowledge]=dist/knowledge/energy-smells [control]=dist/control/energy-efficiency)
+declare -A SKILL=([core]=dist/core/energy-efficiency [core+tax]=dist/core+tax/energy-smells [full]=dist/full/energy-smells)
 
 # The same prompt for every run of an arm.
 UNATTENDED="You are running unattended: nobody can answer questions, so make your own decisions and finish the task."
 declare -A PROMPT=(
+  [core]="Find where this repository wastes energy, using the energy-efficiency skill. $UNATTENDED"
+  [core+tax]="Find the energy smells in this repository using the energy-smells skill. $UNATTENDED"
   [full]="Find the energy smells in this repository using the energy-smells skill. $UNATTENDED"
-  [knowledge]="Find the energy smells in this repository using the energy-smells skill. $UNATTENDED"
-  [control]="Find where this repository wastes energy, using the energy-efficiency skill. $UNATTENDED"
 )

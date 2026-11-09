@@ -422,18 +422,18 @@ FULL = Arm(
     step_evidence=_SCANNER_EVIDENCE,
 )
 
-KNOWLEDGE_ONLY = Arm(
-    name="knowledge",
-    directory="knowledge/energy-smells",
+CORE_TAX = Arm(
+    name="core+tax",
+    directory="core+tax/energy-smells",
     question="How well does the agent do on the taxonomy alone?",
     words=_TAXONOMY_WORDS,
     step_evidence="",
     excluded=("scan.py", "lib/analysis", "lib/signals.py"),
 )
 
-CONTROL = Arm(
-    name="control",
-    directory="control/energy-efficiency",
+CORE = Arm(
+    name="core",
+    directory="core/energy-efficiency",
     question="How much does a frontier model save with no taxonomy, given the "
              "same task, the same rigour and the same verifier?",
     words=_CONTROL_WORDS,
@@ -442,4 +442,4 @@ CONTROL = Arm(
     ships_taxonomy=False,
 )
 
-ARMS = (FULL, KNOWLEDGE_ONLY, CONTROL)
+ARMS = (CORE, CORE_TAX, FULL)
