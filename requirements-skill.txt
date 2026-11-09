@@ -1,0 +1,9 @@
+# Packages the skill needs in the Python environment of the repository it analyses.
+# Install them on top of that environment:
+#
+#     pip install -r requirements-skill.txt
+#
+# The skill's scripts otherwise use only the standard library (Python 3.10+).
+
+codegreen==0.4.8   # energy meter; without it the skill reads the RAPL counters directly
+ruff==0.16.1       # used by the static rules of the `full` skill

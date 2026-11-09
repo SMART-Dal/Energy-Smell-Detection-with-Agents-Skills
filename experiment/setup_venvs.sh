@@ -15,7 +15,7 @@ for repo in "${repos[@]}"; do
   log=$EXP/logs/venv-$repo.log
   echo "== $repo"
   rm -rf "$RUN/venv"
-  python3 -m venv "$RUN/venv" > "$log" 2>&1
+  "${PYTHON:-python3}" -m venv "$RUN/venv" > "$log" 2>&1
   py=$RUN/venv/bin/python
   # Our tools (scanner, verifier, meter), common libraries and the repo's own
   # requirements, resolved together in one pip call; see lib/repo_deps.py.
