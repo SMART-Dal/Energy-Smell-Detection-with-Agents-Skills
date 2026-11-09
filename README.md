@@ -109,8 +109,18 @@ pip install -r ~/my-project/requirements.txt         # or: pip install -e ~/my-p
 **3. Start the input generator** in a terminal with the venv activated, and
 leave it running. It writes the inputs each repair is measured on, with your
 OpenRouter key. It runs outside the Claude Code session, so the agent never
-sees the key and cannot choose the inputs its repairs are measured on. Save the
-key in a file first (one line, `chmod 600`), then:
+sees the key and cannot choose the inputs its repairs are measured on.
+
+The generator reads the key from a file. Create a key at
+[openrouter.ai/keys](https://openrouter.ai/keys) (it starts with `sk-or-`),
+then save it in a text file that holds only the key, on one line:
+
+```bash
+nano ~/openrouter-key          # paste the key, save with Ctrl-O, exit with Ctrl-X
+chmod 600 ~/openrouter-key     # readable only by you
+```
+
+Then start the generator, giving it your repository and the key file:
 
 ```bash
 dr-greens/start_inputs.sh ~/my-project ~/openrouter-key
@@ -171,12 +181,17 @@ high reasoning effort, on three repositories (`experiment/repos.tsv`):
 | `dnanexus/dx-toolkit` | `accd86a` | genomics cloud toolkit |
 | `open-telemetry/community` | `910f85d` | project automation scripts |
 
-**1. Keys.** Save each key on one line, readable only by you:
+**1. Keys.** The harness reads two keys from two files in `~/energy-exp`, each
+holding only the key, on one line: an Anthropic API key
+([console.anthropic.com](https://console.anthropic.com), it starts with
+`sk-ant-`) and an OpenRouter key ([openrouter.ai/keys](https://openrouter.ai/keys),
+it starts with `sk-or-`).
 
 ```bash
 mkdir -p ~/energy-exp && chmod 700 ~/energy-exp
-install -m 600 /dev/null ~/energy-exp/api-key          # paste your Anthropic API key
-install -m 600 /dev/null ~/energy-exp/openrouter-key   # paste your OpenRouter key
+nano ~/energy-exp/api-key            # paste the Anthropic key, save with Ctrl-O, exit with Ctrl-X
+nano ~/energy-exp/openrouter-key     # paste the OpenRouter key, save, exit
+chmod 600 ~/energy-exp/api-key ~/energy-exp/openrouter-key
 ```
 
 The keys are never visible to the agent: Claude Code reads the API key once,
