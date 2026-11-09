@@ -100,17 +100,20 @@ terminal open while you use the skill:
 dr-greens/start_generator.sh my-project openrouter-key
 ```
 
-It prints the command for the next step. Stop it with Ctrl-C when you are done.
+Stop it with Ctrl-C when you are done.
 
-**5. Open Claude Code.** In a second terminal, activate the same venv and run
-the two lines the generator printed, for example:
+**5. Open Claude Code** in your project as usual, in another terminal:
 
 ```bash
 cd my-project
-ENERGY_INPUTS_SOCKET=/run/user/1000/energy-inputs-my-project.sock claude
+claude
 ```
 
-`ENERGY_INPUTS_SOCKET` connects the skill to the generator. Then ask, for example:
+While the generator runs, Claude Code sessions in your project are connected
+to it and use your venv; the generator sets this in
+`my-project/.claude/settings.local.json` and restores that file when it stops.
+
+Then ask, for example:
 
 ```
 Find the energy smells in this repository using the energy-smells skill.
