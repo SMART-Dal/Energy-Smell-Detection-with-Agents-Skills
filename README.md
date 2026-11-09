@@ -75,16 +75,22 @@ Energy readings cover the whole CPU package, so measure on an otherwise idle mac
 
 ## A. Use a skill on your own repository
 
-You need two folders of this repository: `dist/` (the skills) and `tools/` (the
-input generator). Download it with **Code > Download ZIP**, or `git clone` it.
-Below, `dr-greens/` is where you put it and `~/my-project` is your repository.
+Below, `~/my-project` is the repository you want to analyse.
+
+**0. Download this repository once, to `~/dr-greens`.** It holds the skills
+(`dist/`) and the input generator (`tools/`). Leave it there: every command
+below uses this path.
+
+```bash
+git clone https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills.git ~/dr-greens
+```
 
 **1. Copy one skill into your repository.** Claude Code loads skills from
 `.claude/skills/`:
 
 ```bash
 mkdir -p ~/my-project/.claude/skills
-cp -r dr-greens/dist/full/energy-smells ~/my-project/.claude/skills/
+cp -r ~/dr-greens/dist/full/energy-smells ~/my-project/.claude/skills/
 ```
 
 For the other skills, copy `dist/core+tax/energy-smells` or
@@ -95,7 +101,7 @@ runs and measures your code in this venv.
 
 ```bash
 source ~/my-project/.venv/bin/activate
-pip install -r dr-greens/requirements-skill.txt      # codegreen, ruff, numpy, pandas, scipy, requests, pyyaml
+pip install -r ~/dr-greens/requirements-skill.txt    # codegreen, ruff, numpy, pandas, scipy, requests, pyyaml
 ```
 
 If your project has no venv yet, create one and install its dependencies first:
@@ -123,11 +129,11 @@ nano ~/openrouter-key          # paste the key, save with Ctrl-O, exit with Ctrl
 chmod 600 ~/openrouter-key     # readable only by you
 ```
 
-Then start the generator, giving it your repository and the key file. Run the
-script where you downloaded it; it needs the `tools/` folder beside it:
+Then start the generator, giving it your repository and the key file. Run it
+from `~/dr-greens` exactly as written; do not copy the script anywhere else:
 
 ```bash
-dr-greens/start_inputs.sh ~/my-project ~/openrouter-key
+~/dr-greens/start_inputs.sh ~/my-project ~/openrouter-key
 ```
 
 **4. Start Claude Code** in a second terminal, with the same venv activated:
@@ -175,6 +181,9 @@ chmod -R u+w .energy-inputs; rm -rf step?.jsonl submissions.jsonl .energy-inputs
 ```
 
 ## B. Reproduce the evaluation
+
+Download this repository as in step 0 of section A, and run every command below
+from inside it (`cd ~/dr-greens`).
 
 The evaluation runs every skill with Claude Sonnet 5.5 and Claude Haiku 5.5, at
 high reasoning effort, on three repositories (`experiment/repos.tsv`):
