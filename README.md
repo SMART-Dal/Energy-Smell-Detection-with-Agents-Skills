@@ -53,15 +53,15 @@ Energy is read for the whole CPU package, so measure on an otherwise idle machin
 
 ## Installation
 
-Download and unzip the release:
+Download the release and unzip it into any folder outside your project:
 
 ```bash
 curl -L -o dr-greens.zip https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills/releases/latest/download/dr-greens.zip
-unzip dr-greens.zip -d ~          # creates ~/dr-greens
+unzip dr-greens.zip -d /path/of/your/choice      # creates /path/of/your/choice/dr-greens
 ```
 
 ```
-~/dr-greens/
+dr-greens/
 ├── skills/                   the three skills: core, core+tax, full
 ├── start_inputs.sh           starts the input generator
 ├── apply.sh                  writes the chosen repairs into your code
@@ -70,17 +70,28 @@ unzip dr-greens.zip -d ~          # creates ~/dr-greens
 └── README.md
 ```
 
+Keep this folder outside your project: only the skill folder goes into the
+project (step 1), and the agent would otherwise read our scripts as part of
+your code.
+
 ## Usage
 
-The examples analyse a project at `~/my-project` with the `full` skill.
+The commands below use three paths. Set them once in each terminal you use,
+with your own locations:
+
+```bash
+DRGREENS=/path/of/your/choice/dr-greens    # the unzipped release
+PROJECT=/path/to/your/project              # the code to analyse
+KEY=/path/to/openrouter-key                # a file holding your OpenRouter key
+```
 
 ### 1. Add a skill to your project
 
 Claude Code loads skills from `.claude/skills/` in your project:
 
 ```bash
-mkdir -p ~/my-project/.claude/skills
-cp -r ~/dr-greens/skills/full/energy-smells ~/my-project/.claude/skills/
+mkdir -p "$PROJECT/.claude/skills"
+cp -r "$DRGREENS/skills/full/energy-smells" "$PROJECT/.claude/skills/"
 ```
 
 Install one skill at a time. The other two are `skills/core+tax/energy-smells`
@@ -88,20 +99,21 @@ and `skills/core/energy-efficiency` ([which to choose](#the-three-skills)).
 
 ### 2. Prepare your project's environment
 
-The skill runs and measures your code in your project's venv. Activate it and
-add the skill's packages (CodeGreen, Ruff, NumPy, pandas, SciPy, Requests, PyYAML):
+The skill runs and measures your code in your project's venv. Activate it,
+wherever it is, and add the skill's packages (CodeGreen, Ruff, NumPy, pandas,
+SciPy, Requests, PyYAML):
 
 ```bash
-source ~/my-project/.venv/bin/activate
-pip install -r ~/dr-greens/requirements-skill.txt
+source /path/to/your/venv/bin/activate
+pip install -r "$DRGREENS/requirements-skill.txt"
 ```
 
 If your project has no venv yet, create one and install its dependencies first:
 
 ```bash
-python3 -m venv ~/my-project/.venv
-source ~/my-project/.venv/bin/activate
-pip install -r ~/my-project/requirements.txt         # or: pip install -e ~/my-project
+python3 -m venv /path/to/your/venv
+source /path/to/your/venv/bin/activate
+pip install -r "$PROJECT/requirements.txt"         # or: pip install -e "$PROJECT"
 ```
 
 If your project does not declare its dependencies, install the packages its
@@ -109,29 +121,30 @@ code imports.
 
 ### 3. Start the input generator
 
-Save your OpenRouter key in a file that holds only the key, on one line:
+Save your OpenRouter key in the file `$KEY`, holding only the key on one line
+(for example with `nano "$KEY"`), and make it readable only by you:
+`chmod 600 "$KEY"`.
+
+Then, in a terminal with your venv activated, start the generator and leave it
+running while you use the skill:
 
 ```bash
-nano ~/openrouter-key          # paste the key (sk-or-...), save with Ctrl-O, exit with Ctrl-X
-chmod 600 ~/openrouter-key
+"$DRGREENS/start_inputs.sh" "$PROJECT" "$KEY"
 ```
 
-Then, in a terminal with your project's venv activated, start the generator
-and leave it running while you use the skill:
-
-```bash
-~/dr-greens/start_inputs.sh ~/my-project ~/openrouter-key
-```
+It prints the `export ENERGY_INPUTS_SOCKET=...` line for the next step. It
+keeps its files outside your project, in `~/.energy-skill/` by default; set
+`ENERGY_SKILL_HOME` to use another folder.
 
 ### 4. Ask Claude Code
 
-In a second terminal, activate the same venv, point Claude Code at the
-generator, and start it in your project:
+In a second terminal, activate the same venv, run the `export` line that
+`start_inputs.sh` printed, and start Claude Code in your project:
 
 ```bash
-source ~/my-project/.venv/bin/activate
-export ENERGY_INPUTS_SOCKET=~/.energy-skill/my-project/inputs.sock    # printed by start_inputs.sh
-cd ~/my-project
+source /path/to/your/venv/bin/activate
+export ENERGY_INPUTS_SOCKET=...        # the line printed by start_inputs.sh
+cd "$PROJECT"
 claude
 ```
 
@@ -172,13 +185,13 @@ repairs; other accepted suspicions are recorded as `deferred` in `step3.jsonl`.
 
 `apply.sh` writes, for each function, the `confirmed` repair with the largest
 energy saving into your code, replacing only that function. Run it with your
-project's venv activated:
+venv activated:
 
 ```bash
-~/dr-greens/apply.sh ~/my-project                                  # every confirmed repair
-~/dr-greens/apply.sh ~/my-project --only C3S2-sort-once src/io.py::load   # only these repairs or functions
-~/dr-greens/apply.sh ~/my-project --remeasure                      # measure every repair again first
-~/dr-greens/apply.sh ~/my-project --dry-run                        # report only, change no code
+"$DRGREENS/apply.sh" "$PROJECT"                                   # every confirmed repair
+"$DRGREENS/apply.sh" "$PROJECT" --only C3S2-sort-once src/io.py::load    # only these repairs or functions
+"$DRGREENS/apply.sh" "$PROJECT" --remeasure                       # measure every repair again first
+"$DRGREENS/apply.sh" "$PROJECT" --dry-run                         # report only, change no code
 ```
 
 | Option | Effect |
@@ -196,7 +209,7 @@ function. Review the change with `git diff` and run your tests.
 To start a new session in the same project, remove the previous session's files:
 
 ```bash
-cd ~/my-project
+cd "$PROJECT"
 chmod -R u+w .energy-inputs; rm -rf step?.jsonl submissions.jsonl results.jsonl REPORT.md .energy-inputs .energy-scan
 ```
 
@@ -237,25 +250,29 @@ this whole repository, an Anthropic API key, and about 25 GB of free disk space.
 | `dnanexus/dx-toolkit` | `accd86a` | genomics cloud toolkit |
 | `open-telemetry/community` | `910f85d` | project automation scripts |
 
-**1. Clone the repository.**
+**1. Clone the repository**, anywhere, and run the commands below from inside it:
 
 ```bash
-git clone https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills.git ~/dr-greens-repo
-cd ~/dr-greens-repo
+git clone https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills.git
+cd Energy-Smell-Detection-with-Agents-Skills
 ```
 
-**2. Save the keys.** Two files in `~/energy-exp`, each holding only the key,
-on one line: an Anthropic API key ([console.anthropic.com](https://console.anthropic.com),
-`sk-ant-...`) and an OpenRouter key (`sk-or-...`).
+**2. Save the keys.** The harness keeps its data, and reads two key files, in
+one folder: `~/energy-exp` by default, or the folder you set in `ENERGY_EXP`
+(`export ENERGY_EXP=/path/to/folder` before every command below). Each key file
+holds only the key, on one line: `api-key` for an Anthropic API key
+([console.anthropic.com](https://console.anthropic.com), `sk-ant-...`) and
+`openrouter-key` for an OpenRouter key (`sk-or-...`).
 
 ```bash
-mkdir -p ~/energy-exp && chmod 700 ~/energy-exp
-nano ~/energy-exp/api-key            # paste the Anthropic key, save, exit
-nano ~/energy-exp/openrouter-key     # paste the OpenRouter key, save, exit
-chmod 600 ~/energy-exp/api-key ~/energy-exp/openrouter-key
+EXP=${ENERGY_EXP:-$HOME/energy-exp}
+mkdir -p "$EXP" && chmod 700 "$EXP"
+nano "$EXP/api-key"              # paste the Anthropic key, save, exit
+nano "$EXP/openrouter-key"       # paste the OpenRouter key, save, exit
+chmod 600 "$EXP/api-key" "$EXP/openrouter-key"
 ```
 
-The agent never sees the keys: `~/energy-exp` is locked while a session runs.
+The agent never sees the keys: this folder is locked while a session runs.
 
 **3. Set up.** Clones each repository at its commit and builds one venv per repository:
 
@@ -285,8 +302,8 @@ sessions are skipped, so running the same command again resumes. To keep a run
 alive after you log out: `tmux new -d -s exp ./run.sh`.
 
 **5. Results.** Each session is saved in
-`~/energy-exp/archive/<repo>/<skill>/<model>/`, with one row per session in
-`~/energy-exp/archive/summary.csv`, in the same layout as
+`$EXP/archive/<repo>/<skill>/<model>/`, with one row per session in
+`$EXP/archive/summary.csv`, in the same layout as
 [`results/`](results/README.md). Agents are not deterministic, so a new session
 finds and repairs different code than the recorded one, and energy readings
 depend on the hardware. The harness is described in

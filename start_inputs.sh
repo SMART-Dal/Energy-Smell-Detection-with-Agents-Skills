@@ -5,7 +5,8 @@
 #   ./start_inputs.sh REPO OPENROUTER_KEY_FILE
 #
 # Run it with the repository's venv activated: the generator runs the
-# repository's code to check each input it writes.
+# repository's code to check each input it writes. Its files are kept in
+# $ENERGY_SKILL_HOME/<repository name> (default: ~/.energy-skill).
 set -euo pipefail
 
 tool=$(cd "$(dirname "$0")" && pwd)
@@ -15,14 +16,16 @@ key=$2
 name=$(basename "$repo")
 skill=$(ls -d "$repo"/.claude/skills/energy-* | head -1)
 
-# Everything the generator keeps for this repository: the socket Claude Code
-# connects to, an inputs cache, and one folder per session.
-home=$HOME/.energy-skill/$name
+# Everything the generator keeps for this repository: an inputs cache and one
+# folder per session. The socket Claude Code connects to sits in the short
+# per-user runtime folder, since a socket path is limited to 108 characters.
+home=${ENERGY_SKILL_HOME:-$HOME/.energy-skill}/$name
 session=$home/sessions/$(date +%Y%m%d-%H%M%S)
+socket=${XDG_RUNTIME_DIR:-/tmp}/energy-inputs-$name.sock
 mkdir -p "$session"
 
 args=(--repo-name "$name" --pristine "$repo" --repo "$repo" --key "$key"
-      --socket "$home/inputs.sock" --cache "$home/cache"
+      --socket "$socket" --cache "$home/cache"
       --out "$session/inputs" --work "$session/work" --record "$session/record")
 cards=$skill/reference/root-causes
 [ -d "$cards" ] && args+=(--cards "$cards")
@@ -33,6 +36,6 @@ trap '[ -d "$cards" ] && chmod -R u+rwX "$cards"' EXIT
 
 echo "Input generator running. In another terminal, with the same venv activated:"
 echo "  cd $repo"
-echo "  export ENERGY_INPUTS_SOCKET=$home/inputs.sock"
+echo "  export ENERGY_INPUTS_SOCKET=$socket"
 echo "  claude"
 python "$tool/tools/inputs/service.py" "${args[@]}"
