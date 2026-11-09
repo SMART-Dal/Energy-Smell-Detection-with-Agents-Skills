@@ -29,8 +29,6 @@ recorded session.
 - [Requirements](#requirements)
 - [A. Use a skill on your own repository](#a-use-a-skill-on-your-own-repository)
 - [B. Reproduce the evaluation](#b-reproduce-the-evaluation)
-- [C. Re-measure the recorded repairs](#c-re-measure-the-recorded-repairs)
-- [D. Rebuild the skills and run the tests](#d-rebuild-the-skills-and-run-the-tests)
 - [Repository layout](#repository-layout)
 
 ## The three skills
@@ -77,18 +75,56 @@ Energy readings cover the whole CPU package, so measure on an otherwise idle mac
 
 ## A. Use a skill on your own repository
 
-`use_skill.sh` installs a skill in your repository, starts the input generator,
-and opens Claude Code there:
+You need two folders of this repository: `dist/` (the skills) and `tools/` (the
+input generator). Download it with **Code > Download ZIP**, or `git clone` it.
+Below, `dr-greens/` is where you put it and `~/my-project` is your repository.
+
+**1. Copy one skill into your repository.** Claude Code loads skills from
+`.claude/skills/`:
 
 ```bash
-git clone <this repository> dr-greens
-mkdir -p ~/.energy-skill && install -m 600 /dev/null ~/.energy-skill/openrouter-key
-# paste your OpenRouter key into ~/.energy-skill/openrouter-key (one line)
-
-dr-greens/use_skill.sh ~/my-project --skill full
+mkdir -p ~/my-project/.claude/skills
+cp -r dr-greens/dist/full/energy-smells ~/my-project/.claude/skills/
 ```
 
-In the Claude Code session that opens, ask for example:
+For the other skills, copy `dist/core+tax/energy-smells` or
+`dist/core/energy-efficiency` instead. Install one skill at a time.
+
+**2. Activate your project's venv and add the skill's two packages.** The skill
+runs and measures your code in this venv.
+
+```bash
+source ~/my-project/.venv/bin/activate
+pip install -r dr-greens/requirements-skill.txt      # codegreen and ruff
+```
+
+If your project has no venv yet, create one and install its dependencies first:
+
+```bash
+python3 -m venv ~/my-project/.venv
+source ~/my-project/.venv/bin/activate
+pip install -r ~/my-project/requirements.txt         # or: pip install -e ~/my-project
+```
+
+**3. Start the input generator** in a terminal with the venv activated, and
+leave it running. It writes the inputs each repair is measured on, with your
+OpenRouter key. It runs outside the Claude Code session, so the agent never
+sees the key and cannot choose the inputs its repairs are measured on. Save the
+key in a file first (one line, `chmod 600`), then:
+
+```bash
+dr-greens/start_inputs.sh ~/my-project ~/openrouter-key
+```
+
+**4. Start Claude Code** in a second terminal, with the same venv activated:
+
+```bash
+cd ~/my-project
+export ENERGY_INPUTS_SOCKET=~/.energy-skill/my-project/inputs.sock   # printed by start_inputs.sh
+claude
+```
+
+Then ask, for example:
 
 ```
 Find the energy smells in this repository using the energy-smells skill.
@@ -96,39 +132,13 @@ Find the energy smells in src/parser.py using the energy-smells skill.
 Find the energy smells in src/parser.py::Parser.tokenize using the energy-smells skill.
 ```
 
-With `--skill core`, ask: `Find where this repository wastes energy, using the
-energy-efficiency skill.` Any model works; choose it in the session with
-`/model`, or pass Claude Code options after `--`, for example
-`use_skill.sh ~/my-project -- --model sonnet`.
+With the core skill, ask: `Find where this repository wastes energy, using the
+energy-efficiency skill.` Any model works; choose it with `/model`.
 
-**Your project already has a venv.** The skill measures your code in the venv
-it runs in. Activate it before running `use_skill.sh`, or pass its interpreter:
-
-```bash
-dr-greens/use_skill.sh ~/my-project --python ~/my-project/.venv/bin/python
-```
-
-The skill's two packages (`requirements-skill.txt`: `codegreen` and `ruff`)
-are installed into that venv if they are missing.
-
-**Your project has no venv.** `--new-venv` creates `~/my-project/.venv` and
-installs your project's requirements (every `requirements*.txt`, `setup.py` and
-`pyproject.toml`) together with the skill's packages, in one pip resolve:
-
-```bash
-dr-greens/use_skill.sh ~/my-project --new-venv
-```
-
-To create the venv yourself instead:
-
-```bash
-python3 -m venv ~/my-project/.venv
-~/my-project/.venv/bin/pip install -r ~/my-project/requirements.txt -r dr-greens/requirements-skill.txt
-```
-
-**What you get.** The agent writes `step1.jsonl`, `step2.jsonl`, `step3.jsonl`
-and `submissions.jsonl` in the repository root; each line of
-`submissions.jsonl` is one repair with its measured verdict:
+**5. Read the results.** The agent does not edit your code. It writes
+`step1.jsonl`, `step2.jsonl`, `step3.jsonl` and `submissions.jsonl` in the
+repository root. Each line of `submissions.jsonl` is one repair: the new source
+of the function, and its verdict in `agent_measurement.status`:
 
 | Verdict | Meaning |
 |---|---|
@@ -141,20 +151,14 @@ and `submissions.jsonl` in the repository root; each line of
 
 Repairs that were not measured are `not_equivalent` (behaviour differs),
 `no_inputs` (no inputs could be generated, for example because the code needs
-the network), `invalid`, `error` or `over_limit`. A session measures at most
-20 repairs; other accepted suspicions are recorded as `deferred`.
+the network), `invalid`, `error` or `over_limit`. A session measures at most 20
+repairs; other accepted suspicions are recorded as `deferred` in `step3.jsonl`.
 
-After the session, `use_skill.sh` prints a command that measures every repair
-again on a fresh copy and writes `REPORT.md` (or pass `--review` to run it
-automatically). To write the best confirmed repair of each function into your
-code, add `--apply` to that command. Session files are kept in
-`~/.energy-skill/sessions/`.
+Before a new session in the same repository, remove the previous session's files:
 
-**Without the launcher.** You can also copy a skill folder into
-`<repo>/.claude/skills/` and start Claude Code yourself. The agent will find
-and propose repairs, but it cannot measure them, because measuring needs the
-input generator that `use_skill.sh` starts. Install only one of the three
-skills in a repository at a time.
+```bash
+chmod -R u+w .energy-inputs; rm -rf step?.jsonl submissions.jsonl .energy-inputs .energy-scan
+```
 
 ## B. Reproduce the evaluation
 
@@ -178,11 +182,11 @@ install -m 600 /dev/null ~/energy-exp/openrouter-key   # paste your OpenRouter k
 The keys are never visible to the agent: Claude Code reads the API key once,
 and `~/energy-exp` is locked (`chmod 000`) while a session runs.
 
-**2. Setup.** Checks the requirements, clones each repository at its commit
-and builds one venv per repository:
+**2. Setup.** Clones each repository at its commit and builds one venv per
+repository:
 
 ```bash
-./setup.sh                      # or: ./setup.sh --repos community
+./setup.sh                      # or only one venv: ./setup.sh community
 ```
 
 **3. Check, then run.**
@@ -198,8 +202,7 @@ and builds one venv per repository:
 |---|---|---|
 | `--repos` | names from `experiment/repos.tsv` | all three |
 | `--skills` | `core`, `core+tax`, `full` | all three |
-| `--models` | `sonnet`, `haiku`, `opus`, or a model ID | `sonnet haiku` |
-| `--effort` | `low`, `medium`, `high` | `high` |
+| `--models` | `sonnet`, `haiku`, `opus` | `sonnet haiku` |
 | `--again` | run a finished session again (the earlier one is kept) | |
 
 Sessions run one at a time, since energy is measured on the same machine. A
@@ -217,39 +220,6 @@ recorded one, and energy readings depend on the hardware.
 
 More on the harness, its settings and its environment variables:
 [`experiment/README.md`](experiment/README.md).
-
-## C. Re-measure the recorded repairs
-
-Every repair of the evaluation is in `results/`, with the inputs it was measured
-on. To measure the repairs of one recorded session again on your machine,
-without running an agent (after `./setup.sh --repos community`):
-
-```bash
-mkdir -p /tmp/remeasure && tar -xf ~/energy-exp/venvs/community.tar -C /tmp/remeasure
-cp -r results/community/full/sonnet/review /tmp/remeasure/
-/tmp/remeasure/venv/bin/python tools/review.py ~/energy-exp/pristine/community \
-    /tmp/remeasure/review --inputs results/community/full/sonnet/inputs
-```
-
-`/tmp/remeasure/review/results.jsonl` then holds a verdict per repair, and
-`REPORT.md` a readable summary. Each repair takes about a minute.
-
-## D. Rebuild the skills and run the tests
-
-The skills in `dist/` are generated from `taxonomy/`, `catalog/`, `src/` and
-`build/templates/`:
-
-```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -m build              # regenerate dist/
-.venv/bin/python -m build --check      # fail if dist/ is out of date
-.venv/bin/python tests/rules/run.py    # tests of every static rule
-```
-
-The repair examples on the root-cause cards come from the measured cases in
-`validation/`; see [`validation/RESULTS.md`](validation/RESULTS.md) to measure
-them again. [`build/CARD_SPEC.md`](build/CARD_SPEC.md) describes how a card is
-written.
 
 ## Repository layout
 
@@ -272,7 +242,7 @@ written.
 ├── tests/rules/           tests of every static rule
 ├── data/manual_sampling/  hand-written before/after sample pairs
 ├── setup.sh, run.sh       reproduce the evaluation (section B)
-├── use_skill.sh           use a skill on your own repository (section A)
+├── start_inputs.sh        start the input generator for your repository (section A)
 ├── requirements.txt       packages of the harness and the build
 └── requirements-skill.txt packages the skill needs in your venv
 ```
