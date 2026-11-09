@@ -1,86 +1,71 @@
 # Experiment harness
 
-Runs coding agents (Claude Code, `claude -p`) on real repositories with one
-skill arm each, re-measures every repair they submit, and writes one row per run
-to `summary.csv`. Everything needed to repeat the runs is in this folder; what
-the runs produce, and the keys, live outside the repository.
-
-Three places:
-
-| Place | What | Agent can read it? |
-|---|---|---|
-| `experiment/` (here) | scripts, settings (`config.sh`), the repositories and commits (`repos.tsv`) | yes, like the rest of this repository |
-| `$EXP` = `~/energy-exp/` | keys, clean clones, venvs, the inputs cache, results, logs | **no** — locked (`chmod 000`) while an agent runs |
-| `$RUN` = `~/energy-run/` | the current run only: the repo copy with its skill, its venv, its Claude config | yes — wiped and rebuilt for every run |
-
-`$EXP` and `$RUN` can be moved with the `ENERGY_EXP` and `ENERGY_RUN` environment variables.
+Runs Claude Code (`claude -p`) on each repository with one skill installed,
+re-measures every repair the agent submits, and writes one row per session to
+`summary.csv`. `../setup.sh` and `../run.sh` wrap these scripts; see the
+top-level README for the usual commands.
 
 ## Files
 
-| Path | What |
+| File | What it does |
 |---|---|
-| `config.sh` | models, arms, effort, timeouts, prompts — edit here |
-| `run_all.sh` | runs the grid one run at a time; run it again to resume |
-| `repos.tsv` | the repositories: name, `owner/repo`, the commit every run uses, `.py` files |
-| `setup_repos.sh` | clones every repo in `repos.tsv` at its commit into `$EXP/pristine/` (`setup_repos.sh CSV N` is how the list was chosen) |
-| `setup_venvs.sh [repos]` | one venv per repo (our tools + numpy, pandas, scipy, requests, pyyaml + the repo's requirements, in one pip resolve, then `pip check`) saved as `$EXP/venvs/<repo>.tar`; WARNING lines say what had to give |
-| `lib/repo_deps.py` | the one-resolve install `setup_venvs.sh` uses |
-| `lib/summarize.py` | after each run: `meta.json` and a row of `summary.csv` — time, cost, tokens, units examined, cards opened, rule scans, what the comparison with the rules added (full, ast, ruff), verdicts, which accepted findings a rule also flags, and leak / protocol / environment flags |
+| `config.sh` | settings: models, skills, effort, time limits, prompts, folders |
+| `repos.tsv` | the repositories: name, `owner/repo`, the commit every session uses, number of `.py` files |
+| `setup_repos.sh` | clones every repository in `repos.tsv` at its commit into `$EXP/pristine/` |
+| `setup_venvs.sh [repos]` | builds one venv per repository and saves it as `$EXP/venvs/<repo>.tar` |
+| `run_all.sh` | runs the grid one session at a time; finished sessions are skipped |
+| `lib/repo_deps.py` | installs a repository's dependencies in one pip resolve (used by `setup_venvs.sh`) |
+| `lib/summarize.py` | after each session: `meta.json` and a row of `summary.csv` |
+| `lib/repo_stats.py` | files, units and lines of each repository at its commit |
 
-In `$EXP`, two files you provide, never committed and never printed:
+## Folders
 
-| File | What |
-|---|---|
-| `api-key` | the Anthropic Console key. Never in the environment: each run gets a one-time copy that Claude reads once and deletes before the agent's first command |
-| `openrouter-key` | the key of the input generator (`tools/inputs/`), which runs outside the agent's session |
+| Folder | Holds | Readable by the agent |
+|---|---|---|
+| `$EXP` = `~/energy-exp` | the key files, clean clones, venvs, the inputs cache, results, logs | no: locked (`chmod 000`) while a session runs |
+| `$RUN` = `~/energy-run` | the current session: the repository copy with its skill, its venv, its Claude configuration | yes; rebuilt for every session |
 
-Results: `$EXP/archive/<repo>/<arm>/<model>/` holds a run — `transcript.jsonl`,
-`agent/` (its outputs), `record/` (each step as the agent finished it, every
-repair it measured, each comparison of the rules with its list), `inputs/` (the generated inputs), `review/` (our
-re-measurement), `rules.json` (every rule on the untouched repository, for
-comparing with the agent's findings), `venv_before/after.txt`,
-`tmp_created.txt` and `tmp_created/`, `meta.json`.
-Earlier attempts of the same run are `<model>.1`, `.2`, ... One row per run in
-`$EXP/archive/summary.csv`.
+Environment variables:
 
-## Commands
+| Variable | Default | Sets |
+|---|---|---|
+| `ENERGY_EXP` | `~/energy-exp` | `$EXP` |
+| `ENERGY_RUN` | `~/energy-run` | `$RUN` (keep the path short: it holds a Unix socket) |
+| `ENERGY_REPOS` | `experiment/repos.tsv` | the repository list |
+| `PYTHON` | `python3` | the interpreter the venvs are built with |
 
-From the repository's root:
+Two files you provide in `$EXP`, each holding one key: `api-key` (Anthropic)
+and `openrouter-key` (the input generator, which runs outside the agent's session).
+
+## One session
+
+One session is one repository x one skill x one model:
+
+1. `$RUN` gets a fresh copy of the repository with the skill in
+   `.claude/skills/`, a fresh copy of the repository's venv, and an empty
+   Claude configuration.
+2. The input service (`tools/inputs/service.py`) starts. It writes the inputs
+   repairs are measured on when the agent asks for them, records each finished
+   step, and unlocks the root-cause cards after step 1.
+3. `$EXP` is locked.
+4. `claude -p` runs in the repository with the skill's prompt (`config.sh`),
+   every command allowed, and a 120-minute limit.
+5. `$EXP` is unlocked, the input service finishes, the agent's files are saved,
+   every static rule is run on the untouched repository (`rules.json`), files
+   the agent left in `/tmp` are recorded and deleted, `tools/review.py`
+   re-measures every submission, and `lib/summarize.py` adds a row to
+   `summary.csv`.
+
+A session that ends on an API error before step 3 is finished is kept as
+`<model>.cut-<time>` and runs again next time; on a usage limit the grid stops.
+
+## Output
+
+`$EXP/archive/<repo>/<skill>/<model>/` holds one session, in the layout
+described in [`../results/README.md`](../results/README.md). An earlier session
+of the same combination, kept by `--again`, is `<model>.1`, `<model>.2`, ...
+Dry runs go to `$EXP/archive-dry/`.
 
 ```bash
-experiment/setup_repos.sh                             # clones, at the listed commits
-experiment/setup_venvs.sh                             # one venv per repo
-experiment/run_all.sh --check                         # one tiny API call (< $0.01)
-experiment/run_all.sh --dry-run --repos gedcom        # whole pipeline without Claude
-tmux new-session -d -s exp "$(pwd)/experiment/run_all.sh --repos amazon-neptune-tools"
-tmux new-session -d -s exp "$(pwd)/experiment/run_all.sh --again --repos amazon-neptune-tools --arms full --models claude-haiku-5-5"
-tmux attach -t exp                                    # watch (Ctrl-b d to leave)
-column -s, -t < ~/energy-exp/archive/summary.csv      # results
+column -s, -t < ~/energy-exp/archive/summary.csv | less -S
 ```
-
-While an agent runs, `~/energy-exp` is locked for you too: watch with `tmux attach`.
-
-`--auth api` (the default in `config.sh`) bills the key in `~/energy-exp/api-key`;
-`--auth subscription` runs on a claude.ai plan, with the token `claude
-setup-token` printed saved in `~/energy-exp/oauth-token`. Either way, a session
-that the API ends before `step.py done 3` -- a usage limit, or credit run out --
-is not counted: its folder is moved to `<model>.cut-<time>`, and on a limit the
-grid stops, with nothing started again by itself. Run the same command once
-the limit resets: finished runs are skipped and the cut one is redone. Any
-other API error sets that run aside the same way and the grid goes on.
-
-## The agent
-
-`claude -p` in the repo copy, with `--effort medium`, `bypassPermissions` (every
-command allowed, `pip install` included), a time limit, and a clean environment
-with `TMPDIR` inside the run folder. It is given no dollar budget:
-`--max-budget-usd` shows the budget to the model on every turn, and a model
-told it has a budget spends less of its time; cap spending on the Console. What
-it installs into its venv stays for the review, which re-measures in that same
-venv (both sides of every pair run in it, so it cannot favour either), and dies
-with the venv copy. What it creates directly in `/tmp` is listed in
-`tmp_created.txt`, copied into `tmp_created/` (each entry up to 200 MB), and
-deleted after the run, so the next run cannot read this one's repairs. An
-editor's own folders there (`code-*`, `mcp-*`, `pyright-*`, `vscode-*`) are left
-alone. Cost in `summary.csv` is Claude Code's estimate; the Console bill
-is authoritative.

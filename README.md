@@ -1,242 +1,278 @@
-# Energy smells — an agent skill
+# Dr. Greens: detecting and refactoring energy smells with agent skills
 
-A loadable skill that lets a coding agent find energy smells in Python against
-the taxonomy from *Watts This Smell* (12 categories, 65 root causes), and prove
-each one by measuring a refactoring that removes it.
+Dr. Greens is an agent skill for Claude Code that finds **energy smells** in
+Python code (code that does more work than its task requires) and repairs them.
+Each repair is checked to behave exactly like the original code, and the energy
+of both versions is measured on the CPU's energy counters.
 
-We do not ship a detector. We ship the knowledge and the referee.
+The agent works in four steps:
 
-> A smell claim is admitted only if it is falsifiable and survives falsification.
+1. **Find**: read every function in the target and list each suspected smell.
+2. **Decide**: accept or reject each suspicion after studying it in depth.
+3. **Repair and measure**: write a repair for each accepted suspicion. A verifier
+   checks that the repair preserves behaviour and measures its energy on inputs
+   written by a separate input generator.
+4. **Finish**: summarise each repair, its root cause and its verdict.
 
-## The deliverables
+The agent never edits the repository. It writes its findings and repairs to
+files, and only repairs that save energy are recommended.
 
-`python -m build` writes five skill directories under `dist/`. The first four
-differ in **one** thing — what static evidence the agent is given — so a
-difference between them is attributable to the evidence rather than to the
-instructions. The fifth is the control.
+This repository is the replication package of the paper *Ctrl+Shift+Left:
+Detecting and Refactoring Energy Smells using Agent Skills* (Mohammadjavad
+Mehditabar, Saurabhsingh Rajput, Tushar Sharma; Dalhousie University). It
+contains the three skills, the harness that ran the evaluation, and every
+recorded session.
 
-| Directory | Given | Question it answers |
+## Contents
+
+- [The three skills](#the-three-skills)
+- [Requirements](#requirements)
+- [A. Use a skill on your own repository](#a-use-a-skill-on-your-own-repository)
+- [B. Reproduce the evaluation](#b-reproduce-the-evaluation)
+- [C. Re-measure the recorded repairs](#c-re-measure-the-recorded-repairs)
+- [D. Rebuild the skills and run the tests](#d-rebuild-the-skills-and-run-the-tests)
+- [Repository layout](#repository-layout)
+
+## The three skills
+
+Each skill adds one layer of knowledge to the one before it. All three follow
+the same four steps and use the same verifier, energy probe and input generator.
+
+| Skill | Folder | What it adds |
 |---|---|---|
-| `dist/full/energy-smells` | cards + 43 AST analyzers + 36 ruff rules | do the two evidence sources compose? |
-| `dist/ast/energy-smells` | cards + the AST analyzers | what do the taxonomy-specific rules add? |
-| `dist/ruff/energy-smells` | cards + the ruff rules | how far does an off-the-shelf linter get? |
-| `dist/knowledge/energy-smells` | cards only | how well does the agent do on the taxonomy alone? |
-| `dist/control/energy-efficiency` | **no taxonomy at all** | does the taxonomy help a frontier model, or would it have found these anyway? |
+| **core** | `dist/core/energy-efficiency` | the procedure, the energy probe (`energy.py`), the input generator and the verifier |
+| **core+tax** | `dist/core+tax/energy-smells` | the taxonomy: an index of 12 energy smells and 65 root causes, 12 category cards, and 65 root-cause cards with measured repair examples and near-misses |
+| **full** | `dist/full/energy-smells` | a static analyzer (`scan.py`): 40 rules of our own and 31 Ruff rules, each mapped to root causes |
 
-The four taxonomy arms all ship a directory called `energy-smells`, and differ
-only in the parent directory holding it. That is not tidiness: the skill's own
-name is something the agent reads, so naming one arm `energy-smells-knowledge`
-would tell it that a fuller version exists. The parent is the experimenter's
-filing and never leaves this repository.
+A skill folder holds everything the agent needs:
 
-The arm is fixed at build time, not chosen by a flag. An arm ships only the code
-its condition allows: the knowledge arm has no scanner and no analyzer source on
-disk, because an agent that can read `rules/loops.py` has been handed the static
-analysis in its most direct form whatever the flags said.
-
-**No arm may reveal that the others exist.** No condition file, no sentence
-explaining what is absent, no enum value nothing there can produce. `scan.py`
-therefore *discovers* its analyzers -- any module in `lib/analysis` defining
-`collect()` is one -- so an installation with fewer of them behaves exactly like
-one that never had more. The control arm gets the same task, the same rigour and
-the same verifier with none of this taxonomy's vocabulary anywhere in it; without
-it we cannot tell whether the cards help or whether the model was going to find
-these things regardless.
-
-```bash
-cp -r dist/full/energy-smells ~/some-repo/.claude/skills/energy-smells
+```
+energy-smells/
+├── SKILL.md               the procedure the agent follows
+├── reference/             taxonomy index, category and root-cause cards, how to verify, output format
+└── scripts/
+    ├── step.py            marks a step as finished
+    ├── scan.py            static rules (full only)
+    ├── inputs.py          requests inputs from the input generator
+    ├── verify.py          checks behaviour and measures energy of each repair
+    ├── energy.py          measures the energy of any call, at any step
+    └── lib/               shared code (standard library only)
 ```
 
-**Install exactly one arm per environment.** Two of them side by side, or one
-left behind from an earlier run, gives the agent both conditions at once and
-there is nothing in the output that would show it happened.
+## Requirements
 
-For an agent without native skill loading, point its instruction file at
-`SKILL.md` — the progressive disclosure is written as explicit instructions
-("open `reference/categories/C7.md` before deciding"), not as a host feature.
+- **Linux on an Intel CPU** with readable RAPL energy counters
+  (`/sys/class/powercap/intel-rapl:N/energy_uj`). If they are readable only by
+  root: `sudo chmod a+r /sys/class/powercap/intel-rapl:[0-9]*/energy_uj`.
+- **Python 3.10** or newer for the skill. The evaluation used Python 3.10.12
+  (Ubuntu 22.04's `python3`).
+- **[Claude Code](https://docs.claude.com/en/docs/claude-code)**, installed and signed in.
+- **An [OpenRouter](https://openrouter.ai) API key.** The input generator uses
+  DeepSeek V4.1 Flash through OpenRouter to write the inputs each repair is
+  measured on. The evaluation's 523 units cost $1.23 in total, about a quarter
+  of a cent each.
+- For section B only: an Anthropic API key, `git`, and about 25 GB of free disk space.
 
-**Runtime: Python 3.9+ and the standard library.** `ruff` is optional. Nothing
-calls a network.
+Energy readings cover the whole CPU package, so measure on an otherwise idle machine.
 
-## Layout
+## A. Use a skill on your own repository
 
-| Path | Role |
+`use_skill.sh` installs a skill in your repository, starts the input generator,
+and opens Claude Code there:
+
+```bash
+git clone <this repository> dr-greens
+mkdir -p ~/.energy-skill && install -m 600 /dev/null ~/.energy-skill/openrouter-key
+# paste your OpenRouter key into ~/.energy-skill/openrouter-key (one line)
+
+dr-greens/use_skill.sh ~/my-project --skill full
+```
+
+In the Claude Code session that opens, ask for example:
+
+```
+Find the energy smells in this repository using the energy-smells skill.
+Find the energy smells in src/parser.py using the energy-smells skill.
+Find the energy smells in src/parser.py::Parser.tokenize using the energy-smells skill.
+```
+
+With `--skill core`, ask: `Find where this repository wastes energy, using the
+energy-efficiency skill.` Any model works; choose it in the session with
+`/model`, or pass Claude Code options after `--`, for example
+`use_skill.sh ~/my-project -- --model sonnet`.
+
+**Your project already has a venv.** The skill measures your code in the venv
+it runs in. Activate it before running `use_skill.sh`, or pass its interpreter:
+
+```bash
+dr-greens/use_skill.sh ~/my-project --python ~/my-project/.venv/bin/python
+```
+
+The skill's two packages (`requirements-skill.txt`: `codegreen` and `ruff`)
+are installed into that venv if they are missing.
+
+**Your project has no venv.** `--new-venv` creates `~/my-project/.venv` and
+installs your project's requirements (every `requirements*.txt`, `setup.py` and
+`pyproject.toml`) together with the skill's packages, in one pip resolve:
+
+```bash
+dr-greens/use_skill.sh ~/my-project --new-venv
+```
+
+To create the venv yourself instead:
+
+```bash
+python3 -m venv ~/my-project/.venv
+~/my-project/.venv/bin/pip install -r ~/my-project/requirements.txt -r dr-greens/requirements-skill.txt
+```
+
+**What you get.** The agent writes `step1.jsonl`, `step2.jsonl`, `step3.jsonl`
+and `submissions.jsonl` in the repository root; each line of
+`submissions.jsonl` is one repair with its measured verdict:
+
+| Verdict | Meaning |
 |---|---|
-| `taxonomy/*.xlsx` | the published taxonomy — source |
-| `catalog/C*.yaml` | authored knowledge: symptoms and cost, exceptions, near-misses, repairs, neighbours |
-| `src/` | the scanner and the verifier — authored Python |
-| `build/` | renders cards, compiles the routing table, emits the five arms. `CARD_SPEC.md` says how to write an entry |
-| `dist/` | **the deliverables** — generated, never edited |
-| `validation/` | measures the taxonomy's own claims (see below) |
-| `tools/` | our side of an agent run: re-measure, decide what to apply, report — never shipped |
-| `tests/rules/` | one folder per analyzer: what it must flag, and what it must not |
-| `eval/` | protocol for cold-agent runs |
+| `confirmed` | saves energy on every input |
+| `partial` | saves energy on some inputs, no measurable change on the others |
+| `mixed` | saves on some inputs, costs more on others |
+| `regressed` | costs more on every input that changed |
+| `negligible` | no change beyond the measurement noise |
+| `inconclusive` | the machine was too noisy to resolve the effect |
 
-```bash
-python3 -m venv .venv && .venv/bin/pip install pandas openpyxl pyyaml ruff
-.venv/bin/python -m build            # regenerate dist/
-.venv/bin/python -m build --check    # fail if dist/ is stale
-```
+Repairs that were not measured are `not_equivalent` (behaviour differs),
+`no_inputs` (no inputs could be generated, for example because the code needs
+the network), `invalid`, `error` or `over_limit`. A session measures at most
+20 repairs; other accepted suspicions are recorded as `deferred`.
 
-## The two scripts
+After the session, `use_skill.sh` prints a command that measures every repair
+again on a fresh copy and writes `REPORT.md` (or pass `--review` to run it
+automatically). To write the best confirmed repair of each function into your
+code, add `--apply` to that command. Session files are kept in
+`~/.energy-skill/sessions/`.
 
-```bash
-python dist/full/energy-smells/scripts/scan.py PATH [--top N] [--json]
-python src/verify.py --calibrate                               # this host's noise floor
-python src/verify.py SUBMISSIONS.jsonl --repo PATH             # an agent's repairs
-python src/verify.py SUBMISSIONS.jsonl --repo PATH --no-record --json   # re-measure, ours
-python src/verify.py CASE_FILE.py [--json]                     # a validation sample
-```
+**Without the launcher.** You can also copy a skill folder into
+`<repo>/.claude/skills/` and start Claude Code yourself. The agent will find
+and propose repairs, but it cannot measure them, because measuring needs the
+input generator that `use_skill.sh` starts. Install only one of the three
+skills in a repository at a time.
 
-`scan.py` reports what its rules noticed: facts, one per rule per unit, each
-tagged with the root causes it could point at, in file and line order — never a
-verdict, and never a ranking of which code is worth reading. It compares them
-with the agent's `step1.jsonl` and refuses until that exists; `--json` gives
-every finding without a list, outside a session.
+## B. Reproduce the evaluation
 
-`verify.py` measures one repair against the code it replaces: it checks
-behaviour is preserved, sizes each case so its measured window is long enough,
-and measures the two versions alternately, window by window, on one thread.
+The evaluation runs every skill with Claude Sonnet 5.5 and Claude Haiku 5.5, at
+high reasoning effort, on three repositories (`experiment/repos.tsv`):
 
-It takes its pair from either of two sources, and the four stages after loading
-are the same code. A **submission** (`.jsonl`) is what an agent produces: it
-names a unit as `path::qualname` and gives the replacement source, and `before`
-is read from the repository, never from the submission — which is what stops a
-baseline being shaped to flatter the result. A pristine copy and a patched copy
-of the repository are imported side by side in one worker process under their
-real package names, nothing renamed and no import rewritten. A **case file**
-(`.py`) defines `before`, `after` and `cases()` itself, and is how our own
-validation samples are written.
-
-Submissions are measured one way, by the agent and when we re-measure them: 1 s
-windows, 5 pairs, the noise floor calibrated once per session — about a minute
-a repair. The agent's run writes each result back into its line as
-`agent_measurement`; a measured result is final, and editing a measured line
-makes it `invalid`. Validation case files keep the settings every recorded
-result used (3 s windows, 9 pairs, a canary per case), so those results stay
-comparable. `--calibrate` measures two copies of identical code against each
-other; the width of that interval is what this host can resolve.
-
-## Asking for an analysis
-
-The skill works on a **target**, an optional **number of units**, and a cap on
-how many repairs it measures — all taken from the request:
-
-| Ask for | It examines | It measures |
+| Repository | Commit | Domain |
 |---|---|---|
-| "Find energy smells in this repository" | every unit, hottest first | the 15 most promising repairs |
-| "… in `src/render/`" or "… in `src/render.py`" | every unit there | the 15 most promising |
-| "… in `src/render.py::Report.render`" | that one method | its repairs |
-| "… examine 10 units" | the 10 hottest units | the 15 most promising |
-| "… and measure every repair" | as above | all of them |
+| `vespa-engine/sample-apps` | `e2ed22d` | search application samples |
+| `dnanexus/dx-toolkit` | `accd86a` | genomics cloud toolkit |
+| `open-telemetry/community` | `910f85d` | project automation scripts |
 
-A number limits units only, never suspicions or root causes; the agent may
-change which units those are as it goes, but never examines more.
-Accepted suspicions beyond the measured 15 are recorded as `deferred`: still
-findings, with no saving claimed. Name a single function as
-`path/to/file.py::qualname` — a method as `Class.method` — the same form every
-result uses; a loose name ("the render function") also works, and the agent
-records what it resolved it to.
-
-Time is roughly 3–4 minutes of agent work per unit plus about a minute per
-measured repair, so "examine 10 units" is around 45–55 minutes. With no number,
-every unit in the target is examined, which on a large repository runs to
-hours: give a number for anything bigger than a few dozen functions.
-
-## An agent run, and our side of it
-
-The agent never edits the repository. It leaves two files:
-
-- `findings.jsonl` — its work, one line per step per unit: what it selected,
-  what it suspected and why, what it accepted, and what became of each;
-- `submissions.jsonl` — one repair per line, each carrying the measurement
-  `verify.py` wrote into it.
+**1. Keys.** Save each key on one line, readable only by you:
 
 ```bash
-python tools/review.py REPO RUN_DIR            # re-measure, decide, write the report
-python tools/review.py REPO RUN_DIR --apply    # ...and write the applied repairs into REPO
+mkdir -p ~/energy-exp && chmod 700 ~/energy-exp
+install -m 600 /dev/null ~/energy-exp/api-key          # paste your Anthropic API key
+install -m 600 /dev/null ~/energy-exp/openrouter-key   # paste your OpenRouter key
 ```
 
-`review.py` re-measures every submission on a fresh copy, on an idle machine,
-writes `results.jsonl` and `REPORT.md` into `RUN_DIR`, and decides
-what to apply. Every repair was written against the original code, so at most
-one per function can be: among a function's `confirmed` repairs, the one with
-the highest mean saving across its five cases — they share their inputs, so the
-means compare — and every other repair is recorded with the reason it was not
-applied. Nothing that is not `confirmed` is applied; `mixed` included.
+The keys are never visible to the agent: Claude Code reads the API key once,
+and `~/energy-exp` is locked (`chmod 000`) while a session runs.
 
-## Validating the taxonomy
-
-`validation/` measures the claims rather than assuming them.
+**2. Setup.** Checks the requirements, clones each repository at its commit
+and builds one venv per repository:
 
 ```bash
-python validation/preflight.py               # is this host fit to measure on?
-python validation/generate_sample_cases.py   # convert data/manual_sampling
-python validation/run.py samples             # 84 of the 92 hand-written pairs
-python validation/run.py taxonomy            # cases per contested root cause
+./setup.sh                      # or: ./setup.sh --repos community
 ```
 
-`data/manual_sampling/` holds 92 hand-written pairs; 84 of them convert into
-runnable cases, which is the count the sample run reports.
-`build/SAMPLE_NUANCES.md` reads the full 92.
-
-Results land in `validation/results/*.jsonl`. Run `preflight.py` first: it asks
-three questions and stops at the first failure — identical code reads ~0%, a
-known saving is detected, and the same pair *swapped* reads negative. The third
-matters because a rig that answers "saving" in both directions is broken in a way
-the null canary alone cannot see.
-
-`validation/RESULTS.md` records what has been measured and what has not. The
-short version, from an idle host: **all 65 root causes are measured**, across
-230 cases — 146 confirmed, 43 mixed, 32 regressed, 5 negligible, 3
-inconclusive, 1 timeout. Median per-case canary 1.73%, with 50 of 229 readings
-above 3%.
-
-A regressed or mixed case is not a refutation of the taxonomy. The published
-taxonomy is the reference; our measurements are 3-4 cases per root cause on one
-host, and which direction a repair pays in can turn on the loop body rather
-than the input size — `sum(x for x in l)` favours the comprehension while
-`sum(x * 2 for x in l)` favours the generator, on the same machine. What a
-regression changes is the advice beside the card, not the card.
-
-`verify.py` reports `inconclusive` rather than `negligible` when the canary is
-too high to resolve an effect, because "the repair does nothing" and "this
-machine could not tell" are opposite claims.
-
-Analyzer precision has its own suite, which is not shipped:
+**3. Check, then run.**
 
 ```bash
-python tests/rules/run.py                    # every rule
-python tests/rules/run.py missing_early_exit --verbose
+./run.sh --check                                          # Claude Code starts (one short call)
+./run.sh --dry-run --repos community                      # the whole pipeline without Claude
+./run.sh --repos community --skills full --models haiku   # one session
+./run.sh                                                  # all 18 sessions
 ```
 
-Each folder holds one `test_cases.py` of hand-written units and an `EXPECTED`
-map from unit qualname to hit count; anything unlisted must produce nothing. Of
-347 units, 191 exist to stay silent. The quiet cases are the point: a rule the
-reader learns to ignore is worse than no rule.
+| Option | Values | Default |
+|---|---|---|
+| `--repos` | names from `experiment/repos.tsv` | all three |
+| `--skills` | `core`, `core+tax`, `full` | all three |
+| `--models` | `sonnet`, `haiku`, `opus`, or a model ID | `sonnet haiku` |
+| `--effort` | `low`, `medium`, `high` | `high` |
+| `--again` | run a finished session again (the earlier one is kept) | |
 
-## What measurement is for
+Sessions run one at a time, since energy is measured on the same machine. A
+session lasts up to 2 hours, followed by up to 40 minutes of re-measurement.
+Finished sessions are skipped, so running the same command again resumes the
+grid. Run it inside `tmux` to keep it alive after you log out:
+`tmux new -d -s exp ./run.sh`.
 
-**The taxonomy is the reference, and measurement does not sit in judgement on
-it.** The 65 root causes come from a literature review; each one names a real
-mechanism, and a repair that fails to pay on one host in one shape does not make
-the mechanism imaginary. What measurement settles is narrower and more useful:
-*where* a root cause pays, *how much*, and *where it does not* — so the cards can
-tell an agent what to expect instead of asserting a rule.
+**4. Results.** Each session is saved in
+`~/energy-exp/archive/<repo>/<skill>/<model>/`, with one row per session in
+`~/energy-exp/archive/summary.csv`. The folder layout is the same as in
+`results/`, described in [`results/README.md`](results/README.md). Agents are
+not deterministic, so a new session finds and repairs different code than the
+recorded one, and energy readings depend on the hardware.
 
-C10.S4 is the standing example. Its published description says each `+=`
-allocates and copies, so N concatenations of average length M cost O(N*M). That
-is exactly right, and the guidance around it has been rewritten twice from
-measurement without the description changing once.
+More on the harness, its settings and its environment variables:
+[`experiment/README.md`](experiment/README.md).
 
-Through an aliased target — an attribute, a subscript, a global — the described
-cost is what happens, and the repair measures **+99.9%**. Through a plain local
-that nothing else reads, CPython resizes the string in place, the O(N*M) term
-collapses, and what remains is per-part interpreter work: **+18.4% ± 0.6** over
-200 000 short parts and **+1.2%** over 2 000 long ones. So the deciding variable
-is the number of parts, not the total length, and one card now carries two
-findings of very different size.
+## C. Re-measure the recorded repairs
 
-None of that was available by reasoning. It came from paired measurement on a
-floor low enough to believe — which is why the verifier is not an optional final
-step, and why a card that has been measured says what it measured and on what.
+Every repair of the evaluation is in `results/`, with the inputs it was measured
+on. To measure the repairs of one recorded session again on your machine,
+without running an agent (after `./setup.sh --repos community`):
+
+```bash
+mkdir -p /tmp/remeasure && tar -xf ~/energy-exp/venvs/community.tar -C /tmp/remeasure
+cp -r results/community/full/sonnet/review /tmp/remeasure/
+/tmp/remeasure/venv/bin/python tools/review.py ~/energy-exp/pristine/community \
+    /tmp/remeasure/review --inputs results/community/full/sonnet/inputs
+```
+
+`/tmp/remeasure/review/results.jsonl` then holds a verdict per repair, and
+`REPORT.md` a readable summary. Each repair takes about a minute.
+
+## D. Rebuild the skills and run the tests
+
+The skills in `dist/` are generated from `taxonomy/`, `catalog/`, `src/` and
+`build/templates/`:
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python -m build              # regenerate dist/
+.venv/bin/python -m build --check      # fail if dist/ is out of date
+.venv/bin/python tests/rules/run.py    # tests of every static rule
+```
+
+The repair examples on the root-cause cards come from the measured cases in
+`validation/`; see [`validation/RESULTS.md`](validation/RESULTS.md) to measure
+them again. [`build/CARD_SPEC.md`](build/CARD_SPEC.md) describes how a card is
+written.
+
+## Repository layout
+
+```
+.
+├── dist/                  the three skills, ready to copy (generated)
+│   ├── core/energy-efficiency/
+│   ├── core+tax/energy-smells/
+│   └── full/energy-smells/
+├── src/                   source of the skills' scripts: verifier, scanner, energy meter
+├── taxonomy/              the energy smell taxonomy (12 smells, 65 root causes)
+├── catalog/               per root cause: patterns, measured repairs, near-misses
+├── build/                 renders the taxonomy, catalog and templates into dist/
+├── tools/
+│   ├── inputs/            the input generator and its service
+│   └── review.py          re-measures submitted repairs and writes a report
+├── experiment/            the evaluation harness (run_all.sh, config.sh, repos.tsv)
+├── results/               every recorded session of the evaluation
+├── validation/            measured repair cases behind the cards, near-miss specimens
+├── tests/rules/           tests of every static rule
+├── data/manual_sampling/  hand-written before/after sample pairs
+├── setup.sh, run.sh       reproduce the evaluation (section B)
+├── use_skill.sh           use a skill on your own repository (section A)
+├── requirements.txt       packages of the harness and the build
+└── requirements-skill.txt packages the skill needs in your venv
+```

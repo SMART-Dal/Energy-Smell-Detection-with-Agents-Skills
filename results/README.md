@@ -1,72 +1,54 @@
-# Main experiment results
+# Recorded sessions
 
-One folder per run: `results/<repository>/<configuration>/<model>/`, copied as-is
-from `~/energy-exp/archive/` after the run finished. The folder is in
-`.gitignore` until it is decided whether to push it. `summary.csv` holds one
-row per run, as `experiment/lib/summarize.py` wrote it.
+Every session of the evaluation, copied from the harness's archive after it
+finished: `results/<repository>/<skill>/<model>/`. `summary.csv` has one row per
+session, as `experiment/lib/summarize.py` wrote it.
 
-Configurations use the repository's names: `knowledge` is **Taxonomy** in the
-paper, `full` is **Taxonomy+Rules**, `control` is **Unguided**.
+The evaluation is the 18 sessions with Sonnet and Haiku (3 repositories x 3
+skills x 2 models). The three sessions with Opus on `sample-apps` are additional.
 
-## Runs
+## Sessions
 
-| Run | Date | Project commit | Model, effort | Auth | Agent / review |
-|---|---|---|---|---|---|
-| `sample-apps/knowledge/sonnet` | 2026-10-26 10:40 | `1068f79` | claude-sonnet-5-5, high | subscription | 40.6 min / 27.4 min |
-| `dx-toolkit/full/sonnet` | 2026-10-26 17:15 | `1068f79` | claude-sonnet-5-5, high | subscription | 87.3 min (77.6 working, then 9.6 waiting on its own stale wait loop) / 16.5 min |
-| `dx-toolkit/full/haiku` | 2026-10-26 20:02 | `1068f79` | claude-haiku-5-5, high | api | 52.7 min / 14.0 min |
-| `dx-toolkit/control/sonnet` | 2026-10-27 06:32 | `1068f79` | claude-sonnet-5-5, high | subscription | 43.6 min (about 35 working; 8 waiting on its own stale wait loop) / 21.2 min |
-| `sample-apps/full/sonnet` | 2026-10-26 21:18 | `1068f79` | claude-sonnet-5-5, high | subscription | 55.7 min (about 34 working; verify had finished at 32 min, and the agent waited 22 min on its own stale wait loop) / 18.5 min |
-| `dx-toolkit/knowledge/sonnet` | 2026-10-27 10:02 | `1068f79` | claude-sonnet-5-5, high | subscription | 95.3 min (about 38 working; 57 waiting on its own stale wait loops, 32 after the first verify and 25 after the second) / 22.6 min |
+| Session | Model | Effort | Agent (min) | Review (min) | Submissions reviewed |
+|---|---|---|---:|---:|---:|
+| `sample-apps/core/sonnet` | claude-sonnet-5-5 | high | 39.2 | 19.4 | 30 |
+| `sample-apps/core/haiku` | claude-haiku-5-5 | high | 57.8 | 18.6 | 16 |
+| `sample-apps/core+tax/sonnet` | claude-sonnet-5-5 | high | 40.6 | 27.4 | 27 |
+| `sample-apps/core+tax/haiku` | claude-haiku-5-5 | high | 49.8 | 26.7 | 22 |
+| `sample-apps/full/sonnet` | claude-sonnet-5-5 | high | 55.7 | 18.5 | 26 |
+| `sample-apps/full/haiku` | claude-haiku-5-5 | high | 40.3 | 27.9 | 20 |
+| `dx-toolkit/core/sonnet` | claude-sonnet-5-5 | high | 43.6 | 21.2 | 24 |
+| `dx-toolkit/core/haiku` | claude-haiku-5-5 | high | 50.1 | 7.3 | 7 |
+| `dx-toolkit/core+tax/sonnet` | claude-sonnet-5-5 | high | 95.3 | 22.6 | 24 |
+| `dx-toolkit/core+tax/haiku` | claude-haiku-5-5 | high | 25.4 | 9.0 | 9 |
+| `dx-toolkit/full/sonnet` | claude-sonnet-5-5 | high | 87.3 | 16.5 | 26 |
+| `dx-toolkit/full/haiku` | claude-haiku-5-5 | high | 52.7 | 14.0 | 13 |
+| `community/core/sonnet` | claude-sonnet-5-5 | high | 10.3 | 6.7 | 8 |
+| `community/core/haiku` | claude-haiku-5-5 | high | 28.9 | 5.9 | 12 |
+| `community/core+tax/sonnet` | claude-sonnet-5-5 | high | 34.6 | 14.8 | 15 |
+| `community/core+tax/haiku` | claude-haiku-5-5 | high | 20.2 | 6.0 | 7 |
+| `community/full/sonnet` | claude-sonnet-5-5 | high | 27.6 | 16.6 | 17 |
+| `community/full/haiku` | claude-haiku-5-5 | high | 12.6 | 3.7 | 14 |
+| `sample-apps/core/opus` | claude-opus-5-5 | high | 38.8 | 24.5 | 29 |
+| `sample-apps/core+tax/opus` | claude-opus-5-5 | high | 51.9 | 22.6 | 31 |
+| `sample-apps/full/opus` | claude-opus-5-5 | high | 36.2 | 22.6 | 22 |
 
-| `sample-apps/control/haiku` | 2026-10-27 14:38 | `1068f79` | claude-haiku-5-5, high | api | 57.8 min / 18.6 min |
-| `dx-toolkit/knowledge/haiku` | 2026-10-27 16:55 | `1068f79` + uncommitted leak fix (comments and the Unguided skill only; this skill's behaviour unchanged) | claude-haiku-5-5, high | subscription | 25.4 min / 9.0 min; $20.23 list price, from re-starting one Monitor 265 times |
-| `sample-apps/knowledge/haiku` | 2026-10-27 19:26 | `1068f79` + uncommitted leak fix | claude-haiku-5-5, high | api | 49.8 min / 26.7 min |
-| `dx-toolkit/control/haiku` | 2026-10-27 21:19 | `1068f79` + uncommitted leak fix (first Unguided run with it) | claude-haiku-5-5, high | subscription | 50.1 min / 7.3 min; only 6 of 31 units got inputs, most of the rest need the network |
-| `sample-apps/full/haiku` | 2026-10-28 04:22 | `1068f79` + uncommitted leak fix | claude-haiku-5-5, high | subscription | 40.3 min / 27.9 min; the agent pip-installed `tiktoken` into its venv |
-| `sample-apps/control/sonnet` | 2026-10-28 06:13 | `024f75f` (the leak fix, committed) | claude-sonnet-5-5, high | subscription | 39.2 min / 19.4 min |
-| `community/control/haiku` | 2026-10-28 07:22 | `024f75f` | claude-haiku-5-5, high | subscription | 28.9 min / 5.9 min; 7 of 11 units need the GitHub API |
-| `community/full/haiku` | 2026-10-28 08:03 | `024f75f` | claude-haiku-5-5, high | subscription | 12.6 min / 3.7 min; 9 of 13 units need the GitHub API |
-| `community/full/sonnet` | 2026-10-28 08:40 | `024f75f` | claude-sonnet-5-5, high | subscription | 27.6 min / 16.6 min |
-| `community/knowledge/sonnet` | 2026-10-28 12:28 | `024f75f` | claude-sonnet-5-5, high | subscription | 34.6 min / 14.8 min |
-| `community/knowledge/haiku` | 2026-10-28 14:30 | `024f75f` | claude-haiku-5-5, high | subscription | 20.2 min / 6.0 min; only 5 of 15 units got inputs (the GitHub API) |
-| `community/control/sonnet` | 2026-10-28 14:56 | `024f75f` | claude-sonnet-5-5, high | subscription | 10.3 min / 6.7 min |
-| `sample-apps/full/opus` | 2026-10-28 09:34 | `024f75f` | claude-opus-5-5, high | subscription | 36.2 min / 22.6 min; extra to the 18 main runs. The agent upgraded `colpali_engine` (0.2.2 to 0.3.18) in its venv, so colpali functions ran here and nowhere else |
-
-| `sample-apps/knowledge/opus` | 2026-10-28 15:19 | `024f75f` | claude-opus-5-5, high | subscription | 51.9 min / 22.6 min; extra to the 18 main runs. 31 repairs written, 11 beyond the 20 places; 4 colpali repairs errored in the agent's own verify because the module does not load here |
-
-| `sample-apps/control/opus` | 2026-10-28 19:51 | `024f75f` | claude-opus-5-5, high | subscription | 38.8 min / 24.5 min; extra to the 18 main runs |
-
-All 18 main runs (3 repositories x 3 configurations x Sonnet and Haiku) are here,
-plus all three configurations on Opus for sample-apps.
-
-The archive's `sample-apps/full/haiku.8` is an Oct 19 pilot (medium effort, commit
-`89d6c47`) that sat in this run's folder; it is not part of the main experiment.
-
-A first start of `dx-toolkit/knowledge/haiku` at 13:09 hit the plan's session
-limit after about 30 minutes and was stopped by hand. It is not here; the run
-above is the restart.
-
-A first start of `dx-toolkit/knowledge/sonnet` at 09:00 hit the plan's session
-limit after 10 minutes. It was discarded and is not here; the run above is the
-restart.
-
-The morning pilot of `sample-apps/full/sonnet` (project commit `5107c0a`) is not
-here: it ran before the last fixes, and is kept in the archive as `sonnet.11`.
-
-## What a run folder holds
+## What a session folder holds
 
 | Path | What |
 |---|---|
-| `run.json`, `meta.json` | the run's settings, and everything `summarize.py` derived from it |
-| `transcript.jsonl` | Claude Code's stream-json output, verbatim |
-| `agent/` | the agent's files: `step1-3.jsonl`, `submissions.jsonl`, `findings.jsonl` (the three steps joined), and its read-only copy of the inputs (`.energy-inputs/`) |
-| `record/` | what the step keeper kept: each step's file at `step.py done N` (`steps/`), every measured repair (`measured.jsonl`, `submissions_all.jsonl`), events |
-| `inputs/` | our copy of the generated inputs, which the review measures with; `_generation/` holds each generation's prompt, reasoning, reply and report |
-| `review/` | our re-measurement: `results.jsonl` (one row per repair, the verdicts we report) and `REPORT.md` |
-| `rules.json` | every static rule run over the untouched repository, for comparing with the agent's findings in every configuration |
-| `tmp_created/` | what the agent left in `/tmp`: its own scripts and its `verify.py` log (dx-toolkit: also two folders holding empty Unix sockets that `DXLogHandler` inputs created) |
-| `venv_before.txt`, `venv_after.txt` | the environment's packages before and after the agent |
-| `repo_changes.*` | changes the agent made to the repository (none) |
+| `run.json` | the session's settings: repository and commit, skill, model, effort, times |
+| `meta.json` | everything `summarize.py` derived from the session (the `summary.csv` row, in full) |
+| `transcript.jsonl` | Claude Code's `stream-json` output, verbatim |
+| `agent/` | the agent's files: `step1.jsonl`, `step2.jsonl`, `step3.jsonl`, `submissions.jsonl`, `findings.jsonl` (the three steps joined), its read-only copy of the inputs (`.energy-inputs/`) and, with `full`, the rules comparison (`.energy-scan/`) |
+| `record/` | what the input service recorded: each step's file when it was finished (`steps/`), every repair the agent measured (`measured.jsonl`, `submissions_all.jsonl`), every rules comparison (`scans.jsonl`), events |
+| `inputs/` | the generated inputs, which the review measures with; `_generation/` holds each generation's prompt, reasoning, reply and report |
+| `review/` | our re-measurement: `results.jsonl` (one verdict per repair) and `REPORT.md` |
+| `rules.json` | every static rule run over the untouched repository |
+| `tmp_created.txt`, `tmp_created/` | what the agent created in `/tmp` |
+| `venv_before.txt`, `venv_after.txt` | the venv's packages before and after the session |
+| `repo_changes.txt`, `repo_changes.diff` | changes the agent made to the repository (none) |
+| `inputs-service.log`, `review.log`, `rules.log`, `stderr.log` | logs |
 
-No credentials: every file was checked against the three keys before copying.
+Unit names have the form `path/to/file.py::Class.method`. Every file was
+checked for credentials before it was copied here.

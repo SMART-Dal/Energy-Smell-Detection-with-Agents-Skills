@@ -20,25 +20,20 @@ there are.
 
 ---
 
-## Status: no measurements
+## Suites and results
 
-**Every number this file used to carry was measured on a different host and has
-been discarded.** So have `validation/results/taxonomy.jsonl` and
-`validation/results/samples.jsonl`. They are recoverable from git history at
-`4ca956f` if a comparison is ever wanted, but they are not evidence about this
-machine and nothing should be rewritten from them.
+| Suite | Case files | What they are | Results |
+|---|---|---|---|
+| `taxonomy/` | 230, covering all 65 root causes | a `before`, an `after` and its inputs per case; the repair examples shown on the cards | `results/taxonomy.jsonl` |
+| `samples/` | 84 | generated from the hand-written pairs in `data/manual_sampling/` | `results/samples.jsonl` (written by `run.py samples`) |
+| `lookalikes/` | 33 | near-miss specimens: code that looks like a root cause where the repair would change behaviour | shown on the cards; not measured |
+| `preflight/` | 3 | the checks `preflight.py` runs | printed |
 
-Discarded on 2026-09-08, when measurement moved to a second host.
+Each line of a results file is one case file, with the joules and seconds of
+both variants on every input. `python -m build` reads `results/taxonomy.jsonl`
+and prints each case's result under its repair example on the card.
 
-The root-cause cards in `catalog/` still quote the previous host's figures.
-Those are the output of this suite, not an input to it, so they stay as they
-are until a batch on this host replaces them — at which point every card that
-cites a percentage needs revisiting. Until then, treat a number in a card as
-provisional and attributed to a host that is no longer measuring.
-
-`build/impact.py` reads the results file to rank findings by measured saving.
-With no results present it returns an empty mapping, so every root cause ranks
-at zero impact until the first batch lands. That is the honest state, not a bug.
+---
 
 ## The rig
 
