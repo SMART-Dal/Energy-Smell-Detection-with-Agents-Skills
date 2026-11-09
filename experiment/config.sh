@@ -10,7 +10,7 @@ ARMS=(core core+tax full)
 EFFORT=medium                   # the default of Opus 5.5 and Haiku 5.5 (Sonnet 5.5's is high), and the
                                 # level Anthropic suggests starting agentic tool use at
 # A model listed here runs at its own level instead. Sonnet at medium stopped
-# after 2-3 units in every run (Oct 20-21); Javad moved it to high, its default.
+# after 2-3 units in every run, so it runs at high, its default.
 declare -A EFFORT_OF=([claude-sonnet-5-5]=high)
 
 # How Claude is paid for: `api` reads the Console key in $EXP/api-key (billed per
@@ -23,11 +23,11 @@ AUTH=api
 AGENT_TIMEOUT=120m              # the agent's whole session, its own measurements included.
                                 # SKILL.md tells the agent "120 minutes" (build/templates/shared/SKILL.md): change both.
 REVIEW_TIMEOUT=40m              # our re-measurement of submissions.jsonl afterwards: 20 repairs
-                                # took 18 min (Oct 22), and noisy ones are now measured twice
+                                # took 18 min, and noisy ones are now measured twice
 
 # No dollar cap is given to the agent: `claude --max-budget-usd` shows it to the
 # model on every turn ("USD budget: $0/$10; $10 remaining"), and Sonnet stopped
-# after three units "working to a tight spending budget" (Oct 20). Spending is
+# after three units "working to a tight spending budget". Spending is
 # capped on the Console instead, and the cost of every run is in summary.csv.
 
 # Free space a run must find before it starts. Its peak is about 13 GB on the

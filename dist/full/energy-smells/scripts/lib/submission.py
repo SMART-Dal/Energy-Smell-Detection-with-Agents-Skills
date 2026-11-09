@@ -36,8 +36,7 @@ MEASURED_CASES = 4
 """`cases()` returns exactly this many inputs, and a repair is confirmed only if
 it saves energy on every one of them. Four, each making the unit do different
 work, is enough to show where a repair pays and where it does not; fixing the
-number keeps every measurement the same length and every verdict the same bar
-(Javad, Oct 2026)."""
+number keeps every measurement the same length and every verdict the same bar."""
 
 ALLOWED = {
     "id", "unit", "changed", "sole_caller_evidence",
@@ -50,13 +49,13 @@ RETIRED = {
     "file": "name the file inside `unit` instead: `src/app.py::Report.render`",
     "callees_changed": "every key of `changed` other than `unit` is a changed callee",
     "subsumed": "an identical repair is recorded as `same_repair_as` in step3.jsonl",
-    # Oct 26: dropped. Every repair is measured on its own whatever it names, and
+    # Dropped: every repair is measured on its own whatever it names, and
     # a reference to a line left out of a re-measurement made the line `invalid`.
     "related": "repairs no longer name each other: drop the field. A different repair "
                "of the same code is simply another line",
     "cases_source": "the inputs are generated for you: request them with inputs.py, and "
                     "drop the field",
-    # Oct 21: the check can no longer be relaxed by the submission. Everything a
+    # The check can no longer be relaxed by the submission. Everything a
     # call does is compared for every repair; a repair that needs a weaker check
     # changes behaviour that callers can see.
     "equivalence": "the check is no longer relaxed for any repair: drop the field. Return "
@@ -142,14 +141,14 @@ def replaced_code(source: str) -> str | None:
     module or object -- `pricing.args = namespace` -- is input, and allowed.
 
     A class defined here with methods may be built and passed to the unit, but
-    not put onto an attribute, itself or an instance of it: on Oct 25 one
+    not put onto an attribute, itself or an instance of it: one
     generated input froze a clock with `scenarios.clock.time = _FrozenTime()`, a
     plain class whose `time()` returned a constant, and the unit was measured
     against it. So is a namespace or dict of lambdas, and anything written into
     `sys.modules`, which swaps a whole module.
 
     And so is anything put in place of a standard-library module on a module
-    the source imports: on Oct 26 `convert_meta.time = SimpleNamespace(
+    the source imports: `convert_meta.time = SimpleNamespace(
     time=itertools.repeat(...).__next__)` froze that module's clock with a bound
     method, which none of the checks above looks for.
     """

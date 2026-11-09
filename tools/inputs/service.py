@@ -164,16 +164,14 @@ class Service:
                 if problem:
                     rejected.append({"unit": unit, "why": problem})
                 elif (not entry or entry["state"] == FAILED) and self._holding() >= MAX_UNITS:
-                    # A unit that failed gives its place back (Oct 25): until then
-                    # one needing the network kept it, and a session whose first
-                    # picks all did could ask for nothing else.
+                    # A unit that failed gives its place back.
                     rejected.append({"unit": unit, "why": f"{MAX_UNITS} units already have "
                                      f"inputs or are being generated, the most a session "
                                      f"holds; units that failed do not count toward it"})
                 elif entry and entry["state"] == FAILED and entry.get("attempts", 1) < MAX_ATTEMPTS:
                     # A unit that failed may load now: the agent may install a
                     # missing package into this venv, which the generator runs in.
-                    # Asked again, it is generated again (Oct 21: colpali_engine).
+                    # Asked again, it is generated again.
                     self.units[unit] = {"state": PENDING, "requested": time.time(),
                                         "attempts": entry.get("attempts", 1) + 1}
                     self.futures.append(self.pool.submit(self._job, unit))

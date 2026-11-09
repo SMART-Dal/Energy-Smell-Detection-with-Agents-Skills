@@ -145,14 +145,13 @@ fake_agent() {  # dry run: write what an agent writes, and test the lock
 # run cannot read this one's repairs. Only entries that did not exist when the
 # agent started and that belong to us; Claude Code's own folders stay. Run again
 # around our review, into its own list: a repository's module-level code can
-# write to an absolute /tmp path while verify.py loads it (Oct 22:
+# write to an absolute /tmp path while verify.py loads it (e.g.
 # colbert-long/scripts/convert.py opened /tmp/vespa_feed_file_en.json).
 #
 # Each entry is copied into the run folder before it goes (`tmp_created/`,
-# `tmp_created_review/`), up to KEEP_TMP_MB: on Oct 26 the agent kept both of its
-# verify.py logs in /tmp/es, and deleting them lost them. An editor's own folders
-# are left alone: the same run deleted VS Code's (code-*, mcp-*, pyright-*),
-# which had appeared in /tmp while the agent worked.
+# `tmp_created_review/`), up to KEEP_TMP_MB, so logs the agent keeps
+# there are not lost. An editor's own folders are left alone (code-*, mcp-*,
+# pyright-*).
 KEEP_TMP_MB=200
 clean_tmp() {  # run folder, list file
   local out=$1 list=${2:-tmp_created.txt}
@@ -271,8 +270,8 @@ enough_space() {
 
 # "limit <message>" or "error <message>" when the agent's session ended on an API
 # error before `step.py done 3`; nothing otherwise. A session that finished step
-# 3 is a run even if a later turn hit the limit (Opus, Oct 21: 50 turns, then
-# one more woken by a background command). The same for --auth api and
+# 3 is a run even if a later turn hit the limit (for example, a turn
+# woken by a background command). The same for --auth api and
 # subscription: an API key over its limit or out of credit is a limit too.
 cut_reason() {  # run folder
   python3 - "$1" <<'EOF'

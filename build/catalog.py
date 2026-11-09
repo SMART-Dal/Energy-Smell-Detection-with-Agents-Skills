@@ -67,7 +67,7 @@ class NotThis:
     """Where it comes from, so it can be checked: `lookalike:<stem>` (a
     specimen under `validation/lookalikes/`, whose code, repair and title are
     read from the file), `catalog` (the `not_a_smell_when` or `counter_examples`
-    of the card before the October 2026 rewrite, in git history),
+    of an earlier version of the card),
     `rule:<rule>/<function>` (a negative in that rule's
     test fixtures), or `known` (documented Python behaviour, which `why`
     names)."""

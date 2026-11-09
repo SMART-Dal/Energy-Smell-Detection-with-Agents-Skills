@@ -44,8 +44,7 @@ def usage(events: list[dict]) -> dict:
 
     Cost and modelUsage (tokens per model) are the session's totals as Claude
     reports them, from its last result line. A session can end more than once
-    -- a background command finishing wakes it for another turn (Opus, Oct 21:
-    50 turns, then 1 that hit the API usage limit) -- so the fields Claude
+    -- a background command finishing wakes it for another turn -- so the fields Claude
     reports per line are kept as a list, one value per line, never added up.
     """
     results = [e for e in events if e.get("type") == "result"]
@@ -69,7 +68,7 @@ def tool_calls(events: list[dict], who: str = "all") -> list[tuple[str, str]]:
     """(tool, input) of every call; `who` is "all", "main" (the agent itself) or
     "sub" (its subagents, whose events carry `parent_tool_use_id`). The audits
     read all of them -- a subagent's command is still a command run in the
-    session -- and the counts say whose they were (Oct 22: 60 + 49)."""
+    session -- and the counts say whose they were."""
     return [(c.get("name", ""), json.dumps(c.get("input", {})))
             for e in events if e.get("type") == "assistant"
             and (who == "all" or bool(e.get("parent_tool_use_id")) == (who == "sub"))
@@ -173,10 +172,7 @@ def taxonomy_seen(raw: str) -> list[str]:
     """Where a tool result in the transcript showed the agent a taxonomy word.
 
     Only what the agent read counts, subagents included -- not what it wrote,
-    since "code smell" is ordinary vocabulary. On Oct 27 an Unguided agent read
-    `lib/submission.py`'s `root_cause` key and saw the project's folder in `ps`;
-    the shipped skill and the process list are fixed, and this says if anything
-    else shows one.
+    since "code smell" is ordinary vocabulary.
     """
     seen = []
     for number, line in enumerate(raw.splitlines(), 1):
@@ -200,8 +196,8 @@ def taxonomy_seen(raw: str) -> list[str]:
     return seen
 
 
-# The keys every record must carry, from the skill's output-format.md (Oct 21
-# 2026: find, decide, repair). The control arm has no taxonomy, so no `root_cause`.
+# The keys every record must carry, from the skill's output-format.md (find,
+# decide, repair). The control arm has no taxonomy, so no `root_cause`.
 RECORD_KEYS = {
     1: {"step", "unit", "suspicions"},
     2: {"step", "unit", "what_it_does", "decisions"},
@@ -253,11 +249,11 @@ def rules_overlap(findings: list[dict], rules_path: Path) -> dict | None:
     """What every rule flags on the untouched repository, against the agent's work.
 
     `found_by` used to ask the agent whether its reading or a rule found each
-    suspicion; agents ran the scan before reading anyway (Oct 21), so it is now
+    suspicion; agents ran the scan before reading anyway, so it is now
     measured instead. run_all.sh scans the pristine repository with every rule,
     in every arm, and an accepted finding counts as named by a rule when a rule's
     finding on that unit names its root cause. Two close root causes often fit
-    one repair (Oct 22: a rule filed the `any(map(lambda ...))` the agent
+    one repair (e.g. a rule filed the `any(map(lambda ...))` the agent
     repaired under C10.S2, the agent under C10.S1), so it also counts the ones
     where a rule flagged one of the repaired lines, whatever it called it --
     as exact as the agent's line numbers. None when there is no scan.
@@ -289,9 +285,7 @@ def rules_overlap(findings: list[dict], rules_path: Path) -> dict | None:
 
 def refused_cards(events: list[dict]) -> list[set[str]]:
     """Per tool call, in `tool_calls` order: the cards its output says it could
-    not read. Root-cause cards are locked until step 1 is done; on Oct 21 a
-    Sonnet run's only card "read" was refused, it decided without any, and the
-    card counted as opened kept `decided_without_cards` from firing."""
+    not read. Root-cause cards are locked until step 1 is done."""
     denied = {}
     for event in events:
         content = (event.get("message") or {}).get("content") if event.get("type") == "user" else None
@@ -312,7 +306,7 @@ def refused_cards(events: list[dict]) -> list[set[str]]:
 
 def missing_units(step1: list[dict], root: Path) -> list[str]:
     """Listed units that name no function or method in the untouched repository
-    (Oct 22: `main.py::fetch_results`, a web route whose function is `get`)."""
+    (e.g. `main.py::fetch_results`, a web route whose function is `get`)."""
     if not root.is_dir():
         return []
     missing = []
@@ -343,12 +337,12 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
     categories, root_causes, cut, full = set(), set(), set(), set()
     for index, (name, text) in enumerate(calls):
         # Read through `head -70`, `sed -n`, `grep` or a Read with a limit: part of
-        # the card. Sonnet (Oct 22) read six cards to line 70; every near-miss
+        # the card. Sonnet read six cards to line 70; every near-miss
         # section starts after line 80, so it saw none.
         if name in ("Bash", "bash"):
             # A card named only to count, list or find it was not read. Judged
             # pipeline by pipeline: `cat C3.S4.md; sed -n 1,60p C6.S3.md` cut
-            # only C6.S3 short (Oct 22: both were counted so), while a pipe joins
+            # only C6.S3 short, while a pipe joins
             # a card to what shortens it, as in `cat C3.S4.md | head -70`.
             pieces = [[part for part in pipeline if not re.match(r"(wc|ls|find|du|stat)\b", part)]
                       for pipeline in pipelines(text)]
@@ -356,7 +350,6 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
                      for pipeline in pieces for card in CARD.findall(" ".join(pipeline))}
             # Cards read through a loop variable -- `for c in C7.S5 C3.S2 ...; do
             # cat $c.md; done` -- name no file: the IDs are in the loop's list.
-            # Opus read 24 cards that way on Oct 21 and was counted as reading 2.
             read = [part for pipeline in pieces for part in pipeline]
             joined = " ".join(read)
             if LOOPED_CARD.search(joined):
@@ -414,8 +407,8 @@ def protocol(calls, findings: list[dict], submissions: list[dict], run: dict,
         flags.append("no_index_read")
     if run["arm"] != "core" and decided and not root_causes:
         flags.append("decided_without_cards")
-    # One card read is not every card read: on Oct 22 Sonnet read C3.S4 and
-    # decided C1.S1, C10.S1 and C10.S2 without theirs, and nothing said so.
+    # One card read is not every card read: a root cause decided without its own
+    # card is flagged.
     unread = (sorted({str(d.get("root_cause")) for d in decided if d.get("root_cause")} - root_causes)
               if run["arm"] != "core" else [])
     if unread and root_causes:
@@ -598,7 +591,7 @@ def blocked_unrequested(findings: list[dict], out: Path) -> list[str]:
 
     `blocked` needs the tools' evidence -- failed generation, a module that does
     not load, a repair that cannot be made equivalent -- and every one of those
-    starts with a request. Sonnet blocked 15 units on its own expectation (Oct 21).
+    starts with a request.
     """
     try:
         requested = set(json.loads((out / "inputs" / "status.json").read_text()).get("units", {}))

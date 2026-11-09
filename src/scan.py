@@ -60,7 +60,7 @@ repository and a scan should not leave anything in it."""
 
 LIST = "step1.jsonl"
 """The agent's own list, which the rules are compared with. Until it exists the
-scan refuses: in both Sonnet runs of Oct 22 the rules ran in the first minute,
+scan refuses: in two runs the rules ran in the first minute,
 before any file had been read, and one of them never compared them with the
 list it later wrote, so nothing it listed came from them."""
 
@@ -252,7 +252,7 @@ def _write_comparison(args, root: Path, suspected: dict, parts: tuple,
 
     One file, because the index printed on screen was read as the whole answer:
     an agent dropped 53 flagged units from rule names alone, without opening the
-    detail written beside it or any of their code (Oct 22).
+    detail written beside it or any of their code.
     """
     args.out.mkdir(parents=True, exist_ok=True)
     path = args.out / "scan.txt"

@@ -59,11 +59,11 @@ def remeasure(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
 
     A line left `inconclusive` -- the host's noise floor too high to resolve
     anything -- is measured once more, after a fresh calibration: a passing
-    burst of noise (Oct 21) left a 58% saving inconclusive here, minutes after
+    burst of noise left a 58% saving inconclusive here, minutes after
     the agent measured it on a 1.5% floor. The agent re-runs verify.py for such
     lines; the review, which runs once, did not.
 
-    So is a line with a noisy input (`_noisy`): on Oct 22 one bad pair of three
+    So is a line with a noisy input (`_noisy`): one bad pair of three
     gave an input +66% +-82%, and a repair that saved 88-91% on the other three
     came out `partial`. The retry replaces the first measurement whatever it
     says, as for `inconclusive`, so keeping the better of two is never an option;
@@ -175,8 +175,8 @@ def _noisy(result: dict) -> bool:
 
 
 RETIRED = ("equivalence", "equivalent", "related")
-"""Fields a submission could relax the check with until Oct 21, and `related`,
-dropped on Oct 26. A run from before is re-measured under today's rule --
+"""Fields a submission could once relax the check with, and `related`, all
+dropped. A run that used them is re-measured under today's rule --
 everything compared, every repair on its own -- so they are dropped from the
 copy verify.py reads; the agent's own file is left as it was."""
 
@@ -322,7 +322,7 @@ def write_report(path: Path, repo: Path, submissions: list[dict], findings: list
             if row.get("per_case"):
                 # The +- and whether the verdict counted the case: a mean saving
                 # above the floor whose pairs disagreed is not a saving, and the
-                # table alone read as one (Oct 21).
+                # table alone read as one.
                 out.extend(["", "| case | before J | after J | saved | +- (95%) | counted |",
                             "|---|---:|---:|---:|---:|---|"])
                 floor = row.get("noise_floor_pct") or 0.0

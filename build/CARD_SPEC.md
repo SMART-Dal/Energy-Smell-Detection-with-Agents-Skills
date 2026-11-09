@@ -25,7 +25,7 @@ what the card says -- so nothing on a card may be a guess.
 | Repair: the **Measured** line | the latest run in `validation/results/taxonomy.jsonl` |
 | Repair: the note under a sample | `repairs[].note` -- carried over from the old card |
 | Looks like it, but is not | `not_this`: a lookalike specimen's code and repair are read from `validation/lookalikes/`; any other is written, with a checkable `source` |
-| ~~Similar root causes~~ | not rendered since Oct 2026 (not part of the paper); `similar` stays in the catalog |
+| ~~Similar root causes~~ | not rendered; `similar` stays in the catalog |
 
 How to read a card -- that the repairs are ideas rather than templates, what
 each **Measured** action means, that a matching pattern does not guarantee a
@@ -151,14 +151,13 @@ Fewer than five is fine; none is fine when no source has a good one.
 ### `similar` -- where else to look
 
 A list of root cause ids. `load_catalog` mirrors every edge, and a card may end
-up with at most five. Kept in the catalog, but not shown on the cards since
-October 2026.
+up with at most five. Kept in the catalog, but not shown on the cards.
 
 ### Retired keys
 
 `what_to_look_for`, `not_a_smell_when`, `counter_examples`, `notes`,
 `refactoring.examples`, `patch_shape`, `measurability` and `min_workload_hint`
-belong to the card before the October 2026 rewrite. They are build errors now,
+belong to an earlier card format. They are build errors now,
 so none can come back by accident; the old text is in git history, which is
 what a near-miss with `source: catalog` points at.
 

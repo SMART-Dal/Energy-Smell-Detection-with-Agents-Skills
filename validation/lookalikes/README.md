@@ -47,8 +47,8 @@ whole of C6.S1's own first counter-example. Most of what it did catch that was
 real was a loop-invariant expression, which `loop_invariant_expression` already
 reports. The rule is withdrawn; the specimen stays as card text.
 
-`C10S5_lookalike` outlived its rule too. `global_lookup_in_loop` was withdrawn
-in October 2026: the C10.S5 samples whose loop does any real work saved 2-9%,
+`C10S5_lookalike` outlived its rule too. `global_lookup_in_loop` was withdrawn:
+the C10.S5 samples whose loop does any real work saved 2-9%,
 on ten real repositories it reported loggers and helper functions called in a
 loop, and it did not fire on its own measured samples. The specimen stays as
 card text.

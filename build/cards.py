@@ -8,8 +8,8 @@ it holds the protocol rather than per-node knowledge.
     level 2  root-causes/…     is it *this* one, and what exactly would fix it?
 
 The split separates recognising from deciding.  The one place all sixty-five
-appear together is `render_root_cause_index`, one line each, and since Oct 21
-2026 the agent reads it first, in step 1, as what to look for while it reads
+appear together is `render_root_cause_index`, one line each, and the agent
+reads it first, in step 1, as what to look for while it reads
 every file: agents that were given no notion of what waste looks like listed
 two to four units and stopped.  A line is enough to recognise a root cause and
 not enough to decide one, and that is deliberate -- the label prior is real
@@ -130,7 +130,7 @@ def render_root_cause(
 
     Four parts: the reference's definition and example, common patterns, the
     measured repairs, and near-misses. `similar` stays in the catalog but is not
-    shown on the card (Oct 2026: not part of the paper). How to read them --
+    shown on the card. How to read them --
     that the repairs are ideas rather than templates, what each result line
     asks for, that a near-miss means the repair would be wrong -- is said once,
     in SKILL.md's step 2, rather than on every card.

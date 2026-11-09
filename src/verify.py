@@ -107,7 +107,7 @@ class Profile:
 PROFILES = {
     # Every submitted repair, by the agent and when we re-measure: under a
     # minute each, so twenty repairs measured twice fit an hour-long run with
-    # time left for the agent (Javad, Oct 2026). Three pairs is the fewest that
+    # time left for the agent. Three pairs is the fewest that
     # still gives a usable interval; on the development host a 2-input sample
     # read +-2.3% at three pairs against +-1.6% at five, and the session floor
     # (ten repetitions, whatever the profile) came out at about 1.5%.
@@ -495,7 +495,7 @@ class PairEngine:
 
     def _relaxations(self) -> tuple[str, ...]:
         """What weakened the check, from this environment -- never from the
-        submission, which can no longer relax it (Oct 21: `equivalence` and
+        submission, which can no longer relax it (`equivalence` and
         `equivalent` are gone; every channel is compared for every repair)."""
         notes = []
         if self.stubbed:
@@ -791,8 +791,8 @@ def _decide(result: Verification, every_input: bool = False) -> None:
     evidence. `inconclusive` says the machine was too noisy for the question,
     which is a fact about the host and no evidence about the code at all.
 
-    `confirmed` asks for a saving on every input, not on any one (Javad, Oct
-    2026): the inputs are chosen to make the unit do different work, and a
+    `confirmed` asks for a saving on every input, not on any one: the
+    inputs are chosen to make the unit do different work, and a
     repair that pays on one of them and does nothing on the rest is a narrower
     claim, reported as `partial`. On a noisy host the inputs that did not move
     may simply not have been resolved, so there it is `inconclusive` instead.
@@ -873,7 +873,7 @@ def _not_counted(case: CaseOutcome, floor: float) -> str:
     Two different reasons, and the report said only the second: a +3.6% reading
     whose three pairs ranged over +-6.5% was described as "nothing beyond the
     1.6% noise floor", which a reader comparing it with the table took for a
-    measurement error (Oct 21).
+    measurement error.
     """
     reading = f"{case.label!r} {case.energy_saved_pct:+.1f}% +-{case.energy_ci_pct:.1f}%"
     if not case.significant:
@@ -1071,7 +1071,7 @@ def session_floor(profile: Profile, meter: str, log) -> float:
 
 def main(argv: list[str] | None = None) -> int:
     # Every line as it is printed, also into a file: run in the background with
-    # its output redirected (Oct 22), the log stayed empty for 18 minutes until
+    # its output redirected, the log stayed empty for 18 minutes until
     # the run ended, and the agent polled submissions.jsonl instead.
     sys.stdout.reconfigure(line_buffering=True)
     parser = argparse.ArgumentParser(
@@ -1255,8 +1255,8 @@ def _run_submissions(args, profile: Profile) -> int:
                 ask({"op": "measured", "record": record}, timeout=10)
 
     if len(outputs) > 1:
-        # Every verdict again, last: on Oct 21 an agent read this output through
-        # `tail -30`, lost the first repair's numbers, and reported it without them.
+        # Every verdict again, last: read through `tail -30`, the output would
+        # otherwise lose the first repair's numbers.
         log(f"\n=== all {len(outputs)} lines of {path.name}")
         for out in outputs:
             first = str(out.get("reason") or "").split(". ")[0]

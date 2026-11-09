@@ -27,11 +27,7 @@ SOCKET_ENV = "ENERGY_INPUTS_SOCKET"
 MAX_UNITS = 30
 """Units one session may hold inputs for, ready or still being generated. A unit
 whose generation failed gives its place back. More than the 20 repairs it
-measures: room for units decided against after asking. Until Oct 24, only 20
-could hold inputs at once and a ready unit never gave its place back, so two
-units rejected in step 2 kept the two strongest candidates from getting any.
-Until Oct 25 a failed unit kept its place too, so a session whose first picks
-needed the network could be left with few units and no way to ask for more."""
+measures: room for units decided against after asking."""
 
 MAX_FAILED = 30
 """Different units that may fail in one session; after that no new unit is
@@ -115,7 +111,7 @@ def what_next(unit: str, entry: dict) -> str:
 
     The reason is often the generator's own words, so the network is looked for
     before a package: "needs network access, which is not available here" was
-    read as a missing package once (Oct 25), and the agent told to install one.
+    read as a missing package once, and the agent told to install one.
     """
     reason = entry.get("reason") or ""
     left = MAX_ATTEMPTS - entry.get("attempts", 1)
@@ -140,8 +136,8 @@ def what_next(unit: str, entry: dict) -> str:
     if "changes from one run to the next" in reason:
         return f"the original itself gives a different output each time, so no input can fix it; {blocked}"
     if "replaces code" in reason and left > 0:
-        # Oct 25: a unit stamping `time.time()` was refused twice, each time for a
-        # fake clock; another try does not help a unit that needs one.
+        # A unit stamping `time.time()` is refused each time for a fake clock;
+        # another try does not help a unit that needs one.
         return (f"the generator could make it run only by replacing code. If the unit "
                 f"depends on the clock, randomness or a service it reads itself, another "
                 f"try ends the same way: {blocked}. Otherwise you may {again} "

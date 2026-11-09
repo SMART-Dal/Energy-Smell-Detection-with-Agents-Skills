@@ -175,12 +175,7 @@ def mutable_default_argument(unit: UnitRef, ctx: UnitContext) -> Iterator[Eviden
 
     Only that is reported.  A default the body only reads, or only hands to a
     call, accumulates nothing: the card's third pattern, where the `None`
-    default plus a guard measured more energy, not less.  Until Oct 25 every
-    mutable default was reported, on the argument that some caller might append
-    to it and proving none does would take whole-program analysis.  In
-    dx-toolkit that was 225 findings: 208 generated API wrappers passing
-    `input_params={}` straight to a request that only serialises it, and one
-    body that changed its default.
+    default plus a guard measured more energy, not less.
 
     A call is followed into a function or method of the same module --
     `helper(acc)`, `self._fill(acc)`, `Bucket(acc)` -- one level deep, and the

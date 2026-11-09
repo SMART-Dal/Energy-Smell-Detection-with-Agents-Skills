@@ -431,7 +431,7 @@ class Side:
         # The scratch directory relative to the copy (calls run with the copy as
         # cwd) differs between the sides too: an input built with os.path.relpath
         # printed `../io-before/...` beside `../io-after/...`, and a correct
-        # repair came back not_equivalent (Oct 21).
+        # repair came back not_equivalent.
         relative = os.path.relpath(self.workdir, self.root)
         self.replace = tuple(sorted(((self.root, "<REPO>"), (str(self.workdir), "<WORKDIR>"),
                                      (relative, "<WORKDIR>")),
@@ -601,7 +601,7 @@ def main() -> int:
     # Requests come in on a copy of stdin; the code under test gets an empty one.
     # A script that asks for a key at import time (`os.getenv(...) or input(...)`)
     # read our protocol pipe, blocked until the 60 s load deadline, and was
-    # reported as "builds too much" (Oct 22). Now its input() ends at once.
+    # reported as "builds too much". Now its input() ends at once.
     requests = os.fdopen(os.dup(0), "r")
     nothing = os.open(os.devnull, os.O_RDONLY)
     os.dup2(nothing, 0)

@@ -366,7 +366,7 @@ def _render(value, plain, replace, depth, seen):
 
     # A logger is configuration, not data. Its insides -- a cache of which levels
     # are enabled, filled by the first call that logs -- change as a side effect of
-    # logging, and read as an argument the repair "mutated" (Oct 21). What a call
+    # logging, and read as an argument the repair "mutated". What a call
     # logs is compared on its own channel.
     if isinstance(value, _logging.Logger):
         return value.name if plain else {"logger": value.name}

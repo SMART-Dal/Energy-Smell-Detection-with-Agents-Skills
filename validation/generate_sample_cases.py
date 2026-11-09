@@ -48,7 +48,7 @@ RETURNS_ONLY = {
 }
 """Pairs whose two sides compute the same answer but differ in what they mutate.
 
-The project owner's position, and it is the right one: what a function is *for*
+What a function is *for*
 is the answer it produces, and a refactoring that stops disturbing the caller's
 data has not changed the functionality. Whether that is safe depends on the call
 sites, which is a judgement about a particular program rather than about the

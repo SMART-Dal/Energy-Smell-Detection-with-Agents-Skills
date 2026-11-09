@@ -55,7 +55,7 @@ NOTE = "ROOT-CAUSE-CARDS-LOCKED.md"
 NEXT = {
     1: "Step 2: read each unit on your list and decide every suspicion, and write step2.jsonl, "
        "one record per unit.{cards}",
-    # Inputs open at step 3, not 2 (Oct 24): asked for in step 2, they were asked for
+    # Inputs open at step 3, not 2: asked for in step 2, they were asked for
     # before any card was read, and the decisions written after them followed.
     2: "Step 3: write submissions.jsonl and step3.jsonl; inputs.py and verify.py run now.",
     3: "All three steps are finished. End with your summary.",

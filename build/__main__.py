@@ -192,10 +192,8 @@ for the taxonomy and its cards, or "smell"."""
 def _assert_no_taxonomy(arm: Arm, files: dict[Path, str]) -> None:
     """An arm without the taxonomy ships no trace of it.
 
-    On Oct 27 an Unguided agent read `lib/submission.py` and found the
-    `root_cause` key, an example ID and the word "taxonomy" in a comment. The
-    build checks every file of such an arm, so a comment added later cannot do
-    the same.
+    The build checks every file of such an arm, so no key, example ID or
+    comment can reveal it.
     """
     found = [
         f"{path.relative_to(DIST_DIR)}:{number}: {line.strip()[:100]}"
