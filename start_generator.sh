@@ -4,9 +4,11 @@
 #
 #   dr-greens/start_generator.sh PROJECT KEY_FILE
 #
-# Run it with your project's venv activated. The generator writes the inputs
-# each repair is measured on. Its files are kept in ~/.energy-skill/<project>;
-# set ENERGY_SKILL_HOME to use another folder.
+# Run it with your project's venv activated. While it runs, Claude Code sessions
+# opened in the project (`cd PROJECT && claude`) are connected to it and use that
+# venv: it adds them to PROJECT/.claude/settings.local.json and restores that
+# file when it stops. Its own files are kept in ~/.energy-skill/<project>; set
+# ENERGY_SKILL_HOME to use another folder.
 set -euo pipefail
 
 tool=$(cd "$(dirname "$0")" && pwd)
@@ -31,13 +33,31 @@ cards=$skill/reference/root-causes
 [ -d "$cards" ] && args+=(--cards "$cards")
 [ -f "$skill/scripts/scan.py" ] && args+=(--scanner)
 
-# The generator locks the root-cause cards until step 1 is finished; unlock them on exit.
-trap '[ -d "$cards" ] && chmod -R u+rwX "$cards"' EXIT
+# Point Claude Code sessions in the project at the generator and the venv.
+settings=$repo/.claude/settings.local.json
+[ -f "$settings" ] && cp "$settings" "$session/settings.local.json.backup"
+python - "$settings" "$socket" <<'PY'
+import json, os, sys
+path, socket = sys.argv[1], sys.argv[2]
+settings = json.load(open(path)) if os.path.exists(path) else {}
+env = settings.setdefault("env", {})
+env["ENERGY_INPUTS_SOCKET"] = socket
+if os.environ.get("VIRTUAL_ENV"):
+    env["VIRTUAL_ENV"] = os.environ["VIRTUAL_ENV"]
+    env["PATH"] = os.environ["PATH"]
+json.dump(settings, open(path, "w"), indent=2)
+PY
+
+# On exit: restore the settings file, and unlock the root-cause cards the generator locks until step 1.
+restore() {
+  if [ -f "$session/settings.local.json.backup" ]; then cp "$session/settings.local.json.backup" "$settings"
+  else rm -f "$settings"; fi
+  [ -d "$cards" ] && chmod -R u+rwX "$cards"
+}
+trap restore EXIT
 
 echo "The input generator is running; leave this terminal open."
-echo "In a second terminal, with your project's venv activated, open Claude Code with:"
-echo
-echo "  cd $repo"
-echo "  ENERGY_INPUTS_SOCKET=$socket claude"
+echo "Open Claude Code in your project as usual (cd $repo && claude)."
+echo "Stop the generator with Ctrl-C when you are done."
 echo
 python "$tool/tools/inputs/service.py" "${args[@]}"
