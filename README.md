@@ -1,107 +1,99 @@
-# Dr. Greens: detecting and refactoring energy smells with agent skills
+# Dr. Greens
 
-Dr. Greens is an agent skill for Claude Code that finds **energy smells** in
-Python code (code that does more work than its task requires) and repairs them.
-Each repair is checked to behave exactly like the original code, and the energy
-of both versions is measured on the CPU's energy counters.
+**Find and repair energy smells in Python code with Claude Code.**
 
-The agent works in four steps:
+Dr. Greens is an agent skill: a folder you copy into your project, which Claude
+Code loads when you ask it to look for energy waste. The agent reads your code,
+finds **energy smells** (code that does more work than its task requires),
+writes a repair for each one, and has every repair checked for identical
+behaviour and measured for energy on your machine. It never edits your code;
+you choose which measured repairs to apply.
 
-1. **Find**: read every function in the target and list each suspected smell.
-2. **Decide**: accept or reject each suspicion after studying it in depth.
-3. **Repair and measure**: write a repair for each accepted suspicion. A verifier
-   checks that the repair preserves behaviour and measures its energy on inputs
-   written by a separate input generator.
-4. **Finish**: summarise each repair, its root cause and its verdict.
+This repository accompanies the paper *Ctrl+Shift+Left: Detecting and
+Refactoring Energy Smells using Agent Skills* (Mohammadjavad Mehditabar,
+Saurabhsingh Rajput, Tushar Sharma; Dalhousie University).
 
-The agent never edits the repository. It writes its findings and repairs to
-files, and only repairs that save energy are recommended.
-
-This repository is the replication package of the paper *Ctrl+Shift+Left:
-Detecting and Refactoring Energy Smells using Agent Skills* (Mohammadjavad
-Mehditabar, Saurabhsingh Rajput, Tushar Sharma; Dalhousie University). It
-contains the three skills, the harness that ran the evaluation, and every
-recorded session.
-
-## Contents
-
-- [The three skills](#the-three-skills)
+- [How it works](#how-it-works)
 - [Requirements](#requirements)
-- [A. Use a skill on your own repository](#a-use-a-skill-on-your-own-repository)
-- [B. Reproduce the evaluation](#b-reproduce-the-evaluation)
+- [Installation](#installation)
+- [Usage](#usage)
+- [The three skills](#the-three-skills)
+- [Reproducing the evaluation](#reproducing-the-evaluation)
 - [Repository layout](#repository-layout)
+- [Citation](#citation)
 
-## The three skills
+## How it works
 
-Each skill adds one layer of knowledge to the one before it. All three follow
-the same four steps and use the same verifier, energy probe and input generator.
+The agent follows four steps:
 
-| Skill | Folder | What it adds |
-|---|---|---|
-| **core** | `dist/core/energy-efficiency` | the procedure, the energy probe (`energy.py`), the input generator and the verifier |
-| **core+tax** | `dist/core+tax/energy-smells` | the taxonomy: an index of 12 energy smells and 65 root causes, 12 category cards, and 65 root-cause cards with measured repair examples and near-misses |
-| **full** | `dist/full/energy-smells` | a static analyzer (`scan.py`): 40 rules of our own and 31 Ruff rules, each mapped to root causes |
+1. **Find.** It reads every function in the target and lists each suspected energy smell.
+2. **Decide.** It accepts or rejects each suspicion after studying it in depth.
+3. **Repair and measure.** It writes a repair for each accepted suspicion. A
+   verifier runs the original and the repaired function on the same inputs,
+   checks that they behave identically, and measures the energy of both.
+4. **Finish.** It summarises every repair, its root cause and its verdict.
 
-A skill folder holds everything the agent needs:
-
-```
-energy-smells/
-├── SKILL.md               the procedure the agent follows
-├── reference/             taxonomy index, category and root-cause cards, how to verify, output format
-└── scripts/
-    ├── step.py            marks a step as finished
-    ├── scan.py            static rules (full only)
-    ├── inputs.py          requests inputs from the input generator
-    ├── verify.py          checks behaviour and measures energy of each repair
-    ├── energy.py          measures the energy of any call, at any step
-    └── lib/               shared code (standard library only)
-```
+The inputs a repair is measured on are written by a separate **input
+generator**, which uses an LLM (DeepSeek V4.1 Flash through OpenRouter). It
+runs outside the Claude Code session, so the agent cannot choose the inputs its
+own repairs are measured on.
 
 ## Requirements
 
-- **Linux on an Intel CPU** with readable RAPL energy counters
-  (`/sys/class/powercap/intel-rapl:N/energy_uj`). If they are readable only by
-  root: `sudo chmod a+r /sys/class/powercap/intel-rapl:[0-9]*/energy_uj`.
-- **Python 3.10** or newer for the skill. The evaluation used Python 3.10.12
-  (Ubuntu 22.04's `python3`).
-- **[Claude Code](https://docs.claude.com/en/docs/claude-code)**, installed and signed in.
-- **An [OpenRouter](https://openrouter.ai) API key.** The input generator uses
-  DeepSeek V4.1 Flash through OpenRouter to write the inputs each repair is
-  measured on. The evaluation's 523 units cost $1.23 in total, about a quarter
-  of a cent each.
-- For section B only: an Anthropic API key, `git`, and about 25 GB of free disk space.
+| | |
+|---|---|
+| Operating system | Linux on an Intel CPU, with readable RAPL energy counters |
+| Python | 3.10 or newer, in the project's venv |
+| Agent | [Claude Code](https://docs.claude.com/en/docs/claude-code), installed and signed in |
+| Input generator | an [OpenRouter](https://openrouter.ai/keys) API key; inputs cost about a quarter of a cent per function |
 
-Energy readings cover the whole CPU package, so measure on an otherwise idle machine.
+If the RAPL counters are readable only by root:
+`sudo chmod a+r /sys/class/powercap/intel-rapl:[0-9]*/energy_uj`.
+Energy is read for the whole CPU package, so measure on an otherwise idle machine.
 
-## A. Use a skill on your own repository
+## Installation
 
-Below, `~/my-project` is the repository you want to analyse.
-
-**0. Download this repository once, to `~/dr-greens`.** It holds the skills
-(`dist/`) and the input generator (`tools/`). Leave it there: every command
-below uses this path.
+Download and unzip the release:
 
 ```bash
-git clone https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills.git ~/dr-greens
+curl -L -o dr-greens.zip https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills/releases/latest/download/dr-greens.zip
+unzip dr-greens.zip -d ~          # creates ~/dr-greens
 ```
 
-**1. Copy one skill into your repository.** Claude Code loads skills from
-`.claude/skills/`:
+```
+~/dr-greens/
+├── skills/                   the three skills: core, core+tax, full
+├── start_inputs.sh           starts the input generator
+├── apply.sh                  writes the chosen repairs into your code
+├── requirements-skill.txt    packages the skill needs in your venv
+├── tools/, src/              code used by the two scripts
+└── README.md
+```
+
+## Usage
+
+The examples analyse a project at `~/my-project` with the `full` skill.
+
+### 1. Add a skill to your project
+
+Claude Code loads skills from `.claude/skills/` in your project:
 
 ```bash
 mkdir -p ~/my-project/.claude/skills
-cp -r ~/dr-greens/dist/full/energy-smells ~/my-project/.claude/skills/
+cp -r ~/dr-greens/skills/full/energy-smells ~/my-project/.claude/skills/
 ```
 
-For the other skills, copy `dist/core+tax/energy-smells` or
-`dist/core/energy-efficiency` instead. Install one skill at a time.
+Install one skill at a time. The other two are `skills/core+tax/energy-smells`
+and `skills/core/energy-efficiency` ([which to choose](#the-three-skills)).
 
-**2. Activate your project's venv and add the skill's packages.** The skill
-runs and measures your code in this venv.
+### 2. Prepare your project's environment
+
+The skill runs and measures your code in your project's venv. Activate it and
+add the skill's packages (CodeGreen, Ruff, NumPy, pandas, SciPy, Requests, PyYAML):
 
 ```bash
 source ~/my-project/.venv/bin/activate
-pip install -r ~/dr-greens/requirements-skill.txt    # codegreen, ruff, numpy, pandas, scipy, requests, pyyaml
+pip install -r ~/dr-greens/requirements-skill.txt
 ```
 
 If your project has no venv yet, create one and install its dependencies first:
@@ -112,35 +104,34 @@ source ~/my-project/.venv/bin/activate
 pip install -r ~/my-project/requirements.txt         # or: pip install -e ~/my-project
 ```
 
-If your project declares no dependencies, install the packages its code
-imports. For example, `open-telemetry/community` also needs `jsonschema`.
+If your project does not declare its dependencies, install the packages its
+code imports.
 
-**3. Start the input generator** in a terminal with the venv activated, and
-leave it running. It writes the inputs each repair is measured on, with your
-OpenRouter key. It runs outside the Claude Code session, so the agent never
-sees the key and cannot choose the inputs its repairs are measured on.
+### 3. Start the input generator
 
-The generator reads the key from a file. Create a key at
-[openrouter.ai/keys](https://openrouter.ai/keys) (it starts with `sk-or-`),
-then save it in a text file that holds only the key, on one line:
+Save your OpenRouter key in a file that holds only the key, on one line:
 
 ```bash
-nano ~/openrouter-key          # paste the key, save with Ctrl-O, exit with Ctrl-X
-chmod 600 ~/openrouter-key     # readable only by you
+nano ~/openrouter-key          # paste the key (sk-or-...), save with Ctrl-O, exit with Ctrl-X
+chmod 600 ~/openrouter-key
 ```
 
-Then start the generator, giving it your repository and the key file. Run it
-from `~/dr-greens` exactly as written; do not copy the script anywhere else:
+Then, in a terminal with your project's venv activated, start the generator
+and leave it running while you use the skill:
 
 ```bash
 ~/dr-greens/start_inputs.sh ~/my-project ~/openrouter-key
 ```
 
-**4. Start Claude Code** in a second terminal, with the same venv activated:
+### 4. Ask Claude Code
+
+In a second terminal, activate the same venv, point Claude Code at the
+generator, and start it in your project:
 
 ```bash
+source ~/my-project/.venv/bin/activate
+export ENERGY_INPUTS_SOCKET=~/.energy-skill/my-project/inputs.sock    # printed by start_inputs.sh
 cd ~/my-project
-export ENERGY_INPUTS_SOCKET=~/.energy-skill/my-project/inputs.sock   # printed by start_inputs.sh
 claude
 ```
 
@@ -152,13 +143,16 @@ Find the energy smells in src/parser.py using the energy-smells skill.
 Find the energy smells in src/parser.py::Parser.tokenize using the energy-smells skill.
 ```
 
-With the core skill, ask: `Find where this repository wastes energy, using the
-energy-efficiency skill.` Any model works; choose it with `/model`.
+With the `core` skill, ask: `Find where this repository wastes energy, using the
+energy-efficiency skill.` Any Claude model works; choose it with `/model`.
 
-**5. Read the results.** The agent does not edit your code. It writes
-`step1.jsonl`, `step2.jsonl`, `step3.jsonl` and `submissions.jsonl` in the
-repository root. Each line of `submissions.jsonl` is one repair: the new source
-of the function, and its verdict in `agent_measurement.status`:
+### 5. Read the results
+
+The agent writes four files in your project's root: `step1.jsonl` (what it
+suspected), `step2.jsonl` (what it accepted or rejected, and why),
+`step3.jsonl` (what became of each accepted suspicion), and `submissions.jsonl`
+(one repair per line: the new source of the function, and its verdict in
+`agent_measurement.status`).
 
 | Verdict | Meaning |
 |---|---|
@@ -169,24 +163,73 @@ of the function, and its verdict in `agent_measurement.status`:
 | `negligible` | no change beyond the measurement noise |
 | `inconclusive` | the machine was too noisy to resolve the effect |
 
-Repairs that were not measured are `not_equivalent` (behaviour differs),
+Repairs that could not be measured are `not_equivalent` (behaviour differs),
 `no_inputs` (no inputs could be generated, for example because the code needs
 the network), `invalid`, `error` or `over_limit`. A session measures at most 20
 repairs; other accepted suspicions are recorded as `deferred` in `step3.jsonl`.
 
-Before a new session in the same repository, remove the previous session's files:
+### 6. Apply the repairs
+
+`apply.sh` writes, for each function, the `confirmed` repair with the largest
+energy saving into your code, replacing only that function. Run it with your
+project's venv activated:
 
 ```bash
-chmod -R u+w .energy-inputs; rm -rf step?.jsonl submissions.jsonl .energy-inputs .energy-scan
+~/dr-greens/apply.sh ~/my-project                                  # every confirmed repair
+~/dr-greens/apply.sh ~/my-project --only C3S2-sort-once src/io.py::load   # only these repairs or functions
+~/dr-greens/apply.sh ~/my-project --remeasure                      # measure every repair again first
+~/dr-greens/apply.sh ~/my-project --dry-run                        # report only, change no code
 ```
 
-## B. Reproduce the evaluation
+| Option | Effect |
+|---|---|
+| (none) | uses the measurements the agent recorded |
+| `--only ID ...` | considers only these repairs (their `id` in `submissions.jsonl`) or functions (`path::qualname`) |
+| `--remeasure` | measures every considered repair again on a fresh copy of your project first (about a minute each) |
+| `--dry-run` | writes the report without changing any code |
 
-Download this repository as in step 0 of section A, and run every command below
-from inside it (`cd ~/dr-greens`).
+The options can be combined. Each run writes `REPORT.md` and `results.jsonl`
+to your project's root, listing every repair, its verdict, and whether it was
+applied or why not. Only `confirmed` repairs are applied, at most one per
+function. Review the change with `git diff` and run your tests.
 
-The evaluation runs every skill with Claude Sonnet 5.5 and Claude Haiku 5.5, at
-high reasoning effort, on three repositories (`experiment/repos.tsv`):
+To start a new session in the same project, remove the previous session's files:
+
+```bash
+cd ~/my-project
+chmod -R u+w .energy-inputs; rm -rf step?.jsonl submissions.jsonl results.jsonl REPORT.md .energy-inputs .energy-scan
+```
+
+## The three skills
+
+Each skill adds a layer of knowledge to the one before it. All three follow the
+same four steps and use the same verifier, energy probe and input generator.
+
+| Skill | Folder | Adds |
+|---|---|---|
+| `core` | `skills/core/energy-efficiency` | the procedure, the energy probe, the input generator and the verifier |
+| `core+tax` | `skills/core+tax/energy-smells` | a taxonomy of 12 energy smells and 65 root causes: an index, 12 category cards, and 65 root-cause cards with measured repair examples and near-misses |
+| `full` | `skills/full/energy-smells` | a static analyzer: 40 rules of our own and 31 Ruff rules, each mapped to root causes |
+
+```
+energy-smells/
+├── SKILL.md               the procedure the agent follows
+├── reference/             taxonomy index, category and root-cause cards, verification guide, output format
+└── scripts/
+    ├── step.py            marks a step as finished
+    ├── scan.py            static rules (full only)
+    ├── inputs.py          requests inputs from the input generator
+    ├── verify.py          checks behaviour and measures the energy of each repair
+    ├── energy.py          measures the energy of any call, at any step
+    └── lib/               shared code
+```
+
+## Reproducing the evaluation
+
+The evaluation ran each skill with Claude Sonnet 5.5 and Claude Haiku 5.5, at
+high reasoning effort, on three open-source repositories: 18 sessions. Every
+recorded session is in [`results/`](results/README.md). Reproducing it needs
+this whole repository, an Anthropic API key, and about 25 GB of free disk space.
 
 | Repository | Commit | Domain |
 |---|---|---|
@@ -194,30 +237,33 @@ high reasoning effort, on three repositories (`experiment/repos.tsv`):
 | `dnanexus/dx-toolkit` | `accd86a` | genomics cloud toolkit |
 | `open-telemetry/community` | `910f85d` | project automation scripts |
 
-**1. Keys.** The harness reads two keys from two files in `~/energy-exp`, each
-holding only the key, on one line: an Anthropic API key
-([console.anthropic.com](https://console.anthropic.com), it starts with
-`sk-ant-`) and an OpenRouter key ([openrouter.ai/keys](https://openrouter.ai/keys),
-it starts with `sk-or-`).
+**1. Clone the repository.**
+
+```bash
+git clone https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills.git ~/dr-greens-repo
+cd ~/dr-greens-repo
+```
+
+**2. Save the keys.** Two files in `~/energy-exp`, each holding only the key,
+on one line: an Anthropic API key ([console.anthropic.com](https://console.anthropic.com),
+`sk-ant-...`) and an OpenRouter key (`sk-or-...`).
 
 ```bash
 mkdir -p ~/energy-exp && chmod 700 ~/energy-exp
-nano ~/energy-exp/api-key            # paste the Anthropic key, save with Ctrl-O, exit with Ctrl-X
+nano ~/energy-exp/api-key            # paste the Anthropic key, save, exit
 nano ~/energy-exp/openrouter-key     # paste the OpenRouter key, save, exit
 chmod 600 ~/energy-exp/api-key ~/energy-exp/openrouter-key
 ```
 
-The keys are never visible to the agent: Claude Code reads the API key once,
-and `~/energy-exp` is locked (`chmod 000`) while a session runs.
+The agent never sees the keys: `~/energy-exp` is locked while a session runs.
 
-**2. Setup.** Clones each repository at its commit and builds one venv per
-repository:
+**3. Set up.** Clones each repository at its commit and builds one venv per repository:
 
 ```bash
-./setup.sh                      # or only one venv: ./setup.sh community
+./setup.sh                      # or only one repository's venv: ./setup.sh community
 ```
 
-**3. Check, then run.**
+**4. Run.**
 
 ```bash
 ./run.sh --check                                          # Claude Code starts (one short call)
@@ -233,44 +279,48 @@ repository:
 | `--models` | `sonnet`, `haiku`, `opus` | `sonnet haiku` |
 | `--again` | run a finished session again (the earlier one is kept) | |
 
-Sessions run one at a time, since energy is measured on the same machine. A
-session lasts up to 2 hours, followed by up to 40 minutes of re-measurement.
-Finished sessions are skipped, so running the same command again resumes the
-grid. Run it inside `tmux` to keep it alive after you log out:
-`tmux new -d -s exp ./run.sh`.
+Sessions run one at a time on the same machine. Each lasts up to 2 hours,
+followed by up to 40 minutes in which every repair is measured again. Finished
+sessions are skipped, so running the same command again resumes. To keep a run
+alive after you log out: `tmux new -d -s exp ./run.sh`.
 
-**4. Results.** Each session is saved in
+**5. Results.** Each session is saved in
 `~/energy-exp/archive/<repo>/<skill>/<model>/`, with one row per session in
-`~/energy-exp/archive/summary.csv`. The folder layout is the same as in
-`results/`, described in [`results/README.md`](results/README.md). Agents are
-not deterministic, so a new session finds and repairs different code than the
-recorded one, and energy readings depend on the hardware.
-
-More on the harness, its settings and its environment variables:
+`~/energy-exp/archive/summary.csv`, in the same layout as
+[`results/`](results/README.md). Agents are not deterministic, so a new session
+finds and repairs different code than the recorded one, and energy readings
+depend on the hardware. The harness is described in
 [`experiment/README.md`](experiment/README.md).
 
 ## Repository layout
 
 ```
 .
-├── dist/                  the three skills, ready to copy (generated)
-│   ├── core/energy-efficiency/
-│   ├── core+tax/energy-smells/
-│   └── full/energy-smells/
-├── src/                   source of the skills' scripts: verifier, scanner, energy meter
+├── dist/                  the three skills (skills/ in the release), generated by build/
+├── src/                   the skills' scripts: verifier, static analyzer, energy meter
 ├── taxonomy/              the energy smell taxonomy (12 smells, 65 root causes)
 ├── catalog/               per root cause: patterns, measured repairs, near-misses
 ├── build/                 renders the taxonomy, catalog and templates into dist/
 ├── tools/
 │   ├── inputs/            the input generator and its service
-│   └── review.py          re-measures submitted repairs and writes a report
+│   ├── review.py          chooses, re-measures and applies repairs (used by apply.sh)
+│   └── make_bundle.sh     builds the release archive dr-greens.zip
 ├── experiment/            the evaluation harness (run_all.sh, config.sh, repos.tsv)
 ├── results/               every recorded session of the evaluation
 ├── validation/            measured repair cases behind the cards, near-miss specimens
 ├── tests/rules/           tests of every static rule
 ├── data/manual_sampling/  hand-written before/after sample pairs
-├── setup.sh, run.sh       reproduce the evaluation (section B)
-├── start_inputs.sh        start the input generator for your repository (section A)
+├── start_inputs.sh        starts the input generator
+├── apply.sh               applies repairs to a project
+├── setup.sh, run.sh       reproduce the evaluation
 ├── requirements.txt       packages of the harness and the build
-└── requirements-skill.txt packages the skill needs in your venv
+└── requirements-skill.txt packages the skill needs in a project's venv
 ```
+
+To rebuild the skills from their sources:
+`pip install -r requirements.txt && python -m build`.
+
+## Citation
+
+Mohammadjavad Mehditabar, Saurabhsingh Rajput, and Tushar Sharma.
+*Ctrl+Shift+Left: Detecting and Refactoring Energy Smells using Agent Skills.*
