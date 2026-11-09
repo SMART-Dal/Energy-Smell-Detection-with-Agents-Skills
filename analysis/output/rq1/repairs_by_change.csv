@@ -1,5 +1,0 @@
-change_group,measured,confirmed,pct_confirmed,regressed,pct_regressed,negligible,median_saving_pct,confirmed_at_least_50pct
-Changes the loops,52,33,63.5,2,3.8,11,59.1,19
-Fewer calls inside loops,32,23,71.9,2,6.2,6,18.5,0
-Fewer calls outside loops,10,2,20.0,3,30.0,4,52.6,1
-Same loops and calls,98,68,69.4,9,9.2,14,23.2,16

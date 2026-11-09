@@ -1,4 +1,0 @@
-skill,measured,confirmed,pct_confirmed,regressed,pct_regressed,negligible,median_saving_pct,confirmed_at_least_50pct,median_lines_changed,repairs_1_2_lines,pct_1_2_lines,pct_changes_the_loops,pct_fewer_calls_inside_loops,pct_fewer_calls_outside_loops,pct_same_loops_and_calls
-Taxonomy+Rules,94,63,67.0,6,6.4,15,19.1,14,5.0,32,34.0,23.4,20.2,8.5,47.9
-Taxonomy,90,66,73.3,4,4.4,14,24.3,18,5.0,17,18.9,30.0,16.7,4.4,48.9
-Unguided,74,48,64.9,9,12.2,14,27.9,16,5.0,23,31.1,23.0,18.9,2.7,55.4

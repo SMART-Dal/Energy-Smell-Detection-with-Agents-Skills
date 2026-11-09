@@ -1,3 +1,0 @@
-dx-toolkit: src/python/dxpy/templating/templates/python/basic/src/code.py does not parse; its units are not counted
-dx-toolkit: src/python/dxpy/templating/templates/python/parallelized/src/code.py does not parse; its units are not counted
-dx-toolkit: src/python/dxpy/templating/templates/python/scatter-process-gather/src/code.py does not parse; its units are not counted
