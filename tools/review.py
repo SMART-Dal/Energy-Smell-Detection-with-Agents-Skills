@@ -478,7 +478,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{row['id']:<22} {row['status']:<15} "
               f"{chosen if row['applied'] else (row['not_applied_reason'] or '')[:70]}")
     if applied and not args.apply:
-        print("\nadd --apply to write the chosen repairs into the repository")
+        print("\nthe chosen repairs were not written into the repository")
     print(f"\nwrote {args.run_dir / 'results.jsonl'} and {args.run_dir / 'REPORT.md'}")
     return 0
 
