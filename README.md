@@ -100,18 +100,16 @@ terminal open while you use the skill:
 dr-greens/start_generator.sh my-project openrouter-key
 ```
 
-Stop it with Ctrl-C when you are done.
+It stops when you close the terminal or press Ctrl-C. It records where it
+listens in `my-project/.claude/settings.local.json`, which Claude Code reads.
 
-**5. Open Claude Code** in your project as usual, in another terminal:
+**5. Open Claude Code** in another terminal, with your venv activated:
 
 ```bash
 cd my-project
+source .venv/bin/activate        # your project's venv
 claude
 ```
-
-While the generator runs, Claude Code sessions in your project are connected
-to it and use your venv; the generator sets this in
-`my-project/.claude/settings.local.json` and restores that file when it stops.
 
 Then ask, for example:
 
