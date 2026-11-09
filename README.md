@@ -90,12 +90,12 @@ cp -r dr-greens/dist/full/energy-smells ~/my-project/.claude/skills/
 For the other skills, copy `dist/core+tax/energy-smells` or
 `dist/core/energy-efficiency` instead. Install one skill at a time.
 
-**2. Activate your project's venv and add the skill's two packages.** The skill
+**2. Activate your project's venv and add the skill's packages.** The skill
 runs and measures your code in this venv.
 
 ```bash
 source ~/my-project/.venv/bin/activate
-pip install -r dr-greens/requirements-skill.txt      # codegreen and ruff
+pip install -r dr-greens/requirements-skill.txt      # codegreen, ruff, numpy, pandas, scipy, requests, pyyaml
 ```
 
 If your project has no venv yet, create one and install its dependencies first:
@@ -105,6 +105,9 @@ python3 -m venv ~/my-project/.venv
 source ~/my-project/.venv/bin/activate
 pip install -r ~/my-project/requirements.txt         # or: pip install -e ~/my-project
 ```
+
+If your project declares no dependencies, install the packages its code
+imports. For example, `open-telemetry/community` also needs `jsonschema`.
 
 **3. Start the input generator** in a terminal with the venv activated, and
 leave it running. It writes the inputs each repair is measured on, with your
