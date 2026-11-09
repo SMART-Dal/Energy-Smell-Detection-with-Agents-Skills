@@ -64,6 +64,13 @@ work/
 Run every command below from `work/`, and replace `my-project` with your
 project's folder name.
 
+**Once per machine**, tell Claude Code where the input generator listens, then
+open a new terminal:
+
+```bash
+echo 'export ENERGY_INPUTS_SOCKET="$HOME/.energy-skill/inputs.sock"' >> ~/.bashrc
+```
+
 **1. Unzip the release.**
 
 ```bash
@@ -94,14 +101,12 @@ it, and install your project's dependencies (for example
 `pip install -r my-project/requirements.txt`).
 
 **4. Start the input generator** (with the venv still active), and leave this
-terminal open while you use the skill:
+terminal open while you use the skill. It stops when you close the terminal or
+press Ctrl-C.
 
 ```bash
 dr-greens/start_generator.sh my-project openrouter-key
 ```
-
-It stops when you close the terminal or press Ctrl-C. It records where it
-listens in `my-project/.claude/settings.local.json`, which Claude Code reads.
 
 **5. Open Claude Code** in another terminal, with your venv activated:
 
