@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Our side of a run: re-measure every submission, decide what to apply, report.
 
-    python tools/review.py REPO RUN_DIR [--inputs DIR]  re-measure, decide, write the report
-    python tools/review.py REPO RUN_DIR --apply         ...and write the applied repairs to REPO
-    python tools/review.py REPO RUN_DIR --verdicts F    reuse a re-measurement already taken
+    python tools/review.py REPO [RUN_DIR] [--inputs DIR]  re-measure, decide, write the report
+    python tools/review.py REPO [RUN_DIR] --apply         ...and write the applied repairs to REPO
+    python tools/review.py REPO [RUN_DIR] --trust-agent   use the agent's own measurements instead
+    python tools/review.py REPO [RUN_DIR] --only ID ...   consider only these submissions
+    python tools/review.py REPO RUN_DIR --verdicts F      reuse a re-measurement already taken
 
 RUN_DIR holds the agent's `submissions.jsonl` and `findings.jsonl` (its three
-step files, joined). This writes `results.jsonl` and `REPORT.md` beside them.
+step files, joined), or the step files themselves; it defaults to REPO, where
+the agent leaves them. This writes `results.jsonl` and `REPORT.md` beside them.
 It never ships inside a skill.
 
 The agent measured its own repairs, and those numbers stay in its file as it
@@ -208,6 +211,25 @@ def _verify(repo: Path, submissions: Path, inputs: Path | None) -> list[dict]:
         raise SystemExit(f"re-measurement failed:\n{completed.stderr[-2000:]}")
 
 
+def read_findings(run_dir: Path) -> list[dict]:
+    """findings.jsonl, or the three step files it joins when it is not there."""
+    if (run_dir / "findings.jsonl").exists():
+        return read_jsonl(run_dir / "findings.jsonl")
+    return [row for n in (1, 2, 3) for row in read_jsonl(run_dir / f"step{n}.jsonl")]
+
+
+def agent_result(record: dict) -> dict:
+    """The measurement the agent recorded on a submission line, as a re-measurement would be."""
+    measurement = record.get("agent_measurement")
+    if not isinstance(measurement, dict):
+        return {"id": record.get("id"), "status": "not measured",
+                "reason": "the agent recorded no measurement for this line"}
+    if measurement.get("submission_hash") != submission_hash(record):
+        return {"id": record.get("id"), "status": "invalid",
+                "reason": "the line was edited after the agent measured it"}
+    return {**measurement, "id": record.get("id")}
+
+
 def mean_saving(result: dict) -> float | None:
     """Mean percentage saved across the measured cases, from the joules."""
     savings = [100.0 * (c["before_energy_j"] - c["after_energy_j"]) / c["before_energy_j"]
@@ -362,22 +384,44 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("repo", type=Path)
-    parser.add_argument("run_dir", type=Path)
+    parser.add_argument("run_dir", type=Path, nargs="?",
+                        help="the folder holding submissions.jsonl (default: REPO)")
     parser.add_argument("--verdicts", type=Path,
                         help="a saved `verify.py --no-record --json` output to reuse")
     parser.add_argument("--inputs", type=Path,
                         help="our copy of the generated inputs (default: the repository's own)")
     parser.add_argument("--apply", action="store_true",
                         help="write the applied repairs into REPO")
+    parser.add_argument("--trust-agent", action="store_true",
+                        help="use the measurement the agent recorded on each line instead of "
+                             "measuring again")
+    parser.add_argument("--only", nargs="+", metavar="ID",
+                        help="consider only these submissions: ids, or units as path::qualname")
     args = parser.parse_args(argv)
 
     repo = args.repo.resolve()
+    args.run_dir = args.run_dir or repo
     submissions_path = args.run_dir / "submissions.jsonl"
     submissions = read_jsonl(submissions_path)
-    findings = read_jsonl(args.run_dir / "findings.jsonl")
+    findings = read_findings(args.run_dir)
 
-    measured = (json.loads(args.verdicts.read_text()) if args.verdicts
-                else remeasure(repo, submissions_path, args.inputs))
+    if args.only:
+        wanted = set(args.only)
+        submissions = [r for r in submissions if r.get("id") in wanted or r.get("unit") in wanted]
+        unknown = wanted - {r.get("id") for r in submissions} - {r.get("unit") for r in submissions}
+        if unknown:
+            print(f"not in {submissions_path}: {', '.join(sorted(unknown))}")
+            return 2
+
+    if args.trust_agent:
+        measured = [agent_result(record) for record in submissions]
+    elif args.verdicts:
+        measured = json.loads(args.verdicts.read_text())
+    else:
+        with tempfile.TemporaryDirectory() as scratch:
+            selected = Path(scratch) / "submissions.jsonl"
+            selected.write_text("".join(json.dumps(r) + "\n" for r in submissions), encoding="utf-8")
+            measured = remeasure(repo, selected if args.only else submissions_path, args.inputs)
     (args.run_dir / "remeasured.json").write_text(json.dumps(measured, indent=1))
     ours = {r.get("id"): r for r in measured}
 
@@ -429,9 +473,12 @@ def main(argv: list[str] | None = None) -> int:
                 changed.update(record["changed"])
         touched = splice_tree(repo, changed)
         print(f"applied {len(applied)} repair(s) to {', '.join(touched)}")
+    chosen = "APPLIED" if args.apply else "chosen"
     for row in rows:
         print(f"{row['id']:<22} {row['status']:<15} "
-              f"{'APPLIED' if row['applied'] else (row['not_applied_reason'] or '')[:70]}")
+              f"{chosen if row['applied'] else (row['not_applied_reason'] or '')[:70]}")
+    if applied and not args.apply:
+        print("\nadd --apply to write the chosen repairs into the repository")
     print(f"\nwrote {args.run_dir / 'results.jsonl'} and {args.run_dir / 'REPORT.md'}")
     return 0
 
