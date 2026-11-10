@@ -81,8 +81,8 @@ work/
 ```
 
 Download `dr-greens.zip` from this repository (open the file, then choose
-"Download raw file"). Run every command below from `work/`, and replace `my-project` with your
-project's folder name.
+"Download raw file"). Run every command below from `work/`, and replace
+`my-project` with your project's folder name.
 
 **Once per machine**, tell Claude Code where the input generator listens, then
 open a new terminal:
@@ -329,6 +329,9 @@ To rebuild the skills from their sources:
 > such a tool will enable energy-efficient code development.
 
 ## Citation
+
+Mohammadjavad Mehditabar, Saurabhsingh Rajput, and Tushar Sharma.
+*Ctrl+Shift+Left: Detecting and Refactoring Energy Smells using Agent Skills.*
 
 ```bibtex
 @misc{mehditabar2026ctrlshiftleft,
