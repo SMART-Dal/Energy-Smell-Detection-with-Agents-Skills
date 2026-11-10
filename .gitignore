@@ -10,3 +10,4 @@ data/classified_smells.jsonl
 data/manual_sampling/DistributedOperations/FileLogging/log_timer.txt
 data/manual_sampling/DistributedOperations/FileLogging/timer_log.txt
 
+.DS_Store

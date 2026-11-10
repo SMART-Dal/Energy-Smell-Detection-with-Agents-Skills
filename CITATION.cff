@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: If you use Dr. Greens, please cite the paper.
+title: "Ctrl+Shift+Left: Detecting and Refactoring Energy Smells using Agent Skills"
+type: software
+authors:
+  - given-names: Mohammadjavad
+    family-names: Mehditabar
+    affiliation: Dalhousie University
+  - given-names: Saurabhsingh
+    family-names: Rajput
+    affiliation: Dalhousie University
+  - given-names: Tushar
+    family-names: Sharma
+    affiliation: Dalhousie University
+repository-code: https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills
+date-released: 2026-11-10

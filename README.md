@@ -8,37 +8,25 @@ finds **energy smells** (code that does more work than its task requires),
 writes a repair for each one, and has every repair checked for identical
 behaviour and measured for energy on your machine. It never edits your code;
 you choose which measured repairs to apply.
+
 This repository accompanies the paper *Ctrl+Shift+Left: Detecting and
 Refactoring Energy Smells using Agent Skills* (Mohammadjavad Mehditabar,
-Saurabhsingh Rajput, Tushar Sharma; Dalhousie University).
+Saurabhsingh Rajput, Tushar Sharma; Dalhousie University). Linux with Intel RAPL
+counters only; see [Requirements](#requirements).
 
-
-## Abstract
-
-```
-Energy smells are inefficient implementations that waste energy. Once code
-reaches production, they become costlier and riskier to fix, so energy checks
-should shift left, i.e., move earlier in the development lifecycle, to where
-code is written. Existing energy smell tools rely on fixed static rules and do
-not measure energy savings, while LLM-based optimizers mostly target execution
-time and rarely ground their changes in concrete smell definitions. We present
-Dr. Greens, an agent skill that detects and repairs energy smells in Python
-code inside the developer's coding environment. The skill grounds the coding
-agent in our taxonomy of 12 energy smells and 65 root causes, extended with
-repair guidance from 230 measured cases. The skill also encapsulates a static
-analyzer and an independent verifier to confirm behavior preservation and
-energy saving for each attempted repair. We evaluated Dr. Greens in 18
-sessions on three open-source repositories, with two models and three skill
-configurations. Of the 258 measured repairs, 68.6% save energy, with a median
-saving of 24.9%. The taxonomy increased the number of units found with energy
-smells on all three repositories and with both models, compared with a
-baseline skill without it. Dr. Greens helps developers detect energy hotspots
-and fix them reliably without impacting their behavior; the availability of
-such a tool will enable energy-efficient code development.
-```
+- [Why Dr. Greens](#why-dr-greens)
+- [How it works](#how-it-works)
+- [Requirements](#requirements)
+- [Usage](#usage)
+- [The three skills](#the-three-skills)
+- [Reproducing the evaluation](#reproducing-the-evaluation)
+- [Repository layout](#repository-layout)
+- [Abstract](#abstract)
+- [Citation](#citation)
 
 <p align="center">
-  <img src="docs/overview.png" width="540" alt="Overview of Dr. Greens: the skill's resources, the agent's four steps, and the verification services">
+  <img src="docs/overview.png" width="540"
+       alt="Overview of Dr. Greens: the skill's resources, the agent's four steps, and the verification services">
 </p>
 <p align="center"><em>Overview of Dr. Greens (<a href="docs/overview.pdf">PDF</a>).</em></p>
 
@@ -51,23 +39,12 @@ such a tool will enable energy-efficient code development.
 - **Minimal installation.** One `pip install` in your project's venv and one
   script that starts the input generator.
 
-
-## Table of Contents
-- [Abstract](#abstract)
-- [Why Dr. Greens](#why-dr-greens)
-- [How it works](#how-it-works)
-- [Requirements](#requirements)
-- [Usage](#usage)
-- [The three skills](#the-three-skills)
-- [Reproducing the evaluation](#reproducing-the-evaluation)
-- [Repository layout](#repository-layout)
-- [Citation](#citation)
-
 ## How it works
 
 The agent follows four steps:
 
-1. **Find.** It reads every function in the target and lists each suspected energy smell.
+1. **Find.** It reads every function in the target and lists each suspected
+   energy smell.
 2. **Decide.** It accepts or rejects each suspicion after studying it in depth.
 3. **Repair and measure.** It writes a repair for each accepted suspicion. A
    verifier runs the original and the repaired function on the same inputs,
@@ -99,11 +76,12 @@ Energy is read for the whole CPU package, so measure on an otherwise idle machin
 ```
 work/
 ├── my-project/         your project
-├── dr-greens.zip       download it from this repository (the file dr-greens.zip, then "Download raw file")
+├── dr-greens.zip       the release (see below)
 └── openrouter-key      a text file holding only your OpenRouter key, on one line
 ```
 
-Run every command below from `work/`, and replace `my-project` with your
+Download `dr-greens.zip` from this repository (open the file, then choose
+"Download raw file"). Run every command below from `work/`, and replace `my-project` with your
 project's folder name.
 
 **Once per machine**, tell Claude Code where the input generator listens, then
@@ -328,7 +306,35 @@ depend on the hardware. The harness is described in
 To rebuild the skills from their sources:
 `pip install -r requirements.txt && python -m build`.
 
+## Abstract
+
+> Energy smells are inefficient implementations that waste energy. Once code
+> reaches production, they become costlier and riskier to fix, so energy checks
+> should shift left, i.e., move earlier in the development lifecycle, to where
+> code is written. Existing energy smell tools rely on fixed static rules and do
+> not measure energy savings, while LLM-based optimizers mostly target execution
+> time and rarely ground their changes in concrete smell definitions. We present
+> Dr. Greens, an agent skill that detects and repairs energy smells in Python
+> code inside the developer's coding environment. The skill grounds the coding
+> agent in our taxonomy of 12 energy smells and 65 root causes, extended with
+> repair guidance from 230 measured cases. The skill also encapsulates a static
+> analyzer and an independent verifier to confirm behavior preservation and
+> energy saving for each attempted repair. We evaluated Dr. Greens in 18
+> sessions on three open-source repositories, with two models and three skill
+> configurations. Of the 258 measured repairs, 68.6% save energy, with a median
+> saving of 24.9%. The taxonomy increased the number of units found with energy
+> smells on all three repositories and with both models, compared with a
+> baseline skill without it. Dr. Greens helps developers detect energy hotspots
+> and fix them reliably without impacting their behavior; the availability of
+> such a tool will enable energy-efficient code development.
+
 ## Citation
 
-Mohammadjavad Mehditabar, Saurabhsingh Rajput, and Tushar Sharma.
-*Ctrl+Shift+Left: Detecting and Refactoring Energy Smells using Agent Skills.*
+```bibtex
+@misc{mehditabar2026ctrlshiftleft,
+  author = {Mehditabar, Mohammadjavad and Rajput, Saurabhsingh and Sharma, Tushar},
+  title  = {Ctrl+Shift+Left: Detecting and Refactoring Energy Smells using Agent Skills},
+  year   = {2026},
+  url    = {https://github.com/SMART-Dal/Energy-Smell-Detection-with-Agents-Skills}
+}
+```
