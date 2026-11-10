@@ -9,26 +9,6 @@ writes a repair for each one, and has every repair checked for identical
 behaviour and measured for energy on your machine. It never edits your code;
 you choose which measured repairs to apply.
 
-<p align="center">
-  <img src="docs/overview.png" width="760" alt="Overview of Dr. Greens: the skill's resources, the agent's four steps, and the verification services">
-</p>
-<p align="center"><em>Overview of Dr. Greens (<a href="docs/overview.pdf">PDF</a>).</em></p>
-
-## Why Dr. Greens
-
-- **Copy one folder.** The skill is a plain folder you copy into your project's
-  `.claude/skills/`. No plugin, no server, no build step.
-- **Any Python project.** It assumes no domain, framework or platform: it works
-  on any repository whose code runs.
-- **Minimal installation.** One `pip install` in your project's venv and one
-  script that starts the input generator.
-- **Measured, not guessed.** Every repair is checked for identical behaviour and
-  its energy is measured on your machine, on inputs the agent did not write.
-- **Grounded in a taxonomy.** 12 energy smells and 65 root causes, with repair
-  guidance from 230 measured cases.
-- **You stay in control.** The agent never edits your code; you apply the
-  repairs you choose with one command.
-
 ## Abstract
 
 ```
@@ -53,12 +33,27 @@ and fix them reliably without impacting their behavior; the availability of
 such a tool will enable energy-efficient code development.
 ```
 
+<p align="center">
+  <img src="docs/overview.png" width="540" alt="Overview of Dr. Greens: the skill's resources, the agent's four steps, and the verification services">
+</p>
+<p align="center"><em>Overview of Dr. Greens (<a href="docs/overview.pdf">PDF</a>).</em></p>
+
+## Why Dr. Greens
+
+- **Copy one folder.** The skill is a plain folder you copy into your project's
+  `.claude/skills/`. No plugin, no server, no build step.
+- **Any Python project.** It assumes no domain, framework or platform: it works
+  on any repository whose code runs.
+- **Minimal installation.** One `pip install` in your project's venv and one
+  script that starts the input generator.
+
+
 This repository accompanies the paper *Ctrl+Shift+Left: Detecting and
 Refactoring Energy Smells using Agent Skills* (Mohammadjavad Mehditabar,
 Saurabhsingh Rajput, Tushar Sharma; Dalhousie University).
 
-- [Why Dr. Greens](#why-dr-greens)
 - [Abstract](#abstract)
+- [Why Dr. Greens](#why-dr-greens)
 - [How it works](#how-it-works)
 - [Requirements](#requirements)
 - [Usage](#usage)
