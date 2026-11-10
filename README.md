@@ -52,7 +52,7 @@ such a tool will enable energy-efficient code development.
   script that starts the input generator.
 
 
-
+## Table of Contents
 - [Abstract](#abstract)
 - [Why Dr. Greens](#why-dr-greens)
 - [How it works](#how-it-works)
