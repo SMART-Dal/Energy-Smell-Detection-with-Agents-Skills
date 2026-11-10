@@ -8,6 +8,10 @@ finds **energy smells** (code that does more work than its task requires),
 writes a repair for each one, and has every repair checked for identical
 behaviour and measured for energy on your machine. It never edits your code;
 you choose which measured repairs to apply.
+This repository accompanies the paper *Ctrl+Shift+Left: Detecting and
+Refactoring Energy Smells using Agent Skills* (Mohammadjavad Mehditabar,
+Saurabhsingh Rajput, Tushar Sharma; Dalhousie University).
+
 
 ## Abstract
 
@@ -48,9 +52,6 @@ such a tool will enable energy-efficient code development.
   script that starts the input generator.
 
 
-This repository accompanies the paper *Ctrl+Shift+Left: Detecting and
-Refactoring Energy Smells using Agent Skills* (Mohammadjavad Mehditabar,
-Saurabhsingh Rajput, Tushar Sharma; Dalhousie University).
 
 - [Abstract](#abstract)
 - [Why Dr. Greens](#why-dr-greens)
