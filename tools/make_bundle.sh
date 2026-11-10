@@ -15,6 +15,7 @@ cp -r src "$out/src"
 cp tools/review.py "$out/tools/"
 cp tools/inputs/service.py tools/inputs/generate.py tools/inputs/steps.py "$out/tools/inputs/"
 cp start_generator.sh apply.sh requirements-skill.txt README.md "$out/"
+cp -r docs "$out/docs"
 find "$out" -name __pycache__ -prune -exec rm -rf {} +
 
 rm -f dr-greens.zip

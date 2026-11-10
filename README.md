@@ -9,10 +9,56 @@ writes a repair for each one, and has every repair checked for identical
 behaviour and measured for energy on your machine. It never edits your code;
 you choose which measured repairs to apply.
 
+<p align="center">
+  <img src="docs/overview.png" width="760" alt="Overview of Dr. Greens: the skill's resources, the agent's four steps, and the verification services">
+</p>
+<p align="center"><em>Overview of Dr. Greens (<a href="docs/overview.pdf">PDF</a>).</em></p>
+
+## Why Dr. Greens
+
+- **Copy one folder.** The skill is a plain folder you copy into your project's
+  `.claude/skills/`. No plugin, no server, no build step.
+- **Any Python project.** It assumes no domain, framework or platform: it works
+  on any repository whose code runs.
+- **Minimal installation.** One `pip install` in your project's venv and one
+  script that starts the input generator.
+- **Measured, not guessed.** Every repair is checked for identical behaviour and
+  its energy is measured on your machine, on inputs the agent did not write.
+- **Grounded in a taxonomy.** 12 energy smells and 65 root causes, with repair
+  guidance from 230 measured cases.
+- **You stay in control.** The agent never edits your code; you apply the
+  repairs you choose with one command.
+
+## Abstract
+
+```
+Energy smells are inefficient implementations that waste energy. Once code
+reaches production, they become costlier and riskier to fix, so energy checks
+should shift left, i.e., move earlier in the development lifecycle, to where
+code is written. Existing energy smell tools rely on fixed static rules and do
+not measure energy savings, while LLM-based optimizers mostly target execution
+time and rarely ground their changes in concrete smell definitions. We present
+Dr. Greens, an agent skill that detects and repairs energy smells in Python
+code inside the developer's coding environment. The skill grounds the coding
+agent in our taxonomy of 12 energy smells and 65 root causes, extended with
+repair guidance from 230 measured cases. The skill also encapsulates a static
+analyzer and an independent verifier to confirm behavior preservation and
+energy saving for each attempted repair. We evaluated Dr. Greens in 18
+sessions on three open-source repositories, with two models and three skill
+configurations. Of the 258 measured repairs, 68.6% save energy, with a median
+saving of 24.9%. The taxonomy increased the number of units found with energy
+smells on all three repositories and with both models, compared with a
+baseline skill without it. Dr. Greens helps developers detect energy hotspots
+and fix them reliably without impacting their behavior; the availability of
+such a tool will enable energy-efficient code development.
+```
+
 This repository accompanies the paper *Ctrl+Shift+Left: Detecting and
 Refactoring Energy Smells using Agent Skills* (Mohammadjavad Mehditabar,
 Saurabhsingh Rajput, Tushar Sharma; Dalhousie University).
 
+- [Why Dr. Greens](#why-dr-greens)
+- [Abstract](#abstract)
 - [How it works](#how-it-works)
 - [Requirements](#requirements)
 - [Usage](#usage)
@@ -275,6 +321,7 @@ depend on the hardware. The harness is described in
 ├── validation/            measured repair cases behind the cards, near-miss specimens
 ├── tests/rules/           tests of every static rule
 ├── data/manual_sampling/  hand-written before/after sample pairs
+├── docs/                  the overview figure
 ├── start_generator.sh     starts the input generator for a project
 ├── apply.sh               applies repairs to a project
 ├── setup.sh, run.sh       reproduce the evaluation
